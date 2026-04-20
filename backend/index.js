@@ -3,7 +3,8 @@ const sql = require('mssql/msnodesqlv8');
 const cors = require('cors');
 const path = require('path');
 const moment = require('moment-timezone');
-
+const natural = require('natural');
+const vader = require('vader-sentiment');
 
 const app = express();
 app.use(express.json());
@@ -21,12 +22,101 @@ sql.connect(config)
   .catch(err => {
     console.error('❌ Connection Error:', err);
   });
-  
-//Satisfaction survey
+
+// =================== SENTIMENT ANALYSIS =================== //
+
+// Map emoji ratings to numeric scores
+const ratingScores = {
+  very_satisfied: 1.0,
+  satisfied: 0.5,
+  neutral: 0.0,
+  dissatisfied: -0.5,
+  very_dissatisfied: -1.0,
+  na: 0.0,
+};
+
+// Naïve Bayes classifier (trained with labeled examples)
+const classifier = new natural.BayesClassifier();
+
+// Positive training samples
+classifier.addDocument('excellent service very helpful staff amazing experience', 'Positive');
+classifier.addDocument('great resources comfortable environment wonderful visit', 'Positive');
+classifier.addDocument('very satisfied with the library services highly recommend', 'Positive');
+classifier.addDocument('staff are friendly and professional books are well organized', 'Positive');
+classifier.addDocument('love the library always clean and quiet perfect for studying', 'Positive');
+classifier.addDocument('fantastic collection helpful librarians outstanding service', 'Positive');
+classifier.addDocument('very pleased with the resources available exceeded expectations', 'Positive');
+classifier.addDocument('best library experience staff went above and beyond', 'Positive');
+
+// Neutral training samples
+classifier.addDocument('library is okay nothing special average experience', 'Neutral');
+classifier.addDocument('services are acceptable could be better but not bad', 'Neutral');
+classifier.addDocument('used the library for research it was fine', 'Neutral');
+classifier.addDocument('decent collection average staff response time', 'Neutral');
+classifier.addDocument('neither good nor bad just a regular visit', 'Neutral');
+classifier.addDocument('some things were good some were not satisfactory', 'Neutral');
+classifier.addDocument('average overall not impressed but not disappointed', 'Neutral');
+
+// Negative training samples
+classifier.addDocument('poor service staff were unhelpful very disappointing', 'Negative');
+classifier.addDocument('terrible experience resources outdated disorganized', 'Negative');
+classifier.addDocument('very dissatisfied long wait times rude staff', 'Negative');
+classifier.addDocument('bad environment noisy dirty not comfortable at all', 'Negative');
+classifier.addDocument('worst library experience hard to find books no assistance', 'Negative');
+classifier.addDocument('frustrated with the service slow and unresponsive staff', 'Negative');
+classifier.addDocument('highly disappointed lacks resources and poor management', 'Negative');
+
+classifier.train();
+
+/**
+ * Analyzes sentiment using VADER (for text) + Naïve Bayes (for ratings + text combined)
+ * Returns: 'Positive', 'Neutral', or 'Negative'
+ */
+function analyzeSentiment(responses, message) {
+  // --- Step 1: Compute average rating score ---
+  const validResponses = responses.filter(r => r !== null && r !== 'na');
+  const ratingAvg = validResponses.length > 0
+    ? validResponses.reduce((sum, r) => sum + (ratingScores[r] ?? 0), 0) / validResponses.length
+    : 0;
+
+  // --- Step 2: VADER analysis on message text ---
+  let vaderScore = 0;
+  let nbClassification = null;
+
+  if (message && message.trim().length > 0) {
+    const intensity = vader.SentimentIntensityAnalyzer.polarity_scores(message);
+    vaderScore = intensity.compound; // ranges from -1 to +1
+
+    // --- Step 3: Naïve Bayes classification on message ---
+    nbClassification = classifier.classify(message.toLowerCase());
+  }
+
+  // --- Step 4: Combine all signals ---
+  // Weight: ratings (40%) + VADER (35%) + Naïve Bayes (25%)
+  let finalScore = ratingAvg * 0.4 + vaderScore * 0.35;
+
+  // Add Naïve Bayes adjustment
+  if (nbClassification === 'Positive') finalScore += 0.25;
+  else if (nbClassification === 'Negative') finalScore -= 0.25;
+  // Neutral adds 0 (no adjustment)
+
+  // --- Step 5: Map final score to label ---
+  if (finalScore > 0.15) return 'Positive';
+  if (finalScore < -0.15) return 'Negative';
+  return 'Neutral';
+}
+
+// =================== ROUTES =================== //
+
+// Satisfaction Survey Submission
 app.post('/api/survey', async (req, res) => {
   const { clientele, college, course, responses, message } = req.body;
 
   try {
+    // Run sentiment analysis
+    const sentimentResult = analyzeSentiment(responses, message);
+    console.log(`📊 Sentiment Result: ${sentimentResult}`);
+
     const pool = await sql.connect(config);
     const request = pool.request();
 
@@ -34,8 +124,8 @@ app.post('/api/survey', async (req, res) => {
     request.input('college', sql.NVarChar, college);
     request.input('course', sql.NVarChar, course);
     request.input('message', sql.NVarChar, message);
+    request.input('sentimentResult', sql.NVarChar, sentimentResult);
 
-    // Loop through 10 questions
     for (let i = 0; i < 10; i++) {
       request.input(`q${i + 1}`, sql.NVarChar, responses[i] ?? null);
     }
@@ -44,15 +134,17 @@ app.post('/api/survey', async (req, res) => {
       INSERT INTO SatisfactionSurveys (
         Clientele, College, Course, Message,
         Question1, Question2, Question3, Question4, Question5,
-        Question6, Question7, Question8, Question9, Question10
+        Question6, Question7, Question8, Question9, Question10,
+        SentimentResult
       )
       VALUES (
         @clientele, @college, @course, @message,
-        @q1, @q2, @q3, @q4, @q5, @q6, @q7, @q8, @q9, @q10
+        @q1, @q2, @q3, @q4, @q5, @q6, @q7, @q8, @q9, @q10,
+        @sentimentResult
       )
     `);
 
-    res.send('Survey submitted');
+    res.json({ message: 'Survey submitted', sentimentResult });
   } catch (err) {
     console.error('SQL error:', err);
     res.status(500).send('Failed to save survey');
@@ -66,19 +158,12 @@ app.post('/api/student-lookup', async (req, res) => {
   try {
     const pool = await sql.connect(config);
 
-    // Step 1: Lookup student
     const studentResult = await pool.request()
       .input('idNumber', sql.VarChar, idNumber)
       .query(`
         SELECT 
-          si.studID,
-          si.studIDnumber,
-          si.studLname,
-          si.studFname,
-          si.studCourse,
-          si.studYear,
-          si.studCollege,
-          si.studGender
+          si.studID, si.studIDnumber, si.studLname, si.studFname,
+          si.studCourse, si.studYear, si.studCollege, si.studGender
         FROM studInfo AS si
         WHERE si.studIDnumber = @idNumber;
       `);
@@ -89,7 +174,6 @@ app.post('/api/student-lookup', async (req, res) => {
 
     const student = studentResult.recordset[0];
 
-    // Step 2: Count today's logs
     const todayLogs = await pool.request()
       .input('idNumber', sql.VarChar, idNumber)
       .query(`
@@ -100,12 +184,9 @@ app.post('/api/student-lookup', async (req, res) => {
       `);
 
     const logCount = todayLogs.recordset[0].logCount;
-
-    // Even count → next is "Time In", Odd count → next is "Time Out"
     const logType = logCount % 2 === 0 ? 'Time In' : 'Time Out';
     const nowPH = moment().tz("Asia/Manila").format("YYYY-MM-DD HH:mm:ss");
 
-    // Step 3: Insert log
     const insertLog = await pool.request()
       .input('studIDnumber', sql.VarChar, student.studIDnumber)
       .input('studLname', sql.NVarChar, student.studLname)
@@ -119,11 +200,13 @@ app.post('/api/student-lookup', async (req, res) => {
       .input('timeLogged', sql.VarChar, nowPH)
       .query(`
         INSERT INTO LibLogins (
-          studIDnumber, studLname, studFname, studCourse, studYear, studCollege, studGender,  Section, studLogType, TimeLogged
+          studIDnumber, studLname, studFname, studCourse, studYear,
+          studCollege, studGender, Section, studLogType, TimeLogged
         )
         OUTPUT INSERTED.LogID, INSERTED.studLogType, INSERTED.TimeLogged
         VALUES (
-          @studIDnumber, @studLname, @studFname, @studCourse, @studYear, @studCollege, @studGender, @section, @studLogType, @timeLogged
+          @studIDnumber, @studLname, @studFname, @studCourse, @studYear,
+          @studCollege, @studGender, @section, @studLogType, @timeLogged
         );
       `);
 
@@ -163,12 +246,10 @@ app.get('/api/logins', async (req, res) => {
         WHERE (TimeLogged AT TIME ZONE 'UTC' AT TIME ZONE 'SE Asia Standard Time')
         BETWEEN @startDate AND @endDate
       `;
-
       const result = await pool.request()
         .input('startDate', sql.DateTime, new Date(startDate))
         .input('endDate', sql.DateTime, new Date(endDate))
         .query(query);
-
       return res.json(result.recordset);
     }
 
@@ -192,6 +273,7 @@ app.get('/api/surveys', async (req, res) => {
       SELECT Id, Clientele, College, Course, Message,
              Question1, Question2, Question3, Question4, Question5,
              Question6, Question7, Question8, Question9, Question10,
+             SentimentResult,
              FORMAT(DateSubmitted AT TIME ZONE 'UTC' AT TIME ZONE 'SE Asia Standard Time', 'yyyy-MM-dd HH:mm:ss') AS DateSubmitted
       FROM SatisfactionSurveys
     `;
@@ -201,12 +283,10 @@ app.get('/api/surveys', async (req, res) => {
         WHERE (DateSubmitted AT TIME ZONE 'UTC' AT TIME ZONE 'SE Asia Standard Time')
         BETWEEN @startDate AND @endDate
       `;
-
       const result = await pool.request()
         .input('startDate', sql.DateTime, new Date(startDate))
         .input('endDate', sql.DateTime, new Date(endDate))
         .query(query);
-
       return res.json(result.recordset);
     }
 
@@ -219,12 +299,9 @@ app.get('/api/surveys', async (req, res) => {
   }
 });
 
-
-
 // Serve static React files
 app.use(express.static(path.join(__dirname, 'build')));
 
-// Catch-all route (fix for path-to-regexp in Node 22)
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
