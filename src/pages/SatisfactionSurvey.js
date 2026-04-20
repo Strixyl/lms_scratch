@@ -52,6 +52,8 @@ const SatisfactionSurvey = () => {
   "The overall organization and management of library services.",
   "Your general satisfaction with your experience at the library.",
   ];
+
+  
   const [responses, setResponses] = useState(Array(10).fill(null));
   const [animating, setAnimating] = useState(Array(10).fill(null));
   const ratingOptions = [
