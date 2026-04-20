@@ -14,7 +14,7 @@ import EquipmentEncode from './pages/EquipmentEncode';
 import SuppliesEncode from './pages/SuppliesEncode';
 import LoginData from './pages/LoginData';
 import SatisfactionSurveyData from './pages/SatisfactionSurveyData';
-
+import SentimentDashboard from './pages/SentimentDashboard';
 
 const theme = createTheme({
   typography: {
@@ -55,6 +55,7 @@ function App() {
           <Route path="/bibliography" element={<Bibliography />} />
           <Route path="/equipment-encoding" element={<EquipmentEncode />} />
           <Route path="/supplies-encoding" element={<SuppliesEncode />} />
+          <Route path="/sentiment-dashboard" element={<SentimentDashboard />} />
         </Routes>
       </div>
       </ThemeProvider>
