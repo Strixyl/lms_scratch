@@ -5,7 +5,7 @@ const path = require('path');
 const moment = require('moment-timezone');
 const natural = require('natural');
 const vader = require('vader-sentiment');
-
+const afinn = require('afinn-165');
 const app = express();
 app.use(express.json());
 app.use(cors());
