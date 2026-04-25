@@ -69,41 +69,64 @@ classifier.addDocument('highly disappointed lacks resources and poor management'
 classifier.train();
 
 /**
- * Analyzes sentiment using VADER (for text) + Naïve Bayes (for ratings + text combined)
- * Returns: 'Positive', 'Neutral', or 'Negative'
+ * Converts a numeric score to a sentiment label
+ */
+function scoreToLabel(score) {
+  if (score > 0.15) return 'Positive';
+  if (score < -0.15) return 'Negative';
+  return 'Neutral';
+}
+
+/**
+ * Analyzes emoji ratings separately from text message.
+ * Returns: { emojiSentiment, textSentiment, overallSentiment }
  */
 function analyzeSentiment(responses, message) {
-  // --- Step 1: Compute average rating score ---
+
+  // ── MEASURE 1: Emoji Ratings ──────────────────────────────────────
   const validResponses = responses.filter(r => r !== null && r !== 'na');
   const ratingAvg = validResponses.length > 0
     ? validResponses.reduce((sum, r) => sum + (ratingScores[r] ?? 0), 0) / validResponses.length
     : 0;
+  const emojiSentiment = scoreToLabel(ratingAvg);
 
-  // --- Step 2: VADER analysis on message text ---
-  let vaderScore = 0;
-  let nbClassification = null;
+  // ── MEASURE 2: Text Analysis (VADER + Naïve Bayes + AFINN) ────────
+  let textSentiment = 'Neutral';
+  let textScore = 0;
 
   if (message && message.trim().length > 0) {
-    const intensity = vader.SentimentIntensityAnalyzer.polarity_scores(message);
-    vaderScore = intensity.compound; // ranges from -1 to +1
 
-    // --- Step 3: Naïve Bayes classification on message ---
-    nbClassification = classifier.classify(message.toLowerCase());
+    // VADER score
+    const intensity = vader.SentimentIntensityAnalyzer.polarity_scores(message);
+    const vaderScore = intensity.compound;
+
+    // Naïve Bayes classification
+    const nbClassification = classifier.classify(message.toLowerCase());
+    const nbScore = nbClassification === 'Positive' ? 1 : nbClassification === 'Negative' ? -1 : 0;
+
+    // AFINN word-level score
+    const words = message.toLowerCase().replace(/[^a-z\s]/g, '').split(/\s+/);
+    const scoredWords = words.filter(w => afinn[w] !== undefined);
+    const afinnScore = scoredWords.length > 0
+      ? scoredWords.reduce((sum, w) => sum + afinn[w], 0) / scoredWords.length / 5
+      : 0;
+
+    // Combine text signals: VADER (40%) + Naïve Bayes (35%) + AFINN (25%)
+    textScore = vaderScore * 0.40 + nbScore * 0.35 + afinnScore * 0.25;
+    textSentiment = scoreToLabel(textScore);
   }
 
-  // --- Step 4: Combine all signals ---
-  // Weight: ratings (40%) + VADER (35%) + Naïve Bayes (25%)
-  let finalScore = ratingAvg * 0.4 + vaderScore * 0.35;
+  // ── OVERALL: Equal weight between emoji and text ──────────────────
+  let overallSentiment;
+  if (!message || message.trim().length === 0) {
+    overallSentiment = emojiSentiment;
+  } else {
+    const combinedScore = ratingAvg * 0.50 + textScore * 0.50;
+    overallSentiment = scoreToLabel(combinedScore);
+  }
 
-  // Add Naïve Bayes adjustment
-  if (nbClassification === 'Positive') finalScore += 0.25;
-  else if (nbClassification === 'Negative') finalScore -= 0.25;
-  // Neutral adds 0 (no adjustment)
-
-  // --- Step 5: Map final score to label ---
-  if (finalScore > 0.15) return 'Positive';
-  if (finalScore < -0.15) return 'Negative';
-  return 'Neutral';
+  console.log(`📊 Emoji: ${emojiSentiment} | Text: ${textSentiment} | Overall: ${overallSentiment}`);
+  return { emojiSentiment, textSentiment, overallSentiment };
 }
 
 // =================== ROUTES =================== //
@@ -113,9 +136,8 @@ app.post('/api/survey', async (req, res) => {
   const { clientele, college, course, responses, message } = req.body;
 
   try {
-    // Run sentiment analysis
-    const sentimentResult = analyzeSentiment(responses, message);
-    console.log(`📊 Sentiment Result: ${sentimentResult}`);
+    const { emojiSentiment, textSentiment, overallSentiment } = analyzeSentiment(responses, message);
+    const sentimentResult = overallSentiment;
 
     const pool = await sql.connect(config);
     const request = pool.request();
@@ -144,7 +166,7 @@ app.post('/api/survey', async (req, res) => {
       )
     `);
 
-    res.json({ message: 'Survey submitted', sentimentResult });
+    res.json({ message: 'Survey submitted', sentimentResult, emojiSentiment, textSentiment });
   } catch (err) {
     console.error('SQL error:', err);
     res.status(500).send('Failed to save survey');
