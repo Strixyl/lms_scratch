@@ -9,7 +9,7 @@ Capstone Thesis Project
 
 ## Overview
 
-This is an enhanced Library Management System developed for the **Henry Luce III Library** of Central Philippine University. The system was originally built as a Library Management System and has been enhanced by integrating a **Patron Satisfaction Survey module** with **Sentiment Analysis** using **VADER** and **Naïve Bayes classification**.
+This is an enhanced Library Management System developed for the **Henry Luce III Library** of Central Philippine University. The system was originally built as a Library Management System and has been enhanced by integrating a **Patron Satisfaction Survey module** with **Sentiment Analysis** using **VADER**, **Naïve Bayes classification**, and **AFINN** word-level scoring.
 
 ---
 
@@ -17,8 +17,13 @@ This is an enhanced Library Management System developed for the **Henry Luce III
 
 - **Library Login Monitoring** — Tracks patron time-in and time-out using student ID lookup
 - **Patron Satisfaction Survey** — 10-question survey with emoji-based ratings and open-ended feedback
-- **Sentiment Analysis** — Automatically classifies survey responses as Positive, Neutral, or Negative
-- **Survey Data Dashboard** — View and filter submitted surveys with sentiment results
+- **Sentiment Analysis** — Automatically classifies survey responses as Positive, Neutral, or Negative using three combined algorithms:
+  - **VADER** — sentence-level sentiment scoring
+  - **Naïve Bayes** — text classification based on trained examples
+  - **AFINN** — word-level sentiment scoring
+- **Separate Sentiment Measures** — Emoji ratings and text comments are analyzed independently then combined equally (50/50)
+- **Sentiment Dashboard** — Visual dashboard with summary cards, donut chart distribution, and paginated response review table
+- **Survey Data Page** — View and filter all submitted survey records
 - **Role-based Access Control** — Admin, Librarian, and Standard User roles
 
 ---
@@ -27,21 +32,36 @@ This is an enhanced Library Management System developed for the **Henry Luce III
 
 | Layer | Technology |
 |---|---|
-| Frontend | React.js, Material UI |
+| Frontend | React.js v19, Material UI v7 |
 | Backend | Node.js, Express.js |
 | Database | Microsoft SQL Server (SQLEXPRESS) |
-| Sentiment Analysis | VADER (`vader-sentiment`) + Naïve Bayes (`natural`) |
-| ORM/DB Driver | `mssql`, `msnodesqlv8` |
+| Sentiment Analysis | VADER + Naïve Bayes + AFINN |
+| Charts | Recharts |
+| DB Driver | `mssql`, `msnodesqlv8` |
 
 ---
 
 ## Sentiment Analysis Approach
 
-The sentiment analysis module combines three signals to classify each survey submission:
+The sentiment analysis module uses three combined signals split into two independent measures:
 
-1. **Ratings Score (40%)** — Emoji ratings (Very Satisfied to Very Dissatisfied) are mapped to numeric scores and averaged across all 10 questions
-2. **VADER Analysis (35%)** — Analyzes the open-ended message/comment field for sentiment polarity
-3. **Naïve Bayes Classification (25%)** — Classifies the message text based on trained examples
+### Measure 1 — Emoji Ratings
+The 10 emoji responses (Very Satisfied → Very Dissatisfied) are mapped to numeric scores and averaged:
+- Very Satisfied = +1.0
+- Satisfied = +0.5
+- Neutral = 0.0
+- Dissatisfied = -0.5
+- Very Dissatisfied = -1.0
+
+### Measure 2 — Text Comment (VADER + Naïve Bayes + AFINN)
+The open-ended message is analyzed using three algorithms:
+- **VADER (40%)** — analyzes sentiment polarity of the full sentence
+- **Naïve Bayes (35%)** — classifies text based on trained labeled examples
+- **AFINN (25%)** — assigns numeric scores to individual words
+
+### Final Overall Sentiment
+Both measures are combined with **equal weight (50/50)**:
+> Overall = Emoji Score (50%) + Text Score (50%)
 
 **Final Labels:** `Positive` | `Neutral` | `Negative`
 
@@ -50,8 +70,8 @@ The sentiment analysis module combines three signals to classify each survey sub
 ## Database Setup
 
 1. Restore the provided `.bak` file using SQL Server Management Studio (SSMS)
-2. Connect to your SQL Server instance (default: `JUSTER\SQLEXPRESS`)
-3. Make sure the `SatisfactionSurveys` table has a `SentimentResult` column:
+2. Connect to your SQL Server instance (e.g. `YOUR_PC\SQLEXPRESS`)
+3. Run the following in SSMS to add the required sentiment column:
 
 ```sql
 ALTER TABLE SatisfactionSurveys
@@ -64,45 +84,81 @@ ADD SentimentResult NVARCHAR(50)
 
 ### Prerequisites
 - Node.js
-- SQL Server (SQLEXPRESS)
-- ODBC Driver 17 or 18 for SQL Server
+- SQL Server Express (SQLEXPRESS)
+- ODBC Driver 18 for SQL Server
+- SQL Server Management Studio (SSMS)
 
 ### Steps
 
-1. Clone the repository
+**1. Clone the repository**
 ```bash
 git clone https://github.com/Strixyl/lms_scratch.git
 cd lms_scratch
 ```
 
-2. Install frontend dependencies
+**2. Install frontend dependencies**
 ```bash
-npm install
+npm install --legacy-peer-deps
 ```
 
-3. Install backend dependencies
+**3. Install backend dependencies**
 ```bash
 cd backend
 npm install
 ```
 
-4. Update the database connection string in `backend/index.js`:
+**4. Install sentiment analysis packages (inside backend folder)**
+```bash
+npm install natural
+npm install vader-sentiment
+npm install afinn-165
+```
+
+**5. Update the database connection string in `backend/index.js`:**
 ```js
-connectionString: "Driver={ODBC Driver 18 for SQL Server};Server=YOUR_SERVER\\SQLEXPRESS;Database=hllSystem;Trusted_Connection=Yes;Encrypt=no;"
+connectionString: "Driver={ODBC Driver 18 for SQL Server};Server=YOUR_PC\\SQLEXPRESS;Database=hllSystem;Trusted_Connection=Yes;Encrypt=no;"
 ```
 
-5. Run the backend (in one terminal):
-```bash
-cd backend
-npm start
-```
-
-6. Run the frontend (in another terminal):
+**6. Run the backend (Terminal 1 — inside backend folder):**
 ```bash
 npm start
 ```
+You should see:
+```
+🚀 Server running on http://0.0.0.0:5000
+✅ Connected to SQL Server
+```
 
-7. Open your browser and go to `http://localhost:3000`
+**7. Run the frontend (Terminal 2 — root folder):**
+```bash
+npm start
+```
+
+**8. Open your browser:**
+```
+http://localhost:3000
+```
+
+---
+
+## Available Routes
+
+| Route | Description |
+|---|---|
+| `/` | Home |
+| `/login` | Library Login / Logout |
+| `/logindata` | Login Records |
+| `/satisfaction-survey` | Patron Satisfaction Survey Form |
+| `/surveys` | Survey Data Records |
+| `/sentiment-dashboard` | Sentiment Analysis Dashboard |
+
+---
+
+## Notes
+
+- Always run VS Code as **Administrator** to allow SQL Server connections
+- Use `--legacy-peer-deps` when installing new npm packages to avoid dependency conflicts
+- Both terminals (frontend + backend) must be running at the same time for the system to work
 
 ---
 
