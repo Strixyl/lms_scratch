@@ -18,8 +18,6 @@ const SENTIMENT_COLORS = {
 
 const CHART_COLORS = ['#2e7d32', '#f57c00', '#c62828'];
 
-const getSentimentEmoji = (s) =>
-  s === 'Positive' ? '😊' : s === 'Negative' ? '😞' : '😐';
 
 const SentimentChip = ({ label }) => {
   const cfg = SENTIMENT_COLORS[label] || SENTIMENT_COLORS.Neutral;
@@ -63,7 +61,6 @@ const SummaryCard = ({ label, count, total }) => {
       flex: 1, minWidth: 160,
     }}>
       <CardContent sx={{ p: 2.5 }}>
-        <Typography sx={{ fontSize: 28, mb: 0.5 }}>{getSentimentEmoji(label)}</Typography>
         <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 32, color: cfg.text, lineHeight: 1 }}>
           {count}
         </Typography>
@@ -261,9 +258,6 @@ const SentimentDashboard = () => {
                                 <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', letterSpacing: 1, textTransform: 'uppercase' }}>
                                   Sentiment
                                 </TableCell>
-                                <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', letterSpacing: 1, textTransform: 'uppercase' }}>
-                                  Emoji
-                                </TableCell>
                               </TableRow>
                             </TableHead>
                             <TableBody>
@@ -274,9 +268,6 @@ const SentimentDashboard = () => {
                                   </TableCell>
                                   <TableCell sx={{ py: 1.5 }}>
                                     <SentimentChip label={row.SentimentResult} />
-                                  </TableCell>
-                                  <TableCell sx={{ fontSize: 20, py: 1.5 }}>
-                                    {getSentimentEmoji(row.SentimentResult)}
                                   </TableCell>
                                 </TableRow>
                               ))}
