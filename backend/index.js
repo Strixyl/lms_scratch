@@ -95,7 +95,6 @@ function analyzeSentiment(responses, message) {
   let textScore = 0;
 
   if (message && message.trim().length > 0) {
-
     // VADER score
     const intensity = vader.SentimentIntensityAnalyzer.polarity_scores(message);
     const vaderScore = intensity.compound;
@@ -195,7 +194,7 @@ app.post('/api/student-lookup', async (req, res) => {
     }
 
     const student = studentResult.recordset[0];
-
+    
     const todayLogs = await pool.request()
       .input('idNumber', sql.VarChar, idNumber)
       .query(`
