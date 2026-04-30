@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
-  Box, Typography, Grid, Card, CardContent, Chip,
+  Box, Typography, Card, CardContent,
   Table, TableBody, TableCell, TableContainer, TableHead,
-  TableRow, Paper, Button, TextField, CircularProgress
+  TableRow, Paper, Button, TextField, CircularProgress,
+  MenuItem, Select, FormControl, InputLabel
 } from '@mui/material';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import Header from '../Components/Header';
@@ -18,6 +19,20 @@ const SENTIMENT_COLORS = {
 
 const CHART_COLORS = ['#2e7d32', '#f57c00', '#c62828'];
 
+const CLIENTELE_OPTIONS = ['Student', 'Faculty', 'Staff', 'Researcher', 'CPU Admin', 'Alumnus/Alumni'];
+
+const COLLEGE_OPTIONS = [
+  'CARES', 'CAS', 'CBA', 'CCS', 'COED', 'COE', 'CHM',
+  'COL', 'CMLS', 'COM', 'CON', 'COP', 'COT', 'SGS',
+  'SHS', 'JHS', 'ELEM', 'KINDER'
+];
+
+const selectSx = {
+  backgroundColor: 'white',
+  borderRadius: 1,
+  minWidth: 150,
+  '& .MuiInputBase-root': { height: 40 },
+};
 
 const SentimentChip = ({ label }) => {
   const cfg = SENTIMENT_COLORS[label] || SENTIMENT_COLORS.Neutral;
@@ -35,7 +50,6 @@ const SentimentChip = ({ label }) => {
   );
 };
 
-// ── Custom donut label ───────────────────────────────────────────────
 const RADIAN = Math.PI / 180;
 const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
   if (percent < 0.05) return null;
@@ -50,7 +64,6 @@ const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent
   );
 };
 
-// ── Summary Card ─────────────────────────────────────────────────────
 const SummaryCard = ({ label, count, total }) => {
   const cfg = SENTIMENT_COLORS[label] || SENTIMENT_COLORS.Neutral;
   const pct = total > 0 ? Math.round((count / total) * 100) : 0;
@@ -75,7 +88,6 @@ const SummaryCard = ({ label, count, total }) => {
   );
 };
 
-// ── Main Dashboard ───────────────────────────────────────────────────
 const ROWS_PER_PAGE = 8;
 
 const SentimentDashboard = () => {
@@ -83,6 +95,9 @@ const SentimentDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [filterClientele, setFilterClientele] = useState('');
+  const [filterCollege, setFilterCollege] = useState('');
+  const [filterSentiment, setFilterSentiment] = useState('');
   const [page, setPage] = useState(0);
 
   const fetchSurveys = async () => {
@@ -100,13 +115,29 @@ const SentimentDashboard = () => {
     }
   };
 
-  useEffect(() => { fetchSurveys(); }, []);
+  useEffect(() => { fetchSurveys(); }, []); // eslint-disable-line
 
-  // ── Computed stats ──────────────────────────────────────────────
-  const withSentiment = surveys.filter(s => s.SentimentResult);
+  const handleClear = () => {
+    setStartDate('');
+    setEndDate('');
+    setFilterClientele('');
+    setFilterCollege('');
+    setFilterSentiment('');
+    setTimeout(fetchSurveys, 0);
+  };
+
+  // ── Client-side filtering ────────────────────────────────────────
+  const filtered = surveys.filter(s => {
+    if (!s.SentimentResult) return false;
+    if (filterClientele && s.Clientele?.toLowerCase() !== filterClientele.toLowerCase()) return false;
+    if (filterCollege && s.College !== filterCollege) return false;
+    if (filterSentiment && s.SentimentResult !== filterSentiment) return false;
+    return true;
+  });
+
   const counts = { Positive: 0, Neutral: 0, Negative: 0 };
-  withSentiment.forEach(s => { if (counts[s.SentimentResult] !== undefined) counts[s.SentimentResult]++; });
-  const total = withSentiment.length;
+  filtered.forEach(s => { if (counts[s.SentimentResult] !== undefined) counts[s.SentimentResult]++; });
+  const total = filtered.length;
 
   const chartData = [
     { name: 'Positive', value: counts.Positive },
@@ -114,10 +145,11 @@ const SentimentDashboard = () => {
     { name: 'Negative', value: counts.Negative },
   ].filter(d => d.value > 0);
 
-  // Responses with message text for the review table
-  const reviewRows = withSentiment.filter(s => s.Message && s.Message.trim().length > 0);
+  const reviewRows = filtered.filter(s => s.Message && s.Message.trim().length > 0);
   const totalPages = Math.ceil(reviewRows.length / ROWS_PER_PAGE);
   const pageRows = reviewRows.slice(page * ROWS_PER_PAGE, (page + 1) * ROWS_PER_PAGE);
+
+  const hasActiveFilter = startDate || endDate || filterClientele || filterCollege || filterSentiment;
 
   return (
     <Header>
@@ -131,8 +163,10 @@ const SentimentDashboard = () => {
 
           <Box sx={{ p: 3, backgroundColor: '#f5f6fa', minHeight: '100vh' }}>
 
-            {/* ── Filter bar ── */}
+            {/* ── Filter Bar ── */}
             <Box sx={{ display: 'flex', gap: 2, mb: 3, alignItems: 'center', flexWrap: 'wrap' }}>
+
+              {/* Date filters */}
               <TextField type="date" label="Start Date" size="small"
                 InputLabelProps={{ shrink: true }} value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
@@ -141,13 +175,50 @@ const SentimentDashboard = () => {
                 InputLabelProps={{ shrink: true }} value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 sx={{ backgroundColor: 'white', borderRadius: 1 }} />
+
+              {/* Clientele filter */}
+              <FormControl size="small" sx={selectSx}>
+                <InputLabel>Clientele</InputLabel>
+                <Select value={filterClientele} label="Clientele"
+                  onChange={(e) => { setFilterClientele(e.target.value); setPage(0); }}>
+                  <MenuItem value="">All</MenuItem>
+                  {CLIENTELE_OPTIONS.map(c => (
+                    <MenuItem key={c} value={c.toLowerCase()}>{c}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              {/* College filter */}
+              <FormControl size="small" sx={selectSx}>
+                <InputLabel>College</InputLabel>
+                <Select value={filterCollege} label="College"
+                  onChange={(e) => { setFilterCollege(e.target.value); setPage(0); }}>
+                  <MenuItem value="">All</MenuItem>
+                  {COLLEGE_OPTIONS.map(c => (
+                    <MenuItem key={c} value={c}>{c}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              {/* Sentiment filter */}
+              <FormControl size="small" sx={selectSx}>
+                <InputLabel>Sentiment</InputLabel>
+                <Select value={filterSentiment} label="Sentiment"
+                  onChange={(e) => { setFilterSentiment(e.target.value); setPage(0); }}>
+                  <MenuItem value="">All</MenuItem>
+                  <MenuItem value="Positive">Positive</MenuItem>
+                  <MenuItem value="Neutral">Neutral</MenuItem>
+                  <MenuItem value="Negative">Negative</MenuItem>
+                </Select>
+              </FormControl>
+
               <Button variant="contained" onClick={fetchSurveys}
                 sx={{ backgroundColor: '#1b0892', fontFamily: 'Poppins, sans-serif', textTransform: 'none', px: 3 }}>
                 Apply Filter
               </Button>
-              {(startDate || endDate) && (
-                <Button variant="outlined" size="small"
-                  onClick={() => { setStartDate(''); setEndDate(''); setTimeout(fetchSurveys, 0); }}
+
+              {hasActiveFilter && (
+                <Button variant="outlined" size="small" onClick={handleClear}
                   sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none' }}>
                   Clear
                 </Button>
@@ -187,43 +258,26 @@ const SentimentDashboard = () => {
                     <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 13, color: '#666', letterSpacing: 1, textTransform: 'uppercase', mb: 2 }}>
                       Dataset Distribution
                     </Typography>
-
                     {total === 0 ? (
                       <Typography sx={{ fontFamily: 'Poppins, sans-serif', color: '#999', textAlign: 'center', py: 4 }}>
-                        No sentiment data available yet.
+                        No sentiment data available for the selected filters.
                       </Typography>
                     ) : (
                       <ResponsiveContainer width="100%" height={260}>
                         <PieChart>
-                          <Pie
-                            data={chartData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={70}
-                            outerRadius={110}
-                            paddingAngle={3}
-                            dataKey="value"
-                            labelLine={false}
-                            label={renderCustomLabel}
-                          >
-                            {chartData.map((entry, index) => (
-                              <Cell key={entry.name} fill={CHART_COLORS[['Positive','Neutral','Negative'].indexOf(entry.name)]} />
+                          <Pie data={chartData} cx="50%" cy="50%"
+                            innerRadius={70} outerRadius={110} paddingAngle={3}
+                            dataKey="value" labelLine={false} label={renderCustomLabel}>
+                            {chartData.map((entry) => (
+                              <Cell key={entry.name} fill={CHART_COLORS[['Positive', 'Neutral', 'Negative'].indexOf(entry.name)]} />
                             ))}
                           </Pie>
-                          <Tooltip
-                            formatter={(value, name) => [`${value} responses`, name]}
-                            contentStyle={{ fontFamily: 'Poppins, sans-serif', fontSize: 13 }}
-                          />
-                          <Legend
-                            formatter={(value, entry) => {
-                              const pct = total > 0 ? Math.round((entry.payload.value / total) * 100) : 0;
-                              return (
-                                <span style={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#333' }}>
-                                  {value} {pct}%
-                                </span>
-                              );
-                            }}
-                          />
+                          <Tooltip formatter={(value, name) => [`${value} responses`, name]}
+                            contentStyle={{ fontFamily: 'Poppins, sans-serif', fontSize: 13 }} />
+                          <Legend formatter={(value, entry) => {
+                            const pct = total > 0 ? Math.round((entry.payload.value / total) * 100) : 0;
+                            return <span style={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#333' }}>{value} {pct}%</span>;
+                          }} />
                         </PieChart>
                       </ResponsiveContainer>
                     )}
@@ -244,7 +298,7 @@ const SentimentDashboard = () => {
 
                     {reviewRows.length === 0 ? (
                       <Typography sx={{ fontFamily: 'Poppins, sans-serif', color: '#999', py: 3, textAlign: 'center' }}>
-                        No text responses with sentiment results found.
+                        No text responses found for the selected filters.
                       </Typography>
                     ) : (
                       <>
@@ -252,7 +306,13 @@ const SentimentDashboard = () => {
                           <Table size="small">
                             <TableHead>
                               <TableRow sx={{ backgroundColor: '#fafafa' }}>
-                                <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', letterSpacing: 1, textTransform: 'uppercase', width: '55%' }}>
+                                <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', letterSpacing: 1, textTransform: 'uppercase', width: '30%' }}>
+                                  Clientele
+                                </TableCell>
+                                <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', letterSpacing: 1, textTransform: 'uppercase', width: '15%' }}>
+                                  College
+                                </TableCell>
+                                <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', letterSpacing: 1, textTransform: 'uppercase', width: '40%' }}>
                                   Response
                                 </TableCell>
                                 <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', letterSpacing: 1, textTransform: 'uppercase' }}>
@@ -263,6 +323,12 @@ const SentimentDashboard = () => {
                             <TableBody>
                               {pageRows.map((row, idx) => (
                                 <TableRow key={idx} sx={{ '&:hover': { backgroundColor: '#fafafa' }, borderBottom: '1px solid #f5f5f5' }}>
+                                  <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#333', py: 1.5, textTransform: 'capitalize' }}>
+                                    {row.Clientele}
+                                  </TableCell>
+                                  <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#333', py: 1.5 }}>
+                                    {row.College}
+                                  </TableCell>
                                   <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#333', py: 1.5, pr: 3 }}>
                                     {row.Message}
                                   </TableCell>
