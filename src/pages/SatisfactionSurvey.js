@@ -42,6 +42,7 @@ const SatisfactionSurvey = () => {
   const [submitSuccess, setSubmitSuccess] = useState('');
   const [showSuccessSnackbar, setShowSuccessSnackbar] = useState(false);
   const [sentimentResult, setSentimentResult] = useState(null);
+  const [department, setDepartment] = useState('');
 
   const surveyQuestions = [
     "The efficiency of library service delivery meets your expectations.",
@@ -230,7 +231,8 @@ const SatisfactionSurvey = () => {
                     Clientele:
                   </Typography>
                   <FormControl component="fieldset">
-                    <RadioGroup name="clientele" value={clientele} onChange={(e) => setClientele(e.target.value)}>
+                    <RadioGroup name="clientele" value={clientele}
+                     onChange={(e) => setClientele(e.target.value)}>
                       <FormControlLabel value="student" control={<Radio sx={{ color: 'white' }} />} label="Student" />
                       <FormControlLabel value="faculty" control={<Radio sx={{ color: 'white' }} />} label="Faculty" />
                       <FormControlLabel value="staff" control={<Radio sx={{ color: 'white' }} />} label="Staff" />
@@ -238,9 +240,6 @@ const SatisfactionSurvey = () => {
                       <FormControlLabel value="admin" control={<Radio sx={{ color: 'white' }} />} label="CPU Admin" />
                       <FormControlLabel value="alumni" control={<Radio sx={{ color: 'white' }} />} label="Alumnus/Alumni" />
                     </RadioGroup>
-                    <Typography variant="caption" sx={{ mt: 1, fontFamily: 'Poppins, sans serif' }}>
-                      *Select a clientele before choosing your college.
-                    </Typography>
                   </FormControl>
 
                   <FormControl fullWidth sx={{ mt: 3 }}>
