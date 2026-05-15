@@ -328,7 +328,6 @@ const SatisfactionSurvey = () => {
                     </Typography>
                   </Box>
                 </Grid>
-
                 {/* Right Content Area */}
                 <Grid sx={{ bgcolor: 'white', p: { xs: 2, sm: 4, md: 6 }, height: '100%', overflowY: 'auto', width: '70%' }}>
                   <Typography variant="body2" fontSize='15px' sx={{ mb: 5, fontFamily: 'Poppins, sans serif' }} align="center">
