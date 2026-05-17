@@ -13,7 +13,7 @@ import TopBar from '../Components/TopBar';
 // ── Sentiment helpers ────────────────────────────────────────────────
 const SENTIMENT_COLORS = {
   Positive: { bg: '#1b5e20', light: '#e8f5e9', text: '#1b5e20', dot: '#2e7d32' },
-  Neutral:  { bg: '#e65100', light: '#fff3e0', text: '#e65100', dot: '#f57c00' },
+  Neutral: { bg: '#e65100', light: '#fff3e0', text: '#e65100', dot: '#f57c00' },
   Negative: { bg: '#b71c1c', light: '#ffebee', text: '#b71c1c', dot: '#c62828' },
 };
 
@@ -99,6 +99,7 @@ const SentimentDashboard = () => {
   const [filterCollege, setFilterCollege] = useState('');
   const [filterSentiment, setFilterSentiment] = useState('');
   const [page, setPage] = useState(0);
+  const [sortOrder, setSortOrder] = useState('latest');
 
 
   const fetchSurveys = async () => {
@@ -124,6 +125,7 @@ const SentimentDashboard = () => {
     setFilterClientele('');
     setFilterCollege('');
     setFilterSentiment('');
+    setSortOrder('latest');
     setTimeout(fetchSurveys, 0);
   };
 
@@ -142,11 +144,17 @@ const SentimentDashboard = () => {
 
   const chartData = [
     { name: 'Positive', value: counts.Positive },
-    { name: 'Neutral',  value: counts.Neutral },
+    { name: 'Neutral', value: counts.Neutral },
     { name: 'Negative', value: counts.Negative },
   ].filter(d => d.value > 0);
 
-  const reviewRows = filtered.filter(s => s.Message && s.Message.trim().length > 0);
+  const reviewRows = filtered
+    .filter(s => s.Message && s.Message.trim().length > 0)
+    .sort((a, b) => {
+      const dateA = new Date(a.DateSubmitted);
+      const dateB = new Date(b.DateSubmitted);
+      return sortOrder === 'latest' ? dateB - dateA : dateA - dateB;
+    });
   const totalPages = Math.ceil(reviewRows.length / ROWS_PER_PAGE);
   const pageRows = reviewRows.slice(page * ROWS_PER_PAGE, (page + 1) * ROWS_PER_PAGE);
 
@@ -210,6 +218,19 @@ const SentimentDashboard = () => {
                   <MenuItem value="Positive">Positive</MenuItem>
                   <MenuItem value="Neutral">Neutral</MenuItem>
                   <MenuItem value="Negative">Negative</MenuItem>
+                </Select>
+              </FormControl>
+
+              {/* Sort Order */}
+              <FormControl size="small" sx={selectSx}>
+                <InputLabel>Sort By</InputLabel>
+                <Select
+                  value={sortOrder}
+                  label="Sort By"
+                  onChange={(e) => { setSortOrder(e.target.value); setPage(0); }}
+                >
+                  <MenuItem value="latest">Latest to Oldest</MenuItem>
+                  <MenuItem value="oldest">Oldest to Latest</MenuItem>
                 </Select>
               </FormControl>
 
