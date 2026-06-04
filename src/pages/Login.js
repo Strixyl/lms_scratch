@@ -90,7 +90,7 @@ const Login = () => {
   if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
   try {
-    const response = await axios.post('http://172.31.12.239:5000/api/student-lookup', {
+    const response = await axios.post('http://localhost:5000/api/student-lookup', {
       idNumber: input,
       section: selectedSection,
     });

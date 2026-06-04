@@ -9,16 +9,20 @@ const LoginData = () => {
   const [logins, setLogins] = useState([]);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const fetchLogins = async () => {
+    setLoading(true);
+    setError('');
+
     try {
-      const response = await axios.get('http://172.31.12.239:5000/api/logins', {
+      const response = await axios.get('http://localhost:5000/api/logins', {
         params: { startDate, endDate }
       });
 
-      // ✅ Fix date parsing
       const formatted = response.data.map((row, index) => ({
-        id: index + 1, // DataGrid needs unique id
+        id: row.LogID || index + 1,
         ...row,
         TimeLogged: row.TimeLogged ? new Date(row.TimeLogged) : null,
       }));
@@ -26,6 +30,9 @@ const LoginData = () => {
       setLogins(formatted);
     } catch (error) {
       console.error('Error fetching logins:', error);
+      setError('Unable to load login records. Check backend status or database connection.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -96,20 +103,26 @@ const LoginData = () => {
 
       {/* DataGrid with Excel-like filter panel */}
       <Box sx={{ height: 600, width: '100%' }}>
-        <DataGrid
-          rows={logins}
-          columns={columns}
-          pageSize={10}
-          rowsPerPageOptions={[10, 20, 50]}
-          disableColumnFilter={false}
-          disableColumnMenu={false}
-          getRowId={(row) => row.LogID}   // ✅ Use LogID as unique row id
-          initialState={{
-            filter: {
-              filterModel: { items: [] },
-            },
-          }}
-        />
+          {error && (
+            <Typography color="error" sx={{ mb: 2 }}>
+              {error}
+            </Typography>
+          )}
+          <DataGrid
+            rows={logins}
+            columns={columns}
+            pageSize={10}
+            rowsPerPageOptions={[10, 20, 50]}
+            disableColumnFilter={false}
+            disableColumnMenu={false}
+            getRowId={(row) => row.id || row.LogID}
+            loading={loading}
+            initialState={{
+              filter: {
+                filterModel: { items: [] },
+              },
+            }}
+          />
         </Box>
       </Box>
         </>

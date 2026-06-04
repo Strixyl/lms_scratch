@@ -256,25 +256,30 @@ app.get('/api/logins', async (req, res) => {
 
     let query = `
       SELECT LogID, studIDnumber, studLname, studFname, studCourse, studYear,
-             studCollege, Section, 
+             studCollege, Section,
              FORMAT(TimeLogged AT TIME ZONE 'UTC' AT TIME ZONE 'SE Asia Standard Time', 'yyyy-MM-dd HH:mm:ss') AS TimeLogged,
              studLogType, studGender
       FROM LibLogins
     `;
 
-    if (startDate && endDate) {
-      query += `
-        WHERE (TimeLogged AT TIME ZONE 'UTC' AT TIME ZONE 'SE Asia Standard Time')
-        BETWEEN @startDate AND @endDate
-      `;
-      const result = await pool.request()
-        .input('startDate', sql.DateTime, new Date(startDate))
-        .input('endDate', sql.DateTime, new Date(endDate))
-        .query(query);
-      return res.json(result.recordset);
+    const request = pool.request();
+    const conditions = [];
+
+    if (startDate) {
+      conditions.push(`(TimeLogged AT TIME ZONE 'UTC' AT TIME ZONE 'SE Asia Standard Time') >= @startDate`);
+      request.input('startDate', sql.DateTime, new Date(startDate));
     }
 
-    const result = await pool.request().query(query);
+    if (endDate) {
+      conditions.push(`(TimeLogged AT TIME ZONE 'UTC' AT TIME ZONE 'SE Asia Standard Time') <= @endDate`);
+      request.input('endDate', sql.DateTime, new Date(endDate));
+    }
+
+    if (conditions.length > 0) {
+      query += ` WHERE ${conditions.join(' AND ')}`;
+    }
+
+    const result = await request.query(query);
     res.json(result.recordset);
 
   } catch (err) {
