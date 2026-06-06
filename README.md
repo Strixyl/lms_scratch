@@ -94,6 +94,27 @@ The 10 emoji survey responses are mapped to numeric scores and averaged for the 
 ```sql
 ALTER TABLE SatisfactionSurveys
 ADD SentimentResult NVARCHAR(50)
+
+CREATE TABLE OfficeSupplies (
+  Id INT IDENTITY(1,1) PRIMARY KEY,
+  ItemName NVARCHAR(200) NOT NULL,
+  Description NVARCHAR(500), Brand NVARCHAR(100),
+  Quantity INT DEFAULT 0, Status NVARCHAR(50),
+  ControlNumber NVARCHAR(100), Condition NVARCHAR(100),
+  Location NVARCHAR(200), Specifications NVARCHAR(500),
+  DateAdded DATETIME DEFAULT GETDATE(), UpdatedAt DATETIME
+)
+
+CREATE TABLE LibraryEquipment (
+  Id INT IDENTITY(1,1) PRIMARY KEY,
+  ItemName NVARCHAR(200) NOT NULL,
+  Description NVARCHAR(500), Brand NVARCHAR(100),
+  Quantity INT DEFAULT 0, Status NVARCHAR(50),
+  SerialNumber NVARCHAR(100), Condition NVARCHAR(100),
+  Location NVARCHAR(200), Specifications NVARCHAR(500),
+  DateAdded DATETIME DEFAULT GETDATE(), UpdatedAt DATETIME
+)
+
 ```
 
 ---
