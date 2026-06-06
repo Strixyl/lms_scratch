@@ -337,19 +337,166 @@ app.listen(5000, '0.0.0.0', () => {
   console.log('🚀 Server running on http://0.0.0.0:5000');
 });
 
-// === OFFICE SUPPLIES ======/
+// GET all supplies
+app.get('/api/supplies', async (req, res) => {
+  try {
+    const pool = await poolPromise;
+    const result = await pool.request()
+      .query('SELECT * FROM OfficeSupplies ORDER BY DateAdded DESC');
+    res.json(result.recordset);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch supplies' });
+  }
+});
 
-// { code to be put here calling the supplies from database}
+// ADD supply
+app.post('/api/supplies', async (req, res) => {
+  try {
+    const { itemName, description, brand, quantity, status, controlNumber, condition, location, specifications } = req.body;
+    const pool = await poolPromise;
+    await pool.request()
+      .input('ItemName', sql.NVarChar, itemName)
+      .input('Description', sql.NVarChar, description || '')
+      .input('Brand', sql.NVarChar, brand || '')
+      .input('Quantity', sql.Int, quantity || 0)
+      .input('Status', sql.NVarChar, status || 'In Stock')
+      .input('ControlNumber', sql.NVarChar, controlNumber || '')
+      .input('Condition', sql.NVarChar, condition || '')
+      .input('Location', sql.NVarChar, location || '')
+      .input('Specifications', sql.NVarChar, specifications || '')
+      .query(`INSERT INTO OfficeSupplies 
+        (ItemName, Description, Brand, Quantity, Status, ControlNumber, Condition, Location, Specifications)
+        VALUES 
+        (@ItemName, @Description, @Brand, @Quantity, @Status, @ControlNumber, @Condition, @Location, @Specifications)`);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to add supply' });
+  }
+});
 
-// { GET ALL SUPPLY, ADD SUPPLY, UPDATE SUPPLY, DELETE SUPPLY}
+// UPDATE supply
+app.put('/api/supplies/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { itemName, description, brand, quantity, status, controlNumber, condition, location, specifications } = req.body;
+    const pool = await poolPromise;
+    await pool.request()
+      .input('Id', sql.Int, id)
+      .input('ItemName', sql.NVarChar, itemName)
+      .input('Description', sql.NVarChar, description || '')
+      .input('Brand', sql.NVarChar, brand || '')
+      .input('Quantity', sql.Int, quantity || 0)
+      .input('Status', sql.NVarChar, status || 'In Stock')
+      .input('ControlNumber', sql.NVarChar, controlNumber || '')
+      .input('Condition', sql.NVarChar, condition || '')
+      .input('Location', sql.NVarChar, location || '')
+      .input('Specifications', sql.NVarChar, specifications || '')
+      .input('UpdatedAt', sql.DateTime, new Date())
+      .query(`UPDATE OfficeSupplies SET
+        ItemName=@ItemName, Description=@Description, Brand=@Brand,
+        Quantity=@Quantity, Status=@Status, ControlNumber=@ControlNumber,
+        Condition=@Condition, Location=@Location, Specifications=@Specifications,
+        UpdatedAt=@UpdatedAt WHERE Id=@Id`);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update supply' });
+  }
+});
 
+// DELETE supply
+app.delete('/api/supplies/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const pool = await poolPromise;
+    await pool.request()
+      .input('Id', sql.Int, id)
+      .query('DELETE FROM OfficeSupplies WHERE Id=@Id');
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete supply' });
+  }
+});
 
+// ── LIBRARY EQUIPMENT ──────────────────────────────
 
-// == LIBRARY EQUIPMENT == 
+// GET all equipment
+app.get('/api/equipment', async (req, res) => {
+  try {
+    const pool = await poolPromise;
+    const result = await pool.request()
+      .query('SELECT * FROM LibraryEquipment ORDER BY DateAdded DESC');
+    res.json(result.recordset);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch equipment' });
+  }
+});
 
-// { code to be put calling the equipments form database}
+// ADD equipment
+app.post('/api/equipment', async (req, res) => {
+  try {
+    const { itemName, description, brand, quantity, status, serialNumber, condition, location, specifications } = req.body;
+    const pool = await poolPromise;
+    await pool.request()
+      .input('ItemName', sql.NVarChar, itemName)
+      .input('Description', sql.NVarChar, description || '')
+      .input('Brand', sql.NVarChar, brand || '')
+      .input('Quantity', sql.Int, quantity || 0)
+      .input('Status', sql.NVarChar, status || 'In Stock')
+      .input('SerialNumber', sql.NVarChar, serialNumber || '')
+      .input('Condition', sql.NVarChar, condition || '')
+      .input('Location', sql.NVarChar, location || '')
+      .input('Specifications', sql.NVarChar, specifications || '')
+      .query(`INSERT INTO LibraryEquipment 
+        (ItemName, Description, Brand, Quantity, Status, SerialNumber, Condition, Location, Specifications)
+        VALUES 
+        (@ItemName, @Description, @Brand, @Quantity, @Status, @SerialNumber, @Condition, @Location, @Specifications)`);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to add equipment' });
+  }
+});
 
-// { GET ALL EQUIPMENT, ADD EQUIPMENT, UPDATE EQUIPMENT, DELETE EQUIPMENT}
+// UPDATE equipment
+app.put('/api/equipment/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { itemName, description, brand, quantity, status, serialNumber, condition, location, specifications } = req.body;
+    const pool = await poolPromise;
+    await pool.request()
+      .input('Id', sql.Int, id)
+      .input('ItemName', sql.NVarChar, itemName)
+      .input('Description', sql.NVarChar, description || '')
+      .input('Brand', sql.NVarChar, brand || '')
+      .input('Quantity', sql.Int, quantity || 0)
+      .input('Status', sql.NVarChar, status || 'In Stock')
+      .input('SerialNumber', sql.NVarChar, serialNumber || '')
+      .input('Condition', sql.NVarChar, condition || '')
+      .input('Location', sql.NVarChar, location || '')
+      .input('Specifications', sql.NVarChar, specifications || '')
+      .input('UpdatedAt', sql.DateTime, new Date())
+      .query(`UPDATE LibraryEquipment SET
+        ItemName=@ItemName, Description=@Description, Brand=@Brand,
+        Quantity=@Quantity, Status=@Status, SerialNumber=@SerialNumber,
+        Condition=@Condition, Location=@Location, Specifications=@Specifications,
+        UpdatedAt=@UpdatedAt WHERE Id=@Id`);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update equipment' });
+  }
+});
 
+// DELETE equipment
+app.delete('/api/equipment/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const pool = await poolPromise;
+    await pool.request()
+      .input('Id', sql.Int, id)
+      .query('DELETE FROM LibraryEquipment WHERE Id=@Id');
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete equipment' });
+  }
+});
 
 

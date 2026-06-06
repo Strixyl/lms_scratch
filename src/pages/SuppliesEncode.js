@@ -1,200 +1,237 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../Components/Header';
 import TopBar from '../Components/TopBar';
+import axios from 'axios';
 import {
-  Dialog, DialogTitle, DialogContent, TextField, Button, Typography, Box, Grid, MenuItem } from '@mui/material';
+  Dialog, DialogTitle, DialogContent, TextField, Button,
+  Typography, Box, Grid, MenuItem, Snackbar, Alert
+} from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 
+const STATUS_OPTIONS = ['In Stock', 'Low Stock', 'Out of Stock'];
+const CONDITION_OPTIONS = ['New', 'Good', 'Fair', 'Poor'];
+
 const SuppliesEncode = () => {
-    const navigate = useNavigate();
-    const [showLoginModal, setShowLoginModal] = useState(true);
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
-    const [loginError, setLoginError] = useState('');
-    const [loggedInUser, setLoggedInUser] = useState('');
-    const location = useLocation();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [showLoginModal, setShowLoginModal] = useState(true);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [loggedInUser, setLoggedInUser] = useState('');
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
-    useEffect(() => {
-        const savedUser = localStorage.getItem('loggedInUser');
-        if (savedUser) {
-          setLoggedInUser(savedUser);
-          setShowLoginModal(false);
-        }
-      }, []);
-    
-      useEffect(() => {
-        return () => {
-          // Run this when navigating away (component unmount)
-          localStorage.removeItem('loggedInUser');
-          setLoggedInUser(null);
-          setShowLoginModal(true);
-        };
-      }, [location.pathname]);
+  const [formData, setFormData] = useState({
+    itemName: '',
+    description: '',
+    brand: '',
+    quantity: '',
+    status: 'In Stock',
+    controlNumber: '',
+    condition: 'Good',
+    location: '',
+    specifications: '',
+  });
 
-      const handleLogin = (e) => {
-        e.preventDefault();
-        if (username === 'office' && password === '!HLL2025*') {
-          localStorage.setItem('loggedInUser', username);
-          setLoggedInUser(username);
-          setShowLoginModal(false);
-          setLoginError(''); 
-        } else {
-          setLoginError('Invalid credentials');
-        }
-      };
-    
-      const handleLogout = () => {
-        localStorage.removeItem('loggedInUser');
-        setLoggedInUser('');
-        setShowLoginModal(true);
-        setUsername('');
-        setPassword('');
-      };
-    
-      const [formData, setFormData] = useState({
-        productName: '',
-        productBrand: '',
-        quantity: '',
-        stockStatus: '',
+  useEffect(() => {
+    const savedUser = localStorage.getItem('suppliesUser');
+    if (savedUser) {
+      setLoggedInUser(savedUser);
+      setShowLoginModal(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      localStorage.removeItem('suppliesUser');
+      setLoggedInUser('');
+      setShowLoginModal(true);
+    };
+  }, [location.pathname]);
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (username === 'office' && password === '!HLL2025*') {
+      localStorage.setItem('suppliesUser', username);
+      setLoggedInUser(username);
+      setShowLoginModal(false);
+      setLoginError('');
+    } else {
+      setLoginError('Invalid credentials.');
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('suppliesUser');
+    setLoggedInUser('');
+    setShowLoginModal(true);
+    setUsername('');
+    setPassword('');
+  };
+
+  const handleChange = (e) => {
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleSubmit = async () => {
+    if (!formData.itemName.trim()) {
+      setSnackbar({ open: true, message: 'Item name is required.', severity: 'error' });
+      return;
+    }
+    try {
+      await axios.post('http://localhost:5000/api/supplies', formData);
+      setSnackbar({ open: true, message: 'Supply saved successfully!', severity: 'success' });
+      setFormData({
+        itemName: '', description: '', brand: '', quantity: '',
+        status: 'In Stock', controlNumber: '', condition: 'Good',
+        location: '', specifications: '',
       });
-    
-      const handleChange = (e) => {
-        setFormData((prev) => ({
-          ...prev,
-          [e.target.name]: e.target.value,
-        }));
-      };
-    
-      const handleSubmit = () => {
-        // Add Firebase submission logic here
-        console.log('Submitted data:', formData);
-      };
+    } catch (err) {
+      console.error('Error saving supply:', err);
+      setSnackbar({ open: true, message: 'Failed to save supply.', severity: 'error' });
+    }
+  };
 
-      return (
-        <>
-          <Header>
-            {(toggleDrawer) => (
-              <>
-                <TopBar
-                  title="SuppliesEncode"
-                  onMenuClick={toggleDrawer}
-                  subtitle="SUPPLIES ENCODING"
-                />
-                <div style={{ padding: '20px' }}>
-                  {!showLoginModal && (
-                    <Box>
-                      {/* 👇 Secure page content */}
-                      <Typography>Welcome, <strong>{loggedInUser}</strong>!</Typography>
-    
-                      {/* 👇 Logout Button */}
-                      <Button
-                        variant="outlined"
-                        color="secondary"
-                        sx={{ mt: 2 }}
-                        onClick={handleLogout}
-                      >
-                        Logout
-                      </Button>
-                    </Box>
-                  )}
-                </div>
-              </>
-            )}
-          </Header>
-    
-          {/* 👇 Login Popup */}
-          <Dialog open={showLoginModal}>
-            <DialogTitle>You need to login to edit this page</DialogTitle>
-                <DialogContent>
-                  <TextField
-                    fullWidth
-                    margin="dense"
-                    label="Username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                  />
-                  <TextField
-                    fullWidth
-                    margin="dense"
-                    label="Password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                  {loginError && (
-                    <Typography color="error" fontSize={14} mt={1}>
-                      {loginError}
-                    </Typography>
-                  )}
-                  <Button
-                    variant="contained"
-                    fullWidth
-                    sx={{ mt: 2 }}
-                    onClick={handleLogin}
-                  >
-                    Login
+  const handleClear = () => {
+    setFormData({
+      itemName: '', description: '', brand: '', quantity: '',
+      status: 'In Stock', controlNumber: '', condition: 'Good',
+      location: '', specifications: '',
+    });
+  };
+
+  return (
+    <>
+      <Header>
+        {(toggleDrawer) => (
+          <>
+            <TopBar title="Supplies Encoding" onMenuClick={toggleDrawer} subtitle="OFFICE SUPPLIES ENCODING" />
+            <Box sx={{ p: 3 }}>
+              {!showLoginModal && (
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 14, color: '#555' }}>
+                    Logged in as <strong>{loggedInUser}</strong>
+                  </Typography>
+                  <Button variant="outlined" size="small" color="secondary" onClick={handleLogout}
+                    sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none' }}>
+                    Logout
                   </Button>
-                  <Button
-                    variant="outlined"
-                    fullWidth
-                    sx={{ mt: 1 }}
-                    onClick={() => navigate('/')}
-                  >
-                    Home
-                  </Button>
-                </DialogContent>      
-          </Dialog>
-    
-          <Grid container spacing={2} sx={{ px: { xs: 2, sm: 4, md: 6 }, pt: 4 }}>
-          <Grid item xs={12} sm={6} md={3}>
-            <TextField
-              fullWidth
-              label="Product Name"
-              name="productName"
-              value={formData.productName}
-              onChange={handleChange}
-            />
+                </Box>
+              )}
+            </Box>
+          </>
+        )}
+      </Header>
+
+      {/* Login Dialog */}
+      <Dialog open={showLoginModal} disableEscapeKeyDown>
+        <DialogTitle sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700 }}>
+          Login Required
+        </DialogTitle>
+        <DialogContent>
+          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#666', mb: 2 }}>
+            You need to login to access supplies encoding.
+          </Typography>
+          <TextField fullWidth margin="dense" label="Username" value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleLogin(e)}
+            inputProps={{ style: { fontFamily: 'Poppins, sans-serif' } }} />
+          <TextField fullWidth margin="dense" label="Password" type="password" value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleLogin(e)}
+            inputProps={{ style: { fontFamily: 'Poppins, sans-serif' } }} />
+          {loginError && (
+            <Typography color="error" sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, mt: 1 }}>
+              {loginError}
+            </Typography>
+          )}
+          <Button variant="contained" fullWidth
+            sx={{ mt: 2, backgroundColor: '#1b0892', fontFamily: 'Poppins, sans-serif', textTransform: 'none' }}
+            onClick={handleLogin}>
+            Login
+          </Button>
+          <Button variant="outlined" fullWidth
+            sx={{ mt: 1, fontFamily: 'Poppins, sans-serif', textTransform: 'none' }}
+            onClick={() => navigate('/')}>
+            Back to Home
+          </Button>
+        </DialogContent>
+      </Dialog>
+
+      {/* Encoding Form */}
+      {!showLoginModal && (
+        <Box sx={{ px: { xs: 2, sm: 4, md: 6 }, pb: 6 }}>
+          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 16, mb: 3, color: '#1b0892' }}>
+            Encode New Supply
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6} md={4}>
+              <TextField fullWidth label="Item Name *" name="itemName" value={formData.itemName}
+                onChange={handleChange} inputProps={{ style: { fontFamily: 'Poppins, sans-serif' } }} />
+            </Grid>
+            <Grid item xs={12} sm={6} md={4}>
+              <TextField fullWidth label="Brand" name="brand" value={formData.brand}
+                onChange={handleChange} inputProps={{ style: { fontFamily: 'Poppins, sans-serif' } }} />
+            </Grid>
+            <Grid item xs={12} sm={6} md={4}>
+              <TextField fullWidth label="Quantity" name="quantity" value={formData.quantity}
+                onChange={handleChange} type="number" inputProps={{ style: { fontFamily: 'Poppins, sans-serif' } }} />
+            </Grid>
+            <Grid item xs={12} sm={6} md={4}>
+              <TextField fullWidth select label="Status" name="status" value={formData.status} onChange={handleChange}>
+                {STATUS_OPTIONS.map(s => (
+                  <MenuItem key={s} value={s} sx={{ fontFamily: 'Poppins, sans-serif' }}>{s}</MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6} md={4}>
+              <TextField fullWidth select label="Condition" name="condition" value={formData.condition} onChange={handleChange}>
+                {CONDITION_OPTIONS.map(c => (
+                  <MenuItem key={c} value={c} sx={{ fontFamily: 'Poppins, sans-serif' }}>{c}</MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6} md={4}>
+              <TextField fullWidth label="Control Number" name="controlNumber" value={formData.controlNumber}
+                onChange={handleChange} inputProps={{ style: { fontFamily: 'Poppins, sans-serif' } }} />
+            </Grid>
+            <Grid item xs={12} sm={6} md={4}>
+              <TextField fullWidth label="Location" name="location" value={formData.location}
+                onChange={handleChange} inputProps={{ style: { fontFamily: 'Poppins, sans-serif' } }} />
+            </Grid>
+            <Grid item xs={12} sm={6} md={4}>
+              <TextField fullWidth label="Description" name="description" value={formData.description}
+                onChange={handleChange} inputProps={{ style: { fontFamily: 'Poppins, sans-serif' } }} />
+            </Grid>
+            <Grid item xs={12} sm={6} md={4}>
+              <TextField fullWidth label="Specifications" name="specifications" value={formData.specifications}
+                onChange={handleChange} inputProps={{ style: { fontFamily: 'Poppins, sans-serif' } }} />
+            </Grid>
+            <Grid item xs={12}>
+              <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
+                <Button variant="contained" onClick={handleSubmit}
+                  sx={{ backgroundColor: '#1b0892', fontFamily: 'Poppins, sans-serif', textTransform: 'none', px: 4 }}>
+                  Save Supply
+                </Button>
+                <Button variant="outlined" onClick={handleClear}
+                  sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', px: 4 }}>
+                  Clear
+                </Button>
+              </Box>
+            </Grid>
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <TextField
-              fullWidth
-              label="Product Brand"
-              name="productBrand"
-              value={formData.productBrand}
-              onChange={handleChange}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <TextField
-              fullWidth
-              label="Quantity"
-              type="number"
-              name="quantity"
-              value={formData.quantity}
-              onChange={handleChange}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <TextField
-              fullWidth
-              select
-              label="Stock Status"
-              name="stockStatus"
-              value={formData.stockStatus}
-              onChange={handleChange}
-            >
-              <MenuItem value="in">In Stock</MenuItem>
-              <MenuItem value="out">Out of Stock</MenuItem>
-            </TextField>
-          </Grid>
-          <Grid item xs={12}>
-            <Button variant="contained" color="primary" onClick={handleSubmit}>
-              Save Equipment
-            </Button>
-          </Grid>
-        </Grid>
-    
-        </>
-      );
+        </Box>
+      )}
+
+      <Snackbar open={snackbar.open} autoHideDuration={3000}
+        onClose={() => setSnackbar(p => ({ ...p, open: false }))}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+        <Alert severity={snackbar.severity} sx={{ fontFamily: 'Poppins, sans-serif' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </>
+  );
 };
+
 export default SuppliesEncode;
