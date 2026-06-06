@@ -96,7 +96,7 @@ const Login = () => {
     });
 
     const student = response.data;
-
+    
     if (student) {
       // Update student info
       setFormData({
