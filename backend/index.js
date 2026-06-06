@@ -336,3 +336,20 @@ app.get('*', (req, res) => {
 app.listen(5000, '0.0.0.0', () => {
   console.log('🚀 Server running on http://0.0.0.0:5000');
 });
+
+// === OFFICE SUPPLIES ======/
+
+// { code to be put here calling the supplies from database}
+
+// { GET ALL SUPPLY, ADD SUPPLY, UPDATE SUPPLY, DELETE SUPPLY}
+
+
+
+// == LIBRARY EQUIPMENT == 
+
+// { code to be put calling the equipments form database}
+
+// { GET ALL EQUIPMENT, ADD EQUIPMENT, UPDATE EQUIPMENT, DELETE EQUIPMENT}
+
+
+
