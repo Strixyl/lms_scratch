@@ -14,13 +14,16 @@ const config = {
   connectionString: "Driver={ODBC Driver 18 for SQL Server};Server=JUSTER\\SQLEXPRESS;Database=hllSystem;Trusted_Connection=Yes;Encrypt=no;"
 };
 
-sql.connect(config)
+// Create a pool promise to reuse across request handlers
+const poolPromise = sql.connect(config)
   .then(pool => {
     console.log('✅ Connected to SQL Server');
     return pool;
   })
   .catch(err => {
     console.error('❌ Connection Error:', err);
+    // rethrow so awaiting callers get the error
+    throw err;
   });
 
 // =================== SENTIMENT ANALYSIS =================== //
@@ -325,40 +328,29 @@ app.get('/api/surveys', async (req, res) => {
   }
 });
 
-// Serve static React files
-app.use(express.static(path.join(__dirname, 'build')));
+// ── OFFICE SUPPLIES ──────────────────────────────────────────────
 
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'build', 'index.html'));
-});
-
-// =================== START SERVER =================== //
-app.listen(5000, '0.0.0.0', () => {
-  console.log('🚀 Server running on http://0.0.0.0:5000');
-});
-
-// GET all supplies
 app.get('/api/supplies', async (req, res) => {
   try {
-    const pool = await poolPromise;
+    const pool = await sql.connect(config);
     const result = await pool.request()
       .query('SELECT * FROM OfficeSupplies ORDER BY DateAdded DESC');
     res.json(result.recordset);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Failed to fetch supplies' });
   }
 });
 
-// ADD supply
 app.post('/api/supplies', async (req, res) => {
   try {
     const { itemName, description, brand, quantity, status, controlNumber, condition, location, specifications } = req.body;
-    const pool = await poolPromise;
+    const pool = await sql.connect(config);
     await pool.request()
-      .input('ItemName', sql.NVarChar, itemName)
+      .input('ItemName', sql.NVarChar, itemName || '')
       .input('Description', sql.NVarChar, description || '')
       .input('Brand', sql.NVarChar, brand || '')
-      .input('Quantity', sql.Int, quantity || 0)
+      .input('Quantity', sql.Int, parseInt(quantity) || 0)
       .input('Status', sql.NVarChar, status || 'In Stock')
       .input('ControlNumber', sql.NVarChar, controlNumber || '')
       .input('Condition', sql.NVarChar, condition || '')
@@ -370,22 +362,22 @@ app.post('/api/supplies', async (req, res) => {
         (@ItemName, @Description, @Brand, @Quantity, @Status, @ControlNumber, @Condition, @Location, @Specifications)`);
     res.json({ success: true });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Failed to add supply' });
   }
 });
 
-// UPDATE supply
 app.put('/api/supplies/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { itemName, description, brand, quantity, status, controlNumber, condition, location, specifications } = req.body;
-    const pool = await poolPromise;
+    const pool = await sql.connect(config);
     await pool.request()
-      .input('Id', sql.Int, id)
-      .input('ItemName', sql.NVarChar, itemName)
+      .input('Id', sql.Int, parseInt(id))
+      .input('ItemName', sql.NVarChar, itemName || '')
       .input('Description', sql.NVarChar, description || '')
       .input('Brand', sql.NVarChar, brand || '')
-      .input('Quantity', sql.Int, quantity || 0)
+      .input('Quantity', sql.Int, parseInt(quantity) || 0)
       .input('Status', sql.NVarChar, status || 'In Stock')
       .input('ControlNumber', sql.NVarChar, controlNumber || '')
       .input('Condition', sql.NVarChar, condition || '')
@@ -399,48 +391,48 @@ app.put('/api/supplies/:id', async (req, res) => {
         UpdatedAt=@UpdatedAt WHERE Id=@Id`);
     res.json({ success: true });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Failed to update supply' });
   }
 });
 
-// DELETE supply
 app.delete('/api/supplies/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const pool = await poolPromise;
+    const pool = await sql.connect(config);
     await pool.request()
-      .input('Id', sql.Int, id)
+      .input('Id', sql.Int, parseInt(id))
       .query('DELETE FROM OfficeSupplies WHERE Id=@Id');
     res.json({ success: true });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Failed to delete supply' });
   }
 });
 
-// ── LIBRARY EQUIPMENT ──────────────────────────────
+// ── LIBRARY EQUIPMENT ──────────────────────────────────────────────
 
-// GET all equipment
 app.get('/api/equipment', async (req, res) => {
   try {
-    const pool = await poolPromise;
+    const pool = await sql.connect(config);
     const result = await pool.request()
       .query('SELECT * FROM LibraryEquipment ORDER BY DateAdded DESC');
     res.json(result.recordset);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Failed to fetch equipment' });
   }
 });
 
-// ADD equipment
 app.post('/api/equipment', async (req, res) => {
   try {
     const { itemName, description, brand, quantity, status, serialNumber, condition, location, specifications } = req.body;
-    const pool = await poolPromise;
+    const pool = await sql.connect(config);
     await pool.request()
-      .input('ItemName', sql.NVarChar, itemName)
+      .input('ItemName', sql.NVarChar, itemName || '')
       .input('Description', sql.NVarChar, description || '')
       .input('Brand', sql.NVarChar, brand || '')
-      .input('Quantity', sql.Int, quantity || 0)
+      .input('Quantity', sql.Int, parseInt(quantity) || 0)
       .input('Status', sql.NVarChar, status || 'In Stock')
       .input('SerialNumber', sql.NVarChar, serialNumber || '')
       .input('Condition', sql.NVarChar, condition || '')
@@ -452,22 +444,22 @@ app.post('/api/equipment', async (req, res) => {
         (@ItemName, @Description, @Brand, @Quantity, @Status, @SerialNumber, @Condition, @Location, @Specifications)`);
     res.json({ success: true });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Failed to add equipment' });
   }
 });
 
-// UPDATE equipment
 app.put('/api/equipment/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { itemName, description, brand, quantity, status, serialNumber, condition, location, specifications } = req.body;
-    const pool = await poolPromise;
+    const pool = await sql.connect(config);
     await pool.request()
-      .input('Id', sql.Int, id)
-      .input('ItemName', sql.NVarChar, itemName)
+      .input('Id', sql.Int, parseInt(id))
+      .input('ItemName', sql.NVarChar, itemName || '')
       .input('Description', sql.NVarChar, description || '')
       .input('Brand', sql.NVarChar, brand || '')
-      .input('Quantity', sql.Int, quantity || 0)
+      .input('Quantity', sql.Int, parseInt(quantity) || 0)
       .input('Status', sql.NVarChar, status || 'In Stock')
       .input('SerialNumber', sql.NVarChar, serialNumber || '')
       .input('Condition', sql.NVarChar, condition || '')
@@ -481,22 +473,36 @@ app.put('/api/equipment/:id', async (req, res) => {
         UpdatedAt=@UpdatedAt WHERE Id=@Id`);
     res.json({ success: true });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Failed to update equipment' });
   }
 });
 
-// DELETE equipment
 app.delete('/api/equipment/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const pool = await poolPromise;
+    const pool = await sql.connect(config);
     await pool.request()
-      .input('Id', sql.Int, id)
+      .input('Id', sql.Int, parseInt(id))
       .query('DELETE FROM LibraryEquipment WHERE Id=@Id');
     res.json({ success: true });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Failed to delete equipment' });
   }
 });
 
+
+
+// Serve static React files
+app.use(express.static(path.join(__dirname, 'build')));
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'build', 'index.html'));
+});
+
+// =================== START SERVER =================== //
+app.listen(5000, '0.0.0.0', () => {
+  console.log('🚀 Server running on http://0.0.0.0:5000');
+});
 
