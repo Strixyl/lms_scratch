@@ -3,18 +3,13 @@ import Header from '../Components/Header';
 import TopBar from '../Components/TopBar';
 import axios from 'axios';
 import {
-  Box, Typography, Button, TextField, Table, TableBody, TableCell,
-  TableContainer, TableHead, TableRow, Paper, Chip, IconButton,
-  Dialog, DialogTitle, DialogContent, DialogActions, MenuItem,
-  InputAdornment, CircularProgress, Snackbar, Alert
+  Box, Typography, TextField, Table, TableBody, TableCell,
+  TableContainer, TableHead, TableRow, Paper, Chip, MenuItem,
+  InputAdornment, CircularProgress
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
-import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
 
 const STATUS_OPTIONS = ['In Stock', 'Low Stock', 'Out of Stock'];
-const CONDITION_OPTIONS = ['New', 'Good', 'Fair', 'Poor'];
 
 const statusColor = (status) => {
   if (status === 'In Stock') return { bg: '#e8f5e9', text: '#2e7d32', border: '#a5d6a7' };
@@ -22,42 +17,19 @@ const statusColor = (status) => {
   return { bg: '#ffebee', text: '#c62828', border: '#ef9a9a' };
 };
 
-const emptyForm = {
-  itemName: '', description: '', brand: '', quantity: '',
-  status: 'In Stock', controlNumber: '', condition: 'Good',
-  location: '', specifications: ''
-};
-
 const Supplies = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState(null);
-  const [formData, setFormData] = useState(emptyForm);
-  const [isEditing, setIsEditing] = useState(false);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   const fetchItems = async () => {
     setLoading(true);
     try {
       const res = await axios.get('http://localhost:5000/api/supplies');
-      // Some backends return an object wrapper instead of an array
-      const payload = res.data;
-      if (Array.isArray(payload)) {
-        setItems(payload);
-      } else if (Array.isArray(payload?.rows)) {
-        setItems(payload.rows);
-      } else if (Array.isArray(payload?.data)) {
-        setItems(payload.data);
-      } else {
-        setItems([]);
-      }
+      setItems(res.data);
     } catch (err) {
       console.error('Error fetching supplies:', err);
-      showSnackbar('Failed to load supplies.', 'error');
     } finally {
       setLoading(false);
     }
@@ -65,80 +37,10 @@ const Supplies = () => {
 
   useEffect(() => { fetchItems(); }, []);
 
-  const showSnackbar = (message, severity = 'success') => {
-    setSnackbar({ open: true, message, severity });
-  };
-
-  const handleOpenAdd = () => {
-    setFormData(emptyForm);
-    setIsEditing(false);
-    setDialogOpen(true);
-  };
-
-  const handleOpenEdit = (item) => {
-    setFormData({
-      itemName: item.ItemName || '',
-      description: item.Description || '',
-      brand: item.Brand || '',
-      quantity: item.Quantity || '',
-      status: item.Status || 'In Stock',
-      controlNumber: item.ControlNumber || '',
-      condition: item.Condition || 'Good',
-      location: item.Location || '',
-      specifications: item.Specifications || '',
-    });
-    setSelectedItem(item);
-    setIsEditing(true);
-    setDialogOpen(true);
-  };
-
-  const handleOpenDelete = (item) => {
-    setSelectedItem(item);
-    setDeleteDialogOpen(true);
-  };
-
-  const handleChange = (e) => {
-    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  };
-
-  const handleSave = async () => {
-    if (!formData.itemName.trim()) {
-      showSnackbar('Item name is required.', 'error');
-      return;
-    }
-    try {
-      if (isEditing) {
-        await axios.put(`http://localhost:5000/api/supplies/${selectedItem.Id}`, formData);
-        showSnackbar('Supply updated successfully.');
-      } else {
-        await axios.post('http://localhost:5000/api/supplies', formData);
-        showSnackbar('Supply added successfully.');
-      }
-      setDialogOpen(false);
-      fetchItems();
-    } catch (err) {
-      console.error('Save error:', err);
-      showSnackbar('Failed to save supply.', 'error');
-    }
-  };
-
-  const handleDelete = async () => {
-    try {
-      await axios.delete(`http://localhost:5000/api/supplies/${selectedItem.Id}`);
-      showSnackbar('Supply deleted successfully.');
-      setDeleteDialogOpen(false);
-      fetchItems();
-    } catch (err) {
-      console.error('Delete error:', err);
-      showSnackbar('Failed to delete supply.', 'error');
-    }
-  };
-
   const filtered = items.filter(item => {
     const matchSearch =
       item.ItemName?.toLowerCase().includes(search.toLowerCase()) ||
       item.Brand?.toLowerCase().includes(search.toLowerCase()) ||
-      item.ControlNumber?.toLowerCase().includes(search.toLowerCase()) ||
       item.Location?.toLowerCase().includes(search.toLowerCase());
     const matchStatus = filterStatus ? item.Status === filterStatus : true;
     return matchSearch && matchStatus;
@@ -156,7 +58,6 @@ const Supplies = () => {
       {(toggleDrawer) => (
         <>
           <TopBar title="Office Supplies" onMenuClick={toggleDrawer} subtitle="OFFICE SUPPLIES INVENTORY" />
-
           <Box sx={{ p: 3, backgroundColor: '#f5f6fa', minHeight: '100vh' }}>
 
             {/* Summary Cards */}
@@ -183,28 +84,17 @@ const Supplies = () => {
 
             {/* Filter Bar */}
             <Box sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-              <TextField
-                size="small" placeholder="Search by name, brand, control no., location..."
+              <TextField size="small" placeholder="Search by name, brand, control no., location..."
                 value={search} onChange={(e) => setSearch(e.target.value)}
                 sx={{ backgroundColor: 'white', borderRadius: 1, minWidth: 300 }}
                 InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
               />
-              <TextField
-                select size="small" label="Filter by Status" value={filterStatus}
+              <TextField select size="small" label="Filter by Status" value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                sx={{ backgroundColor: 'white', borderRadius: 1, minWidth: 160 }}
-              >
+                sx={{ backgroundColor: 'white', borderRadius: 1, minWidth: 160 }}>
                 <MenuItem value="">All</MenuItem>
                 {STATUS_OPTIONS.map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
               </TextField>
-              {filterStatus && (
-                <Button size="small" variant="outlined" onClick={() => setFilterStatus('')}
-                  sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none' }}>
-                  Clear
-                </Button>
-              )}
-              <Box sx={{ ml: 'auto' }}>
-              </Box>
             </Box>
 
             {/* Table */}
@@ -215,16 +105,14 @@ const Supplies = () => {
                 </Box>
               ) : filtered.length === 0 ? (
                 <Box sx={{ py: 6, textAlign: 'center' }}>
-                  <Typography sx={{ fontFamily: 'Poppins, sans-serif', color: '#999' }}>
-                    No supplies found.
-                  </Typography>
+                  <Typography sx={{ fontFamily: 'Poppins, sans-serif', color: '#999' }}>No supplies found.</Typography>
                 </Box>
               ) : (
                 <TableContainer>
                   <Table size="small">
                     <TableHead>
                       <TableRow sx={{ backgroundColor: '#fafafa' }}>
-                        {['Item Name', 'Description', 'Brand', 'Qty', 'Status', 'Control No.', 'Condition', 'Location', 'Specifications', 'Actions'].map(h => (
+                        {['Item Name', 'Description', 'Brand', 'Qty', 'Status','Condition', 'Location', 'Specifications'].map(h => (
                           <TableCell key={h} sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                             {h}
                           </TableCell>
@@ -242,27 +130,13 @@ const Supplies = () => {
                             <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 600 }}>{item.Quantity}</TableCell>
                             <TableCell>
                               <Chip label={item.Status} size="small" sx={{
-                                backgroundColor: sc.bg, color: sc.text,
-                                border: `1px solid ${sc.border}`,
+                                backgroundColor: sc.bg, color: sc.text, border: `1px solid ${sc.border}`,
                                 fontFamily: 'Poppins, sans-serif', fontSize: 11, fontWeight: 600
                               }} />
                             </TableCell>
-                            <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12 }}>{item.ControlNumber}</TableCell>
                             <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12 }}>{item.Condition}</TableCell>
                             <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12 }}>{item.Location}</TableCell>
                             <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#666', maxWidth: 150 }}>{item.Specifications}</TableCell>
-                            <TableCell>
-                              <Box sx={{ display: 'flex', gap: 0.5 }}>
-                                <IconButton size="small" onClick={() => handleOpenEdit(item)}
-                                  sx={{ color: '#1b0892', '&:hover': { backgroundColor: '#e8eaf6' } }}>
-                                  <EditIcon fontSize="small" />
-                                </IconButton>
-                                <IconButton size="small" onClick={() => handleOpenDelete(item)}
-                                  sx={{ color: '#c62828', '&:hover': { backgroundColor: '#ffebee' } }}>
-                                  <DeleteIcon fontSize="small" />
-                                </IconButton>
-                              </Box>
-                            </TableCell>
                           </TableRow>
                         );
                       })}
@@ -276,73 +150,6 @@ const Supplies = () => {
               Showing {filtered.length} of {items.length} items
             </Typography>
           </Box>
-
-          {/* Add / Edit Dialog */}
-          <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
-            <DialogTitle sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700 }}>
-              {isEditing ? 'Edit Supply' : 'Add Supply'}
-            </DialogTitle>
-            <DialogContent>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-                <TextField fullWidth label="Item Name *" name="itemName" value={formData.itemName} onChange={handleChange}
-                  size="small" inputProps={{ style: { fontFamily: 'Poppins, sans-serif' } }} />
-                <TextField fullWidth label="Description" name="description" value={formData.description} onChange={handleChange}
-                  size="small" multiline rows={2} inputProps={{ style: { fontFamily: 'Poppins, sans-serif' } }} />
-                <Box sx={{ display: 'flex', gap: 2 }}>
-                  <TextField fullWidth label="Brand" name="brand" value={formData.brand} onChange={handleChange}
-                    size="small" inputProps={{ style: { fontFamily: 'Poppins, sans-serif' } }} />
-                  <TextField fullWidth label="Quantity" name="quantity" value={formData.quantity} onChange={handleChange}
-                    size="small" type="number" inputProps={{ style: { fontFamily: 'Poppins, sans-serif' } }} />
-                </Box>
-                <Box sx={{ display: 'flex', gap: 2 }}>
-                  <TextField fullWidth select label="Status" name="status" value={formData.status} onChange={handleChange} size="small">
-                    {STATUS_OPTIONS.map(s => <MenuItem key={s} value={s} sx={{ fontFamily: 'Poppins, sans-serif' }}>{s}</MenuItem>)}
-                  </TextField>
-                  <TextField fullWidth select label="Condition" name="condition" value={formData.condition} onChange={handleChange} size="small">
-                    {CONDITION_OPTIONS.map(c => <MenuItem key={c} value={c} sx={{ fontFamily: 'Poppins, sans-serif' }}>{c}</MenuItem>)}
-                  </TextField>
-                </Box>
-                <TextField fullWidth label="Control Number" name="controlNumber" value={formData.controlNumber} onChange={handleChange}
-                  size="small" inputProps={{ style: { fontFamily: 'Poppins, sans-serif' } }} />
-                <TextField fullWidth label="Location" name="location" value={formData.location} onChange={handleChange}
-                  size="small" inputProps={{ style: { fontFamily: 'Poppins, sans-serif' } }} />
-                <TextField fullWidth label="Specifications" name="specifications" value={formData.specifications} onChange={handleChange}
-                  size="small" multiline rows={2} inputProps={{ style: { fontFamily: 'Poppins, sans-serif' } }} />
-              </Box>
-            </DialogContent>
-            <DialogActions sx={{ px: 3, pb: 2 }}>
-              <Button onClick={() => setDialogOpen(false)} sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none' }}>Cancel</Button>
-              <Button variant="contained" onClick={handleSave}
-                sx={{ backgroundColor: '#1b0892', fontFamily: 'Poppins, sans-serif', textTransform: 'none', px: 3 }}>
-                {isEditing ? 'Update' : 'Save'}
-              </Button>
-            </DialogActions>
-          </Dialog>
-
-          {/* Delete Confirmation Dialog */}
-          <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} maxWidth="xs" fullWidth>
-            <DialogTitle sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700 }}>Delete Supply</DialogTitle>
-            <DialogContent>
-              <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 14 }}>
-                Are you sure you want to delete <strong>{selectedItem?.ItemName}</strong>? This action cannot be undone.
-              </Typography>
-            </DialogContent>
-            <DialogActions sx={{ px: 3, pb: 2 }}>
-              <Button onClick={() => setDeleteDialogOpen(false)} sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none' }}>Cancel</Button>
-              <Button variant="contained" onClick={handleDelete}
-                sx={{ backgroundColor: '#c62828', fontFamily: 'Poppins, sans-serif', textTransform: 'none', px: 3 }}>
-                Delete
-              </Button>
-            </DialogActions>
-          </Dialog>
-
-          {/* Snackbar */}
-          <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar(p => ({ ...p, open: false }))}
-            anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
-            <Alert severity={snackbar.severity} sx={{ fontFamily: 'Poppins, sans-serif' }}>
-              {snackbar.message}
-            </Alert>
-          </Snackbar>
         </>
       )}
     </Header>

@@ -7,7 +7,6 @@ import SatisfactionSurvey from './pages/SatisfactionSurvey';
 import CardAndPacket from './pages/CardAndPacket';
 import Supplies from './pages/Supplies';
 import Equipment from './pages/Equipment';
-import Bibliography from './pages/Bibliography';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import EquipmentEncode from './pages/EquipmentEncode';
@@ -52,7 +51,6 @@ function App() {
           <Route path="/card-and-packet" element={<CardAndPacket />} />
           <Route path="/supplies" element={<Supplies />} />
           <Route path="/equipment" element={<Equipment />} />
-          <Route path="/bibliography" element={<Bibliography />} />
           <Route path="/equipment-encoding" element={<EquipmentEncode />} />
           <Route path="/supplies-encoding" element={<SuppliesEncode />} />
           <Route path="/sentiment-dashboard" element={<SentimentDashboard />} />
