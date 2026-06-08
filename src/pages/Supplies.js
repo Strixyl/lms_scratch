@@ -204,10 +204,6 @@ const Supplies = () => {
                 </Button>
               )}
               <Box sx={{ ml: 'auto' }}>
-                <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenAdd}
-                  sx={{ backgroundColor: '#1b0892', fontFamily: 'Poppins, sans-serif', textTransform: 'none', px: 3 }}>
-                  Add Supply
-                </Button>
               </Box>
             </Box>
 
