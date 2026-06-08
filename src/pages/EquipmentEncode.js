@@ -51,8 +51,10 @@ const EquipmentEncode = () => {
   useEffect(() => {
     const savedUser = localStorage.getItem('equipmentUser');
     if (savedUser) {
+      // Preserve the saved user but require an explicit login step
       setLoggedInUser(savedUser);
-      setShowLoginModal(false);
+      setUsername(savedUser);
+      // keep `showLoginModal` true so the login dialog is shown
     }
   }, []);
 
