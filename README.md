@@ -115,6 +115,10 @@ CREATE TABLE LibraryEquipment (
   DateAdded DATETIME DEFAULT GETDATE(), UpdatedAt DATETIME
 )
 
+drop the ControlNumber according to sir Genecis
+
+ALTER TABLE OfficeSupplies DROP COLUMN ControlNumber;
+
 ```
 
 ---

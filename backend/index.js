@@ -342,6 +342,29 @@ app.get('/api/supplies', async (req, res) => {
   }
 });
 
+app.post('/api/supplies', async (req, res) => {
+  try {
+    const { itemName, description, brand, quantity, status, condition, location, specifications } = req.body;
+    const pool = await sql.connect(config);
+    await pool.request()
+      .input('ItemName', sql.NVarChar, itemName || '')
+      .input('Description', sql.NVarChar, description || '')
+      .input('Brand', sql.NVarChar, brand || '')
+      .input('Quantity', sql.Int, parseInt(quantity) || 0)
+      .input('Status', sql.NVarChar, status || 'In Stock')
+      .input('Condition', sql.NVarChar, condition || '')
+      .input('Location', sql.NVarChar, location || '')
+      .input('Specifications', sql.NVarChar, specifications || '')
+      .query(`INSERT INTO OfficeSupplies
+        (ItemName, Description, Brand, Quantity, Status, Condition, Location, Specifications)
+        VALUES (@ItemName, @Description, @Brand, @Quantity, @Status, @Condition, @Location, @Specifications)`);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Failed to add supply:', err);
+    res.status(500).json({ error: 'Failed to add supply' });
+  }
+});
+
 app.put('/api/supplies/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -365,36 +388,7 @@ app.put('/api/supplies/:id', async (req, res) => {
         UpdatedAt=@UpdatedAt WHERE Id=@Id`);
     res.json({ success: true });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to update supply' });
-  }
-});
-
-app.put('/api/supplies/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { itemName, description, brand, quantity, status, condition, location, specifications } = req.body;
-    const pool = await sql.connect(config);
-    await pool.request()
-      .input('Id', sql.Int, parseInt(id))
-      .input('ItemName', sql.NVarChar, itemName || '')
-      .input('Description', sql.NVarChar, description || '')
-      .input('Brand', sql.NVarChar, brand || '')
-      .input('Quantity', sql.Int, parseInt(quantity) || 0)
-      .input('Status', sql.NVarChar, status || 'In Stock')
-      .input('ControlNumber', sql.NVarChar, controlNumber || '')
-      .input('Condition', sql.NVarChar, condition || '')
-      .input('Location', sql.NVarChar, location || '')
-      .input('Specifications', sql.NVarChar, specifications || '')
-      .input('UpdatedAt', sql.DateTime, new Date())
-      .query(`UPDATE OfficeSupplies SET
-        ItemName=@ItemName, Description=@Description, Brand=@Brand,
-        Quantity=@Quantity, Status=@Status, ControlNumber=@ControlNumber,
-        Condition=@Condition, Location=@Location, Specifications=@Specifications,
-        UpdatedAt=@UpdatedAt WHERE Id=@Id`);
-    res.json({ success: true });
-  } catch (err) {
-    console.error(err);
+    console.error('Failed to update supply:', err);
     res.status(500).json({ error: 'Failed to update supply' });
   }
 });

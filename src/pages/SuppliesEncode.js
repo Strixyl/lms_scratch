@@ -291,7 +291,6 @@ const SuppliesEncode = () => {
                             fontFamily: 'Poppins, sans-serif', fontSize: 11, fontWeight: 600
                           }} />
                         </TableCell>
-                        <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12 }}>{item.ControlNumber}</TableCell>
                         <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12 }}>{item.Condition}</TableCell>
                         <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12 }}>{item.Location}</TableCell>
                         <TableCell>
