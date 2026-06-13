@@ -328,6 +328,237 @@ app.get('/api/surveys', async (req, res) => {
   }
 });
 
+
+// =================== CARD AND PACKET =================== //
+
+app.post('/api/card-and-packet', async (req, res) => {
+  const {
+    selectedLibrary1, section1, selectedLibrary2, section2, selectedLibrary3, section3, selectedLibrary4, section4,
+    authorLastName1, authorFirstName1, authorMiddleInitial1, publisherAuthor1,
+    authorLastName2, authorFirstName2, authorMiddleInitial2, publisherAuthor2,
+    authorLastName3, authorFirstName3, authorMiddleInitial3, publisherAuthor3,
+    authorLastName4, authorFirstName4, authorMiddleInitial4, publisherAuthor4,
+    bookTitle1, bookTitle2, bookTitle3, bookTitle4,
+    accessionNumber1, accessionNumber2, accessionNumber3, accessionNumber4,
+    callNumber1, callNumber2, callNumber3, callNumber4,
+    copyNumber1, copyNumber2, copyNumber3, copyNumber4,
+    barcodeValue1, barcodeValue2, barcodeValue3, barcodeValue4,
+    isoCodeValue1, isoCodeValue2, isoCodeValue3, isoCodeValue4,
+  } = req.body;
+
+  try {
+    const pool = await sql.connect(config);
+
+    // ✅ Check for duplicate accession number
+    const checkDuplicate = await pool.request()
+      .input('accessionNumber1', sql.NVarChar, accessionNumber1 || '')
+      .query(`SELECT COUNT(*) AS count FROM CardAndPacket WHERE accessionNumber1 = @accessionNumber1 AND accessionNumber1 != ''`);
+
+    if (checkDuplicate.recordset[0].count > 0) {
+      return res.status(400).json({ message: `Accession number "${accessionNumber1}" already exists!` });
+    }
+
+    await pool.request()
+      .input('selectedLibrary1', sql.NVarChar, selectedLibrary1 || '')
+      .input('section1', sql.NVarChar, section1 || '')
+      .input('selectedLibrary2', sql.NVarChar, selectedLibrary2 || '')
+      .input('section2', sql.NVarChar, section2 || '')
+      .input('selectedLibrary3', sql.NVarChar, selectedLibrary3 || '')
+      .input('section3', sql.NVarChar, section3 || '')
+      .input('selectedLibrary4', sql.NVarChar, selectedLibrary4 || '')
+      .input('section4', sql.NVarChar, section4 || '')
+      .input('authorLastName1', sql.NVarChar, authorLastName1 || '')
+      .input('authorFirstName1', sql.NVarChar, authorFirstName1 || '')
+      .input('authorMiddleInitial1', sql.NVarChar, authorMiddleInitial1 || '')
+      .input('publisherAuthor1', sql.NVarChar, publisherAuthor1 || '')
+      .input('authorLastName2', sql.NVarChar, authorLastName2 || '')
+      .input('authorFirstName2', sql.NVarChar, authorFirstName2 || '')
+      .input('authorMiddleInitial2', sql.NVarChar, authorMiddleInitial2 || '')
+      .input('publisherAuthor2', sql.NVarChar, publisherAuthor2 || '')
+      .input('authorLastName3', sql.NVarChar, authorLastName3 || '')
+      .input('authorFirstName3', sql.NVarChar, authorFirstName3 || '')
+      .input('authorMiddleInitial3', sql.NVarChar, authorMiddleInitial3 || '')
+      .input('publisherAuthor3', sql.NVarChar, publisherAuthor3 || '')
+      .input('authorLastName4', sql.NVarChar, authorLastName4 || '')
+      .input('authorFirstName4', sql.NVarChar, authorFirstName4 || '')
+      .input('authorMiddleInitial4', sql.NVarChar, authorMiddleInitial4 || '')
+      .input('publisherAuthor4', sql.NVarChar, publisherAuthor4 || '')
+      .input('bookTitle1', sql.NVarChar, bookTitle1 || '')
+      .input('bookTitle2', sql.NVarChar, bookTitle2 || '')
+      .input('bookTitle3', sql.NVarChar, bookTitle3 || '')
+      .input('bookTitle4', sql.NVarChar, bookTitle4 || '')
+      .input('accessionNumber1', sql.NVarChar, accessionNumber1 || '')
+      .input('accessionNumber2', sql.NVarChar, accessionNumber2 || '')
+      .input('accessionNumber3', sql.NVarChar, accessionNumber3 || '')
+      .input('accessionNumber4', sql.NVarChar, accessionNumber4 || '')
+      .input('callNumber1', sql.NVarChar, callNumber1 || '')
+      .input('callNumber2', sql.NVarChar, callNumber2 || '')
+      .input('callNumber3', sql.NVarChar, callNumber3 || '')
+      .input('callNumber4', sql.NVarChar, callNumber4 || '')
+      .input('copyNumber1', sql.NVarChar, copyNumber1 || '')
+      .input('copyNumber2', sql.NVarChar, copyNumber2 || '')
+      .input('copyNumber3', sql.NVarChar, copyNumber3 || '')
+      .input('copyNumber4', sql.NVarChar, copyNumber4 || '')
+      .input('barcodeValue1', sql.NVarChar, barcodeValue1 || '')
+      .input('barcodeValue2', sql.NVarChar, barcodeValue2 || '')
+      .input('barcodeValue3', sql.NVarChar, barcodeValue3 || '')
+      .input('barcodeValue4', sql.NVarChar, barcodeValue4 || '')
+      .input('isoCodeValue1', sql.NVarChar, isoCodeValue1 || '')
+      .input('isoCodeValue2', sql.NVarChar, isoCodeValue2 || '')
+      .input('isoCodeValue3', sql.NVarChar, isoCodeValue3 || '')
+      .input('isoCodeValue4', sql.NVarChar, isoCodeValue4 || '')
+      .query(`
+        INSERT INTO CardAndPacket (
+          selectedLibrary1, section1, selectedLibrary2, section2, selectedLibrary3, section3, selectedLibrary4, section4,
+          authorLastName1, authorFirstName1, authorMiddleInitial1, publisherAuthor1,
+          authorLastName2, authorFirstName2, authorMiddleInitial2, publisherAuthor2,
+          authorLastName3, authorFirstName3, authorMiddleInitial3, publisherAuthor3,
+          authorLastName4, authorFirstName4, authorMiddleInitial4, publisherAuthor4,
+          bookTitle1, bookTitle2, bookTitle3, bookTitle4,
+          accessionNumber1, accessionNumber2, accessionNumber3, accessionNumber4,
+          callNumber1, callNumber2, callNumber3, callNumber4,
+          copyNumber1, copyNumber2, copyNumber3, copyNumber4,
+          barcodeValue1, barcodeValue2, barcodeValue3, barcodeValue4,
+          isoCodeValue1, isoCodeValue2, isoCodeValue3, isoCodeValue4
+        ) VALUES (
+          @selectedLibrary1, @section1, @selectedLibrary2, @section2, @selectedLibrary3, @section3, @selectedLibrary4, @section4,
+          @authorLastName1, @authorFirstName1, @authorMiddleInitial1, @publisherAuthor1,
+          @authorLastName2, @authorFirstName2, @authorMiddleInitial2, @publisherAuthor2,
+          @authorLastName3, @authorFirstName3, @authorMiddleInitial3, @publisherAuthor3,
+          @authorLastName4, @authorFirstName4, @authorMiddleInitial4, @publisherAuthor4,
+          @bookTitle1, @bookTitle2, @bookTitle3, @bookTitle4,
+          @accessionNumber1, @accessionNumber2, @accessionNumber3, @accessionNumber4,
+          @callNumber1, @callNumber2, @callNumber3, @callNumber4,
+          @copyNumber1, @copyNumber2, @copyNumber3, @copyNumber4,
+          @barcodeValue1, @barcodeValue2, @barcodeValue3, @barcodeValue4,
+          @isoCodeValue1, @isoCodeValue2, @isoCodeValue3, @isoCodeValue4
+        )
+      `);
+
+    res.json({ message: 'Card and Packet saved successfully!' });
+  } catch (err) {
+    console.error('Error saving card and packet:', err);
+    res.status(500).json({ message: 'Failed to save.' });
+  }
+});
+
+app.get('/api/card-and-packet/search', async (req, res) => {
+  const { accessionNumber } = req.query;
+
+  try {
+    const pool = await sql.connect(config);
+    const result = await pool.request()
+      .input('accessionNumber', sql.NVarChar, accessionNumber)
+      .query(`
+        SELECT * FROM CardAndPacket
+        WHERE accessionNumber1 = @accessionNumber
+           OR accessionNumber2 = @accessionNumber
+           OR accessionNumber3 = @accessionNumber
+           OR accessionNumber4 = @accessionNumber
+      `);
+
+    res.json(result.recordset);
+  } catch (err) {
+    console.error('Error searching:', err);
+    res.status(500).json({ message: 'Search failed.' });
+  }
+});
+
+app.put('/api/card-and-packet/:id', async (req, res) => {
+  const { id } = req.params;
+  const {
+    selectedLibrary1, section1, selectedLibrary2, section2, selectedLibrary3, section3, selectedLibrary4, section4,
+    authorLastName1, authorFirstName1, authorMiddleInitial1, publisherAuthor1,
+    authorLastName2, authorFirstName2, authorMiddleInitial2, publisherAuthor2,
+    authorLastName3, authorFirstName3, authorMiddleInitial3, publisherAuthor3,
+    authorLastName4, authorFirstName4, authorMiddleInitial4, publisherAuthor4,
+    bookTitle1, bookTitle2, bookTitle3, bookTitle4,
+    accessionNumber1, accessionNumber2, accessionNumber3, accessionNumber4,
+    callNumber1, callNumber2, callNumber3, callNumber4,
+    copyNumber1, copyNumber2, copyNumber3, copyNumber4,
+    barcodeValue1, barcodeValue2, barcodeValue3, barcodeValue4,
+    isoCodeValue1, isoCodeValue2, isoCodeValue3, isoCodeValue4,
+  } = req.body;
+
+  try {
+    const pool = await sql.connect(config);
+    await pool.request()
+      .input('id', sql.Int, id)
+      .input('selectedLibrary1', sql.NVarChar, selectedLibrary1 || '')
+      .input('section1', sql.NVarChar, section1 || '')
+      .input('selectedLibrary2', sql.NVarChar, selectedLibrary2 || '')
+      .input('section2', sql.NVarChar, section2 || '')
+      .input('selectedLibrary3', sql.NVarChar, selectedLibrary3 || '')
+      .input('section3', sql.NVarChar, section3 || '')
+      .input('selectedLibrary4', sql.NVarChar, selectedLibrary4 || '')
+      .input('section4', sql.NVarChar, section4 || '')
+      .input('authorLastName1', sql.NVarChar, authorLastName1 || '')
+      .input('authorFirstName1', sql.NVarChar, authorFirstName1 || '')
+      .input('authorMiddleInitial1', sql.NVarChar, authorMiddleInitial1 || '')
+      .input('publisherAuthor1', sql.NVarChar, publisherAuthor1 || '')
+      .input('authorLastName2', sql.NVarChar, authorLastName2 || '')
+      .input('authorFirstName2', sql.NVarChar, authorFirstName2 || '')
+      .input('authorMiddleInitial2', sql.NVarChar, authorMiddleInitial2 || '')
+      .input('publisherAuthor2', sql.NVarChar, publisherAuthor2 || '')
+      .input('authorLastName3', sql.NVarChar, authorLastName3 || '')
+      .input('authorFirstName3', sql.NVarChar, authorFirstName3 || '')
+      .input('authorMiddleInitial3', sql.NVarChar, authorMiddleInitial3 || '')
+      .input('publisherAuthor3', sql.NVarChar, publisherAuthor3 || '')
+      .input('authorLastName4', sql.NVarChar, authorLastName4 || '')
+      .input('authorFirstName4', sql.NVarChar, authorFirstName4 || '')
+      .input('authorMiddleInitial4', sql.NVarChar, authorMiddleInitial4 || '')
+      .input('publisherAuthor4', sql.NVarChar, publisherAuthor4 || '')
+      .input('bookTitle1', sql.NVarChar, bookTitle1 || '')
+      .input('bookTitle2', sql.NVarChar, bookTitle2 || '')
+      .input('bookTitle3', sql.NVarChar, bookTitle3 || '')
+      .input('bookTitle4', sql.NVarChar, bookTitle4 || '')
+      .input('accessionNumber1', sql.NVarChar, accessionNumber1 || '')
+      .input('accessionNumber2', sql.NVarChar, accessionNumber2 || '')
+      .input('accessionNumber3', sql.NVarChar, accessionNumber3 || '')
+      .input('accessionNumber4', sql.NVarChar, accessionNumber4 || '')
+      .input('callNumber1', sql.NVarChar, callNumber1 || '')
+      .input('callNumber2', sql.NVarChar, callNumber2 || '')
+      .input('callNumber3', sql.NVarChar, callNumber3 || '')
+      .input('callNumber4', sql.NVarChar, callNumber4 || '')
+      .input('copyNumber1', sql.NVarChar, copyNumber1 || '')
+      .input('copyNumber2', sql.NVarChar, copyNumber2 || '')
+      .input('copyNumber3', sql.NVarChar, copyNumber3 || '')
+      .input('copyNumber4', sql.NVarChar, copyNumber4 || '')
+      .input('barcodeValue1', sql.NVarChar, barcodeValue1 || '')
+      .input('barcodeValue2', sql.NVarChar, barcodeValue2 || '')
+      .input('barcodeValue3', sql.NVarChar, barcodeValue3 || '')
+      .input('barcodeValue4', sql.NVarChar, barcodeValue4 || '')
+      .input('isoCodeValue1', sql.NVarChar, isoCodeValue1 || '')
+      .input('isoCodeValue2', sql.NVarChar, isoCodeValue2 || '')
+      .input('isoCodeValue3', sql.NVarChar, isoCodeValue3 || '')
+      .input('isoCodeValue4', sql.NVarChar, isoCodeValue4 || '')
+      .query(`
+        UPDATE CardAndPacket SET
+          selectedLibrary1=@selectedLibrary1, section1=@section1,
+          selectedLibrary2=@selectedLibrary2, section2=@section2,
+          selectedLibrary3=@selectedLibrary3, section3=@section3,
+          selectedLibrary4=@selectedLibrary4, section4=@section4,
+          authorLastName1=@authorLastName1, authorFirstName1=@authorFirstName1, authorMiddleInitial1=@authorMiddleInitial1, publisherAuthor1=@publisherAuthor1,
+          authorLastName2=@authorLastName2, authorFirstName2=@authorFirstName2, authorMiddleInitial2=@authorMiddleInitial2, publisherAuthor2=@publisherAuthor2,
+          authorLastName3=@authorLastName3, authorFirstName3=@authorFirstName3, authorMiddleInitial3=@authorMiddleInitial3, publisherAuthor3=@publisherAuthor3,
+          authorLastName4=@authorLastName4, authorFirstName4=@authorFirstName4, authorMiddleInitial4=@authorMiddleInitial4, publisherAuthor4=@publisherAuthor4,
+          bookTitle1=@bookTitle1, bookTitle2=@bookTitle2, bookTitle3=@bookTitle3, bookTitle4=@bookTitle4,
+          accessionNumber1=@accessionNumber1, accessionNumber2=@accessionNumber2, accessionNumber3=@accessionNumber3, accessionNumber4=@accessionNumber4,
+          callNumber1=@callNumber1, callNumber2=@callNumber2, callNumber3=@callNumber3, callNumber4=@callNumber4,
+          copyNumber1=@copyNumber1, copyNumber2=@copyNumber2, copyNumber3=@copyNumber3, copyNumber4=@copyNumber4,
+          barcodeValue1=@barcodeValue1, barcodeValue2=@barcodeValue2, barcodeValue3=@barcodeValue3, barcodeValue4=@barcodeValue4,
+          isoCodeValue1=@isoCodeValue1, isoCodeValue2=@isoCodeValue2, isoCodeValue3=@isoCodeValue3, isoCodeValue4=@isoCodeValue4,
+          updatedAt=GETDATE()
+        WHERE CardID=@id
+      `);
+
+    res.json({ message: 'Updated successfully!' });
+  } catch (err) {
+    console.error('Error updating:', err);
+    res.status(500).json({ message: 'Update failed.' });
+  }
+});
+
 // ── OFFICE SUPPLIES ──────────────────────────────────────────────
 
 app.get('/api/supplies', async (req, res) => {
