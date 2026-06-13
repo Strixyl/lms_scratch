@@ -14,21 +14,16 @@ const config = {
   connectionString: "Driver={ODBC Driver 18 for SQL Server};Server=JUSTER\\SQLEXPRESS;Database=hllSystem;Trusted_Connection=Yes;Encrypt=no;"
 };
 
-// Create a pool promise to reuse across request handlers
-const poolPromise = sql.connect(config)
+
+sql.connect(config)
   .then(pool => {
     console.log('✅ Connected to SQL Server');
     return pool;
   })
   .catch(err => {
     console.error('❌ Connection Error:', err);
-    // rethrow so awaiting callers get the error
-    throw err;
   });
 
-// =================== SENTIMENT ANALYSIS =================== //
-
-// Map emoji ratings to numeric scores
 const ratingScores = {
   very_satisfied: 1.0,
   satisfied: 0.5,
@@ -38,10 +33,8 @@ const ratingScores = {
   na: 0.0,
 };
 
-// Naïve Bayes classifier (trained with labeled examples)
 const classifier = new natural.BayesClassifier();
 
-// Positive training samples
 classifier.addDocument('excellent service very helpful staff amazing experience', 'Positive');
 classifier.addDocument('great resources comfortable environment wonderful visit', 'Positive');
 classifier.addDocument('very satisfied with the library services highly recommend', 'Positive');
@@ -51,7 +44,6 @@ classifier.addDocument('fantastic collection helpful librarians outstanding serv
 classifier.addDocument('very pleased with the resources available exceeded expectations', 'Positive');
 classifier.addDocument('best library experience staff went above and beyond', 'Positive');
 
-// Neutral training samples
 classifier.addDocument('library is okay nothing special average experience', 'Neutral');
 classifier.addDocument('services are acceptable could be better but not bad', 'Neutral');
 classifier.addDocument('used the library for research it was fine', 'Neutral');
@@ -60,7 +52,6 @@ classifier.addDocument('neither good nor bad just a regular visit', 'Neutral');
 classifier.addDocument('some things were good some were not satisfactory', 'Neutral');
 classifier.addDocument('average overall not impressed but not disappointed', 'Neutral');
 
-// Negative training samples
 classifier.addDocument('poor service staff were unhelpful very disappointing', 'Negative');
 classifier.addDocument('terrible experience resources outdated disorganized', 'Negative');
 classifier.addDocument('very dissatisfied long wait times rude staff', 'Negative');
@@ -71,54 +62,39 @@ classifier.addDocument('highly disappointed lacks resources and poor management'
 
 classifier.train();
 
-/**
- * Converts a numeric score to a sentiment label
- */
 function scoreToLabel(score) {
   if (score > 0.15) return 'Positive';
   if (score < -0.15) return 'Negative';
   return 'Neutral';
 }
 
-/**
- * Analyzes emoji ratings separately from text message.
- * Returns: { emojiSentiment, textSentiment, overallSentiment }
- */
 function analyzeSentiment(responses, message) {
-
-  // ── MEASURE 1: Emoji Ratings ──────────────────────────────────────
   const validResponses = responses.filter(r => r !== null && r !== 'na');
   const ratingAvg = validResponses.length > 0
     ? validResponses.reduce((sum, r) => sum + (ratingScores[r] ?? 0), 0) / validResponses.length
     : 0;
   const emojiSentiment = scoreToLabel(ratingAvg);
 
-  // ── MEASURE 2: Text Analysis (VADER + Naïve Bayes + AFINN) ────────
   let textSentiment = 'Neutral';
   let textScore = 0;
 
   if (message && message.trim().length > 0) {
-    // VADER score
     const intensity = vader.SentimentIntensityAnalyzer.polarity_scores(message);
     const vaderScore = intensity.compound;
 
-    // Naïve Bayes classification
     const nbClassification = classifier.classify(message.toLowerCase());
     const nbScore = nbClassification === 'Positive' ? 1 : nbClassification === 'Negative' ? -1 : 0;
 
-    // AFINN word-level score
     const words = message.toLowerCase().replace(/[^a-z\s]/g, '').split(/\s+/);
     const scoredWords = words.filter(w => afinn[w] !== undefined);
     const afinnScore = scoredWords.length > 0
       ? scoredWords.reduce((sum, w) => sum + afinn[w], 0) / scoredWords.length / 5
       : 0;
 
-    // Combine text signals: VADER (40%) + Naïve Bayes (35%) + AFINN (25%)
     textScore = vaderScore * 0.40 + nbScore * 0.35 + afinnScore * 0.25;
     textSentiment = scoreToLabel(textScore);
   }
 
-  // ── OVERALL: Equal weight between emoji and text ──────────────────
   let overallSentiment;
   if (!message || message.trim().length === 0) {
     overallSentiment = emojiSentiment;
@@ -133,7 +109,6 @@ function analyzeSentiment(responses, message) {
 
 // =================== ROUTES =================== //
 
-// Satisfaction Survey Submission
 app.post('/api/survey', async (req, res) => {
   const { clientele, college, course, responses, message } = req.body;
 
@@ -175,7 +150,6 @@ app.post('/api/survey', async (req, res) => {
   }
 });
 
-// HLL Login (toggle login/logout)
 app.post('/api/student-lookup', async (req, res) => {
   const { idNumber, section } = req.body;
 
@@ -197,19 +171,22 @@ app.post('/api/student-lookup', async (req, res) => {
     }
 
     const student = studentResult.recordset[0];
-    
+
+    // ✅ Count logs per section separately
     const todayLogs = await pool.request()
       .input('idNumber', sql.VarChar, idNumber)
+      .input('section', sql.VarChar, section)
       .query(`
         SELECT COUNT(*) AS logCount
         FROM LibLogins
         WHERE studIDnumber = @idNumber
+          AND Section = @section
           AND CAST(TimeLogged AS DATE) = CAST(GETDATE() AS DATE);
       `);
 
     const logCount = todayLogs.recordset[0].logCount;
     const logType = logCount % 2 === 0 ? 'Time In' : 'Time Out';
-    const nowPH = moment().tz("Asia/Manila").format("YYYY-MM-DD HH:mm:ss");
+    const nowPH = moment().utcOffset('+08:00').format("YYYY-MM-DD HH:mm:ss");
 
     const insertLog = await pool.request()
       .input('studIDnumber', sql.VarChar, student.studIDnumber)
@@ -227,7 +204,7 @@ app.post('/api/student-lookup', async (req, res) => {
           studIDnumber, studLname, studFname, studCourse, studYear,
           studCollege, studGender, Section, studLogType, TimeLogged
         )
-        OUTPUT INSERTED.LogID, INSERTED.studLogType, INSERTED.TimeLogged
+        OUTPUT INSERTED.LogID, INSERTED.studLogType
         VALUES (
           @studIDnumber, @studLname, @studFname, @studCourse, @studYear,
           @studCollege, @studGender, @section, @studLogType, @timeLogged
@@ -240,7 +217,7 @@ app.post('/api/student-lookup', async (req, res) => {
       ...student,
       logId: newLog.LogID,
       studLogType: newLog.studLogType,
-      timeLogged: newLog.TimeLogged,
+      timeLogged: nowPH,
       message: `${newLog.studLogType} recorded`
     });
 
@@ -250,37 +227,35 @@ app.post('/api/student-lookup', async (req, res) => {
   }
 });
 
-// Fetch LibLogins with optional date range filter
+// ✅ Updated with section filter
 app.get('/api/logins', async (req, res) => {
-  const { startDate, endDate } = req.query;
+  const { startDate, endDate, section } = req.query;
 
   try {
     const pool = await sql.connect(config);
 
-    let query = `
-      SELECT LogID, studIDnumber, studLname, studFname, studCourse, studYear,
-             studCollege, Section,
-             FORMAT(TimeLogged AT TIME ZONE 'UTC' AT TIME ZONE 'SE Asia Standard Time', 'yyyy-MM-dd HH:mm:ss') AS TimeLogged,
-             studLogType, studGender
+    const conditions = [];
+    if (startDate && endDate) conditions.push(`CAST(TimeLogged AS DATE) BETWEEN @startDate AND @endDate`);
+    if (section) conditions.push(`Section = @section`);
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const query = `
+      SELECT 
+        LogID, studIDnumber, studLname, studFname,
+        studCourse, studYear, studCollege, Section,
+        CONVERT(VARCHAR, TimeLogged, 120) AS TimeLogged,
+        studLogType, studGender
       FROM LibLogins
+      ${whereClause}
+      ORDER BY TimeLogged DESC
     `;
 
     const request = pool.request();
-    const conditions = [];
-
-    if (startDate) {
-      conditions.push(`(TimeLogged AT TIME ZONE 'UTC' AT TIME ZONE 'SE Asia Standard Time') >= @startDate`);
-      request.input('startDate', sql.DateTime, new Date(startDate));
+    if (startDate && endDate) {
+      request.input('startDate', sql.Date, new Date(startDate));
+      request.input('endDate', sql.Date, new Date(endDate));
     }
-
-    if (endDate) {
-      conditions.push(`(TimeLogged AT TIME ZONE 'UTC' AT TIME ZONE 'SE Asia Standard Time') <= @endDate`);
-      request.input('endDate', sql.DateTime, new Date(endDate));
-    }
-
-    if (conditions.length > 0) {
-      query += ` WHERE ${conditions.join(' AND ')}`;
-    }
+    if (section) request.input('section', sql.VarChar, section);
 
     const result = await request.query(query);
     res.json(result.recordset);
@@ -291,7 +266,6 @@ app.get('/api/logins', async (req, res) => {
   }
 });
 
-// Get all satisfaction surveys (with optional date range)
 app.get('/api/surveys', async (req, res) => {
   const { startDate, endDate } = req.query;
 
@@ -327,7 +301,6 @@ app.get('/api/surveys', async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch surveys' });
   }
 });
-
 
 // =================== CARD AND PACKET =================== //
 
@@ -559,8 +532,7 @@ app.put('/api/card-and-packet/:id', async (req, res) => {
   }
 });
 
-// ── OFFICE SUPPLIES ──────────────────────────────────────────────
-
+// =================== OFFICE SUPPLIES =================== //
 app.get('/api/supplies', async (req, res) => {
   try {
     const pool = await sql.connect(config);
@@ -720,9 +692,8 @@ app.delete('/api/equipment/:id', async (req, res) => {
   }
 });
 
+// =================== STATIC FILES =================== //
 
-
-// Serve static React files
 app.use(express.static(path.join(__dirname, 'build')));
 
 app.get('*', (req, res) => {
@@ -733,4 +704,3 @@ app.get('*', (req, res) => {
 app.listen(5000, '0.0.0.0', () => {
   console.log('🚀 Server running on http://0.0.0.0:5000');
 });
-
