@@ -144,8 +144,26 @@ const Login = () => {
                   <Box sx={{
                     width: 270, height: 270, border: '2px solid gray',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2,
+                    overflow: 'hidden', position: 'relative',
                   }}>
-                    <Typography align="center" variant="body2">NO IMAGE<br />AVAILABLE</Typography>
+                    {formData.idNumber ? (
+                      <img
+                        src={`http://localhost:5000/api/photos/${formData.idNumber}`}
+                        alt="Student"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
+                      />
+                    ) : null}
+                    <Typography
+                      align="center"
+                      variant="body2"
+                      sx={{ display: formData.idNumber ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}
+                    >
+                      NO IMAGE<br />AVAILABLE
+                    </Typography>
                   </Box>
                   <TextField
                     variant="outlined"
