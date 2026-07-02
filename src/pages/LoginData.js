@@ -210,18 +210,6 @@ const LoginData = () => {
                 <div className="value">{totalVisits}</div>
                 <div className="label">Total Visits</div>
               </div>
-              <div className="summary-box">
-                <div className="value">{uniqueStudents}</div>
-                <div className="label">Unique Students</div>
-              </div>
-              <div className="summary-box">
-                <div className="value">{totalTimeIn}</div>
-                <div className="label">Time Ins</div>
-              </div>
-              <div className="summary-box">
-                <div className="value">{totalTimeOut}</div>
-                <div className="label">Time Outs</div>
-              </div>
             </div>
 
             {/* Records Table */}
