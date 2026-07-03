@@ -322,6 +322,32 @@ app.get('/api/surveys', async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch surveys' });
   }
 });
+// ==========================================
+//  DELETE A SURVEY RESPONSE BY ID
+// ==========================================
+app.delete('/api/surveys/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ success: false, error: 'Missing review ID' });
+    }
+
+    // Connect using your specific configuration variable name (e.g., config)
+    const pool = await sql.connect(config); 
+    
+    // Explicitly target your database and table as shown in image_eab6a1.png
+    await pool.request()
+      .input('Id', sql.Int, parseInt(id))
+      .query('DELETE FROM [hllSystem].[dbo].[SatisfactionSurveys] WHERE Id = @Id');
+
+    res.json({ success: true, message: 'Review successfully deleted.' });
+
+  } catch (err) {
+    console.error('SQL Server Error during deletion:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 // =================== CARD AND PACKET =================== //
 

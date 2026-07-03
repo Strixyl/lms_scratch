@@ -120,6 +120,26 @@ const SentimentDashboard = () => {
 
   useEffect(() => { fetchSurveys(); }, []); // eslint-disable-line
 
+  // ── Delete Handler ──────────────────────────────────────────────────
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this review from the dashboard? This action cannot be undone.")) {
+      try {
+        const response = await axios.delete(`http://localhost:5000/api/surveys/${id}`);
+        if (response.data.success) {
+          // Instantly remove from UI client-side state
+          setSurveys(prev => prev.filter(survey => survey.Id !== id));
+          // If we delete the last item on a page, adjust pagination back
+          if (pageRows.length === 1 && page > 0) {
+            setPage(p => p - 1);
+          }
+        }
+      } catch (err) {
+        console.error('Error deleting survey:', err);
+        alert('An error occurred while attempting to delete this entry.');
+      }
+    }
+  };
+
   const handleClear = () => {
     setStartDate('');
     setEndDate('');
@@ -176,13 +196,13 @@ const SentimentDashboard = () => {
       { 'Metric Indicator': 'Negative Sentiments Count', 'Count': counts.Negative },
     ];
 
-    // Tab 2: Detailed Text Classifications (Explicitly configured with your exact columns)
+    // Tab 2: Detailed Text Classifications
     const textDetails = reviewRows.map((row, index) => ({
       'No.': index + 1,
       'Clientele Group': row.Clientele || 'N/A',
-      'College': row.College || 'N/A',                        // Added exactly as requested
-      'Text Response Inputted': row.Message || '',             // Renamed exactly as requested
-      'Overall Sentiment': row.SentimentResult || '',          // Renamed exactly as requested
+      'College': row.College || 'N/A',
+      'Text Response Inputted': row.Message || '',
+      'Overall Sentiment': row.SentimentResult || '',
       'Date Submitted': row.DateSubmitted ? new Date(row.DateSubmitted).toLocaleDateString() : 'N/A'
     }));
 
@@ -443,23 +463,26 @@ const SentimentDashboard = () => {
                           <Table size="small">
                             <TableHead>
                               <TableRow sx={{ backgroundColor: '#fafafa' }}>
-                                <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', letterSpacing: 1, textTransform: 'uppercase', width: '30%' }}>
+                                <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', letterSpacing: 1, textTransform: 'uppercase', width: '25%' }}>
                                   Clientele
                                 </TableCell>
                                 <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', letterSpacing: 1, textTransform: 'uppercase', width: '15%' }}>
                                   College
                                 </TableCell>
-                                <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', letterSpacing: 1, textTransform: 'uppercase', width: '40%' }}>
+                                <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', letterSpacing: 1, textTransform: 'uppercase', width: '35%' }}>
                                   Response
                                 </TableCell>
-                                <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', letterSpacing: 1, textTransform: 'uppercase' }}>
+                                <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', letterSpacing: 1, textTransform: 'uppercase', width: '15%' }}>
                                   Sentiment
+                                </TableCell>
+                                <TableCell align="center" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', letterSpacing: 1, textTransform: 'uppercase', width: '10%' }}>
+                                  Actions
                                 </TableCell>
                               </TableRow>
                             </TableHead>
                             <TableBody>
-                              {pageRows.map((row, idx) => (
-                                <TableRow key={idx} sx={{ '&:hover': { backgroundColor: '#fafafa' }, borderBottom: '1px solid #f5f5f5' }}>
+                              {pageRows.map((row) => (
+                                <TableRow key={row.Id} sx={{ '&:hover': { backgroundColor: '#fafafa' }, borderBottom: '1px solid #f5f5f5' }}>
                                   <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#333', py: 1.5, textTransform: 'capitalize' }}>
                                     {row.Clientele}
                                   </TableCell>
@@ -471,6 +494,24 @@ const SentimentDashboard = () => {
                                   </TableCell>
                                   <TableCell sx={{ py: 1.5 }}>
                                     <SentimentChip label={row.SentimentResult} />
+                                  </TableCell>
+                                  <TableCell align="center" sx={{ py: 1.5 }}>
+                                    <Button
+                                      variant="contained"
+                                      size="small"
+                                      onClick={() => handleDelete(row.Id)}
+                                      sx={{
+                                        backgroundColor: '#d32f2f',
+                                        '&:hover': { backgroundColor: '#b71c1c' },
+                                        fontFamily: 'Poppins, sans-serif',
+                                        fontSize: '11px',
+                                        textTransform: 'none',
+                                        minWidth: '65px',
+                                        py: 0.3
+                                      }}
+                                    >
+                                      Delete
+                                    </Button>
                                   </TableCell>
                                 </TableRow>
                               ))}
@@ -530,8 +571,8 @@ const SentimentDashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {reviewRows.map((row, i) => (
-                  <tr key={i}>
+                {reviewRows.map((row) => (
+                  <tr key={row.Id}>
                     <td style={{ textTransform: 'capitalize' }}>{row.Clientele}</td>
                     <td>{row.College}</td>
                     <td>{row.Message}</td>
