@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import {
   Box, Typography, Card, CardContent,
@@ -7,6 +7,7 @@ import {
   MenuItem, Select, FormControl, InputLabel
 } from '@mui/material';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import * as XLSX from 'xlsx'; // Import SheetJS
 import Header from '../Components/Header';
 import TopBar from '../Components/TopBar';
 
@@ -100,7 +101,7 @@ const SentimentDashboard = () => {
   const [filterSentiment, setFilterSentiment] = useState('');
   const [page, setPage] = useState(0);
   const [sortOrder, setSortOrder] = useState('latest');
-
+  const printRef = useRef(); // Added printable container reference
 
   const fetchSurveys = async () => {
     setLoading(true);
@@ -159,6 +160,109 @@ const SentimentDashboard = () => {
   const pageRows = reviewRows.slice(page * ROWS_PER_PAGE, (page + 1) * ROWS_PER_PAGE);
 
   const hasActiveFilter = startDate || endDate || filterClientele || filterCollege || filterSentiment;
+
+  // ── Excel Export Handler ──────────────────────────────────────────
+  const handleExportExcel = () => {
+    if (filtered.length === 0) {
+      alert("No sentiment metrics data available to export.");
+      return;
+    }
+
+    // Tab 1: High-level KPI summary cards
+    const summaryKPIs = [
+      { 'Metric Indicator': 'Total Analyzed Responses', 'Count': total },
+      { 'Metric Indicator': 'Positive Sentiments Count', 'Count': counts.Positive },
+      { 'Metric Indicator': 'Neutral Sentiments Count', 'Count': counts.Neutral },
+      { 'Metric Indicator': 'Negative Sentiments Count', 'Count': counts.Negative },
+    ];
+
+    // Tab 2: Detailed Text Classifications (Explicitly configured with your exact columns)
+    const textDetails = reviewRows.map((row, index) => ({
+      'No.': index + 1,
+      'Clientele Group': row.Clientele || 'N/A',
+      'College': row.College || 'N/A',                        // Added exactly as requested
+      'Text Response Inputted': row.Message || '',             // Renamed exactly as requested
+      'Overall Sentiment': row.SentimentResult || '',          // Renamed exactly as requested
+      'Date Submitted': row.DateSubmitted ? new Date(row.DateSubmitted).toLocaleDateString() : 'N/A'
+    }));
+
+    const workbook = XLSX.utils.book_new();
+    const wsSummary = XLSX.utils.json_to_sheet(summaryKPIs);
+    const wsDetails = XLSX.utils.json_to_sheet(textDetails);
+
+    // Auto-adjust column width calculations for clean cell spacing
+    const adjustWidths = (worksheet, data) => {
+      const colWidths = [];
+      data.forEach((row) => {
+        Object.keys(row).forEach((key, colIndex) => {
+          const valStr = row[key] ? row[key].toString() : '';
+          const maxLen = Math.max(valStr.length, key.length);
+          if (!colWidths[colIndex] || maxLen > colWidths[colIndex]) {
+            colWidths[colIndex] = maxLen;
+          }
+        });
+      });
+      worksheet['!cols'] = colWidths.map(w => ({ wch: w + 4 }));
+    };
+
+    adjustWidths(wsSummary, summaryKPIs);
+    adjustWidths(wsDetails, textDetails);
+
+    XLSX.utils.book_append_sheet(workbook, wsSummary, "Analytics Summary");
+    XLSX.utils.book_append_sheet(workbook, wsDetails, "Classified Responses Data");
+
+    const dateStamp = new Date().toISOString().split('T')[0];
+    XLSX.writeFile(workbook, `HLL_Sentiment_Analysis_${dateStamp}.xlsx`);
+  };
+  
+  // ── Print PDF Report Handler ──────────────────────────────────────
+  const handlePrint = () => {
+    const printContents = printRef.current.innerHTML;
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write(`
+      <html>
+        <head>
+          <title>Sentiment Analysis Summary Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 30px; color: #000; }
+            h1 { text-align: center; font-size: 20px; margin-bottom: 4px; }
+            h2 { text-align: center; font-size: 15px; font-weight: normal; margin-bottom: 4px; color: #444; }
+            p.daterange { text-align: center; font-size: 13px; color: #666; margin-bottom: 25px; }
+            .summary { display: flex; justify-content: space-around; gap: 10px; margin-bottom: 25px; }
+            .summary-box { border: 1px solid #ccc; border-radius: 8px; padding: 12px; text-align: center; flex: 1; }
+            .summary-box .value { font-size: 24px; font-weight: bold; }
+            .summary-box.pos .value { color: #1b5e20; }
+            .summary-box.neu .value { color: #e65100; }
+            .summary-box.neg .value { color: #b71c1c; }
+            .summary-box.tot .value { color: #1b0892; }
+            .summary-box .label { font-size: 12px; color: #555; margin-top: 4px; font-weight: bold; }
+            table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 15px; }
+            th { background-color: #1b0892; color: white; padding: 8px; text-align: left; }
+            td { padding: 8px; border-bottom: 1px solid #eee; }
+            tr:nth-child(even) { background-color: #f9f9f9; }
+            .footer { margin-top: 30px; text-align: center; font-size: 11px; color: #999; }
+          </style>
+        </head>
+        <body>${printContents}</body>
+      </html>
+    `);
+    doc.close();
+    iframe.contentWindow.focus();
+    setTimeout(() => {
+      iframe.contentWindow.print();
+      document.body.removeChild(iframe);
+    }, 500);
+  };
 
   return (
     <Header>
@@ -235,16 +339,28 @@ const SentimentDashboard = () => {
               </FormControl>
 
               <Button variant="contained" onClick={fetchSurveys}
-                sx={{ backgroundColor: '#1b0892', fontFamily: 'Poppins, sans-serif', textTransform: 'none', px: 3 }}>
+                sx={{ backgroundColor: '#1b0892', fontFamily: 'Poppins, sans-serif', textTransform: 'none', px: 3, height: 40 }}>
                 Apply Filter
               </Button>
 
               {hasActiveFilter && (
                 <Button variant="outlined" size="small" onClick={handleClear}
-                  sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none' }}>
+                  sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', height: 40 }}>
                   Clear
                 </Button>
               )}
+
+              {/* 🖨️ PDF Print Button */}
+              <Button variant="outlined" color="secondary" onClick={handlePrint}
+                sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', height: 40 }}>
+                🖨️ Print / Save as PDF
+              </Button>
+
+              {/* 📥 Excel Export Button */}
+              <Button variant="outlined" color="success" onClick={handleExportExcel}
+                sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', height: 40 }}>
+                📥 Export to Excel
+              </Button>
             </Box>
 
             {loading ? (
@@ -370,11 +486,11 @@ const SentimentDashboard = () => {
                           <Box sx={{ display: 'flex', gap: 1 }}>
                             <Button size="small" disabled={page === 0} onClick={() => setPage(p => p - 1)}
                               sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', color: '#1b0892' }}>
-                              ← Prev
+                              &larr; Prev
                             </Button>
                             <Button size="small" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}
                               sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', color: '#1b0892' }}>
-                              Next →
+                              Next &rarr;
                             </Button>
                           </Box>
                         </Box>
@@ -385,6 +501,50 @@ const SentimentDashboard = () => {
               </>
             )}
           </Box>
+
+          {/* Hidden Printable HTML Template */}
+          <div ref={printRef} style={{ display: 'none' }}>
+            <h1>Henry Luce III Library</h1>
+            <h2>Patron Satisfaction Sentiment Analysis Report</h2>
+            <p className="daterange">
+              {startDate && endDate ? `Date Range: ${startDate} to ${endDate}` : 'All Batched Records'}
+              {filterClientele ? ` | Clientele: ${filterClientele}` : ''}
+              {filterCollege ? ` | College: ${filterCollege}` : ''}
+              {filterSentiment ? ` | Sentiment: ${filterSentiment}` : ''}
+            </p>
+
+            <div className="summary">
+              <div className="summary-box tot"><div className="value">{total}</div><div className="label">Total Analyzed</div></div>
+              <div className="summary-box pos"><div className="value">{counts.Positive}</div><div className="label">Positive</div></div>
+              <div className="summary-box neu"><div className="value">{counts.Neutral}</div><div className="label">Neutral</div></div>
+              <div className="summary-box neg"><div className="value">{counts.Negative}</div><div className="label">Negative</div></div>
+            </div>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>Clientele</th>
+                  <th>College/Dept</th>
+                  <th>Patron Feedback Message</th>
+                  <th>Sentiment Result</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reviewRows.map((row, i) => (
+                  <tr key={i}>
+                    <td style={{ textTransform: 'capitalize' }}>{row.Clientele}</td>
+                    <td>{row.College}</td>
+                    <td>{row.Message}</td>
+                    <td><strong>{row.SentimentResult}</strong></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <div className="footer">
+              Generated via Naïve Bayes Classification System on {new Date().toLocaleDateString('en-PH')} — Central Philippine University
+            </div>
+          </div>
         </>
       )}
     </Header>
