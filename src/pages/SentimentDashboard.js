@@ -111,7 +111,7 @@ const SentimentDashboard = () => {
 
   const handleLogin = (e) => {
     e.preventDefault();
-    if (username === 'admin' && password === '!HLL2025*') {
+    if (username === 'admin' && password === 'admin') {
       localStorage.setItem('loggedInUser', username);
       setLoggedInUser(username);
       setShowLoginModal(false);
