@@ -4,10 +4,12 @@ import {
   Box, Typography, Card, CardContent,
   Table, TableBody, TableCell, TableContainer, TableHead,
   TableRow, Paper, Button, TextField, CircularProgress,
-  MenuItem, Select, FormControl, InputLabel
+  MenuItem, Select, FormControl, InputLabel,
+  Dialog, DialogTitle, DialogContent
 } from '@mui/material';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import * as XLSX from 'xlsx'; // Import SheetJS
+import { useNavigate } from 'react-router-dom';
 import Header from '../Components/Header';
 import TopBar from '../Components/TopBar';
 
@@ -92,6 +94,41 @@ const SummaryCard = ({ label, count, total }) => {
 const ROWS_PER_PAGE = 8;
 
 const SentimentDashboard = () => {
+  const navigate = useNavigate();
+  const [showLoginModal, setShowLoginModal] = useState(true);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [loggedInUser, setLoggedInUser] = useState('');
+
+  useEffect(() => {
+    const savedUser = localStorage.getItem('loggedInUser');
+    if (savedUser) {
+      setLoggedInUser(savedUser);
+      setShowLoginModal(true);
+    }
+  }, []);
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (username === 'admin' && password === '!HLL2025*') {
+      localStorage.setItem('loggedInUser', username);
+      setLoggedInUser(username);
+      setShowLoginModal(false);
+      setLoginError('');
+    } else {
+      setLoginError('Invalid credentials');
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('loggedInUser');
+    setLoggedInUser('');
+    setShowLoginModal(true);
+    setUsername('');
+    setPassword('');
+  };
+
   const [surveys, setSurveys] = useState([]);
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState('');
@@ -285,16 +322,33 @@ const SentimentDashboard = () => {
   };
 
   return (
-    <Header>
-      {(toggleDrawer) => (
-        <>
-          <TopBar
-            title="Sentiment Dashboard"
-            onMenuClick={toggleDrawer}
-            subtitle="PATRON SATISFACTION — SENTIMENT ANALYSIS"
-          />
+    <>
+      <Header>
+        {(toggleDrawer) => (
+          <>
+            <TopBar
+              title="Sentiment Dashboard"
+              onMenuClick={toggleDrawer}
+              subtitle="PATRON SATISFACTION — SENTIMENT ANALYSIS"
+            />
 
-          <Box sx={{ p: 3, backgroundColor: '#f5f6fa', minHeight: '100vh' }}>
+            {!showLoginModal && (
+      <Box sx={{ p: 3, backgroundColor: '#f5f6fa', minHeight: '100vh' }}>
+
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+              <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#555', mr: 2, alignSelf: 'center' }}>
+                Logged in as <strong>{loggedInUser}</strong>
+              </Typography>
+              <Button
+                variant="outlined"
+                color="secondary"
+                size="small"
+                onClick={handleLogout}
+                sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none' }}
+              >
+                Logout
+              </Button>
+            </Box>
 
             {/* ── Filter Bar ── */}
             <Box sx={{ display: 'flex', gap: 2, mb: 3, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -541,7 +595,8 @@ const SentimentDashboard = () => {
                 </Card>
               </>
             )}
-          </Box>
+      </Box>
+            )}
 
           {/* Hidden Printable HTML Template */}
           <div ref={printRef} style={{ display: 'none' }}>
@@ -586,9 +641,53 @@ const SentimentDashboard = () => {
               Generated via Naïve Bayes Classification System on {new Date().toLocaleDateString('en-PH')} — Central Philippine University
             </div>
           </div>
-        </>
-      )}
-    </Header>
+          </>
+        )}
+      </Header>
+
+      {/* 👇 Login Popup */}
+      <Dialog open={showLoginModal}>
+        <DialogTitle>You need to login as an Admin to view this page</DialogTitle>
+        <DialogContent>
+          <TextField
+            fullWidth
+            margin="dense"
+            label="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+          />
+          <TextField
+            fullWidth
+            margin="dense"
+            label="Password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          {loginError && (
+            <Typography color="error" fontSize={14} mt={1}>
+              {loginError}
+            </Typography>
+          )}
+          <Button
+            variant="contained"
+            fullWidth
+            sx={{ mt: 2 }}
+            onClick={handleLogin}
+          >
+            Login
+          </Button>
+          <Button
+            variant="outlined"
+            fullWidth
+            sx={{ mt: 1 }}
+            onClick={() => navigate('/')}
+          >
+            Home
+          </Button>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
