@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { DataGrid } from '@mui/x-data-grid';
-import { Box, Typography, TextField, Button, Grid, Table, TableHead, TableRow, TableCell, TableBody, Paper, MenuItem, Select, FormControl, InputLabel } from '@mui/material';
+import { Box, TextField, Button, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
+import * as XLSX from 'xlsx'; // Import SheetJS
 import Header from '../Components/Header';
 import TopBar from '../Components/TopBar';
 
@@ -47,9 +48,6 @@ const LoginData = () => {
   }, []);
 
   const totalVisits = logins.length;
-  const totalTimeIn = logins.filter((login) => login.studLogType === 'Time In').length;
-  const totalTimeOut = logins.filter((login) => login.studLogType === 'Time Out').length;
-  const uniqueStudents = new Set(logins.map((login) => login.studIDnumber)).size;
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
@@ -63,6 +61,55 @@ const LoginData = () => {
       hour: 'numeric', minute: '2-digit', second: '2-digit',
       hour12: true,
     });
+  };
+
+  // 📝 New Excel Export Handler
+  const handleExportExcel = () => {
+    if (logins.length === 0) {
+      alert("No data available to export.");
+      return;
+    }
+
+    // Map your database fields to clean, academic column headers
+    const excelData = logins.map((row) => ({
+      'ID Number': row.studIDnumber || 'N/A',
+      'Last Name': row.studLname || '',
+      'First Name': row.studFname || '',
+      'Course': row.studCourse || 'N/A',
+      'Year': row.studYear || 'N/A',
+      'College/Department': row.studCollege || 'N/A',
+      'Section': row.Section || 'N/A',
+      'Time Logged': formatDate(row.TimeLogged),
+      'Log Type': row.studLogType || '',
+      'Gender': row.studGender || '',
+    }));
+
+    // creates worksheets and workboos and can be exported using the infnsdfalled moudle
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Login Records');
+
+  
+    const objectMaxWidth = [];
+    excelData.forEach((row) => {
+      Object.keys(row).forEach((key) => {
+        const value = row[key] ? row[key].toString() : '';
+        if (!objectMaxWidth[key] || value.length > objectMaxWidth[key]) {
+          objectMaxWidth[key] = Math.max(value.length, key.length);
+        }
+      });
+    });
+    worksheet['!cols'] = Object.keys(objectMaxWidth).map((key) => ({
+      wch: objectMaxWidth[key] + 3, // Add padding
+    }));
+
+    // fitlered file name dependingg on the current data that expoerted
+    const sectionName = selectedSection !== 'All' ? `_${selectedSection}` : '';
+    const dateStamp = new Date().toISOString().split('T')[0];
+    const filename = `HLL_Logins${sectionName}_${dateStamp}.xlsx`;
+
+    // download execel sheet 
+    XLSX.writeFile(workbook, filename);
   };
 
   const handlePrint = () => {
@@ -153,7 +200,6 @@ const LoginData = () => {
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
               />
-              {/* ✅ Section Filter */}
               <FormControl sx={{ minWidth: 200 }}>
                 <InputLabel>Section</InputLabel>
                 <Select
@@ -171,6 +217,10 @@ const LoginData = () => {
               </Button>
               <Button variant="outlined" color="secondary" onClick={handlePrint}>
                 🖨️ Print / Save as PDF
+              </Button>
+              {/* 🟢 Export to Excel Button added next to Print */}
+              <Button variant="outlined" color="success" onClick={handleExportExcel}>
+                📥 Export to Excel
               </Button>
             </Box>
 
@@ -204,7 +254,6 @@ const LoginData = () => {
               {selectedSection !== 'All' ? ` | Section: ${selectedSection}` : ''}
             </p>
 
-            {/* Summary Boxes */}
             <div className="summary">
               <div className="summary-box">
                 <div className="value">{totalVisits}</div>
@@ -212,7 +261,6 @@ const LoginData = () => {
               </div>
             </div>
 
-            {/* Records Table */}
             <table>
               <thead>
                 <tr>
