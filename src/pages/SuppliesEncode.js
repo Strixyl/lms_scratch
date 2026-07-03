@@ -12,8 +12,8 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-const STATUS_OPTIONS = ['In Stock', 'Low Stock', 'Out of Stock'];
-const CONDITION_OPTIONS = ['New', 'Good', 'Fair', 'Poor'];
+// Updated: Only 'In Stock' and 'Out of Stock' remain
+const STATUS_OPTIONS = ['In Stock', 'Out of Stock'];
 const LOCATION_OPTIONS = [
   'Entrance', 'Reference', 'Circulation', 'Theology', 'Filipiniana',
   'Serials', 'Law', 'American Corner', 'Graduate Studies', 'Cyber Library',
@@ -23,14 +23,13 @@ const LOCATION_OPTIONS = [
 
 const statusColor = (status) => {
   if (status === 'In Stock') return { bg: '#e8f5e9', text: '#2e7d32', border: '#a5d6a7' };
-  if (status === 'Low Stock') return { bg: '#fff8e1', text: '#f57f17', border: '#ffe082' };
   return { bg: '#ffebee', text: '#c62828', border: '#ef9a9a' };
 };
 
+// Removed condition field from state structure
 const emptyForm = {
   itemName: '', description: '', brand: '', quantity: '',
-  status: 'In Stock', condition: 'Good',
-  location: '', specifications: '',
+  status: 'In Stock', location: '', specifications: '',
 };
 
 const SuppliesEncode = () => {
@@ -122,7 +121,7 @@ const SuppliesEncode = () => {
       itemName: item.ItemName || '', description: item.Description || '',
       brand: item.Brand || '', quantity: item.Quantity || '',
       status: item.Status || 'In Stock',  
-      condition: item.Condition || 'Good', location: item.Location || '',
+      location: item.Location || '',
       specifications: item.Specifications || '',
     });
     setEditDialogOpen(true);
@@ -175,11 +174,6 @@ const SuppliesEncode = () => {
         </TextField>
       </Grid>
       <Grid item xs={12} sm={6} md={4}>
-        <TextField fullWidth select label="Condition" name="condition" value={data.condition} onChange={handler}>
-          {CONDITION_OPTIONS.map(c => <MenuItem key={c} value={c} sx={{ fontFamily: 'Poppins, sans-serif' }}>{c}</MenuItem>)}
-        </TextField>
-      </Grid>
-      <Grid item xs={12} sm={6} md={4}>
         <TextField fullWidth select label="Location" name="location" value={data.location} onChange={handler}>
           <MenuItem value="">Select location</MenuItem>
           {LOCATION_OPTIONS.map(l => <MenuItem key={l} value={l} sx={{ fontFamily: 'Poppins, sans-serif' }}>{l}</MenuItem>)}
@@ -207,8 +201,7 @@ const SuppliesEncode = () => {
                 <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 14, color: '#555' }}>
                   Logged in as <strong>{loggedInUser}</strong>
                 </Typography>
-                <Button variant="outlined" size="small" color="secondary" onClick={handleLogout}
-                  sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none' }}>
+                <Button variant="outlined" size="small" color="secondary" onClick={handleLogout} sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none' }}>
                   Logout
                 </Button>
               </Box>
@@ -224,53 +217,39 @@ const SuppliesEncode = () => {
           <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#666', mb: 2 }}>
             You need to login to access supplies encoding.
           </Typography>
-          <TextField fullWidth margin="dense" label="Username" value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleLogin(e)}
-            inputProps={{ style: { fontFamily: 'Poppins, sans-serif' } }} />
-          <TextField fullWidth margin="dense" label="Password" type="password" value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleLogin(e)}
-            inputProps={{ style: { fontFamily: 'Poppins, sans-serif' } }} />
-          {loginError && (
-            <Typography color="error" sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, mt: 1 }}>{loginError}</Typography>
-          )}
-          <Button variant="contained" fullWidth sx={{ mt: 2, backgroundColor: '#1b0892', fontFamily: 'Poppins, sans-serif', textTransform: 'none' }}
-            onClick={handleLogin}>Login</Button>
-          <Button variant="outlined" fullWidth sx={{ mt: 1, fontFamily: 'Poppins, sans-serif', textTransform: 'none' }}
-            onClick={() => navigate('/')}>Back to Home</Button>
+          <TextField fullWidth margin="dense" label="Username" value={username} onChange={(e) => setUsername(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleLogin(e)} inputProps={{ style: { fontFamily: 'Poppins, sans-serif' } }} />
+          <TextField fullWidth margin="dense" label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleLogin(e)} inputProps={{ style: { fontFamily: 'Poppins, sans-serif' } }} />
+          {loginError && <Typography color="error" sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, mt: 1 }}>{loginError}</Typography>}
         </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => navigate('/')} sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none' }}>Back to Home</Button>
+          <Button variant="contained" onClick={handleLogin} sx={{ backgroundColor: '#1b0892', fontFamily: 'Poppins, sans-serif', textTransform: 'none', px: 3 }}>Login</Button>
+        </DialogActions>
       </Dialog>
 
       {!showLoginModal && (
-        <Box sx={{ px: { xs: 2, sm: 4, md: 6 }, pb: 6 }}>
-
-          {/* Encode Form */}
-          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 16, mb: 2, mt: 3, color: '#1b0892' }}>
-            Encode New Supply
+        <Box sx={{ p: 3, maxWidth: 1200, margin: '0 auto' }}>
+          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 20, mb: 3, color: '#1b0892' }}>
+            Encode New Supply Item
           </Typography>
-          {formFields(formData, handleChange)}
-          <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
-            <Button variant="contained" onClick={handleSubmit}
-              sx={{ backgroundColor: '#1b0892', fontFamily: 'Poppins, sans-serif', textTransform: 'none', px: 4 }}>
-              Save Supply
-            </Button>
-            <Button variant="outlined" onClick={() => setFormData(emptyForm)}
-              sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', px: 4 }}>
-              Clear
-            </Button>
-          </Box>
+          <Paper elevation={0} sx={{ p: 3, border: '1px solid #e0e0e0', borderRadius: 3, mb: 4 }}>
+            {formFields(formData, handleChange)}
+            <Box sx={{ mt: 3, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+              <Button variant="outlined" onClick={() => setFormData(emptyForm)} sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', px: 4 }}>Clear</Button>
+              <Button variant="contained" onClick={handleSubmit} sx={{ backgroundColor: '#1b0892', fontFamily: 'Poppins, sans-serif', textTransform: 'none', px: 4 }}>Save Entry</Button>
+            </Box>
+          </Paper>
 
           {/* Records Table */}
           <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 16, mt: 5, mb: 2, color: '#1b0892' }}>
-            Supply Records
+            Supplies Records
           </Typography>
           <Paper elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: 3 }}>
             <TableContainer>
               <Table size="small">
                 <TableHead>
                   <TableRow sx={{ backgroundColor: '#fafafa' }}>
-                    {['Item Name', 'Brand', 'Qty', 'Status', 'Condition', 'Location', 'Actions'].map(h => (
+                    {['Item Name', 'Brand', 'Qty', 'Status', 'Location', 'Actions'].map(h => (
                       <TableCell key={h} sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase' }}>
                         {h}
                       </TableCell>
@@ -284,30 +263,23 @@ const SuppliesEncode = () => {
                       <TableRow key={item.Id} sx={{ '&:hover': { backgroundColor: '#fafafa' } }}>
                         <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 600 }}>{item.ItemName}</TableCell>
                         <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13 }}>{item.Brand}</TableCell>
-                        <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 600 }}>{item.Quantity}</TableCell>
+                        <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13 }}>{item.Quantity}</TableCell>
                         <TableCell>
-                          <Chip label={item.Status} size="small" sx={{
-                            backgroundColor: sc.bg, color: sc.text, border: `1px solid ${sc.border}`,
-                            fontFamily: 'Poppins, sans-serif', fontSize: 11, fontWeight: 600
-                          }} />
+                          <Chip label={item.Status} size="small" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 11, backgroundColor: sc.bg, color: sc.text, border: `1px solid ${sc.border}` }} />
                         </TableCell>
-                        <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12 }}>{item.Condition}</TableCell>
-                        <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12 }}>{item.Location}</TableCell>
+                        <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13 }}>{item.Location || '—'}</TableCell>
                         <TableCell>
-                          <Box sx={{ display: 'flex', gap: 0.5 }}>
-                            <IconButton size="small" onClick={() => handleOpenEdit(item)}
-                              sx={{ color: '#1b0892', '&:hover': { backgroundColor: '#e8eaf6' } }}>
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                            <IconButton size="small" onClick={() => handleOpenDelete(item)}
-                              sx={{ color: '#c62828', '&:hover': { backgroundColor: '#ffebee' } }}>
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Box>
+                          <IconButton size="small" onClick={() => handleOpenEdit(item)} sx={{ color: '#1b0892' }}><EditIcon fontSize="small" /></IconButton>
+                          <IconButton size="small" onClick={() => handleOpenDelete(item)} sx={{ color: '#c62828' }}><DeleteIcon fontSize="small" /></IconButton>
                         </TableCell>
                       </TableRow>
                     );
                   })}
+                  {items.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} align="center" sx={{ fontFamily: 'Poppins, sans-serif', py: 4, color: '#888' }}>No supply items recorded yet.</TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </TableContainer>
@@ -317,16 +289,11 @@ const SuppliesEncode = () => {
 
       {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700 }}>Edit Supply</DialogTitle>
-        <DialogContent>
-          <Box sx={{ mt: 1 }}>{formFields(editForm, handleEditChange)}</Box>
-        </DialogContent>
+        <DialogTitle sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700 }}>Edit Supply Details</DialogTitle>
+        <DialogContent dividers>{formFields(editForm, handleEditChange)}</DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setEditDialogOpen(false)} sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none' }}>Cancel</Button>
-          <Button variant="contained" onClick={handleUpdate}
-            sx={{ backgroundColor: '#1b0892', fontFamily: 'Poppins, sans-serif', textTransform: 'none', px: 3 }}>
-            Update
-          </Button>
+          <Button variant="contained" onClick={handleUpdate} sx={{ backgroundColor: '#1b0892', fontFamily: 'Poppins, sans-serif', textTransform: 'none', px: 3 }}>Update</Button>
         </DialogActions>
       </Dialog>
 
@@ -340,19 +307,12 @@ const SuppliesEncode = () => {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setDeleteDialogOpen(false)} sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none' }}>Cancel</Button>
-          <Button variant="contained" onClick={handleDelete}
-            sx={{ backgroundColor: '#c62828', fontFamily: 'Poppins, sans-serif', textTransform: 'none', px: 3 }}>
-            Delete
-          </Button>
+          <Button variant="contained" onClick={handleDelete} sx={{ backgroundColor: '#c62828', fontFamily: 'Poppins, sans-serif', textTransform: 'none', px: 3 }}>Delete</Button>
         </DialogActions>
       </Dialog>
 
-      <Snackbar open={snackbar.open} autoHideDuration={3000}
-        onClose={() => setSnackbar(p => ({ ...p, open: false }))}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
-        <Alert severity={snackbar.severity} sx={{ fontFamily: 'Poppins, sans-serif' }}>
-          {snackbar.message}
-        </Alert>
+      <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar(p => ({ ...p, open: false }))} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+        <Alert severity={snackbar.severity} sx={{ fontFamily: 'Poppins, sans-serif' }}>{snackbar.message}</Alert>
       </Snackbar>
     </>
   );
