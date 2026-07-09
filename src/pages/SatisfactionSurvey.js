@@ -17,7 +17,9 @@ import {
   MenuItem,
   Snackbar,
   Alert,
-  Chip
+  Chip,
+  ToggleButton,
+  ToggleButtonGroup,
 } from '@mui/material';
 import f929 from '../assets/1f929.png';
 import f60d from '../assets/1f60d.png';
@@ -34,15 +36,16 @@ const SatisfactionSurvey = () => {
   const [selectedCollege, setSelectedCollege] = useState('');
   const [selectedCourse, setSelectedCourse] = useState('');
   const [availableCourses, setAvailableCourses] = useState([]);
-  const [selectedEmoji, setSelectedEmoji] = useState(null);
-  const [animatingEmoji, setAnimatingEmoji] = useState(null);
   const [clientele, setClientele] = useState('');
   const [message, setMessage] = useState('');
   const [submitError, setSubmitError] = useState('');
   const [submitSuccess, setSubmitSuccess] = useState('');
   const [showSuccessSnackbar, setShowSuccessSnackbar] = useState(false);
   const [sentimentResult, setSentimentResult] = useState(null);
-  const [department, setDepartment] = useState('');
+
+  // 👇 NEW: controls which answering UI is shown for all 10 questions
+  // Options: 'emoji' | 'radio' | 'number'
+  const [ratingStyle, setRatingStyle] = useState('emoji');
 
   const surveyQuestions = [
     "The efficiency of library service delivery meets your expectations.",
@@ -60,40 +63,48 @@ const SatisfactionSurvey = () => {
   const [responses, setResponses] = useState(Array(10).fill(null));
   const [animating, setAnimating] = useState(Array(10).fill(null));
 
+  // Shared option definitions — id/label are reused across all rating styles,
+  // static/animated only apply to the emoji style.
   const ratingOptions = [
     {
       id: 'very_satisfied',
       label: 'Very Satisfied',
+      short: '5',
       static: f929,
       animated: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f929/512.gif',
     },
     {
       id: 'satisfied',
       label: 'Satisfied',
+      short: '4',
       static: f60d,
       animated: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f60d/512.gif',
     },
     {
       id: 'neutral',
       label: 'Neutral',
+      short: '3',
       static: f610,
       animated: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f610/512.gif',
     },
     {
       id: 'dissatisfied',
       label: 'Dissatisfied',
+      short: '2',
       static: f620,
       animated: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f620/512.gif',
     },
     {
       id: 'very_dissatisfied',
       label: 'Very Dissatisfied',
+      short: '1',
       static: f621,
       animated: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f621/512.gif',
     },
     {
       id: 'na',
       label: 'NA (No engagement with Library)',
+      short: 'NA',
       static: f274c,
       animated: 'https://fonts.gstatic.com/s/e/notoemoji/latest/274c/512.gif',
     },
@@ -214,6 +225,101 @@ const SatisfactionSurvey = () => {
     }
   };
 
+  // 👇 Handles a rating selection for any style, for a given question index
+  const handleRatingSelect = (index, optionId) => {
+    const updatedResponses = [...responses];
+    updatedResponses[index] = optionId;
+    setResponses(updatedResponses);
+
+    const updatedAnimating = [...animating];
+    updatedAnimating[index] = optionId;
+    setAnimating(updatedAnimating);
+  };
+
+  // 👇 Renders the answer control for one question, based on ratingStyle
+  const renderRatingControl = (index) => {
+    if (ratingStyle === 'radio') {
+      return (
+        <FormControl component="fieldset">
+          <RadioGroup
+            row
+            value={responses[index] || ''}
+            onChange={(e) => handleRatingSelect(index, e.target.value)}
+          >
+            {ratingOptions.map((option) => (
+              <FormControlLabel
+                key={option.id}
+                value={option.id}
+                control={<Radio size="small" />}
+                label={
+                  <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 11 }}>
+                    {option.label}
+                  </Typography>
+                }
+                sx={{ mr: 2 }}
+              />
+            ))}
+          </RadioGroup>
+        </FormControl>
+      );
+    }
+
+    if (ratingStyle === 'number') {
+      return (
+        <Box display="flex" flexWrap="wrap" gap={1}>
+          {ratingOptions.map((option) => (
+            <Box
+              key={option.id}
+              onClick={() => handleRatingSelect(index, option.id)}
+              sx={{
+                width: 36,
+                height: 36,
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                fontFamily: 'Poppins, sans-serif',
+                fontSize: 12,
+                fontWeight: 700,
+                border: '2px solid',
+                borderColor: responses[index] === option.id ? '#1b0892' : '#ccc',
+                backgroundColor: responses[index] === option.id ? '#1b0892' : '#fff',
+                color: responses[index] === option.id ? '#fff' : '#333',
+                transition: 'all 0.15s',
+              }}
+              title={option.label}
+            >
+              {option.short}
+            </Box>
+          ))}
+        </Box>
+      );
+    }
+
+    // Default: 'emoji'
+    return (
+      <Box display="flex" flexWrap="wrap" gap={2}>
+        {ratingOptions.map((option) => (
+          <Box
+            key={option.id}
+            onClick={() => handleRatingSelect(index, option.id)}
+            sx={{ textAlign: 'center', cursor: 'pointer', filter: responses[index] === option.id ? 'none' : 'grayscale(100%)', transition: 'filter 0.2s' }}
+          >
+            <img
+              src={responses[index] === option.id && animating[index] === option.id ? option.animated : option.static}
+              alt={option.label}
+              width="40"
+              height="40"
+              style={{ display: 'block', margin: '0 auto', filter: responses[index] === option.id ? 'none' : 'grayscale(100%)', transition: 'filter 0.2s', cursor: 'pointer' }}
+            />
+            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 11 }}>{option.label}</Typography>
+          </Box>
+        ))}
+      </Box>
+    );
+  };
+
   return (
     <Header>
       {(toggleDrawer) => (
@@ -328,14 +434,40 @@ const SatisfactionSurvey = () => {
                     </Typography>
                   </Box>
                 </Grid>
+
                 {/* Right Content Area */}
                 <Grid sx={{ bgcolor: 'white', p: { xs: 2, sm: 4, md: 6 }, height: '100%', overflowY: 'auto', width: '70%' }}>
-                  <Typography variant="body2" fontSize='15px' sx={{ mb: 5, fontFamily: 'Poppins, sans serif' }} align="center">
+                  <Typography variant="body2" fontSize='15px' sx={{ mb: 3, fontFamily: 'Poppins, sans serif' }} align="center">
                     We would greatly appreciate it if you could take a few moments to complete our survey.
                     Your feedback is invaluable and will help us enhance our services to better meet your needs.
                     Thank you for your time and input — we look forward to serving you even better in the future.
                     Have a wonderful day!
                   </Typography>
+
+                  {/* 👇 NEW: Rating style switcher */}
+                  <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
+                    <ToggleButtonGroup
+                      value={ratingStyle}
+                      exclusive
+                      size="small"
+                      onChange={(e, newStyle) => {
+                        if (newStyle) setRatingStyle(newStyle);
+                      }}
+                      sx={{
+                        '& .MuiToggleButton-root': {
+                          fontFamily: 'Poppins, sans-serif',
+                          fontSize: 12,
+                          textTransform: 'none',
+                          px: 2,
+                        },
+                      }}
+                    >
+                      <ToggleButton value="emoji">😊 Emoji</ToggleButton>
+                      <ToggleButton value="radio">◉ Radio Buttons</ToggleButton>
+                      <ToggleButton value="number">① Number Scale</ToggleButton>
+                    </ToggleButtonGroup>
+                  </Box>
+
                   <Grid container spacing={4}>
                     {/* Left Column - Questions 1 to 5 */}
                     <Grid item xs={12} md={6}>
@@ -344,31 +476,7 @@ const SatisfactionSurvey = () => {
                           <Typography fontWeight="bold" mb={1} sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13 }}>
                             {index + 1}. {question}
                           </Typography>
-                          <Box display="flex" flexWrap="wrap" gap={2}>
-                            {ratingOptions.map((option) => (
-                              <Box
-                                key={option.id}
-                                onClick={() => {
-                                  const updatedResponses = [...responses];
-                                  updatedResponses[index] = option.id;
-                                  setResponses(updatedResponses);
-                                  const updatedAnimating = [...animating];
-                                  updatedAnimating[index] = option.id;
-                                  setAnimating(updatedAnimating);
-                                }}
-                                sx={{ textAlign: 'center', cursor: 'pointer', filter: responses[index] === option.id ? 'none' : 'grayscale(100%)', transition: 'filter 0.2s' }}
-                              >
-                                <img
-                                  src={responses[index] === option.id && animating[index] === option.id ? option.animated : option.static}
-                                  alt={option.label}
-                                  width="40"
-                                  height="40"
-                                  style={{ display: 'block', margin: '0 auto', filter: responses[index] === option.id ? 'none' : 'grayscale(100%)', transition: 'filter 0.2s', cursor: 'pointer' }}
-                                />
-                                <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 11 }}>{option.label}</Typography>
-                              </Box>
-                            ))}
-                          </Box>
+                          {renderRatingControl(index)}
                         </Box>
                       ))}
                     </Grid>
@@ -380,31 +488,7 @@ const SatisfactionSurvey = () => {
                           <Typography fontWeight="bold" mb={1} sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13 }}>
                             {index + 6}. {question}
                           </Typography>
-                          <Box display="flex" flexWrap="wrap" gap={2}>
-                            {ratingOptions.map((option) => (
-                              <Box
-                                key={option.id}
-                                onClick={() => {
-                                  const updatedResponses = [...responses];
-                                  updatedResponses[index + 5] = option.id;
-                                  setResponses(updatedResponses);
-                                  const updatedAnimating = [...animating];
-                                  updatedAnimating[index + 5] = option.id;
-                                  setAnimating(updatedAnimating);
-                                }}
-                                sx={{ textAlign: 'center', cursor: 'pointer', filter: responses[index + 5] === option.id ? 'none' : 'grayscale(100%)', transition: 'filter 0.2s' }}
-                              >
-                                <img
-                                  src={responses[index + 5] === option.id && animating[index + 5] === option.id ? option.animated : option.static}
-                                  alt={option.label}
-                                  width="40"
-                                  height="40"
-                                  style={{ display: 'block', margin: '0 auto', filter: responses[index + 5] === option.id ? 'none' : 'grayscale(100%)', transition: 'filter 0.2s', cursor: 'pointer' }}
-                                />
-                                <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 11 }}>{option.label}</Typography>
-                              </Box>
-                            ))}
-                          </Box>
+                          {renderRatingControl(index + 5)}
                         </Box>
                       ))}
                     </Grid>
