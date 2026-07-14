@@ -132,6 +132,7 @@ const upload = multer({ storage });
 
 // =================== ROUTES =================== //
 
+
 app.post('/api/survey', async (req, res) => {
   const { clientele, college, course, responses, message } = req.body;
 
@@ -349,7 +350,57 @@ app.delete('/api/surveys/:id', async (req, res) => {
   }
 });
 
+// =================== DELETE ENTRY FROM CARD AND PACKETS =================== //
+app.delete('/api/card-and-packet/:id/book/:bookNum', async (req, res) => {
+  const { id, bookNum } = req.params;
+  const n = parseInt(bookNum);
+
+  if (![1, 2, 3, 4].includes(n)) {
+    return res.status(400).json({ message: 'Invalid book number.' });
+  }
+
+  try {
+    const pool = await sql.connect(config);
+    await pool.request()
+      .input('id', sql.Int, id)
+      .query(`
+        UPDATE CardAndPacket SET
+          selectedLibrary${n} = '', section${n} = '',
+          authorLastName${n} = '', authorFirstName${n} = '', authorMiddleInitial${n} = '', publisherAuthor${n} = '',
+          bookTitle${n} = '', accessionNumber${n} = '', callNumber${n} = '',
+          copyNumber${n} = '', barcodeValue${n} = '', isoCodeValue${n} = '',
+          updatedAt = GETDATE()
+        WHERE CardID = @id
+      `);
+    res.json({ message: 'Book entry cleared successfully.' });
+  } catch (err) {
+    console.error('Error clearing book entry:', err);
+    res.status(500).json({ message: 'Failed to delete book entry.' });
+  }
+});
+
+
+
+
+// =================== CARD AND PACKET TABLE FETCH =================== //
+
+app.get('/api/card-and-packet', async (req, res) => {
+  try {
+    const pool = await sql.connect(config);
+    const result = await pool.request()
+      .query('SELECT * FROM CardAndPacket ORDER BY CardID DESC');
+    res.json(result.recordset);
+  } catch (err) {
+    console.error('Error fetching card and packet records:', err);
+    res.status(500).json({ error: 'Failed to fetch card and packet records' });
+  }
+});
+
+
+
 // =================== CARD AND PACKET =================== //
+
+
 
 app.post('/api/card-and-packet', async (req, res) => {
   const {
@@ -577,6 +628,7 @@ app.put('/api/card-and-packet/:id', async (req, res) => {
     res.status(500).json({ message: 'Update failed.' });
   }
 });
+
 
 // =================== OFFICE SUPPLIES =================== //
 

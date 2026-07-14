@@ -1,13 +1,13 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import Header from './Components/Header';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import SatisfactionSurvey from './pages/SatisfactionSurvey';
 import CardAndPacket from './pages/CardAndPacket';
+import BookCatalogue from './pages/BookCatalogue';
 import Supplies from './pages/Supplies';
 import Equipment from './pages/Equipment';
-import Bibliography from './pages/Bibliography';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import EquipmentEncode from './pages/EquipmentEncode';
@@ -50,12 +50,15 @@ function App() {
           <Route path="/satisfaction-survey" element={<SatisfactionSurvey />} />
           <Route path="/surveys" element={<SatisfactionSurveyData />} />
           <Route path="/card-and-packet" element={<CardAndPacket />} />
+          <Route path="/book-catalogue" element={<BookCatalogue />} />
+          <Route path="/bookcatalogue" element={<BookCatalogue />} />
+          <Route path="/BookCatalogue" element={<BookCatalogue />} />
           <Route path="/supplies" element={<Supplies />} />
           <Route path="/equipment" element={<Equipment />} />
-          <Route path="/bibliography" element={<Bibliography />} />
           <Route path="/equipment-encoding" element={<EquipmentEncode />} />
           <Route path="/supplies-encoding" element={<SuppliesEncode />} />
           <Route path="/sentiment-dashboard" element={<SentimentDashboard />} />
+          <Route path="*" element={<Home />} />
         </Routes>
       </div>
       </ThemeProvider>
