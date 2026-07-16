@@ -15,6 +15,10 @@ import SuppliesEncode from './pages/SuppliesEncode';
 import LoginData from './pages/LoginData';
 import SatisfactionSurveyData from './pages/SatisfactionSurveyData';
 import SentimentDashboard from './pages/SentimentDashboard';
+import SendAsset from './pages/Sendasset';
+import TransactionHistory from './pages/Transactionhistory';
+import SendSupply from './pages/SendSupply';
+import SupplyTransactionHistory from './pages/SupplyTransactionHistory';
 
 const theme = createTheme({
   typography: {
@@ -42,25 +46,29 @@ function App() {
   return (
     <Router>
       <ThemeProvider theme={theme}>
-      <div>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/logindata" element={<LoginData />} />
-          <Route path="/satisfaction-survey" element={<SatisfactionSurvey />} />
-          <Route path="/surveys" element={<SatisfactionSurveyData />} />
-          <Route path="/card-and-packet" element={<CardAndPacket />} />
-          <Route path="/book-catalogue" element={<BookCatalogue />} />
-          <Route path="/bookcatalogue" element={<BookCatalogue />} />
-          <Route path="/BookCatalogue" element={<BookCatalogue />} />
-          <Route path="/supplies" element={<Supplies />} />
-          <Route path="/equipment" element={<Equipment />} />
-          <Route path="/equipment-encoding" element={<EquipmentEncode />} />
-          <Route path="/supplies-encoding" element={<SuppliesEncode />} />
-          <Route path="/sentiment-dashboard" element={<SentimentDashboard />} />
-          <Route path="*" element={<Home />} />
-        </Routes>
-      </div>
+        <div>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/logindata" element={<LoginData />} />
+            <Route path="/satisfaction-survey" element={<SatisfactionSurvey />} />
+            <Route path="/surveys" element={<SatisfactionSurveyData />} />
+            <Route path="/card-and-packet" element={<CardAndPacket />} />
+            <Route path="/book-catalogue" element={<BookCatalogue />} />
+            <Route path="/bookcatalogue" element={<BookCatalogue />} />
+            <Route path="/BookCatalogue" element={<BookCatalogue />} />
+            <Route path="/supplies" element={<Supplies />} />
+            <Route path="/equipment" element={<Equipment />} />
+            <Route path="/equipment-encoding" element={<EquipmentEncode />} />
+            <Route path="/supplies-encoding" element={<SuppliesEncode />} />
+            <Route path="/sentiment-dashboard" element={<SentimentDashboard />} />
+            <Route path="/send-asset" element={<SendAsset />} />
+            <Route path="/transactions" element={<TransactionHistory />} />
+            <Route path="/send-supply" element={<SendSupply />} />
+            <Route path="/supply-transactions" element={<SupplyTransactionHistory />} />
+            <Route path="*" element={<Home />} />
+          </Routes>
+        </div>
       </ThemeProvider>
     </Router>
   );

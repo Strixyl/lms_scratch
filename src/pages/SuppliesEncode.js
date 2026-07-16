@@ -1,82 +1,156 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Header from '../Components/Header';
 import TopBar from '../Components/TopBar';
-import axios from 'axios';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button,
   Typography, Box, Grid, MenuItem, Snackbar, Alert,
   Table, TableBody, TableCell, TableContainer, TableHead,
-  TableRow, Paper, Chip, IconButton
+  TableRow, Paper, Chip, IconButton, InputAdornment, Card,
+  TablePagination, Tooltip,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { useNavigate, useLocation } from 'react-router-dom';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import AddBoxIcon from '@mui/icons-material/AddBox';
+import SearchIcon from '@mui/icons-material/Search';
+import Inventory2Icon from '@mui/icons-material/Inventory2';
+import LayersIcon from '@mui/icons-material/Layers';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import OutboxIcon from '@mui/icons-material/Outbox';
+import { useNavigate } from 'react-router-dom';
+import {
+  LOCATION_OPTIONS, THEME, getStockStatus, statusColor,
+} from '../constants/equipmentConstants';
+import {
+  getSupplies, createSupply, updateSupply, deleteSupply, addStock,
+  getBrands, createBrand, getSuppliesDashboardSummary as getDashboardSummary,
+} from '../api/suppliesApi';
 
-// Updated: Only 'In Stock' and 'Out of Stock' remain
-const STATUS_OPTIONS = ['In Stock', 'Out of Stock'];
-const LOCATION_OPTIONS = [
-  'Entrance', 'Reference', 'Circulation', 'Theology', 'Filipiniana',
-  'Serials', 'Law', 'American Corner', 'Graduate Studies', 'Cyber Library',
-  'Senior High School', 'Junior High School', 'Elementary', 'Kindergarten',
-  'Office', 'Storage Room',
-];
-
-const statusColor = (status) => {
-  if (status === 'In Stock') return { bg: '#e8f5e9', text: '#2e7d32', border: '#a5d6a7' };
-  return { bg: '#ffebee', text: '#c62828', border: '#ef9a9a' };
+const emptySupplyForm = {
+  itemName: '',
+  brand: '',
+  brandOption: '',
+  quantity: '',
+  location: '',
+  description: '',
+  specifications: '',
 };
 
-// Removed condition field from state structure
-const emptyForm = {
-  itemName: '', description: '', brand: '', quantity: '',
-  status: 'In Stock', location: '', specifications: '',
-};
+const NEW_BRAND_VALUE = '__new__';
+const font = THEME.font;
+
+const SummaryCard = ({ icon, label, value, accent }) => (
+  <Card
+    elevation={0}
+    sx={{
+      p: 2.5, borderRadius: 3, border: '1px solid #e0e0e0',
+      display: 'flex', alignItems: 'center', gap: 2, height: '100%',
+    }}
+  >
+    <Box sx={{
+      width: 46, height: 46, borderRadius: '50%', display: 'flex',
+      alignItems: 'center', justifyContent: 'center',
+      backgroundColor: `${accent}1a`, color: accent,
+    }}>
+      {icon}
+    </Box>
+    <Box>
+      <Typography sx={{ fontFamily: font, fontSize: 12, color: '#888', textTransform: 'uppercase', fontWeight: 600 }}>
+        {label}
+      </Typography>
+      <Typography sx={{ fontFamily: font, fontSize: 22, fontWeight: 700, color: '#1a1a1a' }}>
+        {value}
+      </Typography>
+    </Box>
+  </Card>
+);
 
 const SuppliesEncode = () => {
   const navigate = useNavigate();
-  const location = useLocation();
+
+  // ---- auth (unchanged from existing app) ----
   const [showLoginModal, setShowLoginModal] = useState(true);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [loggedInUser, setLoggedInUser] = useState('');
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-  const [formData, setFormData] = useState(emptyForm);
+
+  // ---- data ----
   const [items, setItems] = useState([]);
+  const [brands, setBrands] = useState([]);
+  const [summary, setSummary] = useState(null);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+
+  // ---- add asset form ----
+  const [formData, setFormData] = useState(emptySupplyForm);
+  const [formErrors, setFormErrors] = useState({});
+
+  // ---- edit / delete ----
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
-  const [editForm, setEditForm] = useState(emptyForm);
+  const [editForm, setEditForm] = useState(emptySupplyForm);
+
+  // ---- add stock ----
+  const [stockDialogOpen, setStockDialogOpen] = useState(false);
+  const [stockTarget, setStockTarget] = useState(null);
+  const [stockAmount, setStockAmount] = useState('');
+  const [stockError, setStockError] = useState('');
+
+  // ---- search / filter / pagination ----
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   useEffect(() => {
     const savedUser = localStorage.getItem('suppliesUser');
     if (savedUser) {
       setLoggedInUser(savedUser);
+      setUsername(savedUser);
       setShowLoginModal(false);
     }
   }, []);
 
-  useEffect(() => {
-    return () => {
-      localStorage.removeItem('suppliesUser');
-      setLoggedInUser('');
-      setShowLoginModal(true);
-    };
-  }, [location.pathname]);
 
   useEffect(() => {
-    if (!showLoginModal) fetchItems();
+    if (!showLoginModal) {
+      fetchItems();
+      fetchBrands();
+      fetchSummary();
+    }
   }, [showLoginModal]);
 
   const fetchItems = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/supplies');
-      setItems(res.data);
+      const data = await getSupplies();
+      setItems(data);
     } catch (err) {
-      console.error('Error fetching supplies:', err);
+      console.error('Error fetching equipment:', err);
+      setSnackbar({ open: true, message: 'Failed to load equipment records.', severity: 'error' });
     }
   };
 
+  const fetchBrands = async () => {
+    try {
+      const data = await getBrands();
+      setBrands(data);
+    } catch (err) {
+      console.error('Error fetching brands:', err);
+    }
+  };
+
+  const fetchSummary = async () => {
+    try {
+      const data = await getDashboardSummary();
+      setSummary(data);
+    } catch (err) {
+      // Fall back to client-side computation below if the endpoint isn't ready yet
+      console.error('Error fetching dashboard summary:', err);
+    }
+  };
+
+  // ---------------- auth handlers ----------------
   const handleLogin = (e) => {
     e.preventDefault();
     if (username === 'office' && password === '!HLL2025*') {
@@ -97,47 +171,118 @@ const SuppliesEncode = () => {
     setPassword('');
   };
 
-  const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  const handleEditChange = (e) => setEditForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  // ---------------- add asset ----------------
+  const handleChange = (e) => setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+
+  const handleBrandSelect = (e) => {
+    const value = e.target.value;
+    setFormData((prev) => ({
+      ...prev,
+      brandOption: value,
+      brand: value === NEW_BRAND_VALUE ? '' : value,
+    }));
+  };
+
+  const validateAssetForm = (data) => {
+    const errors = {};
+    if (!data.itemName.trim()) errors.itemName = 'Item name is required.';
+    if (brands.length > 0 && !data.brandOption) errors.brand = 'Please select a brand.';
+    if (brands.length > 0 && data.brandOption === NEW_BRAND_VALUE && !data.brand.trim()) {
+      errors.brand = 'Please enter the new brand name.';
+    }
+    if (brands.length === 0 && !data.brand.trim()) errors.brand = 'Brand name is required.';
+    const qty = Number(data.quantity);
+    if (data.quantity === '' || Number.isNaN(qty) || qty < 1) {
+      errors.quantity = 'Quantity must be at least 1.';
+    }
+    return errors;
+  };
 
   const handleSubmit = async () => {
-    if (!formData.itemName.trim()) {
-      setSnackbar({ open: true, message: 'Item name is required.', severity: 'error' });
-      return;
-    }
+    const errors = validateAssetForm(formData);
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
     try {
-      await axios.post('http://localhost:5000/api/supplies', formData);
+      // If the admin typed a brand new brand name, register it first so it's
+      // immediately available in future dropdowns (also fine if the backend
+      // upserts brands itself — this just guarantees it either way).
+      const brandName = formData.brand.trim();
+      if (brandName && !brands.some((b) => b.brand_name.toLowerCase() === brandName.toLowerCase())) {
+        await createBrand(brandName);
+      }
+
+      const quantity = Number(formData.quantity);
+      await createSupply({
+        itemName: formData.itemName.trim(),
+        brand: brandName,
+        quantity,
+        status: getStockStatus(quantity),
+        location: formData.location,
+        description: formData.description.trim(),
+        specifications: formData.specifications.trim(),
+        user: loggedInUser,
+      });
+
       setSnackbar({ open: true, message: 'Supply saved successfully!', severity: 'success' });
-      setFormData(emptyForm);
+      setFormData(emptySupplyForm);
+      setFormErrors({});
       fetchItems();
+      fetchBrands();
+      fetchSummary();
     } catch (err) {
-      setSnackbar({ open: true, message: 'Failed to save supply.', severity: 'error' });
+      console.error(err);
+      const apiMessage = err?.response?.data?.error || err?.response?.data?.message || 'Failed to save supply.';
+      setSnackbar({ open: true, message: apiMessage, severity: 'error' });
     }
   };
+
+  // ---------------- edit ----------------
+  const handleEditChange = (e) => setEditForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
 
   const handleOpenEdit = (item) => {
     setSelectedItem(item);
     setEditForm({
-      itemName: item.ItemName || '', description: item.Description || '',
-      brand: item.Brand || '', quantity: item.Quantity || '',
-      status: item.Status || 'In Stock',  
+      itemName: item.ItemName || '',
+      brand: item.Brand || '',
+      brandOption: item.Brand || '',
+      quantity: item.Quantity ?? '',
       location: item.Location || '',
+      description: item.Description || '',
       specifications: item.Specifications || '',
     });
     setEditDialogOpen(true);
   };
 
   const handleUpdate = async () => {
+    const errors = validateAssetForm(editForm);
+    if (Object.keys(errors).length > 0) {
+      setSnackbar({ open: true, message: 'Please fix the highlighted fields.', severity: 'error' });
+      return;
+    }
     try {
-      await axios.put(`http://localhost:5000/api/supplies/${selectedItem.Id}`, editForm);
+      const quantity = Number(editForm.quantity);
+      await updateSupply(selectedItem.Id, {
+        itemName: editForm.itemName.trim(),
+        brand: editForm.brand.trim(),
+        quantity,
+        status: getStockStatus(quantity),
+        location: editForm.location,
+        description: editForm.description.trim(),
+        specifications: editForm.specifications.trim(),
+        user: loggedInUser,
+      });
       setSnackbar({ open: true, message: 'Supply updated successfully!', severity: 'success' });
       setEditDialogOpen(false);
       fetchItems();
+      fetchSummary();
     } catch (err) {
-      setSnackbar({ open: true, message: 'Failed to update supply.', severity: 'error' });
+      const apiMessage = err?.response?.data?.error || err?.response?.data?.message || 'Failed to save supply.';
+      setSnackbar({ open: true, message: apiMessage, severity: 'error' });
     }
   };
 
+  // ---------------- delete ----------------
   const handleOpenDelete = (item) => {
     setSelectedItem(item);
     setDeleteDialogOpen(true);
@@ -145,47 +290,151 @@ const SuppliesEncode = () => {
 
   const handleDelete = async () => {
     try {
-      await axios.delete(`http://localhost:5000/api/supplies/${selectedItem.Id}`);
+      await deleteSupply(selectedItem.Id);
       setSnackbar({ open: true, message: 'Supply deleted successfully!', severity: 'success' });
       setDeleteDialogOpen(false);
       fetchItems();
+      fetchSummary();
     } catch (err) {
-      setSnackbar({ open: true, message: 'Failed to delete supply.', severity: 'error' });
+      const apiMessage = err?.response?.data?.error || err?.response?.data?.message || 'Failed to delete supply.';
+      setSnackbar({ open: true, message: apiMessage, severity: 'error' });
     }
   };
 
-  const formFields = (data, handler) => (
+  // ---------------- add stock ----------------
+  const handleOpenStock = (item) => {
+    setStockTarget(item);
+    setStockAmount('');
+    setStockError('');
+    setStockDialogOpen(true);
+  };
+
+  const handleConfirmStock = async () => {
+    const qty = Number(stockAmount);
+    if (!stockAmount || Number.isNaN(qty) || qty < 1) {
+      setStockError('Additional quantity must be at least 1.');
+      return;
+    }
+    try {
+      await addStock(stockTarget.Id, qty, loggedInUser);
+      setSnackbar({
+        open: true,
+        message: `Stock updated: ${stockTarget.Quantity} + ${qty} = ${Number(stockTarget.Quantity) + qty}.`,
+        severity: 'success',
+      });
+      setStockDialogOpen(false);
+      fetchItems();
+      fetchSummary();
+    } catch (err) {
+      const apiMessage = err?.response?.data?.error || err?.response?.data?.message || 'Failed to add stock.';
+      setSnackbar({ open: true, message: apiMessage, severity: 'error' });
+    }
+  };
+
+  // ---------------- derived data ----------------
+  const filteredItems = useMemo(() => {
+    return items.filter((item) => {
+      const status = getStockStatus(item.Quantity);
+      const matchesStatus = statusFilter === 'All' || status === statusFilter;
+      const q = search.trim().toLowerCase();
+      const matchesSearch = !q || [item.ItemName, item.Brand, item.SerialNumber, item.Location]
+        .some((f) => (f || '').toLowerCase().includes(q));
+      return matchesStatus && matchesSearch;
+    });
+  }, [items, search, statusFilter]);
+
+  const pagedItems = filteredItems.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
+  const localSummary = useMemo(() => {
+    const totalItems = items.length;
+    const totalInventory = items.reduce((sum, i) => sum + (Number(i.Quantity) || 0), 0);
+    const lowStock = items.filter((i) => getStockStatus(i.Quantity) === 'Low Stock').length;
+    return { totalItems, totalInventory, lowStock };
+  }, [items]);
+
+  // ---------------- shared form fields renderer ----------------
+  const brandField = (data, handler, brandSelectHandler, errors) => {
+    if (brands.length === 0) {
+      // No brands exist yet -> plain text input, first save seeds the master list
+      return (
+        <Grid item xs={12} sm={6} md={4}>
+          <TextField
+            fullWidth label="Brand Name *" name="brand" value={data.brand}
+            onChange={handler} error={!!errors.brand} helperText={errors.brand}
+            inputProps={{ style: { fontFamily: font } }}
+          />
+        </Grid>
+      );
+    }
+    return (
+      <>
+        <Grid item xs={12} sm={6} md={4}>
+          <TextField
+            fullWidth select label="Brand *" name="brandOption" value={data.brandOption}
+            onChange={brandSelectHandler} error={!!errors.brand}
+            helperText={!data.brandOption ? errors.brand : ''}
+          >
+            <MenuItem value="" disabled sx={{ fontFamily: font }}>Select Brand</MenuItem>
+            {brands.map((b) => (
+              <MenuItem key={b.brand_id} value={b.brand_name} sx={{ fontFamily: font }}>
+                {b.brand_name}
+              </MenuItem>
+            ))}
+            <MenuItem value={NEW_BRAND_VALUE} sx={{ fontFamily: font, fontStyle: 'italic' }}>
+              Others (Input Manually)
+            </MenuItem>
+          </TextField>
+        </Grid>
+        {data.brandOption === NEW_BRAND_VALUE && (
+          <Grid item xs={12} sm={6} md={4}>
+            <TextField
+              fullWidth label="Enter New Brand *" name="brand" value={data.brand}
+              onChange={handler} error={!!errors.brand} helperText={errors.brand}
+              inputProps={{ style: { fontFamily: font } }}
+            />
+          </Grid>
+        )}
+      </>
+    );
+  };
+
+  const formFields = (data, handler, brandSelectHandler, errors = {}) => (
     <Grid container spacing={2}>
       <Grid item xs={12} sm={6} md={4}>
-        <TextField fullWidth label="Item Name *" name="itemName" value={data.itemName} onChange={handler}
-          inputProps={{ style: { fontFamily: 'Poppins, sans-serif' } }} />
+        <TextField
+          fullWidth label="Item Name *" name="itemName" value={data.itemName} onChange={handler}
+          error={!!errors.itemName} helperText={errors.itemName}
+          inputProps={{ style: { fontFamily: font } }}
+        />
       </Grid>
+      {brandField(data, handler, brandSelectHandler, errors)}
       <Grid item xs={12} sm={6} md={4}>
-        <TextField fullWidth label="Brand" name="brand" value={data.brand} onChange={handler}
-          inputProps={{ style: { fontFamily: 'Poppins, sans-serif' } }} />
+        <TextField
+          fullWidth label="Quantity *" name="quantity" value={data.quantity} onChange={handler}
+          type="number" error={!!errors.quantity} helperText={errors.quantity}
+          inputProps={{ style: { fontFamily: font }, min: 1 }}
+        />
       </Grid>
-      <Grid item xs={12} sm={6} md={4}>
-        <TextField fullWidth label="Quantity" name="quantity" value={data.quantity} onChange={handler}
-          type="number" inputProps={{ style: { fontFamily: 'Poppins, sans-serif' } }} />
-      </Grid>
-      <Grid item xs={12} sm={6} md={4}>
-        <TextField fullWidth select label="Status" name="status" value={data.status} onChange={handler}>
-          {STATUS_OPTIONS.map(s => <MenuItem key={s} value={s} sx={{ fontFamily: 'Poppins, sans-serif' }}>{s}</MenuItem>)}
-        </TextField>
-      </Grid>
+
       <Grid item xs={12} sm={6} md={4}>
         <TextField fullWidth select label="Location" name="location" value={data.location} onChange={handler}>
           <MenuItem value="">Select location</MenuItem>
-          {LOCATION_OPTIONS.map(l => <MenuItem key={l} value={l} sx={{ fontFamily: 'Poppins, sans-serif' }}>{l}</MenuItem>)}
+          {LOCATION_OPTIONS.map((l) => (
+            <MenuItem key={l} value={l} sx={{ fontFamily: font }}>{l}</MenuItem>
+          ))}
         </TextField>
       </Grid>
       <Grid item xs={12} sm={6} md={4}>
-        <TextField fullWidth label="Description" name="description" value={data.description} onChange={handler}
-          inputProps={{ style: { fontFamily: 'Poppins, sans-serif' } }} />
+        <TextField
+          fullWidth label="Description" name="description" value={data.description} onChange={handler}
+          inputProps={{ style: { fontFamily: font } }}
+        />
       </Grid>
       <Grid item xs={12} sm={6} md={4}>
-        <TextField fullWidth label="Specifications" name="specifications" value={data.specifications} onChange={handler}
-          inputProps={{ style: { fontFamily: 'Poppins, sans-serif' } }} />
+        <TextField
+          fullWidth label="Specifications" name="specifications" value={data.specifications} onChange={handler}
+          inputProps={{ style: { fontFamily: font } }}
+        />
       </Grid>
     </Grid>
   );
@@ -195,124 +444,233 @@ const SuppliesEncode = () => {
       <Header>
         {(toggleDrawer) => (
           <>
-            <TopBar title="Supplies Encoding" onMenuClick={toggleDrawer} subtitle="OFFICE SUPPLIES ENCODING" />
+            <TopBar title="Equipment Encoding" onMenuClick={toggleDrawer} subtitle="OFFICE SUPPLIES ENCODING" />
             {!showLoginModal && (
               <Box sx={{ px: 3, pt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 14, color: '#555' }}>
+                <Typography sx={{ fontFamily: font, fontSize: 14, color: '#555' }}>
                   Logged in as <strong>{loggedInUser}</strong>
                 </Typography>
-                <Button variant="outlined" size="small" color="secondary" onClick={handleLogout} sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none' }}>
-                  Logout
-                </Button>
+                <Box sx={{ display: 'flex', gap: 1.5 }}>
+                  <Button
+                    variant="outlined" size="small"
+                    onClick={() => navigate('/send-supply')}
+                    sx={{ fontFamily: font, textTransform: 'none', borderColor: THEME.navy, color: THEME.navy }}
+                  >
+                    Send Asset
+                  </Button>
+                  <Button
+                    variant="outlined" size="small"
+                    onClick={() => navigate('/supply-transactions')}
+                    sx={{ fontFamily: font, textTransform: 'none', borderColor: THEME.navy, color: THEME.navy }}
+                  >
+                    Transaction History
+                  </Button>
+                  <Button variant="outlined" size="small" color="secondary" onClick={handleLogout} sx={{ fontFamily: font, textTransform: 'none' }}>
+                    Logout
+                  </Button>
+                </Box>
               </Box>
             )}
           </>
         )}
       </Header>
 
-      {/* Login Dialog */}
-      <Dialog open={showLoginModal} disableEscapeKeyDown>
-        <DialogTitle sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700 }}>Login Required</DialogTitle>
-        <DialogContent>
-          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#666', mb: 2 }}>
-            You need to login to access supplies encoding.
-          </Typography>
-          <TextField fullWidth margin="dense" label="Username" value={username} onChange={(e) => setUsername(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleLogin(e)} inputProps={{ style: { fontFamily: 'Poppins, sans-serif' } }} />
-          <TextField fullWidth margin="dense" label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleLogin(e)} inputProps={{ style: { fontFamily: 'Poppins, sans-serif' } }} />
-          {loginError && <Typography color="error" sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, mt: 1 }}>{loginError}</Typography>}
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => navigate('/')} sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none' }}>Back to Home</Button>
-          <Button variant="contained" onClick={handleLogin} sx={{ backgroundColor: '#1b0892', fontFamily: 'Poppins, sans-serif', textTransform: 'none', px: 3 }}>Login</Button>
-        </DialogActions>
-      </Dialog>
+      {/* Login Dialog — conditionally rendered so it fully unmounts when logged in */}
+      {showLoginModal && (
+        <Dialog open disableEscapeKeyDown>
+          <DialogTitle sx={{ fontFamily: font, fontWeight: 700 }}>Login Required</DialogTitle>
+          <DialogContent>
+            <Typography sx={{ fontFamily: font, fontSize: 13, color: '#666', mb: 2 }}>
+              You need to login to access equipment encoding.
+            </Typography>
+            <TextField fullWidth margin="dense" label="Username" value={username} onChange={(e) => setUsername(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleLogin(e)} inputProps={{ style: { fontFamily: font } }} />
+            <TextField fullWidth margin="dense" label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleLogin(e)} inputProps={{ style: { fontFamily: font } }} />
+            {loginError && <Typography color="error" sx={{ fontFamily: font, fontSize: 12, mt: 1 }}>{loginError}</Typography>}
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={() => navigate('/')} sx={{ fontFamily: font, textTransform: 'none' }}>Back to Home</Button>
+            <Button variant="contained" onClick={handleLogin} sx={{ backgroundColor: THEME.navy, fontFamily: font, textTransform: 'none', px: 3 }}>Login</Button>
+          </DialogActions>
+        </Dialog>
+      )}
 
       {!showLoginModal && (
-        <Box sx={{ p: 3, maxWidth: 1200, margin: '0 auto' }}>
-          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 20, mb: 3, color: '#1b0892' }}>
+        <Box sx={{ p: 3, maxWidth: 1300, margin: '0 auto' }}>
+
+          {/* ---- Dashboard summary cards ---- */}
+          <Grid container spacing={2} sx={{ mb: 4 }}>
+            <Grid item xs={12} sm={6} md={3}>
+              <SummaryCard icon={<Inventory2Icon />} label="Total Items" value={summary?.totalItems ?? localSummary.totalItems} accent={THEME.navy} />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <SummaryCard icon={<LayersIcon />} label="Total Inventory" value={summary?.totalInventory ?? localSummary.totalInventory} accent="#2e7d32" />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <SummaryCard icon={<WarningAmberIcon />} label="Low Stock Items" value={summary?.lowStock ?? localSummary.lowStock} accent="#e65100" />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <SummaryCard icon={<OutboxIcon />} label="Transferred Today" value={summary?.transferredToday ?? 0} accent={THEME.gold} />
+            </Grid>
+          </Grid>
+
+          <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: 20, mb: 3, color: THEME.navy }}>
             Encode New Supply Item
           </Typography>
           <Paper elevation={0} sx={{ p: 3, border: '1px solid #e0e0e0', borderRadius: 3, mb: 4 }}>
-            {formFields(formData, handleChange)}
+            {formFields(formData, handleChange, handleBrandSelect, formErrors)}
             <Box sx={{ mt: 3, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-              <Button variant="outlined" onClick={() => setFormData(emptyForm)} sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', px: 4 }}>Clear</Button>
-              <Button variant="contained" onClick={handleSubmit} sx={{ backgroundColor: '#1b0892', fontFamily: 'Poppins, sans-serif', textTransform: 'none', px: 4 }}>Save Entry</Button>
+              <Button variant="outlined" onClick={() => { setFormData(emptySupplyForm); setFormErrors({}); }} sx={{ fontFamily: font, textTransform: 'none', px: 4 }}>Clear</Button>
+              <Button variant="contained" onClick={handleSubmit} sx={{ backgroundColor: THEME.navy, fontFamily: font, textTransform: 'none', px: 4 }}>Save Supply</Button>
             </Box>
           </Paper>
 
-          {/* Records Table */}
-          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 16, mt: 5, mb: 2, color: '#1b0892' }}>
-            Supplies Records
-          </Typography>
+          {/* ---- Records header: search + filter ---- */}
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center', justifyContent: 'space-between', mt: 5, mb: 2 }}>
+            <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: 16, color: THEME.navy }}>
+              Supplies Records
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+              <TextField
+                size="small" placeholder="Search item, brand, location"
+                value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+                sx={{ minWidth: 280 }}
+                InputProps={{
+                  startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>,
+                  style: { fontFamily: font },
+                }}
+              />
+              <TextField
+                size="small" select value={statusFilter}
+                onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
+                sx={{ minWidth: 160, fontFamily: font }}
+              >
+                {['All', 'In Stock', 'Low Stock', 'Out of Stock'].map((s) => (
+                  <MenuItem key={s} value={s} sx={{ fontFamily: font }}>{s}</MenuItem>
+                ))}
+              </TextField>
+            </Box>
+          </Box>
+
           <Paper elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: 3 }}>
             <TableContainer>
               <Table size="small">
                 <TableHead>
                   <TableRow sx={{ backgroundColor: '#fafafa' }}>
-                    {['Item Name', 'Brand', 'Qty', 'Status', 'Location', 'Actions'].map(h => (
-                      <TableCell key={h} sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase' }}>
+                    {['Item Name', 'Brand', 'Qty', 'Status', 'Location', 'Actions'].map((h) => (
+                      <TableCell key={h} sx={{ fontFamily: font, fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase' }}>
                         {h}
                       </TableCell>
                     ))}
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {items.map((item) => {
-                    const sc = statusColor(item.Status);
+                  {pagedItems.map((item) => {
+                    const status = getStockStatus(item.Quantity);
+                    const sc = statusColor(status);
                     return (
                       <TableRow key={item.Id} sx={{ '&:hover': { backgroundColor: '#fafafa' } }}>
-                        <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 600 }}>{item.ItemName}</TableCell>
-                        <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13 }}>{item.Brand}</TableCell>
-                        <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13 }}>{item.Quantity}</TableCell>
+                        <TableCell sx={{ fontFamily: font, fontSize: 13, fontWeight: 600 }}>{item.ItemName}</TableCell>
+                        <TableCell sx={{ fontFamily: font, fontSize: 13 }}>{item.Brand || '—'}</TableCell>
+                        <TableCell sx={{ fontFamily: font, fontSize: 13 }}>{item.Quantity}</TableCell>
                         <TableCell>
-                          <Chip label={item.Status} size="small" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 11, backgroundColor: sc.bg, color: sc.text, border: `1px solid ${sc.border}` }} />
+                          <Chip label={status} size="small" sx={{ fontFamily: font, fontWeight: 600, fontSize: 11, backgroundColor: sc.bg, color: sc.text, border: `1px solid ${sc.border}` }} />
                         </TableCell>
-                        <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13 }}>{item.Location || '—'}</TableCell>
+                        <TableCell sx={{ fontFamily: font, fontSize: 13 }}>{item.Location || '—'}</TableCell>
                         <TableCell>
-                          <IconButton size="small" onClick={() => handleOpenEdit(item)} sx={{ color: '#1b0892' }}><EditIcon fontSize="small" /></IconButton>
-                          <IconButton size="small" onClick={() => handleOpenDelete(item)} sx={{ color: '#c62828' }}><DeleteIcon fontSize="small" /></IconButton>
+                          <Tooltip title="Add Stock">
+                            <IconButton size="small" onClick={() => handleOpenStock(item)} sx={{ color: '#2e7d32' }}>
+                              <AddCircleOutlineIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Edit">
+                            <IconButton size="small" onClick={() => handleOpenEdit(item)} sx={{ color: THEME.navy }}>
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Delete">
+                            <IconButton size="small" onClick={() => handleOpenDelete(item)} sx={{ color: '#c62828' }}>
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
                         </TableCell>
                       </TableRow>
                     );
                   })}
-                  {items.length === 0 && (
+                  {pagedItems.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={6} align="center" sx={{ fontFamily: 'Poppins, sans-serif', py: 4, color: '#888' }}>No supply items recorded yet.</TableCell>
+                      <TableCell colSpan={7} align="center" sx={{ fontFamily: font, py: 4, color: '#888' }}>
+                        No supply records match your search.
+                      </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
               </Table>
             </TableContainer>
+            <TablePagination
+              component="div"
+              count={filteredItems.length}
+              page={page}
+              onPageChange={(_, p) => setPage(p)}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+              rowsPerPageOptions={[10, 25, 50]}
+              sx={{ fontFamily: font }}
+            />
           </Paper>
         </Box>
       )}
 
       {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700 }}>Edit Supply Details</DialogTitle>
-        <DialogContent dividers>{formFields(editForm, handleEditChange)}</DialogContent>
+        <DialogTitle sx={{ fontFamily: font, fontWeight: 700 }}>Edit Supply Details</DialogTitle>
+        <DialogContent dividers>{formFields(editForm, handleEditChange, (e) => setEditForm((p) => ({ ...p, brandOption: e.target.value, brand: e.target.value === NEW_BRAND_VALUE ? '' : e.target.value })))}</DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setEditDialogOpen(false)} sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none' }}>Cancel</Button>
-          <Button variant="contained" onClick={handleUpdate} sx={{ backgroundColor: '#1b0892', fontFamily: 'Poppins, sans-serif', textTransform: 'none', px: 3 }}>Update</Button>
+          <Button onClick={() => setEditDialogOpen(false)} sx={{ fontFamily: font, textTransform: 'none' }}>Cancel</Button>
+          <Button variant="contained" onClick={handleUpdate} sx={{ backgroundColor: THEME.navy, fontFamily: font, textTransform: 'none', px: 3 }}>Update</Button>
         </DialogActions>
       </Dialog>
 
       {/* Delete Dialog */}
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700 }}>Delete Supply</DialogTitle>
+        <DialogTitle sx={{ fontFamily: font, fontWeight: 700 }}>Delete Supply</DialogTitle>
         <DialogContent>
-          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 14 }}>
+          <Typography sx={{ fontFamily: font, fontSize: 14 }}>
             Are you sure you want to delete <strong>{selectedItem?.ItemName}</strong>? This action cannot be undone.
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setDeleteDialogOpen(false)} sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none' }}>Cancel</Button>
-          <Button variant="contained" onClick={handleDelete} sx={{ backgroundColor: '#c62828', fontFamily: 'Poppins, sans-serif', textTransform: 'none', px: 3 }}>Delete</Button>
+          <Button onClick={() => setDeleteDialogOpen(false)} sx={{ fontFamily: font, textTransform: 'none' }}>Cancel</Button>
+          <Button variant="contained" onClick={handleDelete} sx={{ backgroundColor: '#c62828', fontFamily: font, textTransform: 'none', px: 3 }}>Delete</Button>
         </DialogActions>
       </Dialog>
 
-      <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar(p => ({ ...p, open: false }))} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
-        <Alert severity={snackbar.severity} sx={{ fontFamily: 'Poppins, sans-serif' }}>{snackbar.message}</Alert>
+      {/* Add Stock Dialog */}
+      <Dialog open={stockDialogOpen} onClose={() => setStockDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontFamily: font, fontWeight: 700 }}>Add Stock</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ fontFamily: font, fontSize: 13, color: '#666', mb: 2 }}>
+            Asset: <strong>{stockTarget?.ItemName}</strong> — Current Stock: <strong>{stockTarget?.Quantity}</strong>
+          </Typography>
+          <TextField
+            fullWidth autoFocus type="number" label="Additional Quantity *"
+            value={stockAmount} onChange={(e) => { setStockAmount(e.target.value); setStockError(''); }}
+            error={!!stockError} helperText={stockError}
+            inputProps={{ min: 1, style: { fontFamily: font } }}
+          />
+          {stockAmount && !stockError && Number(stockAmount) > 0 && (
+            <Typography sx={{ fontFamily: font, fontSize: 12, color: '#2e7d32', mt: 1 }}>
+              New quantity will be {Number(stockTarget?.Quantity || 0) + Number(stockAmount)}.
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setStockDialogOpen(false)} sx={{ fontFamily: font, textTransform: 'none' }}>Cancel</Button>
+          <Button variant="contained" onClick={handleConfirmStock} sx={{ backgroundColor: THEME.navy, fontFamily: font, textTransform: 'none', px: 3 }}>Confirm</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar((p) => ({ ...p, open: false }))} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+        <Alert severity={snackbar.severity} sx={{ fontFamily: font }}>{snackbar.message}</Alert>
       </Snackbar>
     </>
   );

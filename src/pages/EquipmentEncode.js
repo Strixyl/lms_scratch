@@ -98,8 +98,10 @@ const EquipmentEncode = () => {
     if (savedUser) {
       setLoggedInUser(savedUser);
       setUsername(savedUser);
+      setShowLoginModal(false);
     }
   }, []);
+
 
   useEffect(() => {
     if (!showLoginModal) {
@@ -467,22 +469,24 @@ const EquipmentEncode = () => {
         )}
       </Header>
 
-      {/* Login Dialog */}
-      <Dialog open={showLoginModal} disableEscapeKeyDown>
-        <DialogTitle sx={{ fontFamily: font, fontWeight: 700 }}>Login Required</DialogTitle>
-        <DialogContent>
-          <Typography sx={{ fontFamily: font, fontSize: 13, color: '#666', mb: 2 }}>
-            You need to login to access equipment encoding.
-          </Typography>
-          <TextField fullWidth margin="dense" label="Username" value={username} onChange={(e) => setUsername(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleLogin(e)} inputProps={{ style: { fontFamily: font } }} />
-          <TextField fullWidth margin="dense" label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleLogin(e)} inputProps={{ style: { fontFamily: font } }} />
-          {loginError && <Typography color="error" sx={{ fontFamily: font, fontSize: 12, mt: 1 }}>{loginError}</Typography>}
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => navigate('/')} sx={{ fontFamily: font, textTransform: 'none' }}>Back to Home</Button>
-          <Button variant="contained" onClick={handleLogin} sx={{ backgroundColor: THEME.navy, fontFamily: font, textTransform: 'none', px: 3 }}>Login</Button>
-        </DialogActions>
-      </Dialog>
+      {/* Login Dialog — conditionally rendered so it fully unmounts when logged in */}
+      {showLoginModal && (
+        <Dialog open disableEscapeKeyDown>
+          <DialogTitle sx={{ fontFamily: font, fontWeight: 700 }}>Login Required</DialogTitle>
+          <DialogContent>
+            <Typography sx={{ fontFamily: font, fontSize: 13, color: '#666', mb: 2 }}>
+              You need to login to access equipment encoding.
+            </Typography>
+            <TextField fullWidth margin="dense" label="Username" value={username} onChange={(e) => setUsername(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleLogin(e)} inputProps={{ style: { fontFamily: font } }} />
+            <TextField fullWidth margin="dense" label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleLogin(e)} inputProps={{ style: { fontFamily: font } }} />
+            {loginError && <Typography color="error" sx={{ fontFamily: font, fontSize: 12, mt: 1 }}>{loginError}</Typography>}
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={() => navigate('/')} sx={{ fontFamily: font, textTransform: 'none' }}>Back to Home</Button>
+            <Button variant="contained" onClick={handleLogin} sx={{ backgroundColor: THEME.navy, fontFamily: font, textTransform: 'none', px: 3 }}>Login</Button>
+          </DialogActions>
+        </Dialog>
+      )}
 
       {!showLoginModal && (
         <Box sx={{ p: 3, maxWidth: 1300, margin: '0 auto' }}>

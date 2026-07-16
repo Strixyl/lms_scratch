@@ -177,6 +177,29 @@ async function logAssetTransaction(request, {
     `);
 }
 
+// SupplyId is a soft reference (nullable, no FK) — see create_supply_transactions.sql —
+// so deleting a supply item never fails just because it has transaction history.
+async function logSupplyTransaction(request, {
+  supplyId, actionType, quantityChanged, previousQuantity, newQuantity,
+  destinationSection = null, remarks = null, createdBy = null,
+}) {
+  await request
+    .input('TxSupplyId', sql.Int, supplyId)
+    .input('ActionType', sql.NVarChar, actionType)
+    .input('QuantityChanged', sql.Int, quantityChanged)
+    .input('PreviousQuantity', sql.Int, previousQuantity)
+    .input('NewQuantity', sql.Int, newQuantity)
+    .input('DestinationSection', sql.NVarChar, destinationSection)
+    .input('Remarks', sql.NVarChar, remarks)
+    .input('CreatedBy', sql.NVarChar, createdBy)
+    .query(`
+      INSERT INTO SupplyTransactions
+        (SupplyId, ActionType, QuantityChanged, PreviousQuantity, NewQuantity, DestinationSection, Remarks, CreatedBy)
+      VALUES
+        (@TxSupplyId, @ActionType, @QuantityChanged, @PreviousQuantity, @NewQuantity, @DestinationSection, @Remarks, @CreatedBy)
+    `);
+}
+
 // =================== ROUTES =================== //
 
 
@@ -382,8 +405,8 @@ app.delete('/api/surveys/:id', async (req, res) => {
     }
 
     // Connect using your specific configuration variable name (e.g., config)
-    const pool = await sql.connect(config); 
-    
+    const pool = await sql.connect(config);
+
     // Explicitly target your database and table as shown in image_eab6a1.png
     await pool.request()
       .input('Id', sql.Int, parseInt(id))
@@ -692,22 +715,50 @@ app.get('/api/supplies', async (req, res) => {
 });
 
 app.post('/api/supplies', async (req, res) => {
+  const { itemName, description, brand, quantity, location, specifications, user } = req.body;
+
+  const qty = parseInt(quantity);
+  if (!itemName || !itemName.trim()) {
+    return res.status(400).json({ message: 'Item name is required.' });
+  }
+  if (Number.isNaN(qty) || qty < 1) {
+    return res.status(400).json({ message: 'Quantity must be at least 1.' });
+  }
+
   try {
-    const { itemName, description, brand, quantity, status, condition, location, specifications } = req.body;
     const pool = await sql.connect(config);
-    await pool.request()
-      .input('ItemName', sql.NVarChar, itemName || '')
+    const status = deriveStatus(qty); // status is always derived server-side, never trusted from the client
+
+    if (brand && brand.trim()) {
+      await upsertBrand(pool, brand);
+    }
+
+    const insertResult = await pool.request()
+      .input('ItemName', sql.NVarChar, itemName.trim())
       .input('Description', sql.NVarChar, description || '')
-      .input('Brand', sql.NVarChar, brand || '')
-      .input('Quantity', sql.Int, parseInt(quantity) || 0)
-      .input('Status', sql.NVarChar, status || 'In Stock')
-      .input('Condition', sql.NVarChar, condition || '')
+      .input('Brand', sql.NVarChar, (brand || '').trim())
+      .input('Quantity', sql.Int, qty)
+      .input('Status', sql.NVarChar, status)
+      .input('Condition', sql.NVarChar, '')
       .input('Location', sql.NVarChar, location || '')
       .input('Specifications', sql.NVarChar, specifications || '')
       .query(`INSERT INTO OfficeSupplies
         (ItemName, Description, Brand, Quantity, Status, Condition, Location, Specifications)
+        OUTPUT INSERTED.Id
         VALUES (@ItemName, @Description, @Brand, @Quantity, @Status, @Condition, @Location, @Specifications)`);
-    res.json({ success: true });
+
+    const newId = insertResult.recordset[0].Id;
+
+    await logSupplyTransaction(pool.request(), {
+      supplyId: newId,
+      actionType: 'Added',
+      quantityChanged: qty,
+      previousQuantity: 0,
+      newQuantity: qty,
+      createdBy: user,
+    });
+
+    res.json({ success: true, id: newId });
   } catch (err) {
     console.error('Failed to add supply:', err);
     res.status(500).json({ error: 'Failed to add supply' });
@@ -717,16 +768,39 @@ app.post('/api/supplies', async (req, res) => {
 app.put('/api/supplies/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { itemName, description, brand, quantity, status, condition, location, specifications } = req.body;
+    const { itemName, description, brand, quantity, location, specifications, user } = req.body;
+
+    const qty = parseInt(quantity);
+    if (!itemName || !itemName.trim()) {
+      return res.status(400).json({ message: 'Item name is required.' });
+    }
+    if (Number.isNaN(qty) || qty < 0) {
+      return res.status(400).json({ message: 'Quantity cannot be negative.' });
+    }
+
     const pool = await sql.connect(config);
+
+    const existing = await pool.request()
+      .input('Id', sql.Int, parseInt(id))
+      .query('SELECT Quantity FROM OfficeSupplies WHERE Id = @Id');
+    if (existing.recordset.length === 0) {
+      return res.status(404).json({ message: 'Supply item not found.' });
+    }
+    const previousQuantity = existing.recordset[0].Quantity;
+
+    if (brand && brand.trim()) {
+      await upsertBrand(pool, brand);
+    }
+
+    const status = deriveStatus(qty);
     await pool.request()
       .input('Id', sql.Int, parseInt(id))
-      .input('ItemName', sql.NVarChar, itemName || '')
+      .input('ItemName', sql.NVarChar, itemName.trim())
       .input('Description', sql.NVarChar, description || '')
-      .input('Brand', sql.NVarChar, brand || '')
-      .input('Quantity', sql.Int, parseInt(quantity) || 0)
-      .input('Status', sql.NVarChar, status || 'In Stock')
-      .input('Condition', sql.NVarChar, condition || '')
+      .input('Brand', sql.NVarChar, (brand || '').trim())
+      .input('Quantity', sql.Int, qty)
+      .input('Status', sql.NVarChar, status)
+      .input('Condition', sql.NVarChar, '')
       .input('Location', sql.NVarChar, location || '')
       .input('Specifications', sql.NVarChar, specifications || '')
       .input('UpdatedAt', sql.DateTime, new Date())
@@ -735,6 +809,18 @@ app.put('/api/supplies/:id', async (req, res) => {
         Quantity=@Quantity, Status=@Status,
         Condition=@Condition, Location=@Location, Specifications=@Specifications,
         UpdatedAt=@UpdatedAt WHERE Id=@Id`);
+
+    if (qty !== previousQuantity) {
+      await logSupplyTransaction(pool.request(), {
+        supplyId: id,
+        actionType: 'Updated',
+        quantityChanged: qty - previousQuantity,
+        previousQuantity,
+        newQuantity: qty,
+        createdBy: user,
+      });
+    }
+
     res.json({ success: true });
   } catch (err) {
     console.error('Failed to update supply:', err);
@@ -746,6 +832,24 @@ app.delete('/api/supplies/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const pool = await sql.connect(config);
+
+    const existing = await pool.request()
+      .input('Id', sql.Int, parseInt(id))
+      .query('SELECT Quantity FROM OfficeSupplies WHERE Id = @Id');
+    if (existing.recordset.length === 0) {
+      return res.status(404).json({ message: 'Supply item not found.' });
+    }
+    const quantity = existing.recordset[0].Quantity;
+
+    await logSupplyTransaction(pool.request(), {
+      supplyId: id,
+      actionType: 'Deleted',
+      quantityChanged: -quantity,
+      previousQuantity: quantity,
+      newQuantity: 0,
+      createdBy: req.body?.user,
+    });
+
     await pool.request()
       .input('Id', sql.Int, parseInt(id))
       .query('DELETE FROM OfficeSupplies WHERE Id=@Id');
@@ -753,6 +857,184 @@ app.delete('/api/supplies/:id', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to delete supply' });
+  }
+});
+
+// ---- Add Stock: never creates a duplicate row, just increases quantity ----
+app.post('/api/supplies/:id/add-stock', async (req, res) => {
+  const { id } = req.params;
+  const { additionalQuantity, user } = req.body;
+  const addQty = parseInt(additionalQuantity);
+
+  if (Number.isNaN(addQty) || addQty < 1) {
+    return res.status(400).json({ message: 'Additional quantity must be at least 1.' });
+  }
+
+  let transaction;
+  try {
+    const pool = await sql.connect(config);
+    transaction = new sql.Transaction(pool);
+    await transaction.begin();
+
+    const existing = await new sql.Request(transaction)
+      .input('Id', sql.Int, parseInt(id))
+      .query('SELECT Quantity FROM OfficeSupplies WHERE Id = @Id');
+    if (existing.recordset.length === 0) {
+      await transaction.rollback();
+      return res.status(404).json({ message: 'Supply item not found.' });
+    }
+
+    const previousQuantity = existing.recordset[0].Quantity;
+    const newQuantity = previousQuantity + addQty;
+    const status = deriveStatus(newQuantity);
+
+    await new sql.Request(transaction)
+      .input('Id', sql.Int, parseInt(id))
+      .input('Quantity', sql.Int, newQuantity)
+      .input('Status', sql.NVarChar, status)
+      .input('UpdatedAt', sql.DateTime, new Date())
+      .query('UPDATE OfficeSupplies SET Quantity=@Quantity, Status=@Status, UpdatedAt=@UpdatedAt WHERE Id=@Id');
+
+    await logSupplyTransaction(new sql.Request(transaction), {
+      supplyId: id,
+      actionType: 'Added Stock',
+      quantityChanged: addQty,
+      previousQuantity,
+      newQuantity,
+      createdBy: user,
+    });
+
+    await transaction.commit();
+    res.json({ previousQuantity, newQuantity });
+  } catch (err) {
+    console.error(err);
+    if (transaction) await transaction.rollback().catch(() => { });
+    res.status(500).json({ message: 'Failed to add stock.' });
+  }
+});
+
+// ---- Send/Transfer Supply: deducts stock, prevents negative inventory ----
+app.post('/api/supplies/:id/send', async (req, res) => {
+  const { id } = req.params;
+  const { quantity, destination, remarks, user } = req.body;
+  const sendQty = parseInt(quantity);
+
+  if (!destination) {
+    return res.status(400).json({ message: 'Destination section is required.' });
+  }
+  if (Number.isNaN(sendQty) || sendQty < 1) {
+    return res.status(400).json({ message: 'Quantity must be at least 1.' });
+  }
+
+  let transaction;
+  try {
+    const pool = await sql.connect(config);
+    transaction = new sql.Transaction(pool);
+    await transaction.begin();
+
+    const existing = await new sql.Request(transaction)
+      .input('Id', sql.Int, parseInt(id))
+      .query('SELECT ItemName, Quantity FROM OfficeSupplies WHERE Id = @Id');
+    if (existing.recordset.length === 0) {
+      await transaction.rollback();
+      return res.status(404).json({ message: 'Supply item not found.' });
+    }
+
+    const previousQuantity = existing.recordset[0].Quantity;
+    if (sendQty > previousQuantity) {
+      await transaction.rollback();
+      return res.status(400).json({
+        message: `Insufficient stock available. Available Quantity: ${previousQuantity}. Requested Quantity: ${sendQty}.`,
+      });
+    }
+
+    const newQuantity = previousQuantity - sendQty;
+    const status = deriveStatus(newQuantity);
+
+    await new sql.Request(transaction)
+      .input('Id', sql.Int, parseInt(id))
+      .input('Quantity', sql.Int, newQuantity)
+      .input('Status', sql.NVarChar, status)
+      .input('UpdatedAt', sql.DateTime, new Date())
+      .query('UPDATE OfficeSupplies SET Quantity=@Quantity, Status=@Status, UpdatedAt=@UpdatedAt WHERE Id=@Id');
+
+    await logSupplyTransaction(new sql.Request(transaction), {
+      supplyId: id,
+      actionType: 'Transferred',
+      quantityChanged: -sendQty,
+      previousQuantity,
+      newQuantity,
+      destinationSection: destination,
+      remarks: remarks || null,
+      createdBy: user,
+    });
+
+    await transaction.commit();
+    res.json({ previousQuantity, newQuantity });
+  } catch (err) {
+    console.error(err);
+    if (transaction) await transaction.rollback().catch(() => { });
+    res.status(500).json({ message: 'Failed to send supply.' });
+  }
+});
+
+// =================== SUPPLY TRANSACTION HISTORY =================== //
+
+app.get('/api/supply-transactions', async (req, res) => {
+  try {
+    const pool = await sql.connect(config);
+    const result = await pool.request().query(`
+      SELECT
+        t.TransactionId AS transaction_id,
+        t.ActionType AS action_type,
+        t.QuantityChanged AS quantity_changed,
+        t.PreviousQuantity AS previous_quantity,
+        t.NewQuantity AS new_quantity,
+        t.DestinationSection AS destination_section,
+        t.Remarks AS remarks,
+        t.CreatedBy AS created_by,
+        CONVERT(VARCHAR, t.CreatedAt, 120) AS created_at,
+        ISNULL(s.ItemName, '(deleted item)') AS supply_name
+      FROM SupplyTransactions t
+      LEFT JOIN OfficeSupplies s ON t.SupplyId = s.Id
+      ORDER BY t.CreatedAt DESC
+    `);
+    res.json(result.recordset);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch supply transaction history' });
+  }
+});
+
+// =================== SUPPLIES DASHBOARD SUMMARY =================== //
+
+app.get('/api/supplies/dashboard/summary', async (req, res) => {
+  try {
+    const pool = await sql.connect(config);
+
+    const stats = await pool.request().query(`
+      SELECT
+        COUNT(*) AS totalItems,
+        ISNULL(SUM(Quantity), 0) AS totalInventory,
+        SUM(CASE WHEN Quantity <= 0 THEN 1 ELSE 0 END) AS outOfStock
+      FROM OfficeSupplies
+    `);
+
+    const transferredToday = await pool.request().query(`
+      SELECT ISNULL(SUM(-QuantityChanged), 0) AS transferredToday
+      FROM SupplyTransactions
+      WHERE ActionType = 'Transferred' AND CAST(CreatedAt AS DATE) = CAST(GETDATE() AS DATE)
+    `);
+
+    res.json({
+      totalItems: stats.recordset[0].totalItems,
+      totalInventory: stats.recordset[0].totalInventory,
+      outOfStock: stats.recordset[0].outOfStock,
+      transferredToday: transferredToday.recordset[0].transferredToday,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch supplies dashboard summary' });
   }
 });
 
@@ -967,7 +1249,7 @@ app.post('/api/equipment/:id/add-stock', async (req, res) => {
     res.json({ previousQuantity, newQuantity });
   } catch (err) {
     console.error(err);
-    if (transaction) await transaction.rollback().catch(() => {});
+    if (transaction) await transaction.rollback().catch(() => { });
     res.status(500).json({ message: 'Failed to add stock.' });
   }
 });
@@ -1032,7 +1314,7 @@ app.post('/api/equipment/:id/send', async (req, res) => {
     res.json({ previousQuantity, newQuantity });
   } catch (err) {
     console.error(err);
-    if (transaction) await transaction.rollback().catch(() => {});
+    if (transaction) await transaction.rollback().catch(() => { });
     res.status(500).json({ message: 'Failed to send asset.' });
   }
 });
@@ -1099,9 +1381,9 @@ app.get('/api/transactions', async (req, res) => {
         t.Remarks AS remarks,
         t.CreatedBy AS created_by,
         CONVERT(VARCHAR, t.CreatedAt, 120) AS created_at,
-        e.ItemName AS asset_name
+        ISNULL(e.ItemName, '(deleted item)') AS asset_name
       FROM AssetTransactions t
-      JOIN LibraryEquipment e ON t.AssetId = e.Id
+      LEFT JOIN LibraryEquipment e ON t.AssetId = e.Id
       ORDER BY t.CreatedAt DESC
     `);
     res.json(result.recordset);
