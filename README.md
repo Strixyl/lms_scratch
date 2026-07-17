@@ -17,15 +17,19 @@ The system unifies all core library operations — sign-in monitoring, book mana
 
 ## System Modules
 
-| Module | Description |
-|---|---|
-| **HLL Sign-in Portal** | Tracks patron login and logout using student ID lookup, displays patron image, activity logs, traffic monitoring, and report generation |
-| **Patron Satisfaction Survey** | 10-question survey with emoji-based ratings and open-ended feedback text box |
-| **Sentiment Analysis Dashboard** | Automatically classifies open-ended feedback as Positive, Neutral, or Negative using VADER and Naïve Bayes |
-| **Book Card and Book Packet** | Encodes, stores, and retrieves book details with a centralized database; supports save, update, clear, search, and print |
-| **Inventory Module** | Two separate inventories for office supplies and library equipment with full item details |
-| **Report Generation** | Generates real-time and operational reports for sign-in records and survey results, exportable as PDF or Excel |
-| **Admin Dashboard** | Account management for role-based user accounts (Admin, Librarian, Standard User) |
+| Module | Description | Pages / Files |
+|---|---|---|
+| **HLL Sign-in Portal** | Tracks patron logins/logouts using student ID lookup, displaying patron info, and logs activity. | `Login.js`, `LoginData.js` |
+| **Patron Satisfaction Survey** | A 10-question survey featuring emoji-based ratings and an open-ended feedback comments box. | `SatisfactionSurvey.js`, `SatisfactionSurveyData.js` |
+| **Sentiment Analysis Dashboard** | Analyzes survey comments using a hybrid NLP approach (VADER + Naïve Bayes + AFINN) with emoji metrics. | `SentimentDashboard.js` |
+| **Book Card & Book Packet** | Encodes, saves, searches, and prints book card packets (supports up to 4 books per record). | `CardAndPacket.js` |
+| **Book Catalog** | A flat-list catalog viewer aggregating book data from all card-and-packet records with Excel export. | `BookCatalogue.js` |
+| **Supplies Inventory Encoding** | Manages office supplies records (add, update, delete, pagination, and search filter). | `SuppliesEncode.js`, `Supplies.js` |
+| **Equipment Inventory Encoding** | Manages library equipment records (add, update, delete, pagination, and search filter). | `EquipmentEncode.js`, `Equipment.js` |
+| **Office Supplies Transfer** | Safe transaction-based stock transfer to library sections with remaining stock limits. | `SendSupply.js`, `SupplyTransactionHistory.js` |
+| **Library Equipment Transfer** | Safe transaction-based stock transfer to library sections with remaining stock limits. | `Sendasset.js`, `Transactionhistory.js` |
+| **Admin Dashboard** | Handles user role credentials and session management. | Not built (RBAC in localStorage) |
+
 
 ---
 
@@ -87,39 +91,107 @@ The 10 emoji survey responses are mapped to numeric scores and averaged for the 
 
 ## Database Setup
 
-1. Restore the provided `.bak` file using SQL Server Management Studio (SSMS)
-2. Connect to your SQL Server instance (e.g. `YOUR_PC\SQLEXPRESS`)
-3. Run the following in SSMS to ensure the required columns exist:
+1. Restore the database from the provided backup file `hllSystem-clean-2.bak` using SQL Server Management Studio (SSMS) to initialize the core tables (`studInfo`, `studCollege`, `studCourse`, `courseToCollege`).
+2. Run the following queries in SSMS against the `hllSystem` database to ensure the required columns and new tables exist:
 
 ```sql
+-- 1. Alter SatisfactionSurveys table to include SentimentResult column
 ALTER TABLE SatisfactionSurveys
-ADD SentimentResult NVARCHAR(50)
+ADD SentimentResult NVARCHAR(50);
 
+-- 2. Create OfficeSupplies Table (ControlNumber dropped per instructions)
 CREATE TABLE OfficeSupplies (
   Id INT IDENTITY(1,1) PRIMARY KEY,
   ItemName NVARCHAR(200) NOT NULL,
-  Description NVARCHAR(500), Brand NVARCHAR(100),
-  Quantity INT DEFAULT 0, Status NVARCHAR(50),
-  ControlNumber NVARCHAR(100), Condition NVARCHAR(100),
-  Location NVARCHAR(200), Specifications NVARCHAR(500),
-  DateAdded DATETIME DEFAULT GETDATE(), UpdatedAt DATETIME
-)
+  Description NVARCHAR(500),
+  Brand NVARCHAR(100),
+  Quantity INT DEFAULT 0,
+  Status NVARCHAR(50),
+  Condition NVARCHAR(100),
+  Location NVARCHAR(200),
+  Specifications NVARCHAR(500),
+  DateAdded DATETIME DEFAULT GETDATE(),
+  UpdatedAt DATETIME
+);
 
+-- 3. Create LibraryEquipment Table
 CREATE TABLE LibraryEquipment (
   Id INT IDENTITY(1,1) PRIMARY KEY,
   ItemName NVARCHAR(200) NOT NULL,
-  Description NVARCHAR(500), Brand NVARCHAR(100),
-  Quantity INT DEFAULT 0, Status NVARCHAR(50),
-  SerialNumber NVARCHAR(100), Condition NVARCHAR(100),
-  Location NVARCHAR(200), Specifications NVARCHAR(500),
-  DateAdded DATETIME DEFAULT GETDATE(), UpdatedAt DATETIME
-)
+  Description NVARCHAR(500),
+  Brand NVARCHAR(100),
+  Quantity INT DEFAULT 0,
+  Status NVARCHAR(50),
+  SerialNumber NVARCHAR(100),
+  Condition NVARCHAR(100),
+  Location NVARCHAR(200),
+  Specifications NVARCHAR(500),
+  DateAdded DATETIME DEFAULT GETDATE(),
+  UpdatedAt DATETIME
+);
 
-drop the ControlNumber according to sir Genecis
+-- 4. Create CardAndPacket Table for Book Cards & Packets
+CREATE TABLE CardAndPacket (
+  CardID INT IDENTITY(1,1) PRIMARY KEY,
+  selectedLibrary1 NVARCHAR(100), section1 NVARCHAR(100),
+  selectedLibrary2 NVARCHAR(100), section2 NVARCHAR(100),
+  selectedLibrary3 NVARCHAR(100), section3 NVARCHAR(100),
+  selectedLibrary4 NVARCHAR(100), section4 NVARCHAR(100),
+  authorLastName1 NVARCHAR(100), authorFirstName1 NVARCHAR(100), authorMiddleInitial1 NVARCHAR(10), publisherAuthor1 NVARCHAR(200),
+  authorLastName2 NVARCHAR(100), authorFirstName2 NVARCHAR(100), authorMiddleInitial2 NVARCHAR(10), publisherAuthor2 NVARCHAR(200),
+  authorLastName3 NVARCHAR(100), authorFirstName3 NVARCHAR(100), authorMiddleInitial3 NVARCHAR(10), publisherAuthor3 NVARCHAR(200),
+  authorLastName4 NVARCHAR(100), authorFirstName4 NVARCHAR(100), authorMiddleInitial4 NVARCHAR(10), publisherAuthor4 NVARCHAR(200),
+  bookTitle1 NVARCHAR(500), bookTitle2 NVARCHAR(500), bookTitle3 NVARCHAR(500), bookTitle4 NVARCHAR(500),
+  accessionNumber1 NVARCHAR(100), accessionNumber2 NVARCHAR(100), accessionNumber3 NVARCHAR(100), accessionNumber4 NVARCHAR(100),
+  callNumber1 NVARCHAR(100), callNumber2 NVARCHAR(100), callNumber3 NVARCHAR(100), callNumber4 NVARCHAR(100),
+  copyNumber1 NVARCHAR(10), copyNumber2 NVARCHAR(10), copyNumber3 NVARCHAR(10), copyNumber4 NVARCHAR(10),
+  barcodeValue1 NVARCHAR(100), barcodeValue2 NVARCHAR(100), barcodeValue3 NVARCHAR(100), barcodeValue4 NVARCHAR(100),
+  isoCodeValue1 NVARCHAR(200), isoCodeValue2 NVARCHAR(200), isoCodeValue3 NVARCHAR(200), isoCodeValue4 NVARCHAR(200),
+  createdAt DATETIME DEFAULT GETDATE(),
+  updatedAt DATETIME
+);
 
-ALTER TABLE OfficeSupplies DROP COLUMN ControlNumber;
+-- 5. Create SupplyTransactions Table for office supply transaction logging
+CREATE TABLE SupplyTransactions (
+  TransactionId     INT IDENTITY(1,1) PRIMARY KEY,
+  SupplyId          INT NULL,                          -- Soft reference to OfficeSupplies.Id
+  ActionType        NVARCHAR(50)  NOT NULL,            -- e.g., 'ADD', 'SEND', 'DELETE', 'UPDATE'
+  QuantityChanged   INT           NOT NULL,
+  PreviousQuantity  INT           NOT NULL,
+  NewQuantity       INT           NOT NULL,
+  DestinationSection NVARCHAR(100) NULL,             -- Library section where supply was transferred
+  Remarks           NVARCHAR(500) NULL,
+  CreatedBy         NVARCHAR(100) NULL,
+  CreatedAt         DATETIME      NOT NULL DEFAULT GETDATE()
+);
 
+-- 6. Create AssetTransactions Table for library equipment transaction logging
+CREATE TABLE AssetTransactions (
+  TransactionId     INT IDENTITY(1,1) PRIMARY KEY,
+  AssetId           INT NULL,                          -- Soft reference to LibraryEquipment.Id
+  ActionType        NVARCHAR(50)  NOT NULL,            -- e.g., 'ADD', 'SEND', 'DELETE', 'UPDATE'
+  QuantityChanged   INT           NOT NULL,
+  PreviousQuantity  INT           NOT NULL,
+  NewQuantity       INT           NOT NULL,
+  DestinationSection NVARCHAR(100) NULL,             -- Library section where asset was transferred
+  Remarks           NVARCHAR(500) NULL,
+  CreatedBy         NVARCHAR(100) NULL,
+  CreatedAt         DATETIME      NOT NULL DEFAULT GETDATE()
+);
+
+-- 7. Create Brands Master Table
+CREATE TABLE Brands (
+  BrandId INT IDENTITY(1,1) PRIMARY KEY,
+  BrandName NVARCHAR(150) NOT NULL UNIQUE
+);
+
+-- 8. Create Sections Master Table
+CREATE TABLE Sections (
+  SectionId INT IDENTITY(1,1) PRIMARY KEY,
+  SectionName NVARCHAR(150) NOT NULL UNIQUE
+);
 ```
+
 
 ---
 
@@ -187,15 +259,23 @@ http://localhost:3000
 
 | Route | Description |
 |---|---|
-| `/` | Home |
-| `/login` | HLL Sign-in Portal |
-| `/logindata` | Sign-in Records and Report Generation |
+| `/` | Home / Main Landing Page |
+| `/login` | HLL Sign-in Portal (Time In & Time Out Lookup) |
+| `/logindata` | Sign-in Records, traffic monitoring logs, and analytics |
 | `/satisfaction-survey` | Patron Satisfaction Survey Form |
-| `/surveys` | Survey Data Records |
-| `/sentiment-dashboard` | Sentiment Analysis Dashboard |
-| `/book-card` | Book Card and Book Packet |
-| `/inventory` | Office Supplies and Equipment Inventory |
-| `/admin` | Admin Dashboard and Account Management |
+| `/surveys` | Survey Data Records (All survey submissions and sentiment labels) |
+| `/sentiment-dashboard` | Sentiment Analysis Dashboard and Metrics |
+| `/card-and-packet` | Book Card and Packet Encoding Form |
+| `/book-catalogue` | Unified Book Catalog flattened list view with Excel exports |
+| `/supplies` | View-only Office Supplies Inventory |
+| `/equipment` | View-only Library Equipment Inventory |
+| `/supplies-encoding` | Office Supplies Encoding Panel (Add/Edit/Delete/Restock) |
+| `/equipment-encoding` | Library Equipment Encoding Panel (Add/Edit/Delete/Restock) |
+| `/send-supply` | Transfer/Send Office Supplies to specific library sections |
+| `/send-asset` | Transfer/Send Library Equipment to specific library sections |
+| `/supply-transactions` | Supplies transaction history logs |
+| `/transactions` | Equipment transaction history logs |
+
 
 ---
 
