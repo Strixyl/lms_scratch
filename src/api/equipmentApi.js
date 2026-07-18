@@ -11,7 +11,10 @@ const BASE_URL = 'http://localhost:5000/api';
 const client = axios.create({ baseURL: BASE_URL });
 
 // ---------- Assets ----------
-export const getAssets = () => client.get('/equipment').then((r) => r.data);
+// GET /api/equipment now returns grouped+nested shape (see backend below)
+export const getAssets = () => client.get('/equipment/grouped').then((r) => r.data);
+
+export const getFlatAssets = () => client.get('/equipment').then((r) => r.data);
 
 export const createAsset = (payload) =>
   client.post('/equipment', payload).then((r) => r.data);
@@ -22,15 +25,19 @@ export const updateAsset = (id, payload) =>
 export const deleteAsset = (id) =>
   client.delete(`/equipment/${id}`).then((r) => r.data);
 
-// Adds quantity to an existing asset instead of creating a duplicate row
-export const addStock = (id, additionalQuantity, user) =>
-  client
-    .post(`/equipment/${id}/add-stock`, { additionalQuantity, user })
-    .then((r) => r.data);
-
-// Deducts quantity from an asset and transfers it to a destination section
 export const sendAsset = (id, payload) =>
   client.post(`/equipment/${id}/send`, payload).then((r) => r.data);
+
+// Replaces the old row-id addStock — works at (profile, location) level, creates the row if needed
+export const addStockToLocation = (payload) =>
+  client.post('/equipment/stock-to-location', payload).then((r) => r.data);
+
+export const addStock = (payload) =>
+  client.post('/equipment/add-stock', payload).then((r) => r.data);
+
+// sourceRowId = the specific Locations[].Id you're deducting from
+export const transferAsset = (sourceRowId, { destinationLocation, quantity, user }) =>
+  client.post(`/equipment/${sourceRowId}/transfer`, { destinationLocation, quantity, user }).then((r) => r.data);
 
 // ---------- Brands ----------
 export const getBrands = () => client.get('/brands').then((r) => r.data);

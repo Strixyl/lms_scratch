@@ -17,8 +17,10 @@ const font = THEME.font;
 const actionColor = (action) => {
   switch (action) {
     case TRANSACTION_ACTIONS.ADD_ASSET: return { bg: '#e3f2fd', text: '#1565c0' };
-    case TRANSACTION_ACTIONS.ADD_STOCK: return { bg: '#e8f5e9', text: '#2e7d32' };
+    case TRANSACTION_ACTIONS.ADD_STOCK:
+    case TRANSACTION_ACTIONS.ADD_STOCK_NEW_LOC: return { bg: '#e8f5e9', text: '#2e7d32' };
     case TRANSACTION_ACTIONS.SEND_ASSET: return { bg: '#fff3e0', text: '#e65100' };
+    case TRANSACTION_ACTIONS.LOCATION_TRANSFER: return { bg: '#e0f7fa', text: '#006064' };
     case TRANSACTION_ACTIONS.UPDATE_ASSET: return { bg: '#ede7f6', text: '#5e35b1' };
     case TRANSACTION_ACTIONS.DELETE_ASSET: return { bg: '#ffebee', text: '#c62828' };
     default: return { bg: '#f5f5f5', text: '#555' };

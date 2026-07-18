@@ -5,24 +5,19 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button,
   Typography, Box, Grid, MenuItem, Snackbar, Alert,
   Table, TableBody, TableCell, TableContainer, TableHead,
-  TableRow, Paper, Chip, IconButton, InputAdornment, Card,
+  TableRow, Paper, Chip, IconButton, InputAdornment,
   TablePagination, Tooltip,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
-import AddBoxIcon from '@mui/icons-material/AddBox';
 import SearchIcon from '@mui/icons-material/Search';
-import Inventory2Icon from '@mui/icons-material/Inventory2';
-import LayersIcon from '@mui/icons-material/Layers';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import OutboxIcon from '@mui/icons-material/Outbox';
 import { useNavigate } from 'react-router-dom';
 import {
   LOCATION_OPTIONS, THEME, getStockStatus, statusColor,
 } from '../constants/equipmentConstants';
 import {
-  getSupplies, createSupply, updateSupply, deleteSupply, addStock,
+  getSupplies, createSupply, updateSupply, deleteSupply, addStockToLocation, transferSupply,
   getBrands, createBrand, getSuppliesDashboardSummary as getDashboardSummary,
 } from '../api/suppliesApi';
 
@@ -39,31 +34,6 @@ const emptySupplyForm = {
 const NEW_BRAND_VALUE = '__new__';
 const font = THEME.font;
 
-const SummaryCard = ({ icon, label, value, accent }) => (
-  <Card
-    elevation={0}
-    sx={{
-      p: 2.5, borderRadius: 3, border: '1px solid #e0e0e0',
-      display: 'flex', alignItems: 'center', gap: 2, height: '100%',
-    }}
-  >
-    <Box sx={{
-      width: 46, height: 46, borderRadius: '50%', display: 'flex',
-      alignItems: 'center', justifyContent: 'center',
-      backgroundColor: `${accent}1a`, color: accent,
-    }}>
-      {icon}
-    </Box>
-    <Box>
-      <Typography sx={{ fontFamily: font, fontSize: 12, color: '#888', textTransform: 'uppercase', fontWeight: 600 }}>
-        {label}
-      </Typography>
-      <Typography sx={{ fontFamily: font, fontSize: 22, fontWeight: 700, color: '#1a1a1a' }}>
-        {value}
-      </Typography>
-    </Box>
-  </Card>
-);
 
 const SuppliesEncode = () => {
   const navigate = useNavigate();
@@ -96,6 +66,25 @@ const SuppliesEncode = () => {
   const [stockTarget, setStockTarget] = useState(null);
   const [stockAmount, setStockAmount] = useState('');
   const [stockError, setStockError] = useState('');
+  const [stockLocation, setStockLocation] = useState('');
+
+  // ---- expandable rows ----
+  const [expandedRows, setExpandedRows] = useState(new Set());
+  const toggleExpand = (profileKey) =>
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      next.has(profileKey) ? next.delete(profileKey) : next.add(profileKey);
+      return next;
+    });
+
+  // ---- transfer modal ----
+  const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+  const [transferTarget, setTransferTarget] = useState(null);
+  const [transferSourceId, setTransferSourceId] = useState('');
+  const [transferSourceLocation, setTransferSourceLocation] = useState('');
+  const [transferDestLocation, setTransferDestLocation] = useState('');
+  const [transferAmount, setTransferAmount] = useState('');
+  const [transferError, setTransferError] = useState('');
 
   // ---- search / filter / pagination ----
   const [search, setSearch] = useState('');
@@ -302,8 +291,9 @@ const SuppliesEncode = () => {
   };
 
   // ---------------- add stock ----------------
-  const handleOpenStock = (item) => {
-    setStockTarget(item);
+  const handleOpenStock = (profile) => {
+    setStockTarget(profile);
+    setStockLocation('');
     setStockAmount('');
     setStockError('');
     setStockDialogOpen(true);
@@ -311,15 +301,26 @@ const SuppliesEncode = () => {
 
   const handleConfirmStock = async () => {
     const qty = Number(stockAmount);
+    if (!stockLocation) return setStockError('Select a location.');
     if (!stockAmount || Number.isNaN(qty) || qty < 1) {
-      setStockError('Additional quantity must be at least 1.');
+      setStockError('Quantity modifier must be at least 1.');
       return;
     }
     try {
-      await addStock(stockTarget.Id, qty, loggedInUser);
+      const existingLoc = stockTarget.location_balances.find((l) => l.LocationName === stockLocation);
+      const supplyId = existingLoc ? existingLoc.Id : (stockTarget.location_balances[0]?.Id || null);
+
+      await addStockToLocation({
+        supplyId,
+        itemName: stockTarget.ItemName,
+        brand: stockTarget.Brand,
+        location: stockLocation,
+        quantity: qty,
+        user: loggedInUser,
+      });
       setSnackbar({
         open: true,
-        message: `Stock updated: ${stockTarget.Quantity} + ${qty} = ${Number(stockTarget.Quantity) + qty}.`,
+        message: `Successfully added ${qty} to ${stockLocation}.`,
         severity: 'success',
       });
       setStockDialogOpen(false);
@@ -327,18 +328,82 @@ const SuppliesEncode = () => {
       fetchSummary();
     } catch (err) {
       const apiMessage = err?.response?.data?.error || err?.response?.data?.message || 'Failed to add stock.';
-      setSnackbar({ open: true, message: apiMessage, severity: 'error' });
+      setStockError(apiMessage);
     }
   };
 
+  // ---------------- transfer ----------------
+  const handleOpenTransfer = (profile, sourceLocationId = '') => {
+    setTransferTarget(profile);
+    setTransferSourceId(sourceLocationId);
+    if (sourceLocationId) {
+      const loc = profile.location_balances.find((l) => l.Id === sourceLocationId);
+      setTransferSourceLocation(loc ? loc.LocationName : '');
+    } else {
+      setTransferSourceLocation(profile.location_balances[0]?.LocationName || '');
+    }
+    setTransferDestLocation('');
+    setTransferAmount('');
+    setTransferError('');
+    setTransferDialogOpen(true);
+  };
+
+  const handleConfirmTransfer = async () => {
+    const sourceLoc = transferTarget.location_balances.find((l) => l.LocationName === transferSourceLocation);
+    if (!sourceLoc) {
+      setTransferError('Invalid source location.');
+      return;
+    }
+    const qty = Number(transferAmount);
+    if (!transferDestLocation) {
+      setTransferError('Select destination location.');
+      return;
+    }
+    if (!transferAmount || Number.isNaN(qty) || qty < 1) {
+      setTransferError('Quantity must be at least 1.');
+      return;
+    }
+    if (qty > sourceLoc.Quantity) {
+      setTransferError(`Transfer quantity cannot exceed source balance of ${sourceLoc.Quantity}.`);
+      return;
+    }
+
+    try {
+      await transferSupply(sourceLoc.Id, {
+        destinationLocation: transferDestLocation,
+        quantity: qty,
+        user: loggedInUser,
+      });
+      setSnackbar({ open: true, message: `Successfully transferred ${qty} to ${transferDestLocation}.`, severity: 'success' });
+      setTransferDialogOpen(false);
+      fetchItems();
+      fetchSummary();
+    } catch (err) {
+      setTransferError(err.response?.data?.message || 'Failed to transfer supply.');
+    }
+  };
+
+  const currentSourceBalance = useMemo(() => {
+    if (!transferTarget || !transferSourceLocation) return 0;
+    const loc = transferTarget.location_balances.find((l) => l.LocationName === transferSourceLocation);
+    return loc ? loc.Quantity : 0;
+  }, [transferTarget, transferSourceLocation]);
+
+  const isTransferInvalid = useMemo(() => {
+    const qty = Number(transferAmount);
+    return !transferAmount || Number.isNaN(qty) || qty < 1 || qty > currentSourceBalance || !transferDestLocation;
+  }, [transferAmount, currentSourceBalance, transferDestLocation]);
+
   // ---------------- derived data ----------------
   const filteredItems = useMemo(() => {
-    return items.filter((item) => {
-      const status = getStockStatus(item.Quantity);
+    return items.filter((profile) => {
+      const status = getStockStatus(profile.TotalQuantity);
       const matchesStatus = statusFilter === 'All' || status === statusFilter;
       const q = search.trim().toLowerCase();
-      const matchesSearch = !q || [item.ItemName, item.Brand, item.SerialNumber, item.Location]
-        .some((f) => (f || '').toLowerCase().includes(q));
+      const matchesSearch = !q || [
+        profile.ItemName, profile.Brand,
+        ...(profile.location_balances || []).map((l) => l.LocationName),
+      ].some((f) => (f || '').toLowerCase().includes(q));
       return matchesStatus && matchesSearch;
     });
   }, [items, search, statusFilter]);
@@ -347,8 +412,8 @@ const SuppliesEncode = () => {
 
   const localSummary = useMemo(() => {
     const totalItems = items.length;
-    const totalInventory = items.reduce((sum, i) => sum + (Number(i.Quantity) || 0), 0);
-    const lowStock = items.filter((i) => getStockStatus(i.Quantity) === 'Low Stock').length;
+    const totalInventory = items.reduce((sum, p) => sum + p.TotalQuantity, 0);
+    const lowStock = items.filter((p) => getStockStatus(p.TotalQuantity) === 'Low Stock').length;
     return { totalItems, totalInventory, lowStock };
   }, [items]);
 
@@ -492,28 +557,10 @@ const SuppliesEncode = () => {
             <Button variant="contained" onClick={handleLogin} sx={{ backgroundColor: THEME.navy, fontFamily: font, textTransform: 'none', px: 3 }}>Login</Button>
           </DialogActions>
         </Dialog>
-      )}
-
-      {!showLoginModal && (
+      )}      {!showLoginModal && (
         <Box sx={{ p: 3, maxWidth: 1300, margin: '0 auto' }}>
 
-          {/* ---- Dashboard summary cards ---- */}
-          <Grid container spacing={2} sx={{ mb: 4 }}>
-            <Grid item xs={12} sm={6} md={3}>
-              <SummaryCard icon={<Inventory2Icon />} label="Total Items" value={summary?.totalItems ?? localSummary.totalItems} accent={THEME.navy} />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <SummaryCard icon={<LayersIcon />} label="Total Inventory" value={summary?.totalInventory ?? localSummary.totalInventory} accent="#2e7d32" />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <SummaryCard icon={<WarningAmberIcon />} label="Low Stock Items" value={summary?.lowStock ?? localSummary.lowStock} accent="#e65100" />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <SummaryCard icon={<OutboxIcon />} label="Transferred Today" value={summary?.transferredToday ?? 0} accent={THEME.gold} />
-            </Grid>
-          </Grid>
-
-          <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: 20, mb: 3, color: THEME.navy }}>
+          <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: 20, mb: 3, mt: 1, color: THEME.navy }}>
             Encode New Supply Item
           </Typography>
           <Paper elevation={0} sx={{ p: 3, border: '1px solid #e0e0e0', borderRadius: 3, mb: 4 }}>
@@ -556,7 +603,7 @@ const SuppliesEncode = () => {
               <Table size="small">
                 <TableHead>
                   <TableRow sx={{ backgroundColor: '#fafafa' }}>
-                    {['Item Name', 'Brand', 'Qty', 'Status', 'Location', 'Actions'].map((h) => (
+                    {['', 'Item Name', 'Brand', 'Total Qty', 'Status', 'Actions'].map((h) => (
                       <TableCell key={h} sx={{ fontFamily: font, fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase' }}>
                         {h}
                       </TableCell>
@@ -564,41 +611,94 @@ const SuppliesEncode = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {pagedItems.map((item) => {
-                    const status = getStockStatus(item.Quantity);
+                  {pagedItems.map((profile) => {
+                    const status = getStockStatus(profile.TotalQuantity);
                     const sc = statusColor(status);
+                    const isOpen = expandedRows.has(profile.ProfileKey);
                     return (
-                      <TableRow key={item.Id} sx={{ '&:hover': { backgroundColor: '#fafafa' } }}>
-                        <TableCell sx={{ fontFamily: font, fontSize: 13, fontWeight: 600 }}>{item.ItemName}</TableCell>
-                        <TableCell sx={{ fontFamily: font, fontSize: 13 }}>{item.Brand || '—'}</TableCell>
-                        <TableCell sx={{ fontFamily: font, fontSize: 13 }}>{item.Quantity}</TableCell>
-                        <TableCell>
-                          <Chip label={status} size="small" sx={{ fontFamily: font, fontWeight: 600, fontSize: 11, backgroundColor: sc.bg, color: sc.text, border: `1px solid ${sc.border}` }} />
-                        </TableCell>
-                        <TableCell sx={{ fontFamily: font, fontSize: 13 }}>{item.Location || '—'}</TableCell>
-                        <TableCell>
-                          <Tooltip title="Add Stock">
-                            <IconButton size="small" onClick={() => handleOpenStock(item)} sx={{ color: '#2e7d32' }}>
-                              <AddCircleOutlineIcon fontSize="small" />
+                      <React.Fragment key={profile.ProfileKey}>
+                        <TableRow sx={{ '&:hover': { backgroundColor: '#fafafa' } }}>
+                          <TableCell sx={{ width: 32 }}>
+                            <IconButton size="small" onClick={() => toggleExpand(profile.ProfileKey)}>
+                              {isOpen ? '▼' : '►'}
                             </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Edit">
-                            <IconButton size="small" onClick={() => handleOpenEdit(item)} sx={{ color: THEME.navy }}>
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Delete">
-                            <IconButton size="small" onClick={() => handleOpenDelete(item)} sx={{ color: '#c62828' }}>
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        </TableCell>
-                      </TableRow>
+                          </TableCell>
+                          <TableCell sx={{ fontFamily: font, fontSize: 13, fontWeight: 600 }}>{profile.ItemName}</TableCell>
+                          <TableCell sx={{ fontFamily: font, fontSize: 13 }}>
+                            {profile.Brand && profile.Brand !== 'N/A' ? profile.Brand : <span style={{ color: '#aaa', fontStyle: 'italic' }}>N/A</span>}
+                          </TableCell>
+                          <TableCell sx={{ fontFamily: font, fontSize: 13 }}>{profile.TotalQuantity}</TableCell>
+                          <TableCell>
+                            <Chip label={status} size="small" sx={{ fontFamily: font, fontWeight: 600, fontSize: 11, backgroundColor: sc.bg, color: sc.text, border: `1px solid ${sc.border}` }} />
+                          </TableCell>
+                          <TableCell>
+                            <Tooltip title="Add Stock">
+                              <IconButton size="small" onClick={() => handleOpenStock(profile)} sx={{ color: '#2e7d32' }}>
+                                <AddCircleOutlineIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Transfer Location">
+                              <IconButton size="small" onClick={() => handleOpenTransfer(profile)} sx={{ color: THEME.gold }}>
+                                🔄
+                              </IconButton>
+                            </Tooltip>
+                          </TableCell>
+                        </TableRow>
+
+                        {isOpen && (
+                          <TableRow>
+                            <TableCell colSpan={6} sx={{ backgroundColor: '#fafcff', py: 2 }}>
+                              <Table size="small">
+                                <TableHead>
+                                  <TableRow>
+                                    {['Location', 'Qty', 'Status', 'Actions'].map((h) => (
+                                      <TableCell key={h} sx={{ fontFamily: font, fontWeight: 700, fontSize: 10, color: '#888', textTransform: 'uppercase' }}>{h}</TableCell>
+                                    ))}
+                                  </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                  {profile.location_balances.map((loc) => {
+                                    const locSc = statusColor(loc.Status);
+                                    return (
+                                      <TableRow key={loc.Id}>
+                                        <TableCell sx={{ fontFamily: font, fontSize: 12 }}>
+                                          {loc.LocationName && loc.LocationName !== 'N/A' ? loc.LocationName : <span style={{ color: '#aaa', fontStyle: 'italic' }}>N/A</span>}
+                                        </TableCell>
+                                        <TableCell sx={{ fontFamily: font, fontSize: 12 }}>{loc.Quantity}</TableCell>
+                                        <TableCell>
+                                          <Chip label={loc.Status} size="small" sx={{ fontFamily: font, fontSize: 10, backgroundColor: locSc.bg, color: locSc.text }} />
+                                        </TableCell>
+                                        <TableCell>
+                                          <Tooltip title="Transfer Location">
+                                            <IconButton size="small" onClick={() => handleOpenTransfer(profile, loc.Id)} sx={{ color: THEME.gold }}>
+                                              🔄
+                                            </IconButton>
+                                          </Tooltip>
+                                          <Tooltip title="Edit">
+                                            <IconButton size="small" onClick={() => handleOpenEdit({ ...profile, ...loc, Id: loc.Id, Location: loc.LocationName, Quantity: loc.Quantity })} sx={{ color: THEME.navy }}>
+                                              <EditIcon fontSize="small" />
+                                            </IconButton>
+                                          </Tooltip>
+                                          <Tooltip title="Delete">
+                                            <IconButton size="small" onClick={() => handleOpenDelete({ Id: loc.Id, ItemName: profile.ItemName, LocationName: loc.LocationName })} sx={{ color: '#c62828' }}>
+                                              <DeleteIcon fontSize="small" />
+                                            </IconButton>
+                                          </Tooltip>
+                                        </TableCell>
+                                      </TableRow>
+                                    );
+                                  })}
+                                </TableBody>
+                              </Table>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </React.Fragment>
                     );
                   })}
                   {pagedItems.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={7} align="center" sx={{ fontFamily: font, py: 4, color: '#888' }}>
+                      <TableCell colSpan={6} align="center" sx={{ fontFamily: font, py: 4, color: '#888' }}>
                         No supply records match your search.
                       </TableCell>
                     </TableRow>
@@ -649,8 +749,17 @@ const SuppliesEncode = () => {
         <DialogTitle sx={{ fontFamily: font, fontWeight: 700 }}>Add Stock</DialogTitle>
         <DialogContent>
           <Typography sx={{ fontFamily: font, fontSize: 13, color: '#666', mb: 2 }}>
-            Asset: <strong>{stockTarget?.ItemName}</strong> — Current Stock: <strong>{stockTarget?.Quantity}</strong>
+            Asset: <strong>{stockTarget?.ItemName}</strong> — Total Current Stock: <strong>{stockTarget?.TotalQuantity || 0}</strong>
           </Typography>
+          <TextField
+            fullWidth select label="Location *" value={stockLocation}
+            onChange={(e) => { setStockLocation(e.target.value); setStockError(''); }}
+            sx={{ mb: 2 }}
+          >
+            {LOCATION_OPTIONS.map((l) => (
+              <MenuItem key={l} value={l} sx={{ fontFamily: font }}>{l}</MenuItem>
+            ))}
+          </TextField>
           <TextField
             fullWidth autoFocus type="number" label="Additional Quantity *"
             value={stockAmount} onChange={(e) => { setStockAmount(e.target.value); setStockError(''); }}
@@ -659,13 +768,57 @@ const SuppliesEncode = () => {
           />
           {stockAmount && !stockError && Number(stockAmount) > 0 && (
             <Typography sx={{ fontFamily: font, fontSize: 12, color: '#2e7d32', mt: 1 }}>
-              New quantity will be {Number(stockTarget?.Quantity || 0) + Number(stockAmount)}.
+              New total quantity will be {Number(stockTarget?.TotalQuantity || 0) + Number(stockAmount)}.
             </Typography>
           )}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setStockDialogOpen(false)} sx={{ fontFamily: font, textTransform: 'none' }}>Cancel</Button>
           <Button variant="contained" onClick={handleConfirmStock} sx={{ backgroundColor: THEME.navy, fontFamily: font, textTransform: 'none', px: 3 }}>Confirm</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Transfer Location Dialog */}
+      <Dialog open={transferDialogOpen} onClose={() => setTransferDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontFamily: font, fontWeight: 700 }}>Transfer Location</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ fontFamily: font, fontSize: 13, color: '#666', mb: 2 }}>
+            Asset: <strong>{transferTarget?.ItemName}</strong> — Brand: <strong>{transferTarget?.Brand || 'N/A'}</strong>
+          </Typography>
+          
+          <TextField
+            fullWidth select label="Source Location *" value={transferSourceLocation}
+            onChange={(e) => { setTransferSourceLocation(e.target.value); setTransferError(''); }}
+            sx={{ mb: 2 }}
+          >
+            {transferTarget?.location_balances.map((l) => (
+              <MenuItem key={l.Id} value={l.LocationName} sx={{ fontFamily: font }}>
+                {l.LocationName} ({l.Quantity} available)
+              </MenuItem>
+            ))}
+          </TextField>
+
+          <TextField
+            fullWidth select label="Destination Location *" value={transferDestLocation}
+            onChange={(e) => { setTransferDestLocation(e.target.value); setTransferError(''); }}
+            sx={{ mb: 2 }}
+          >
+            {LOCATION_OPTIONS.filter((l) => l !== transferSourceLocation).map((l) => (
+              <MenuItem key={l} value={l} sx={{ fontFamily: font }}>{l}</MenuItem>
+            ))}
+          </TextField>
+
+          <TextField
+            fullWidth autoFocus type="number" label="Transfer Quantity *"
+            value={transferAmount} onChange={(e) => { setTransferAmount(e.target.value); setTransferError(''); }}
+            error={!!transferError || (transferAmount && Number(transferAmount) > currentSourceBalance)}
+            helperText={transferError || (transferAmount && Number(transferAmount) > currentSourceBalance ? `Transfer quantity cannot exceed source balance of ${currentSourceBalance}` : '')}
+            inputProps={{ min: 1, style: { fontFamily: font } }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setTransferDialogOpen(false)} sx={{ fontFamily: font, textTransform: 'none' }}>Cancel</Button>
+          <Button variant="contained" onClick={handleConfirmTransfer} disabled={isTransferInvalid} sx={{ backgroundColor: THEME.navy, fontFamily: font, textTransform: 'none', px: 3 }}>Transfer</Button>
         </DialogActions>
       </Dialog>
 

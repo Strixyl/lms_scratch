@@ -9,7 +9,7 @@ import axios from 'axios';
 const BASE_URL = 'http://localhost:5000/api';
 const client = axios.create({ baseURL: BASE_URL });
 
-export const getSupplies = () => client.get('/supplies').then((r) => r.data);
+export const getSupplies = () => client.get('/supplies/grouped').then((r) => r.data);
 
 export const createSupply = (payload) =>
   client.post('/supplies', payload).then((r) => r.data);
@@ -25,6 +25,12 @@ export const addStock = (id, additionalQuantity, user) =>
   client
     .post(`/supplies/${id}/add-stock`, { additionalQuantity, user })
     .then((r) => r.data);
+
+export const addStockToLocation = (payload) =>
+  client.post('/supplies/add-stock', payload).then((r) => r.data);
+
+export const transferSupply = (sourceRowId, { destinationLocation, quantity, user }) =>
+  client.post(`/supplies/${sourceRowId}/transfer`, { destinationLocation, quantity, user }).then((r) => r.data);
 
 export const sendSupply = (id, payload) =>
   client.post(`/supplies/${id}/send`, payload).then((r) => r.data);

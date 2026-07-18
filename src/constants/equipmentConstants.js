@@ -25,14 +25,14 @@ export const SECTION_OPTIONS = [
 ];
 
 // Below this quantity (and above 0) an item is flagged "Low Stock"
-export const LOW_STOCK_THRESHOLD = 5;
+export const LOW_STOCK_THRESHOLD = 4;
 
 // Status is DERIVED from quantity, not hand-picked, so it can never
 // drift out of sync with the real inventory count.
 export const getStockStatus = (quantity) => {
   const qty = Number(quantity) || 0;
   if (qty <= 0) return 'Out of Stock';
-  if (qty <= LOW_STOCK_THRESHOLD) return 'Low Stock';
+  if (qty < 5) return 'Low Stock';
   return 'In Stock';
 };
 
@@ -62,7 +62,9 @@ export const emptyAssetForm = {
 export const TRANSACTION_ACTIONS = {
   ADD_ASSET: 'Added Asset',
   ADD_STOCK: 'Added Stock',
+  ADD_STOCK_NEW_LOC: 'Added Stock (New Location)',
   SEND_ASSET: 'Sent Asset',
+  LOCATION_TRANSFER: 'Location Transfer',
   UPDATE_ASSET: 'Updated Asset',
   DELETE_ASSET: 'Deleted Asset',
 };

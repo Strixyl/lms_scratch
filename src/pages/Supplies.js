@@ -5,7 +5,7 @@ import axios from 'axios';
 import {
   Box, Typography, TextField, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Paper, Chip, MenuItem,
-  InputAdornment, CircularProgress
+  InputAdornment, CircularProgress, IconButton
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 
@@ -17,16 +17,32 @@ const statusColor = (status) => {
   return { bg: '#ffebee', text: '#c62828', border: '#ef9a9a' };
 };
 
+const deriveMasterStatus = (quantity) => {
+  const qty = Number(quantity) || 0;
+  if (qty <= 0) return 'Out of Stock';
+  if (qty < 5) return 'Low Stock';
+  return 'In Stock';
+};
+
 const Supplies = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
 
+  // Expandable Rows State
+  const [expandedRows, setExpandedRows] = useState(new Set());
+  const toggleExpand = (profileKey) =>
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      next.has(profileKey) ? next.delete(profileKey) : next.add(profileKey);
+      return next;
+    });
+
   const fetchItems = async () => {
     setLoading(true);
     try {
-      const res = await axios.get('http://localhost:5000/api/supplies');
+      const res = await axios.get('http://localhost:5000/api/supplies/grouped');
       setItems(res.data);
     } catch (err) {
       console.error('Error fetching supplies:', err);
@@ -41,16 +57,20 @@ const Supplies = () => {
     const matchSearch =
       item.ItemName?.toLowerCase().includes(search.toLowerCase()) ||
       item.Brand?.toLowerCase().includes(search.toLowerCase()) ||
-      item.Location?.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = filterStatus ? item.Status === filterStatus : true;
+      (item.location_balances || []).some(loc => 
+        loc.LocationName?.toLowerCase().includes(search.toLowerCase())
+      );
+    const matchStatus = filterStatus ? deriveMasterStatus(item.TotalQuantity) === filterStatus : true;
     return matchSearch && matchStatus;
   });
 
+  // Flatten all location balances to count per-location statuses
+  const allLocations = items.flatMap(i => i.location_balances || []);
   const counts = {
-    total: items.length,
-    inStock: items.filter(i => i.Status === 'In Stock').length,
-    lowStock: items.filter(i => i.Status === 'Low Stock').length,
-    outOfStock: items.filter(i => i.Status === 'Out of Stock').length,
+    total: allLocations.reduce((sum, loc) => sum + (Number(loc.Quantity) || 0), 0),
+    inStock: allLocations.filter(loc => loc.Status === 'In Stock').length,
+    lowStock: allLocations.filter(loc => loc.Status === 'Low Stock').length,
+    outOfStock: allLocations.filter(loc => loc.Status === 'Out of Stock').length,
   };
 
   return (
@@ -112,7 +132,7 @@ const Supplies = () => {
                   <Table size="small">
                     <TableHead>
                       <TableRow sx={{ backgroundColor: '#fafafa' }}>
-                        {['Item Name', 'Description', 'Brand', 'Qty', 'Status','Condition', 'Location', 'Specifications'].map(h => (
+                        {['', 'Item Name', 'Description', 'Brand', 'Qty', 'Status', 'Specifications'].map(h => (
                           <TableCell key={h} sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                             {h}
                           </TableCell>
@@ -121,23 +141,67 @@ const Supplies = () => {
                     </TableHead>
                     <TableBody>
                       {filtered.map((item) => {
-                        const sc = statusColor(item.Status);
+                        const status = deriveMasterStatus(item.TotalQuantity);
+                        const sc = statusColor(status);
+                        const isOpen = expandedRows.has(item.ProfileKey);
                         return (
-                          <TableRow key={item.Id} sx={{ '&:hover': { backgroundColor: '#fafafa' } }}>
-                            <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 600 }}>{item.ItemName}</TableCell>
-                            <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#666', maxWidth: 150 }}>{item.Description}</TableCell>
-                            <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13 }}>{item.Brand}</TableCell>
-                            <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 600 }}>{item.Quantity}</TableCell>
-                            <TableCell>
-                              <Chip label={item.Status} size="small" sx={{
-                                backgroundColor: sc.bg, color: sc.text, border: `1px solid ${sc.border}`,
-                                fontFamily: 'Poppins, sans-serif', fontSize: 11, fontWeight: 600
-                              }} />
-                            </TableCell>
-                            <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12 }}>{item.Condition}</TableCell>
-                            <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12 }}>{item.Location}</TableCell>
-                            <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#666', maxWidth: 150 }}>{item.Specifications}</TableCell>
-                          </TableRow>
+                          <React.Fragment key={item.ProfileKey}>
+                            <TableRow sx={{ '&:hover': { backgroundColor: '#fafafa' } }}>
+                              <TableCell sx={{ width: 32 }}>
+                                <IconButton size="small" onClick={() => toggleExpand(item.ProfileKey)}>
+                                  {isOpen ? '▼' : '►'}
+                                </IconButton>
+                              </TableCell>
+                              <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 600 }}>{item.ItemName}</TableCell>
+                              <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#666', maxWidth: 150 }}>
+                                {item.location_balances[0]?.Description || '—'}
+                              </TableCell>
+                              <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13 }}>{item.Brand}</TableCell>
+                              <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 600 }}>{item.TotalQuantity}</TableCell>
+                              <TableCell>
+                                <Chip label={status} size="small" sx={{
+                                  backgroundColor: sc.bg, color: sc.text, border: `1px solid ${sc.border}`,
+                                  fontFamily: 'Poppins, sans-serif', fontSize: 11, fontWeight: 600
+                                }} />
+                              </TableCell>
+                              <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#666', maxWidth: 150 }}>
+                                {item.location_balances[0]?.Specifications || '—'}
+                              </TableCell>
+                            </TableRow>
+
+                            {/* Dropdown Locations Table */}
+                            {isOpen && (
+                              <TableRow>
+                                <TableCell colSpan={7} sx={{ backgroundColor: '#fafcff', py: 2 }}>
+                                  <Table size="small">
+                                    <TableHead>
+                                      <TableRow>
+                                        {['Location', 'Qty', 'Status'].map((h) => (
+                                          <TableCell key={h} sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 10, color: '#888', textTransform: 'uppercase' }}>{h}</TableCell>
+                                        ))}
+                                      </TableRow>
+                                    </TableHead>
+                                    <TableBody>
+                                      {item.location_balances.map((loc) => {
+                                        const locSc = statusColor(loc.Status);
+                                        return (
+                                          <TableRow key={loc.Id}>
+                                            <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12 }}>
+                                              {loc.LocationName && loc.LocationName !== 'N/A' ? loc.LocationName : <span style={{ color: '#aaa', fontStyle: 'italic' }}>N/A</span>}
+                                            </TableCell>
+                                            <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12 }}>{loc.Quantity}</TableCell>
+                                            <TableCell>
+                                              <Chip label={loc.Status} size="small" sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 10, backgroundColor: locSc.bg, color: locSc.text }} />
+                                            </TableCell>
+                                          </TableRow>
+                                        );
+                                      })}
+                                    </TableBody>
+                                  </Table>
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </React.Fragment>
                         );
                       })}
                     </TableBody>
