@@ -59,13 +59,16 @@ const Equipment = () => {
       item.Brand?.toLowerCase().includes(search.toLowerCase()) ||
       (item.location_balances || []).some(loc => 
         loc.LocationName?.toLowerCase().includes(search.toLowerCase()) ||
-        loc.SerialNumber?.toLowerCase().includes(search.toLowerCase())
+        loc.SerialNumber?.toLowerCase().includes(search.toLowerCase()) ||
+        loc.Description?.toLowerCase().includes(search.toLowerCase()) ||
+        loc.Specifications?.toLowerCase().includes(search.toLowerCase())
       );
-    const matchStatus = filterStatus ? deriveMasterStatus(item.TotalQuantity) === filterStatus : true;
+    const matchesMasterStatus = deriveMasterStatus(item.TotalQuantity) === filterStatus;
+    const matchesSubStatus = (item.location_balances || []).some(loc => loc.Status === filterStatus);
+    const matchStatus = filterStatus ? (matchesMasterStatus || matchesSubStatus) : true;
     return matchSearch && matchStatus;
   });
 
-  // Flatten all location balances to count per-location statuses
   const allLocations = items.flatMap(i => i.location_balances || []);
   const counts = {
     total: allLocations.reduce((sum, loc) => sum + (Number(loc.Quantity) || 0), 0),

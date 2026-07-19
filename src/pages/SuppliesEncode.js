@@ -404,12 +404,17 @@ const SuppliesEncode = () => {
   // ---------------- derived data ----------------
   const filteredItems = useMemo(() => {
     return items.filter((profile) => {
-      const status = getStockStatus(profile.TotalQuantity);
-      const matchesStatus = statusFilter === 'All' || status === statusFilter;
+      const masterStatus = getStockStatus(profile.TotalQuantity);
+      const matchesMasterStatus = statusFilter === 'All' || masterStatus === statusFilter;
+      const matchesSubStatus = statusFilter === 'All' || (profile.location_balances || []).some(loc => loc.Status === statusFilter);
+      const matchesStatus = matchesMasterStatus || matchesSubStatus;
+
       const q = search.trim().toLowerCase();
       const matchesSearch = !q || [
         profile.ItemName, profile.Brand,
         ...(profile.location_balances || []).map((l) => l.LocationName),
+        ...(profile.location_balances || []).map((l) => l.Description),
+        ...(profile.location_balances || []).map((l) => l.Specifications),
       ].some((f) => (f || '').toLowerCase().includes(q));
       return matchesStatus && matchesSearch;
     });

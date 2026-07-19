@@ -1495,13 +1495,26 @@ app.post('/api/equipment/add-stock', async (req, res) => {
       await upsertBrand(pool, normBrand);
     }
 
-    const existing = await new sql.Request(transaction)
+    const cleanSerial = (targetSerialNumber || '').trim();
+    const isSerialized = cleanSerial !== '' && cleanSerial.toLowerCase() !== 'n/a' && cleanSerial.toLowerCase() !== 'none';
+    let query = '';
+    const request = new sql.Request(transaction)
       .input('ItemName', sql.NVarChar, normItemName)
       .input('Brand', sql.NVarChar, normBrand)
-      .input('Location', sql.NVarChar, location.trim())
-      .query(`SELECT * FROM LibraryEquipment
-              WHERE ItemName = @ItemName AND ISNULL(Brand,'') = @Brand
-                AND ISNULL(Location,'') = @Location`);
+      .input('Location', sql.NVarChar, location.trim());
+
+    if (isSerialized) {
+      request.input('SerialNumber', sql.NVarChar, cleanSerial);
+      query = `SELECT * FROM LibraryEquipment
+               WHERE ItemName = @ItemName AND ISNULL(Brand,'') = @Brand
+                 AND ISNULL(Location,'') = @Location AND SerialNumber = @SerialNumber`;
+    } else {
+      query = `SELECT * FROM LibraryEquipment
+               WHERE ItemName = @ItemName AND ISNULL(Brand,'') = @Brand
+                 AND ISNULL(Location,'') = @Location
+                 AND (SerialNumber IS NULL OR SerialNumber = '' OR SerialNumber = 'N/A' OR SerialNumber = 'None')`;
+    }
+    const existing = await request.query(query);
 
     let rowId, previousQuantity, newQuantity;
 
@@ -1611,13 +1624,26 @@ app.post('/api/equipment/:id/transfer', async (req, res) => {
     const normItemName = cleanTitleCase(source.ItemName);
     const normBrand = cleanTitleCase(source.Brand);
 
-    const destResult = await new sql.Request(transaction)
+    const cleanSerial = (source.SerialNumber || '').trim();
+    const isSerialized = cleanSerial !== '' && cleanSerial.toLowerCase() !== 'n/a' && cleanSerial.toLowerCase() !== 'none';
+    let destQuery = '';
+    const destRequest = new sql.Request(transaction)
       .input('ItemName', sql.NVarChar, normItemName)
       .input('Brand', sql.NVarChar, normBrand)
-      .input('Location', sql.NVarChar, destinationLocation.trim())
-      .query(`SELECT * FROM LibraryEquipment
-              WHERE ItemName = @ItemName AND ISNULL(Brand,'') = @Brand
-                AND ISNULL(Location,'') = @Location`);
+      .input('Location', sql.NVarChar, destinationLocation.trim());
+
+    if (isSerialized) {
+      destRequest.input('SerialNumber', sql.NVarChar, cleanSerial);
+      destQuery = `SELECT * FROM LibraryEquipment
+                   WHERE ItemName = @ItemName AND ISNULL(Brand,'') = @Brand
+                     AND ISNULL(Location,'') = @Location AND SerialNumber = @SerialNumber`;
+    } else {
+      destQuery = `SELECT * FROM LibraryEquipment
+                   WHERE ItemName = @ItemName AND ISNULL(Brand,'') = @Brand
+                     AND ISNULL(Location,'') = @Location
+                     AND (SerialNumber IS NULL OR SerialNumber = '' OR SerialNumber = 'N/A' OR SerialNumber = 'None')`;
+    }
+    const destResult = await destRequest.query(destQuery);
 
     let destId, destPrev, destNew;
     const destExisting = destResult.recordset[0];
@@ -1692,13 +1718,67 @@ app.post('/api/equipment', async (req, res) => {
       await upsertBrand(pool, normBrand);
     }
 
+    const cleanSerial = (serialNumber || '').trim();
+    const isSerialized = cleanSerial !== '' && cleanSerial.toLowerCase() !== 'n/a' && cleanSerial.toLowerCase() !== 'none';
+
+    if (isSerialized) {
+      // 1. For serialized assets, check if serial number already exists anywhere
+      const dupSerial = await pool.request()
+        .input('SerialNumber', sql.NVarChar, cleanSerial)
+        .query('SELECT * FROM LibraryEquipment WHERE SerialNumber = @SerialNumber');
+
+      if (dupSerial.recordset.length > 0) {
+        return res.status(400).json({ message: `An equipment asset with Serial Number "${cleanSerial}" already exists.` });
+      }
+    } else {
+      // 2. For non-serialized assets, check if the same asset/brand already exists at the same location
+      const existing = await pool.request()
+        .input('ItemName', sql.NVarChar, normItemName)
+        .input('Brand', sql.NVarChar, normBrand)
+        .input('Location', sql.NVarChar, (location || '').trim())
+        .query(`SELECT * FROM LibraryEquipment
+                WHERE ItemName = @ItemName
+                  AND ISNULL(Brand,'') = @Brand
+                  AND ISNULL(Location,'') = @Location
+                  AND (SerialNumber IS NULL OR SerialNumber = '' OR SerialNumber = 'N/A' OR SerialNumber = 'None')`);
+
+      if (existing.recordset.length > 0) {
+        const match = existing.recordset[0];
+        const newQty = match.Quantity + qty;
+        const newStatus = deriveStatus(newQty);
+
+        await pool.request()
+          .input('Id', sql.Int, match.Id)
+          .input('Quantity', sql.Int, newQty)
+          .input('Status', sql.NVarChar, newStatus)
+          .input('Description', sql.NVarChar, description || match.Description || '')
+          .input('Specifications', sql.NVarChar, specifications || match.Specifications || '')
+          .input('UpdatedAt', sql.DateTime, new Date())
+          .query(`UPDATE LibraryEquipment SET
+            Quantity=@Quantity, Status=@Status, Description=@Description,
+            Specifications=@Specifications, UpdatedAt=@UpdatedAt
+            WHERE Id=@Id`);
+
+        await logAssetTransaction(pool.request(), {
+          assetId: match.Id,
+          actionType: 'Added Stock',
+          quantityChanged: qty,
+          previousQuantity: match.Quantity,
+          newQuantity: newQty,
+          createdBy: user,
+        });
+
+        return res.json({ success: true, id: match.Id, message: 'Stock updated on existing asset.' });
+      }
+    }
+
     const insertResult = await pool.request()
       .input('ItemName', sql.NVarChar, normItemName)
       .input('Description', sql.NVarChar, description || '')
       .input('Brand', sql.NVarChar, normBrand)
       .input('Quantity', sql.Int, qty)
       .input('Status', sql.NVarChar, status)
-      .input('SerialNumber', sql.NVarChar, serialNumber || '')
+      .input('SerialNumber', sql.NVarChar, cleanSerial)
       .input('Condition', sql.NVarChar, '')
       .input('Location', sql.NVarChar, location || '')
       .input('Specifications', sql.NVarChar, specifications || '')

@@ -217,7 +217,8 @@ const EquipmentEncode = () => {
       fetchSummary();
     } catch (err) {
       console.error(err);
-      setSnackbar({ open: true, message: 'Failed to save equipment.', severity: 'error' });
+      const apiMessage = err?.response?.data?.message || err?.response?.data?.error || 'Failed to save equipment.';
+      setSnackbar({ open: true, message: apiMessage, severity: 'error' });
     }
   };
 
@@ -263,7 +264,9 @@ const EquipmentEncode = () => {
       fetchItems();
       fetchSummary();
     } catch (err) {
-      setSnackbar({ open: true, message: 'Failed to update equipment.', severity: 'error' });
+      console.error(err);
+      const apiMessage = err?.response?.data?.message || err?.response?.data?.error || 'Failed to update equipment.';
+      setSnackbar({ open: true, message: apiMessage, severity: 'error' });
     }
   };
 
@@ -388,13 +391,18 @@ const EquipmentEncode = () => {
   // ---------------- derived data ----------------
   const filteredItems = useMemo(() => {
     return items.filter((profile) => {
-      const status = getStockStatus(profile.TotalQuantity);
-      const matchesStatus = statusFilter === 'All' || status === statusFilter;
+      const masterStatus = getStockStatus(profile.TotalQuantity);
+      const matchesMasterStatus = statusFilter === 'All' || masterStatus === statusFilter;
+      const matchesSubStatus = statusFilter === 'All' || (profile.location_balances || []).some(loc => loc.Status === statusFilter);
+      const matchesStatus = matchesMasterStatus || matchesSubStatus;
+
       const q = search.trim().toLowerCase();
       const matchesSearch = !q || [
         profile.ItemName, profile.Brand,
         ...(profile.location_balances || []).map((l) => l.LocationName),
         ...(profile.location_balances || []).map((l) => l.SerialNumber),
+        ...(profile.location_balances || []).map((l) => l.Description),
+        ...(profile.location_balances || []).map((l) => l.Specifications),
       ].some((f) => (f || '').toLowerCase().includes(q));
       return matchesStatus && matchesSearch;
     });
@@ -602,7 +610,7 @@ const EquipmentEncode = () => {
               <Table size="small">
                 <TableHead>
                   <TableRow sx={{ backgroundColor: '#fafafa' }}>
-                    {['', 'Item Name', 'Brand', 'Total Qty', 'Status', 'Actions'].map((h) => (
+                    {['', 'Item Name', 'Brand', 'Total Qty', 'Description', 'Specifications', 'Status', 'Actions'].map((h) => (
                       <TableCell key={h} sx={{ fontFamily: font, fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase' }}>
                         {h}
                       </TableCell>
@@ -614,6 +622,10 @@ const EquipmentEncode = () => {
                     const status = getStockStatus(profile.TotalQuantity);
                     const sc = statusColor(status);
                     const isOpen = expandedRows.has(profile.ProfileKey);
+                    
+                    const desc = profile.location_balances[0]?.Description;
+                    const specs = profile.location_balances[0]?.Specifications;
+
                     return (
                       <React.Fragment key={profile.ProfileKey}>
                         <TableRow sx={{ '&:hover': { backgroundColor: '#fafafa' } }}>
@@ -627,6 +639,12 @@ const EquipmentEncode = () => {
                             {profile.Brand && profile.Brand !== 'N/A' ? profile.Brand : <span style={{ color: '#aaa', fontStyle: 'italic' }}>N/A</span>}
                           </TableCell>
                           <TableCell sx={{ fontFamily: font, fontSize: 13 }}>{profile.TotalQuantity}</TableCell>
+                          <TableCell sx={{ fontFamily: font, fontSize: 13 }}>
+                            {desc && desc !== 'N/A' ? desc : <span style={{ color: '#aaa', fontStyle: 'italic' }}>N/A</span>}
+                          </TableCell>
+                          <TableCell sx={{ fontFamily: font, fontSize: 13 }}>
+                            {specs && specs !== 'N/A' ? specs : <span style={{ color: '#aaa', fontStyle: 'italic' }}>N/A</span>}
+                          </TableCell>
                           <TableCell>
                             <Chip label={status} size="small" sx={{ fontFamily: font, fontWeight: 600, fontSize: 11, backgroundColor: sc.bg, color: sc.text, border: `1px solid ${sc.border}` }} />
                           </TableCell>
@@ -646,7 +664,7 @@ const EquipmentEncode = () => {
 
                         {isOpen && (
                           <TableRow>
-                            <TableCell colSpan={6} sx={{ backgroundColor: '#fafcff', py: 2 }}>
+                            <TableCell colSpan={8} sx={{ backgroundColor: '#fafcff', py: 2 }}>
                               <Table size="small">
                                 <TableHead>
                                   <TableRow>
@@ -700,7 +718,7 @@ const EquipmentEncode = () => {
                   })}
                   {pagedItems.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={6} align="center" sx={{ fontFamily: font, py: 4, color: '#888' }}>
+                      <TableCell colSpan={8} align="center" sx={{ fontFamily: font, py: 4, color: '#888' }}>
                         No equipment records match your search.
                       </TableCell>
                     </TableRow>
