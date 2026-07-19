@@ -34,14 +34,6 @@ const emptySupplyForm = {
   specifications: '',
 };
 
-const parseDescriptionAndUnit = (descStr) => {
-  if (!descStr) return { unit: 'Pieces', description: 'N/A' };
-  const parts = descStr.split('|');
-  if (parts.length >= 2) {
-    return { unit: parts[0] || 'Pieces', description: parts.slice(1).join('|') || 'N/A' };
-  }
-  return { unit: 'Pieces', description: descStr || 'N/A' };
-};
 
 const NEW_BRAND_VALUE = '__new__';
 const font = THEME.font;
@@ -220,8 +212,9 @@ const SuppliesEncode = () => {
         quantity,
         status: getStockStatus(quantity),
         location: formData.location,
-        description: `${formData.unit}|${formData.description.trim() || 'N/A'}`,
+        description: formData.description.trim() || 'N/A',
         specifications: formData.specifications.trim() || 'N/A',
+        unit: formData.unit,
         user: loggedInUser,
       });
 
@@ -243,15 +236,14 @@ const SuppliesEncode = () => {
 
   const handleOpenEdit = (item) => {
     setSelectedItem(item);
-    const parsed = parseDescriptionAndUnit(item.Description);
     setEditForm({
       itemName: item.ItemName || '',
       brand: item.Brand || '',
       brandOption: item.Brand || '',
       quantity: item.Quantity ?? '',
       location: item.Location || '',
-      unit: parsed.unit,
-      description: parsed.description === 'N/A' ? '' : parsed.description,
+      unit: item.Unit || 'Pieces',
+      description: item.Description === 'N/A' ? '' : item.Description || '',
       specifications: item.Specifications === 'N/A' ? '' : item.Specifications || '',
     });
     setEditDialogOpen(true);
@@ -271,8 +263,9 @@ const SuppliesEncode = () => {
         quantity,
         status: getStockStatus(quantity),
         location: editForm.location,
-        description: `${editForm.unit}|${editForm.description.trim() || 'N/A'}`,
+        description: editForm.description.trim() || 'N/A',
         specifications: editForm.specifications.trim() || 'N/A',
+        unit: editForm.unit,
         user: loggedInUser,
       });
       setSnackbar({ open: true, message: 'Supply updated successfully!', severity: 'success' });
@@ -627,7 +620,7 @@ const SuppliesEncode = () => {
               <Table size="small">
                 <TableHead>
                   <TableRow sx={{ backgroundColor: '#fafafa' }}>
-                    {['', 'Item Name', 'Brand', 'Specifications', 'Status', 'Actions'].map((h) => (
+                    {['', 'Item Name', 'Brand', 'Stock Level', 'Description', 'Specifications', 'Status', 'Actions'].map((h) => (
                       <TableCell key={h} sx={{ fontFamily: font, fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase' }}>
                         {h}
                       </TableCell>
@@ -639,10 +632,10 @@ const SuppliesEncode = () => {
                     const status = getStockStatus(profile.TotalQuantity);
                     const sc = statusColor(status);
                     const isOpen = expandedRows.has(profile.ProfileKey);
-
-                    // Parse UOM and specifications from the first location balance
-                    const parsed = parseDescriptionAndUnit(profile.location_balances[0]?.Description);
-                    const unit = parsed.unit;
+                    
+                    // Read UOM, description, and specifications from the first location balance directly
+                    const unit = profile.location_balances[0]?.Unit || 'Pieces';
+                    const desc = profile.location_balances[0]?.Description;
                     const specs = profile.location_balances[0]?.Specifications;
 
                     return (
@@ -658,6 +651,9 @@ const SuppliesEncode = () => {
                             {profile.Brand && profile.Brand !== 'N/A' ? profile.Brand : <span style={{ color: '#aaa', fontStyle: 'italic' }}>N/A</span>}
                           </TableCell>
                           <TableCell sx={{ fontFamily: font, fontSize: 13 }}>{`${profile.TotalQuantity} ${unit}`}</TableCell>
+                          <TableCell sx={{ fontFamily: font, fontSize: 13 }}>
+                            {desc && desc !== 'N/A' ? desc : <span style={{ color: '#aaa', fontStyle: 'italic' }}>N/A</span>}
+                          </TableCell>
                           <TableCell sx={{ fontFamily: font, fontSize: 13 }}>
                             {specs && specs !== 'N/A' ? specs : <span style={{ color: '#aaa', fontStyle: 'italic' }}>N/A</span>}
                           </TableCell>
@@ -680,7 +676,7 @@ const SuppliesEncode = () => {
 
                         {isOpen && (
                           <TableRow>
-                            <TableCell colSpan={7} sx={{ backgroundColor: '#fafcff', py: 2 }}>
+                            <TableCell colSpan={8} sx={{ backgroundColor: '#fafcff', py: 2 }}>
                               <Table size="small">
                                 <TableHead>
                                   <TableRow>
@@ -692,13 +688,12 @@ const SuppliesEncode = () => {
                                 <TableBody>
                                   {profile.location_balances.map((loc) => {
                                     const locSc = statusColor(loc.Status);
-                                    const locParsed = parseDescriptionAndUnit(loc.Description);
                                     return (
                                       <TableRow key={loc.Id}>
                                         <TableCell sx={{ fontFamily: font, fontSize: 12 }}>
                                           {loc.LocationName && loc.LocationName !== 'N/A' ? loc.LocationName : <span style={{ color: '#aaa', fontStyle: 'italic' }}>N/A</span>}
                                         </TableCell>
-                                        <TableCell sx={{ fontFamily: font, fontSize: 12 }}>{`${loc.Quantity} ${locParsed.unit}`}</TableCell>
+                                        <TableCell sx={{ fontFamily: font, fontSize: 12 }}>{`${loc.Quantity} ${loc.Unit || 'Pieces'}`}</TableCell>
                                         <TableCell>
                                           <Chip label={loc.Status} size="small" sx={{ fontFamily: font, fontSize: 10, backgroundColor: locSc.bg, color: locSc.text }} />
                                         </TableCell>
@@ -732,7 +727,7 @@ const SuppliesEncode = () => {
                   })}
                   {pagedItems.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={7} align="center" sx={{ fontFamily: font, py: 4, color: '#888' }}>
+                      <TableCell colSpan={8} align="center" sx={{ fontFamily: font, py: 4, color: '#888' }}>
                         No supply records match your search.
                       </TableCell>
                     </TableRow>

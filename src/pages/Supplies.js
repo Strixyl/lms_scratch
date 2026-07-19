@@ -24,14 +24,6 @@ const deriveMasterStatus = (quantity) => {
   return 'In Stock';
 };
 
-const parseDescriptionAndUnit = (descStr) => {
-  if (!descStr) return { unit: 'Pieces', description: 'N/A' };
-  const parts = descStr.split('|');
-  if (parts.length >= 2) {
-    return { unit: parts[0] || 'Pieces', description: parts.slice(1).join('|') || 'N/A' };
-  }
-  return { unit: 'Pieces', description: descStr || 'N/A' };
-};
 
 
 const Supplies = () => {
@@ -142,7 +134,7 @@ const Supplies = () => {
                   <Table size="small">
                     <TableHead>
                       <TableRow sx={{ backgroundColor: '#fafafa' }}>
-                        {['', 'Item Name', 'Brand', 'Stock Level', 'Specifications', 'Status'].map(h => (
+                        {['', 'Item Name', 'Brand', 'Stock Level', 'Description', 'Specifications', 'Status'].map(h => (
                           <TableCell key={h} sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                             {h}
                           </TableCell>
@@ -155,9 +147,9 @@ const Supplies = () => {
                         const sc = statusColor(status);
                         const isOpen = expandedRows.has(item.ProfileKey);
                         
-                        // Parse UOM and specifications from the first location balance
-                        const parsed = parseDescriptionAndUnit(item.location_balances[0]?.Description);
-                        const unit = parsed.unit;
+                        // Read UOM, description, and specifications from the first location balance directly
+                        const unit = item.location_balances[0]?.Unit || 'Pieces';
+                        const desc = item.location_balances[0]?.Description;
                         const specs = item.location_balances[0]?.Specifications;
 
                         return (
@@ -174,6 +166,9 @@ const Supplies = () => {
                               </TableCell>
                               <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 600 }}>{`${item.TotalQuantity} ${unit}`}</TableCell>
                               <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#666', maxWidth: 150 }}>
+                                {desc && desc !== 'N/A' ? desc : <span style={{ color: '#aaa', fontStyle: 'italic' }}>N/A</span>}
+                              </TableCell>
+                              <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#666', maxWidth: 150 }}>
                                 {specs && specs !== 'N/A' ? specs : <span style={{ color: '#aaa', fontStyle: 'italic' }}>N/A</span>}
                               </TableCell>
                               <TableCell>
@@ -187,7 +182,7 @@ const Supplies = () => {
                             {/* Dropdown Locations Table */}
                             {isOpen && (
                               <TableRow>
-                                <TableCell colSpan={6} sx={{ backgroundColor: '#fafcff', py: 2 }}>
+                                <TableCell colSpan={7} sx={{ backgroundColor: '#fafcff', py: 2 }}>
                                   <Table size="small">
                                     <TableHead>
                                       <TableRow>
@@ -199,13 +194,12 @@ const Supplies = () => {
                                     <TableBody>
                                       {item.location_balances.map((loc) => {
                                         const locSc = statusColor(loc.Status);
-                                        const locParsed = parseDescriptionAndUnit(loc.Description);
                                         return (
                                           <TableRow key={loc.Id}>
                                             <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12 }}>
                                               {loc.LocationName && loc.LocationName !== 'N/A' ? loc.LocationName : <span style={{ color: '#aaa', fontStyle: 'italic' }}>N/A</span>}
                                             </TableCell>
-                                            <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12 }}>{`${loc.Quantity} ${locParsed.unit}`}</TableCell>
+                                            <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12 }}>{`${loc.Quantity} ${loc.Unit || 'Pieces'}`}</TableCell>
                                             <TableCell>
                                               <Chip label={loc.Status} size="small" sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 10, backgroundColor: locSc.bg, color: locSc.text }} />
                                             </TableCell>

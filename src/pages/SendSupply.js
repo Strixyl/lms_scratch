@@ -7,7 +7,7 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 
-import { THEME, SECTION_OPTIONS } from '../constants/equipmentConstants';
+import { THEME, LOCATION_OPTIONS } from '../constants/equipmentConstants';
 import { getSupplies, sendSupply } from '../api/suppliesApi';
 
 const font = THEME.font;
@@ -42,7 +42,13 @@ const SendSupply = () => {
     }
   };
 
-  const selectedSupply = items.find((i) => String(i.Id) === String(supplyId));
+  const selectedSupply = items
+    .flatMap((item) => (item.location_balances || []).map((loc) => ({
+      ...loc,
+      ItemName: item.ItemName,
+      Brand: item.Brand
+    })))
+    .find((loc) => String(loc.Id) === String(supplyId));
 
   const validate = () => {
     const errs = {};
@@ -53,7 +59,7 @@ const SendSupply = () => {
     if (!quantity || Number.isNaN(qty) || qty < 1) {
       errs.quantity = 'Quantity must be at least 1.';
     } else if (selectedSupply && qty > Number(selectedSupply.Quantity)) {
-      errs.quantity = `Insufficient stock available. Available Quantity: ${selectedSupply.Quantity}. Requested Quantity: ${qty}.`;
+      errs.quantity = `Insufficient stock available. Available Quantity: ${selectedSupply.Quantity} ${selectedSupply.Unit || 'Pieces'}. Requested Quantity: ${qty}.`;
     }
     return errs;
   };
@@ -82,7 +88,7 @@ const SendSupply = () => {
       });
       setSnackbar({
         open: true,
-        message: `Sent ${qty} unit(s) of "${selectedSupply.ItemName}" to ${destination}. Remaining stock: ${Number(selectedSupply.Quantity) - qty}.`,
+        message: `Sent ${qty} ${selectedSupply.Unit || 'Pieces'} of "${selectedSupply.ItemName}" to ${destination}. Remaining stock: ${Number(selectedSupply.Quantity) - qty} ${selectedSupply.Unit || 'Pieces'}.`,
         severity: 'success',
       });
       resetForm();
@@ -131,18 +137,20 @@ const SendSupply = () => {
                 error={!!errors.supplyId} helperText={errors.supplyId}
               >
                 <MenuItem value="" disabled sx={{ fontFamily: font }}>Select a supply item</MenuItem>
-                {items.map((i) => (
-                  <MenuItem key={i.Id} value={i.Id} sx={{ fontFamily: font }}>
-                    {i.ItemName} {i.Brand ? `(${i.Brand})` : ''} — Stock: {i.Quantity}
-                  </MenuItem>
-                ))}
+                {items.flatMap((item) =>
+                  (item.location_balances || []).map((loc) => (
+                    <MenuItem key={loc.Id} value={loc.Id} sx={{ fontFamily: font }}>
+                      {item.ItemName} {item.Brand && item.Brand !== 'N/A' ? `(${item.Brand})` : ''} at {loc.LocationName} — Stock: {loc.Quantity} {loc.Unit || 'Pieces'}
+                    </MenuItem>
+                  ))
+                )}
               </TextField>
             </Grid>
 
             {selectedSupply && (
               <Grid item xs={12}>
                 <Chip
-                  label={`Current Stock: ${selectedSupply.Quantity}`}
+                  label={`Current Stock: ${selectedSupply.Quantity} ${selectedSupply.Unit || 'Pieces'}`}
                   sx={{ fontFamily: font, fontWeight: 600, backgroundColor: '#eef0ff', color: THEME.navy }}
                 />
               </Grid>
@@ -155,7 +163,7 @@ const SendSupply = () => {
                 error={!!errors.destination} helperText={errors.destination}
               >
                 <MenuItem value="" disabled sx={{ fontFamily: font }}>Select destination</MenuItem>
-                {SECTION_OPTIONS.map((s) => (
+                {LOCATION_OPTIONS.map((s) => (
                   <MenuItem key={s} value={s} sx={{ fontFamily: font }}>{s}</MenuItem>
                 ))}
               </TextField>

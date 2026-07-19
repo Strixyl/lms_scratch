@@ -788,7 +788,8 @@ app.get('/api/supplies/grouped', async (req, res) => {
         Quantity: row.Quantity,
         Status: deriveStatus(row.Quantity),
         Description: row.Description || 'N/A',
-        Specifications: row.Specifications || 'N/A'
+        Specifications: row.Specifications || 'N/A',
+        Unit: row.Unit || 'Pieces'
       };
       grouped[key].location_balances.push(locData);
       grouped[key].Locations.push(locData);
@@ -801,7 +802,7 @@ app.get('/api/supplies/grouped', async (req, res) => {
 });
 
 app.post('/api/supplies', async (req, res) => {
-  const { itemName, description, brand, quantity, location, specifications, user } = req.body;
+  const { itemName, description, brand, quantity, location, specifications, user, unit } = req.body;
 
   const qty = parseInt(quantity);
   if (!itemName || !itemName.trim()) {
@@ -821,19 +822,58 @@ app.post('/api/supplies', async (req, res) => {
       await upsertBrand(pool, normBrand);
     }
 
+    const existing = await pool.request()
+      .input('ItemName', sql.NVarChar, normItemName)
+      .input('Brand', sql.NVarChar, normBrand)
+      .input('Location', sql.NVarChar, (location || '').trim())
+      .query(`SELECT * FROM OfficeSupplies
+              WHERE ItemName = @ItemName
+                AND ISNULL(Brand,'') = @Brand
+                AND ISNULL(Location,'') = @Location`);
+
+    if (existing.recordset.length > 0) {
+      const match = existing.recordset[0];
+      const newQty = match.Quantity + qty;
+      const newStatus = deriveStatus(newQty);
+
+      await pool.request()
+        .input('Id', sql.Int, match.Id)
+        .input('Quantity', sql.Int, newQty)
+        .input('Status', sql.NVarChar, newStatus)
+        .input('Description', sql.NVarChar, description || match.Description || '')
+        .input('Specifications', sql.NVarChar, specifications || match.Specifications || '')
+        .input('Unit', sql.NVarChar, unit || match.Unit || 'Pieces')
+        .input('UpdatedAt', sql.DateTime, new Date())
+        .query(`UPDATE OfficeSupplies SET
+          Quantity=@Quantity, Status=@Status, Description=@Description,
+          Specifications=@Specifications, Unit=@Unit, UpdatedAt=@UpdatedAt
+          WHERE Id=@Id`);
+
+      await logSupplyTransaction(pool.request(), {
+        supplyId: match.Id,
+        actionType: 'Added Stock',
+        quantityChanged: qty,
+        previousQuantity: match.Quantity,
+        newQuantity: newQty,
+        createdBy: user,
+      });
+
+      return res.json({ message: 'Stock updated on existing supply record.', id: match.Id });
+    }
+
     const insertResult = await pool.request()
       .input('ItemName', sql.NVarChar, normItemName)
       .input('Description', sql.NVarChar, description || '')
       .input('Brand', sql.NVarChar, normBrand)
       .input('Quantity', sql.Int, qty)
       .input('Status', sql.NVarChar, status)
-      .input('Condition', sql.NVarChar, '')
       .input('Location', sql.NVarChar, location || '')
       .input('Specifications', sql.NVarChar, specifications || '')
+      .input('Unit', sql.NVarChar, unit || 'Pieces')
       .query(`INSERT INTO OfficeSupplies
-        (ItemName, Description, Brand, Quantity, Status, Condition, Location, Specifications)
+        (ItemName, Description, Brand, Quantity, Status, Location, Specifications, Unit)
         OUTPUT INSERTED.Id
-        VALUES (@ItemName, @Description, @Brand, @Quantity, @Status, @Condition, @Location, @Specifications)`);
+        VALUES (@ItemName, @Description, @Brand, @Quantity, @Status, @Location, @Specifications, @Unit)`);
 
     const newId = insertResult.recordset[0].Id;
 
@@ -856,7 +896,7 @@ app.post('/api/supplies', async (req, res) => {
 app.put('/api/supplies/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { itemName, description, brand, quantity, location, specifications, user } = req.body;
+    const { itemName, description, brand, quantity, location, specifications, user, unit } = req.body;
 
     const qty = parseInt(quantity);
     if (!itemName || !itemName.trim()) {
@@ -890,15 +930,15 @@ app.put('/api/supplies/:id', async (req, res) => {
       .input('Brand', sql.NVarChar, normBrand)
       .input('Quantity', sql.Int, qty)
       .input('Status', sql.NVarChar, status)
-      .input('Condition', sql.NVarChar, '')
       .input('Location', sql.NVarChar, location || '')
       .input('Specifications', sql.NVarChar, specifications || '')
+      .input('Unit', sql.NVarChar, unit || 'Pieces')
       .input('UpdatedAt', sql.DateTime, new Date())
       .query(`UPDATE OfficeSupplies SET
         ItemName=@ItemName, Description=@Description, Brand=@Brand,
         Quantity=@Quantity, Status=@Status,
-        Condition=@Condition, Location=@Location, Specifications=@Specifications,
-        UpdatedAt=@UpdatedAt WHERE Id=@Id`);
+        Location=@Location, Specifications=@Specifications,
+        Unit=@Unit, UpdatedAt=@UpdatedAt WHERE Id=@Id`);
 
     if (qty !== previousQuantity) {
       await logSupplyTransaction(pool.request(), {
@@ -972,6 +1012,7 @@ app.post('/api/supplies/add-stock', async (req, res) => {
     let targetBrand = brand;
     let targetDescription = req.body.description || '';
     let targetSpecifications = req.body.specifications || '';
+    let targetUnit = req.body.unit || 'Pieces';
 
     if (supplyId) {
       const supplyResult = await new sql.Request(transaction)
@@ -986,6 +1027,7 @@ app.post('/api/supplies/add-stock', async (req, res) => {
       targetBrand = supply.Brand;
       targetDescription = supply.Description || '';
       targetSpecifications = supply.Specifications || '';
+      targetUnit = supply.Unit || 'Pieces';
     }
 
     if (!targetItemName?.trim()) {
@@ -1034,10 +1076,11 @@ app.post('/api/supplies/add-stock', async (req, res) => {
         .input('Location', sql.NVarChar, location.trim())
         .input('Description', sql.NVarChar, targetDescription)
         .input('Specifications', sql.NVarChar, targetSpecifications)
+        .input('Unit', sql.NVarChar, targetUnit)
         .query(`INSERT INTO OfficeSupplies
-                (ItemName, Brand, Quantity, Status, Location, Description, Specifications, Condition)
+                (ItemName, Brand, Quantity, Status, Location, Description, Specifications, Unit)
                 OUTPUT INSERTED.Id
-                VALUES (@ItemName, @Brand, @Quantity, @Status, @Location, @Description, @Specifications, '')`);
+                VALUES (@ItemName, @Brand, @Quantity, @Status, @Location, @Description, @Specifications, @Unit)`);
       rowId = insertResult.recordset[0].Id;
     }
 
@@ -1146,8 +1189,9 @@ app.post('/api/supplies/:id/add-stock', async (req, res) => {
         .input('Location', sql.NVarChar, resolvedLocation.trim())
         .input('Description', sql.NVarChar, supply.Description)
         .input('Specifications', sql.NVarChar, supply.Specifications)
-        .query(`INSERT INTO OfficeSupplies (ItemName, Brand, Quantity, Status, Location, Description, Specifications, Condition)
-                OUTPUT INSERTED.Id VALUES (@ItemName, @Brand, @Quantity, @Status, @Location, @Description, @Specifications, '')`);
+        .input('Unit', sql.NVarChar, supply.Unit || 'Pieces')
+        .query(`INSERT INTO OfficeSupplies (ItemName, Brand, Quantity, Status, Location, Description, Specifications, Unit)
+                OUTPUT INSERTED.Id VALUES (@ItemName, @Brand, @Quantity, @Status, @Location, @Description, @Specifications, @Unit)`);
       rowId = insertResult.recordset[0].Id;
     }
 
@@ -1248,10 +1292,11 @@ app.post('/api/supplies/:id/transfer', async (req, res) => {
         .input('Location', sql.NVarChar, destinationLocation.trim())
         .input('Description', sql.NVarChar, source.Description || '')
         .input('Specifications', sql.NVarChar, source.Specifications || '')
+        .input('Unit', sql.NVarChar, source.Unit || 'Pieces')
         .query(`INSERT INTO OfficeSupplies
-                (ItemName, Brand, Quantity, Status, Location, Description, Specifications, Condition)
+                (ItemName, Brand, Quantity, Status, Location, Description, Specifications, Unit)
                 OUTPUT INSERTED.Id
-                VALUES (@ItemName, @Brand, @Quantity, @Status, @Location, @Description, @Specifications, '')`);
+                VALUES (@ItemName, @Brand, @Quantity, @Status, @Location, @Description, @Specifications, @Unit)`);
       destId = insertResult.recordset[0].Id;
     }
 
