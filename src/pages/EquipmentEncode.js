@@ -12,6 +12,9 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import SearchIcon from '@mui/icons-material/Search';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import { useNavigate } from 'react-router-dom';
 
 import {
@@ -19,10 +22,11 @@ import {
 } from '../constants/equipmentConstants';
 import {
   getAssets, createAsset, updateAsset, deleteAsset, addStock, transferAsset,
-  getBrands, createBrand, getDashboardSummary,
+  getBrands, createBrand, getDashboardSummary, getEquipmentItemNames,
 } from '../api/equipmentApi';
 
 const NEW_BRAND_VALUE = '__new__';
+const NEW_ITEM_VALUE = '___NEW_ITEM___';
 const font = THEME.font;
 
 
@@ -38,8 +42,9 @@ const EquipmentEncode = () => {
 
   // ---- data ----
   const [items, setItems] = useState([]);
+  const [itemNames, setItemNames] = useState([]);
   const [brands, setBrands] = useState([]);
-  const [summary, setSummary] = useState(null);
+
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   // ---- add asset form ----
@@ -74,7 +79,6 @@ const EquipmentEncode = () => {
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [transferTarget, setTransferTarget] = useState(null);
   const [transferSourceId, setTransferSourceId] = useState('');
-  const [transferSourceLocation, setTransferSourceLocation] = useState('');
   const [transferDestLocation, setTransferDestLocation] = useState('');
   const [transferAmount, setTransferAmount] = useState('');
   const [transferError, setTransferError] = useState('');
@@ -99,6 +103,7 @@ const EquipmentEncode = () => {
     if (!showLoginModal) {
       fetchItems();
       fetchBrands();
+      fetchItemNames();
       fetchSummary();
     }
   }, [showLoginModal]);
@@ -117,9 +122,19 @@ const EquipmentEncode = () => {
   const fetchBrands = async () => {
     try {
       const data = await getBrands();
-      setBrands(data);
+      const mappedBrands = data.map((b, idx) => ({ brand_id: String(idx), brand_name: b }));
+      setBrands(mappedBrands);
     } catch (err) {
       console.error('Error fetching brands:', err);
+    }
+  };
+
+  const fetchItemNames = async () => {
+    try {
+      const data = await getEquipmentItemNames();
+      setItemNames(data);
+    } catch (err) {
+      console.error('Error fetching item names:', err);
     }
   };
 
@@ -127,7 +142,7 @@ const EquipmentEncode = () => {
     try {
       const data = await getDashboardSummary();
       console.log('DEBUG [fetchSummary]:', data);
-      setSummary(data);
+
     } catch (err) {
       // Fall back to client-side computation below if the endpoint isn't ready yet
       console.error('Error fetching dashboard summary:', err);
@@ -167,14 +182,46 @@ const EquipmentEncode = () => {
     }));
   };
 
+  const handleItemNameSelect = (e) => {
+    const value = e.target.value;
+    setFormData((prev) => ({
+      ...prev,
+      itemNameOption: value,
+      itemName: value === NEW_ITEM_VALUE ? '' : value,
+    }));
+  };
+
+  const handleEditItemNameSelect = (e) => {
+    const value = e.target.value;
+    setEditForm((prev) => ({
+      ...prev,
+      itemNameOption: value,
+      itemName: value === NEW_ITEM_VALUE ? '' : value,
+    }));
+  };
+
   const validateAssetForm = (data) => {
     const errors = {};
-    if (!data.itemName.trim()) errors.itemName = 'Item name is required.';
+    if (itemNames.length > 0 && !data.itemNameOption) {
+      errors.itemName = 'Please select an item name.';
+    }
+    if (itemNames.length > 0 && data.itemNameOption === NEW_ITEM_VALUE && !data.itemName.trim()) {
+      errors.itemName = 'Please enter the item name.';
+    }
+    if (itemNames.length === 0 && !data.itemName.trim()) {
+      errors.itemName = 'Item name is required.';
+    }
+
     if (brands.length > 0 && !data.brandOption) errors.brand = 'Please select a brand.';
     if (brands.length > 0 && data.brandOption === NEW_BRAND_VALUE && !data.brand.trim()) {
       errors.brand = 'Please enter the new brand name.';
     }
     if (brands.length === 0 && !data.brand.trim()) errors.brand = 'Brand name is required.';
+    
+    if (!data.specifications || !data.specifications.trim() || data.specifications.trim().toUpperCase() === 'N/A') {
+      errors.specifications = 'Specifications are required.';
+    }
+
     const qty = Number(data.quantity);
     if (data.quantity === '' || Number.isNaN(qty) || qty < 1) {
       errors.quantity = 'Quantity must be at least 1.';
@@ -202,22 +249,29 @@ const EquipmentEncode = () => {
         brand: brandName,
         quantity,
         status: getStockStatus(quantity),
-        serialNumber: formData.serialNumber.trim(),
         location: formData.location,
-        description: formData.description.trim(),
         specifications: formData.specifications.trim(),
         user: loggedInUser,
       });
 
       setSnackbar({ open: true, message: 'Equipment saved successfully!', severity: 'success' });
-      setFormData(emptyAssetForm);
+      setFormData({
+        itemName: '',
+        itemNameOption: '',
+        brand: '',
+        brandOption: '',
+        quantity: '',
+        location: '',
+        specifications: '',
+      });
       setFormErrors({});
       fetchItems();
       fetchBrands();
+      fetchItemNames();
       fetchSummary();
     } catch (err) {
       console.error(err);
-      const apiMessage = err?.response?.data?.message || err?.response?.data?.error || 'Failed to save equipment.';
+      const apiMessage = err?.response?.data?.error || err?.response?.data?.message || 'Failed to save asset.';
       setSnackbar({ open: true, message: apiMessage, severity: 'error' });
     }
   };
@@ -227,14 +281,16 @@ const EquipmentEncode = () => {
 
   const handleOpenEdit = (item) => {
     setSelectedItem(item);
+    const existingBrand = brands.some((b) => b.brand_name.toLowerCase() === (item.Brand || '').toLowerCase());
+    const existingItemName = itemNames.some((n) => n.toLowerCase() === (item.ItemName || '').toLowerCase());
+
     setEditForm({
       itemName: item.ItemName || '',
+      itemNameOption: existingItemName ? item.ItemName : NEW_ITEM_VALUE,
       brand: item.Brand || '',
-      brandOption: item.Brand || '',
+      brandOption: existingBrand ? item.Brand : NEW_BRAND_VALUE,
       quantity: item.Quantity ?? '',
-      serialNumber: item.SerialNumber || '',
       location: item.Location || '',
-      description: item.Description || '',
       specifications: item.Specifications || '',
     });
     setEditDialogOpen(true);
@@ -253,15 +309,15 @@ const EquipmentEncode = () => {
         brand: editForm.brand.trim(),
         quantity,
         status: getStockStatus(quantity),
-        serialNumber: editForm.serialNumber.trim(),
         location: editForm.location,
-        description: editForm.description.trim(),
         specifications: editForm.specifications.trim(),
         user: loggedInUser,
       });
       setSnackbar({ open: true, message: 'Equipment updated successfully!', severity: 'success' });
       setEditDialogOpen(false);
       fetchItems();
+      fetchBrands();
+      fetchItemNames();
       fetchSummary();
     } catch (err) {
       console.error(err);
@@ -314,6 +370,7 @@ const EquipmentEncode = () => {
         brand: stockTarget.Brand,
         serialNumber: stockTarget.SerialNumber || '',
         location: stockLocation,
+        specifications: stockTarget.location_balances[0]?.Specifications || '',
         quantity: qty,
         user: loggedInUser,
       });
@@ -329,13 +386,8 @@ const EquipmentEncode = () => {
   // ---------------- transfer ----------------
   const handleOpenTransfer = (profile, sourceLocationId = '') => {
     setTransferTarget(profile);
-    setTransferSourceId(sourceLocationId);
-    if (sourceLocationId) {
-      const loc = profile.location_balances.find((l) => l.Id === sourceLocationId);
-      setTransferSourceLocation(loc ? loc.LocationName : '');
-    } else {
-      setTransferSourceLocation(profile.location_balances[0]?.LocationName || '');
-    }
+    const resolvedId = sourceLocationId || (profile.location_balances[0]?.Id || '');
+    setTransferSourceId(resolvedId);
     setTransferDestLocation('');
     setTransferAmount('');
     setTransferError('');
@@ -343,7 +395,7 @@ const EquipmentEncode = () => {
   };
 
   const handleConfirmTransfer = async () => {
-    const sourceLoc = transferTarget.location_balances.find((l) => l.LocationName === transferSourceLocation);
+    const sourceLoc = transferTarget.location_balances.find((l) => String(l.Id) === String(transferSourceId));
     if (!sourceLoc) {
       setTransferError('Invalid source location.');
       return;
@@ -378,10 +430,10 @@ const EquipmentEncode = () => {
   };
 
   const currentSourceBalance = useMemo(() => {
-    if (!transferTarget || !transferSourceLocation) return 0;
-    const loc = transferTarget.location_balances.find((l) => l.LocationName === transferSourceLocation);
+    if (!transferTarget || !transferSourceId) return 0;
+    const loc = transferTarget.location_balances.find((l) => String(l.Id) === String(transferSourceId));
     return loc ? loc.Quantity : 0;
-  }, [transferTarget, transferSourceLocation]);
+  }, [transferTarget, transferSourceId]);
 
   const isTransferInvalid = useMemo(() => {
     const qty = Number(transferAmount);
@@ -400,8 +452,6 @@ const EquipmentEncode = () => {
       const matchesSearch = !q || [
         profile.ItemName, profile.Brand,
         ...(profile.location_balances || []).map((l) => l.LocationName),
-        ...(profile.location_balances || []).map((l) => l.SerialNumber),
-        ...(profile.location_balances || []).map((l) => l.Description),
         ...(profile.location_balances || []).map((l) => l.Specifications),
       ].some((f) => (f || '').toLowerCase().includes(q));
       return matchesStatus && matchesSearch;
@@ -410,29 +460,46 @@ const EquipmentEncode = () => {
 
   const pagedItems = filteredItems.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
-  const localSummary = useMemo(() => {
-    const totalAssets = items.length;
-    const totalInventory = items.reduce((sum, p) => sum + p.TotalQuantity, 0);
-    const lowStock = items.filter((p) => getStockStatus(p.TotalQuantity) === 'Low Stock').length;
-    return { totalAssets, totalInventory, lowStock };
-  }, [items]);
+
 
   // ---------------- shared form fields renderer ----------------
-  const brandField = (data, handler, brandSelectHandler, errors) => {
-    if (brands.length === 0) {
-      // No brands exist yet -> plain text input, first save seeds the master list
-      return (
+  const formFields = (data, handler, itemNameSelectHandler, brandSelectHandler, errors = {}) => (
+    <Grid container spacing={2}>
+      {/* Item Name Field - Select */}
+      {itemNames.length > 0 && (
         <Grid item xs={12} sm={6} md={4}>
           <TextField
-            fullWidth label="Brand Name *" name="brand" value={data.brand}
-            onChange={handler} error={!!errors.brand} helperText={errors.brand}
+            fullWidth select label="Item Name *" name="itemNameOption" value={data.itemNameOption || ''}
+            onChange={itemNameSelectHandler} error={!!errors.itemName}
+            helperText={!data.itemNameOption ? errors.itemName : ''}
+          >
+            <MenuItem value="" disabled sx={{ fontFamily: font }}>Select Item Name</MenuItem>
+            {itemNames.map((name) => (
+              <MenuItem key={name} value={name} sx={{ fontFamily: font }}>
+                {name}
+              </MenuItem>
+            ))}
+            <MenuItem value={NEW_ITEM_VALUE} sx={{ fontFamily: font, fontStyle: 'italic' }}>
+              Others (Input Manually)
+            </MenuItem>
+          </TextField>
+        </Grid>
+      )}
+
+      {/* Item Name Field - Manual Entry */}
+      {(itemNames.length === 0 || data.itemNameOption === NEW_ITEM_VALUE) && (
+        <Grid item xs={12} sm={6} md={4}>
+          <TextField
+            fullWidth label={itemNames.length === 0 ? "Item Name *" : "Enter New Item Name *"}
+            name="itemName" value={data.itemName}
+            onChange={handler} error={!!errors.itemName} helperText={errors.itemName}
             inputProps={{ style: { fontFamily: font } }}
           />
         </Grid>
-      );
-    }
-    return (
-      <>
+      )}
+
+      {/* Brand Field - Select */}
+      {brands.length > 0 && (
         <Grid item xs={12} sm={6} md={4}>
           <TextField
             fullWidth select label="Brand *" name="brandOption" value={data.brandOption}
@@ -450,29 +517,20 @@ const EquipmentEncode = () => {
             </MenuItem>
           </TextField>
         </Grid>
-        {data.brandOption === NEW_BRAND_VALUE && (
-          <Grid item xs={12} sm={6} md={4}>
-            <TextField
-              fullWidth label="Enter New Brand *" name="brand" value={data.brand}
-              onChange={handler} error={!!errors.brand} helperText={errors.brand}
-              inputProps={{ style: { fontFamily: font } }}
-            />
-          </Grid>
-        )}
-      </>
-    );
-  };
+      )}
 
-  const formFields = (data, handler, brandSelectHandler, errors = {}) => (
-    <Grid container spacing={2}>
-      <Grid item xs={12} sm={6} md={4}>
-        <TextField
-          fullWidth label="Item Name *" name="itemName" value={data.itemName} onChange={handler}
-          error={!!errors.itemName} helperText={errors.itemName}
-          inputProps={{ style: { fontFamily: font } }}
-        />
-      </Grid>
-      {brandField(data, handler, brandSelectHandler, errors)}
+      {/* Brand Field - Manual Entry */}
+      {(brands.length === 0 || data.brandOption === NEW_BRAND_VALUE) && (
+        <Grid item xs={12} sm={6} md={4}>
+          <TextField
+            fullWidth label={brands.length === 0 ? "Brand Name *" : "Enter New Brand *"}
+            name="brand" value={data.brand}
+            onChange={handler} error={!!errors.brand} helperText={errors.brand}
+            inputProps={{ style: { fontFamily: font } }}
+          />
+        </Grid>
+      )}
+
       <Grid item xs={12} sm={6} md={4}>
         <TextField
           fullWidth label="Quantity *" name="quantity" value={data.quantity} onChange={handler}
@@ -480,12 +538,7 @@ const EquipmentEncode = () => {
           inputProps={{ style: { fontFamily: font }, min: 1 }}
         />
       </Grid>
-      <Grid item xs={12} sm={6} md={4}>
-        <TextField
-          fullWidth label="Serial Number" name="serialNumber" value={data.serialNumber} onChange={handler}
-          inputProps={{ style: { fontFamily: font } }}
-        />
-      </Grid>
+
       <Grid item xs={12} sm={6} md={4}>
         <TextField fullWidth select label="Location" name="location" value={data.location} onChange={handler}>
           <MenuItem value="">Select location</MenuItem>
@@ -494,15 +547,11 @@ const EquipmentEncode = () => {
           ))}
         </TextField>
       </Grid>
+
       <Grid item xs={12} sm={6} md={4}>
         <TextField
-          fullWidth label="Description" name="description" value={data.description} onChange={handler}
-          inputProps={{ style: { fontFamily: font } }}
-        />
-      </Grid>
-      <Grid item xs={12} sm={6} md={4}>
-        <TextField
-          fullWidth label="Specifications" name="specifications" value={data.specifications} onChange={handler}
+          fullWidth label="Specifications *" name="specifications" value={data.specifications} onChange={handler}
+          error={!!errors.specifications} helperText={errors.specifications}
           inputProps={{ style: { fontFamily: font } }}
         />
       </Grid>
@@ -571,9 +620,9 @@ const EquipmentEncode = () => {
             Encode New Equipment Asset
           </Typography>
           <Paper elevation={0} sx={{ p: 3, border: '1px solid #e0e0e0', borderRadius: 3, mb: 4 }}>
-            {formFields(formData, handleChange, handleBrandSelect, formErrors)}
+            {formFields(formData, handleChange, handleItemNameSelect, handleBrandSelect, formErrors)}
             <Box sx={{ mt: 3, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-              <Button variant="outlined" onClick={() => { setFormData(emptyAssetForm); setFormErrors({}); }} sx={{ fontFamily: font, textTransform: 'none', px: 4 }}>Clear</Button>
+              <Button variant="outlined" onClick={() => { setFormData({ itemName: '', itemNameOption: '', brand: '', brandOption: '', quantity: '', location: '', specifications: '' }); setFormErrors({}); }} sx={{ fontFamily: font, textTransform: 'none', px: 4 }}>Clear</Button>
               <Button variant="contained" onClick={handleSubmit} sx={{ backgroundColor: THEME.navy, fontFamily: font, textTransform: 'none', px: 4 }}>Save Asset</Button>
             </Box>
           </Paper>
@@ -598,7 +647,7 @@ const EquipmentEncode = () => {
                 onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
                 sx={{ minWidth: 160, fontFamily: font }}
               >
-                {['All', 'In Stock', 'Low Stock', 'Out of Stock'].map((s) => (
+                {['All', 'In Stock', 'Out of Stock'].map((s) => (
                   <MenuItem key={s} value={s} sx={{ fontFamily: font }}>{s}</MenuItem>
                 ))}
               </TextField>
@@ -610,7 +659,7 @@ const EquipmentEncode = () => {
               <Table size="small">
                 <TableHead>
                   <TableRow sx={{ backgroundColor: '#fafafa' }}>
-                    {['', 'Item Name', 'Brand', 'Total Qty', 'Description', 'Specifications', 'Status', 'Actions'].map((h) => (
+                    {['', 'Item Name', 'Brand', 'Total Qty', 'Specifications', 'Status', 'Actions'].map((h) => (
                       <TableCell key={h} sx={{ fontFamily: font, fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase' }}>
                         {h}
                       </TableCell>
@@ -623,25 +672,43 @@ const EquipmentEncode = () => {
                     const sc = statusColor(status);
                     const isOpen = expandedRows.has(profile.ProfileKey);
                     
-                    const desc = profile.location_balances[0]?.Description;
                     const specs = profile.location_balances[0]?.Specifications;
 
                     return (
                       <React.Fragment key={profile.ProfileKey}>
                         <TableRow sx={{ '&:hover': { backgroundColor: '#fafafa' } }}>
-                          <TableCell sx={{ width: 32 }}>
-                            <IconButton size="small" onClick={() => toggleExpand(profile.ProfileKey)}>
-                              {isOpen ? '▼' : '►'}
+                          <TableCell sx={{ width: 40 }}>
+                            <IconButton size="small" onClick={() => toggleExpand(profile.ProfileKey)} title={isOpen ? "Collapse" : "Expand"}>
+                              {isOpen ? <KeyboardArrowDownIcon /> : <KeyboardArrowRightIcon />}
                             </IconButton>
                           </TableCell>
-                          <TableCell sx={{ fontFamily: font, fontSize: 13, fontWeight: 600 }}>{profile.ItemName}</TableCell>
+                          <TableCell sx={{ fontFamily: font, fontSize: 13, fontWeight: 600 }}>
+                            <Button
+                              onClick={() => toggleExpand(profile.ProfileKey)}
+                              sx={{
+                                justifyContent: 'flex-start',
+                                textAlign: 'left',
+                                padding: 0,
+                                minWidth: 0,
+                                fontFamily: font,
+                                fontSize: 13,
+                                fontWeight: 600,
+                                textTransform: 'none',
+                                color: 'inherit',
+                                '&:hover': {
+                                  textDecoration: 'underline',
+                                  backgroundColor: 'transparent',
+                                }
+                              }}
+                            >
+                              {profile.ItemName}
+                            </Button>
+                          </TableCell>
                           <TableCell sx={{ fontFamily: font, fontSize: 13 }}>
                             {profile.Brand && profile.Brand !== 'N/A' ? profile.Brand : <span style={{ color: '#aaa', fontStyle: 'italic' }}>N/A</span>}
                           </TableCell>
                           <TableCell sx={{ fontFamily: font, fontSize: 13 }}>{profile.TotalQuantity}</TableCell>
-                          <TableCell sx={{ fontFamily: font, fontSize: 13 }}>
-                            {desc && desc !== 'N/A' ? desc : <span style={{ color: '#aaa', fontStyle: 'italic' }}>N/A</span>}
-                          </TableCell>
+
                           <TableCell sx={{ fontFamily: font, fontSize: 13 }}>
                             {specs && specs !== 'N/A' ? specs : <span style={{ color: '#aaa', fontStyle: 'italic' }}>N/A</span>}
                           </TableCell>
@@ -656,7 +723,7 @@ const EquipmentEncode = () => {
                             </Tooltip>
                             <Tooltip title="Transfer Location">
                               <IconButton size="small" onClick={() => handleOpenTransfer(profile)} sx={{ color: THEME.gold }}>
-                                🔄
+                                <SwapHorizIcon fontSize="small" />
                               </IconButton>
                             </Tooltip>
                           </TableCell>
@@ -664,11 +731,11 @@ const EquipmentEncode = () => {
 
                         {isOpen && (
                           <TableRow>
-                            <TableCell colSpan={8} sx={{ backgroundColor: '#fafcff', py: 2 }}>
+                            <TableCell colSpan={7} sx={{ backgroundColor: '#fafcff', py: 2 }}>
                               <Table size="small">
                                 <TableHead>
                                   <TableRow>
-                                    {['Location', 'Serial No.', 'Qty', 'Status', 'Actions'].map((h) => (
+                                    {['Location', 'Qty', 'Status', 'Actions'].map((h) => (
                                       <TableCell key={h} sx={{ fontFamily: font, fontWeight: 700, fontSize: 10, color: '#888', textTransform: 'uppercase' }}>{h}</TableCell>
                                     ))}
                                   </TableRow>
@@ -681,9 +748,7 @@ const EquipmentEncode = () => {
                                         <TableCell sx={{ fontFamily: font, fontSize: 12 }}>
                                           {loc.LocationName && loc.LocationName !== 'N/A' ? loc.LocationName : <span style={{ color: '#aaa', fontStyle: 'italic' }}>N/A</span>}
                                         </TableCell>
-                                        <TableCell sx={{ fontFamily: font, fontSize: 12 }}>
-                                          {loc.SerialNumber && loc.SerialNumber !== 'N/A' ? loc.SerialNumber : <span style={{ color: '#aaa', fontStyle: 'italic' }}>N/A</span>}
-                                        </TableCell>
+
                                         <TableCell sx={{ fontFamily: font, fontSize: 12 }}>{loc.Quantity}</TableCell>
                                         <TableCell>
                                           <Chip label={loc.Status} size="small" sx={{ fontFamily: font, fontSize: 10, backgroundColor: locSc.bg, color: locSc.text }} />
@@ -691,7 +756,7 @@ const EquipmentEncode = () => {
                                         <TableCell>
                                           <Tooltip title="Transfer Location">
                                             <IconButton size="small" onClick={() => handleOpenTransfer(profile, loc.Id)} sx={{ color: THEME.gold }}>
-                                              🔄
+                                              <SwapHorizIcon fontSize="small" />
                                             </IconButton>
                                           </Tooltip>
                                           <Tooltip title="Edit">
@@ -718,7 +783,7 @@ const EquipmentEncode = () => {
                   })}
                   {pagedItems.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={8} align="center" sx={{ fontFamily: font, py: 4, color: '#888' }}>
+                      <TableCell colSpan={7} align="center" sx={{ fontFamily: font, py: 4, color: '#888' }}>
                         No equipment records match your search.
                       </TableCell>
                     </TableRow>
@@ -743,7 +808,15 @@ const EquipmentEncode = () => {
       {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle sx={{ fontFamily: font, fontWeight: 700 }}>Edit Equipment Asset Details</DialogTitle>
-        <DialogContent dividers>{formFields(editForm, handleEditChange, (e) => setEditForm((p) => ({ ...p, brandOption: e.target.value, brand: e.target.value === NEW_BRAND_VALUE ? '' : e.target.value })))}</DialogContent>
+        <DialogContent dividers>
+          {formFields(
+            editForm,
+            handleEditChange,
+            handleEditItemNameSelect,
+            (e) => setEditForm((p) => ({ ...p, brandOption: e.target.value, brand: e.target.value === NEW_BRAND_VALUE ? '' : e.target.value })),
+            {}
+          )}
+        </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setEditDialogOpen(false)} sx={{ fontFamily: font, textTransform: 'none' }}>Cancel</Button>
           <Button variant="contained" onClick={handleUpdate} sx={{ backgroundColor: THEME.navy, fontFamily: font, textTransform: 'none', px: 3 }}>Update</Button>
@@ -807,13 +880,13 @@ const EquipmentEncode = () => {
           </Typography>
           
           <TextField
-            fullWidth select label="Source Location *" value={transferSourceLocation}
-            onChange={(e) => { setTransferSourceLocation(e.target.value); setTransferError(''); }}
+            fullWidth select label="Source Location *" value={transferSourceId}
+            onChange={(e) => { setTransferSourceId(e.target.value); setTransferError(''); }}
             sx={{ mb: 2 }}
           >
             {transferTarget?.location_balances.map((l) => (
-              <MenuItem key={l.Id} value={l.LocationName} sx={{ fontFamily: font }}>
-                {l.LocationName} ({l.Quantity} available)
+              <MenuItem key={l.Id} value={String(l.Id)} sx={{ fontFamily: font }}>
+                {l.LocationName} {l.SerialNumber && l.SerialNumber !== 'N/A' && l.SerialNumber !== 'None' ? `[S/N: ${l.SerialNumber}]` : ''} ({l.Quantity} available)
               </MenuItem>
             ))}
           </TextField>
@@ -823,8 +896,11 @@ const EquipmentEncode = () => {
             onChange={(e) => { setTransferDestLocation(e.target.value); setTransferError(''); }}
             sx={{ mb: 2 }}
           >
-            {LOCATION_OPTIONS.filter((l) => l !== transferSourceLocation).map((l) => (
-              <MenuItem key={l} value={l} sx={{ fontFamily: font }}>{l}</MenuItem>
+            {LOCATION_OPTIONS.filter((l) => {
+              const currentSource = transferTarget?.location_balances.find((x) => String(x.Id) === String(transferSourceId));
+              return l !== currentSource?.LocationName;
+            }).map((l) => (
+              <MenuItem key={l.Id} value={l} sx={{ fontFamily: font }}>{l}</MenuItem>
             ))}
           </TextField>
 

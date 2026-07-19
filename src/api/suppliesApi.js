@@ -42,7 +42,8 @@ export const getSuppliesDashboardSummary = () =>
   client.get('/supplies/dashboard/summary').then((r) => r.data);
 
 // Shared/centralized with Equipment (same /api/brands endpoint).
-export const getBrands = () => client.get('/brands').then((r) => r.data);
+export const getBrands = () => client.get('/supplies/brands').then((r) => r.data);
+export const getSuppliesItemNames = () => client.get('/supplies/item-names').then((r) => r.data);
 
 export const createBrand = (brandName) =>
   client.post('/brands', { brandName }).then((r) => r.data);

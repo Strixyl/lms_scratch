@@ -32,7 +32,6 @@ export const LOW_STOCK_THRESHOLD = 4;
 export const getStockStatus = (quantity) => {
   const qty = Number(quantity) || 0;
   if (qty <= 0) return 'Out of Stock';
-  if (qty < 5) return 'Low Stock';
   return 'In Stock';
 };
 
@@ -40,8 +39,6 @@ export const statusColor = (status) => {
   switch (status) {
     case 'In Stock':
       return { bg: '#e8f5e9', text: '#2e7d32', border: '#a5d6a7' };
-    case 'Low Stock':
-      return { bg: '#fff3e0', text: '#e65100', border: '#ffcc80' };
     case 'Out of Stock':
     default:
       return { bg: '#ffebee', text: '#c62828', border: '#ef9a9a' };
@@ -53,9 +50,7 @@ export const emptyAssetForm = {
   brand: '',
   brandOption: '',   // holds the <Select> value ('__new__' when "Others" chosen)
   quantity: '',
-  serialNumber: '',
   location: '',
-  description: '',
   specifications: '',
 };
 

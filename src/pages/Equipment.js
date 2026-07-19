@@ -9,18 +9,16 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 
-const STATUS_OPTIONS = ['In Stock', 'Low Stock', 'Out of Stock'];
+const STATUS_OPTIONS = ['In Stock', 'Out of Stock'];
 
 const statusColor = (status) => {
   if (status === 'In Stock') return { bg: '#e8f5e9', text: '#2e7d32', border: '#a5d6a7' };
-  if (status === 'Low Stock') return { bg: '#fff8e1', text: '#f57f17', border: '#ffe082' };
   return { bg: '#ffebee', text: '#c62828', border: '#ef9a9a' };
 };
 
 const deriveMasterStatus = (quantity) => {
   const qty = Number(quantity) || 0;
   if (qty <= 0) return 'Out of Stock';
-  if (qty < 5) return 'Low Stock';
   return 'In Stock';
 };
 
@@ -59,8 +57,6 @@ const Equipment = () => {
       item.Brand?.toLowerCase().includes(search.toLowerCase()) ||
       (item.location_balances || []).some(loc => 
         loc.LocationName?.toLowerCase().includes(search.toLowerCase()) ||
-        loc.SerialNumber?.toLowerCase().includes(search.toLowerCase()) ||
-        loc.Description?.toLowerCase().includes(search.toLowerCase()) ||
         loc.Specifications?.toLowerCase().includes(search.toLowerCase())
       );
     const matchesMasterStatus = deriveMasterStatus(item.TotalQuantity) === filterStatus;
@@ -73,7 +69,6 @@ const Equipment = () => {
   const counts = {
     total: allLocations.reduce((sum, loc) => sum + (Number(loc.Quantity) || 0), 0),
     inStock: allLocations.filter(loc => loc.Status === 'In Stock').length,
-    lowStock: allLocations.filter(loc => loc.Status === 'Low Stock').length,
     outOfStock: allLocations.filter(loc => loc.Status === 'Out of Stock').length,
   };
 
@@ -89,7 +84,6 @@ const Equipment = () => {
               {[
                 { label: 'Total Items', value: counts.total, color: '#1b0892', bg: '#e8eaf6' },
                 { label: 'In Stock', value: counts.inStock, color: '#2e7d32', bg: '#e8f5e9' },
-                { label: 'Low Stock', value: counts.lowStock, color: '#f57f17', bg: '#fff8e1' },
                 { label: 'Out of Stock', value: counts.outOfStock, color: '#c62828', bg: '#ffebee' },
               ].map(card => (
                 <Box key={card.label} sx={{
@@ -136,7 +130,7 @@ const Equipment = () => {
                   <Table size="small">
                     <TableHead>
                       <TableRow sx={{ backgroundColor: '#fafafa' }}>
-                        {['', 'Item Name', 'Description', 'Brand', 'Qty', 'Status', 'Specifications'].map(h => (
+                        {['', 'Item Name', 'Brand', 'Qty', 'Status', 'Specifications'].map(h => (
                           <TableCell key={h} sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                             {h}
                           </TableCell>
@@ -157,9 +151,6 @@ const Equipment = () => {
                                 </IconButton>
                               </TableCell>
                               <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 600 }}>{item.ItemName}</TableCell>
-                              <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#666', maxWidth: 150 }}>
-                                {item.location_balances[0]?.Description || '—'}
-                              </TableCell>
                               <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13 }}>{item.Brand}</TableCell>
                               <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 600 }}>{item.TotalQuantity}</TableCell>
                               <TableCell>
@@ -176,11 +167,11 @@ const Equipment = () => {
                             {/* Dropdown Locations Table */}
                             {isOpen && (
                               <TableRow>
-                                <TableCell colSpan={7} sx={{ backgroundColor: '#fafcff', py: 2 }}>
+                                <TableCell colSpan={6} sx={{ backgroundColor: '#fafcff', py: 2 }}>
                                   <Table size="small">
                                     <TableHead>
                                       <TableRow>
-                                        {['Location', 'Serial No.', 'Qty', 'Status'].map((h) => (
+                                        {['Location', 'Qty', 'Status'].map((h) => (
                                           <TableCell key={h} sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 10, color: '#888', textTransform: 'uppercase' }}>{h}</TableCell>
                                         ))}
                                       </TableRow>
@@ -192,9 +183,6 @@ const Equipment = () => {
                                           <TableRow key={loc.Id}>
                                             <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12 }}>
                                               {loc.LocationName && loc.LocationName !== 'N/A' ? loc.LocationName : <span style={{ color: '#aaa', fontStyle: 'italic' }}>N/A</span>}
-                                            </TableCell>
-                                            <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12 }}>
-                                              {loc.SerialNumber && loc.SerialNumber !== 'N/A' ? loc.SerialNumber : <span style={{ color: '#aaa', fontStyle: 'italic' }}>N/A</span>}
                                             </TableCell>
                                             <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12 }}>{loc.Quantity}</TableCell>
                                             <TableCell>

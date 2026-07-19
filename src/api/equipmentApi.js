@@ -40,7 +40,8 @@ export const transferAsset = (sourceRowId, { destinationLocation, quantity, user
   client.post(`/equipment/${sourceRowId}/transfer`, { destinationLocation, quantity, user }).then((r) => r.data);
 
 // ---------- Brands ----------
-export const getBrands = () => client.get('/brands').then((r) => r.data);
+export const getBrands = () => client.get('/equipment/brands').then((r) => r.data);
+export const getEquipmentItemNames = () => client.get('/equipment/item-names').then((r) => r.data);
 
 export const createBrand = (brandName) =>
   client.post('/brands', { brandName }).then((r) => r.data);

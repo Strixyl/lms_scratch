@@ -9,18 +9,16 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 
-const STATUS_OPTIONS = ['In Stock', 'Low Stock', 'Out of Stock'];
+const STATUS_OPTIONS = ['In Stock', 'Out of Stock'];
 
 const statusColor = (status) => {
   if (status === 'In Stock') return { bg: '#e8f5e9', text: '#2e7d32', border: '#a5d6a7' };
-  if (status === 'Low Stock') return { bg: '#fff8e1', text: '#f57f17', border: '#ffe082' };
   return { bg: '#ffebee', text: '#c62828', border: '#ef9a9a' };
 };
 
 const deriveMasterStatus = (quantity) => {
   const qty = Number(quantity) || 0;
   if (qty <= 0) return 'Out of Stock';
-  if (qty < 5) return 'Low Stock';
   return 'In Stock';
 };
 
@@ -61,7 +59,6 @@ const Supplies = () => {
       item.Brand?.toLowerCase().includes(search.toLowerCase()) ||
       (item.location_balances || []).some(loc => 
         loc.LocationName?.toLowerCase().includes(search.toLowerCase()) ||
-        loc.Description?.toLowerCase().includes(search.toLowerCase()) ||
         loc.Specifications?.toLowerCase().includes(search.toLowerCase())
       );
     const matchesMasterStatus = deriveMasterStatus(item.TotalQuantity) === filterStatus;
@@ -74,7 +71,6 @@ const Supplies = () => {
   const counts = {
     total: allLocations.reduce((sum, loc) => sum + (Number(loc.Quantity) || 0), 0),
     inStock: allLocations.filter(loc => loc.Status === 'In Stock').length,
-    lowStock: allLocations.filter(loc => loc.Status === 'Low Stock').length,
     outOfStock: allLocations.filter(loc => loc.Status === 'Out of Stock').length,
   };
 
@@ -90,7 +86,6 @@ const Supplies = () => {
               {[
                 { label: 'Total Items', value: counts.total, color: '#1b0892', bg: '#e8eaf6' },
                 { label: 'In Stock', value: counts.inStock, color: '#2e7d32', bg: '#e8f5e9' },
-                { label: 'Low Stock', value: counts.lowStock, color: '#f57f17', bg: '#fff8e1' },
                 { label: 'Out of Stock', value: counts.outOfStock, color: '#c62828', bg: '#ffebee' },
               ].map(card => (
                 <Box key={card.label} sx={{
@@ -137,7 +132,7 @@ const Supplies = () => {
                   <Table size="small">
                     <TableHead>
                       <TableRow sx={{ backgroundColor: '#fafafa' }}>
-                        {['', 'Item Name', 'Brand', 'Stock Level', 'Description', 'Specifications', 'Status'].map(h => (
+                        {['', 'Item Name', 'Brand', 'Stock Level', 'Specifications', 'Status'].map(h => (
                           <TableCell key={h} sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                             {h}
                           </TableCell>
@@ -150,9 +145,8 @@ const Supplies = () => {
                         const sc = statusColor(status);
                         const isOpen = expandedRows.has(item.ProfileKey);
                         
-                        // Read UOM, description, and specifications from the first location balance directly
+                        // Read UOM and specifications from the first location balance directly
                         const unit = item.location_balances[0]?.Unit || 'Pieces';
-                        const desc = item.location_balances[0]?.Description;
                         const specs = item.location_balances[0]?.Specifications;
 
                         return (
@@ -169,9 +163,6 @@ const Supplies = () => {
                               </TableCell>
                               <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 600 }}>{`${item.TotalQuantity} ${unit}`}</TableCell>
                               <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#666', maxWidth: 150 }}>
-                                {desc && desc !== 'N/A' ? desc : <span style={{ color: '#aaa', fontStyle: 'italic' }}>N/A</span>}
-                              </TableCell>
-                              <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#666', maxWidth: 150 }}>
                                 {specs && specs !== 'N/A' ? specs : <span style={{ color: '#aaa', fontStyle: 'italic' }}>N/A</span>}
                               </TableCell>
                               <TableCell>
@@ -185,7 +176,7 @@ const Supplies = () => {
                             {/* Dropdown Locations Table */}
                             {isOpen && (
                               <TableRow>
-                                <TableCell colSpan={7} sx={{ backgroundColor: '#fafcff', py: 2 }}>
+                                <TableCell colSpan={6} sx={{ backgroundColor: '#fafcff', py: 2 }}>
                                   <Table size="small">
                                     <TableHead>
                                       <TableRow>

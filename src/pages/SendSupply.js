@@ -8,7 +8,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 
 import { THEME, LOCATION_OPTIONS } from '../constants/equipmentConstants';
-import { getSupplies, sendSupply } from '../api/suppliesApi';
+import { getSupplies, transferSupply } from '../api/suppliesApi';
 
 const font = THEME.font;
 
@@ -31,7 +31,7 @@ const SendSupply = () => {
       return;
     }
     fetchItems();
-  }, []);
+  }, [loggedInUser, navigate]);
 
   const fetchItems = async () => {
     try {
@@ -80,9 +80,9 @@ const SendSupply = () => {
     setSubmitting(true);
     try {
       const qty = Number(quantity);
-      await sendSupply(selectedSupply.Id, {
+      await transferSupply(selectedSupply.Id, {
         quantity: qty,
-        destination,
+        destinationLocation: destination,
         remarks: remarks.trim(),
         user: loggedInUser,
       });
@@ -138,11 +138,15 @@ const SendSupply = () => {
               >
                 <MenuItem value="" disabled sx={{ fontFamily: font }}>Select a supply item</MenuItem>
                 {items.flatMap((item) =>
-                  (item.location_balances || []).map((loc) => (
-                    <MenuItem key={loc.Id} value={loc.Id} sx={{ fontFamily: font }}>
-                      {item.ItemName} {item.Brand && item.Brand !== 'N/A' ? `(${item.Brand})` : ''} at {loc.LocationName} — Stock: {loc.Quantity} {loc.Unit || 'Pieces'}
-                    </MenuItem>
-                  ))
+                  (item.location_balances || []).map((loc) => {
+                    const specs = loc.Specifications;
+                    const hasSpecs = specs && specs !== 'N/A' && specs !== 'None';
+                    return (
+                      <MenuItem key={loc.Id} value={loc.Id} sx={{ fontFamily: font }}>
+                        {item.ItemName} {item.Brand && item.Brand !== 'N/A' ? `(${item.Brand})` : ''} {hasSpecs ? `[Specs: ${specs}]` : ''} at {loc.LocationName} — Stock: {loc.Quantity} {loc.Unit || 'Pieces'}
+                      </MenuItem>
+                    );
+                  })
                 )}
               </TextField>
             </Grid>

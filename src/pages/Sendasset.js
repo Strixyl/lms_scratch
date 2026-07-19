@@ -163,11 +163,15 @@ const SendAsset = () => {
                 error={!!errors.selectedProfileKey} helperText={errors.selectedProfileKey}
               >
                 <MenuItem value="" disabled sx={{ fontFamily: font }}>Select an asset</MenuItem>
-                {items.map((i) => (
-                  <MenuItem key={i.ProfileKey} value={i.ProfileKey} sx={{ fontFamily: font }}>
-                    {i.ItemName} {i.Brand && i.Brand !== 'N/A' ? `(${i.Brand})` : ''} — Total Stock: {i.TotalQuantity}
-                  </MenuItem>
-                ))}
+                {items.map((i) => {
+                  const specs = i.location_balances[0]?.Specifications;
+                  const hasSpecs = specs && specs !== 'N/A' && specs !== 'None';
+                  return (
+                    <MenuItem key={i.ProfileKey} value={i.ProfileKey} sx={{ fontFamily: font }}>
+                      {i.ItemName} {i.Brand && i.Brand !== 'N/A' ? `(${i.Brand})` : ''} {hasSpecs ? `[Specs: ${specs}]` : ''} — Total Stock: {i.TotalQuantity}
+                    </MenuItem>
+                  );
+                })}
               </TextField>
             </Grid>
 
@@ -182,7 +186,7 @@ const SendAsset = () => {
                 <MenuItem value="" disabled sx={{ fontFamily: font }}>Select source location</MenuItem>
                 {selectedProfile?.Locations.map((l) => (
                   <MenuItem key={l.Id} value={String(l.Id)} sx={{ fontFamily: font }}>
-                    {l.LocationName || 'Storage'} {l.SerialNumber && l.SerialNumber !== 'N/A' && l.SerialNumber !== 'None' ? `[S/N: ${l.SerialNumber}]` : ''} — Available: {l.Quantity}
+                    {l.LocationName || 'Storage'} — Available: {l.Quantity}
                   </MenuItem>
                 ))}
               </TextField>

@@ -146,11 +146,10 @@ function cleanTitleCase(str) {
     .join(' ');
 }
 
-// Status is derived from quantity based on evaluation panel rules:
-// Qty >= 5 = 'In Stock'; 1 <= Qty <= 4 = 'Low Stock'; Qty == 0 = 'Out of Stock'
+// Status is derived from quantity based on simplified rules:
+// Qty > 0 = 'In Stock'; Qty <= 0 = 'Out of Stock'
 function deriveStatus(quantity) {
   if (quantity <= 0) return 'Out of Stock';
-  if (quantity <= 4) return 'Low Stock';
   return 'In Stock';
 }
 
@@ -769,12 +768,15 @@ app.get('/api/supplies/grouped', async (req, res) => {
     for (const row of result.recordset) {
       const itemName = cleanTitleCase(row.ItemName);
       const brand = cleanTitleCase(row.Brand || '');
-      const key = `${itemName.toLowerCase()}||${brand.toLowerCase()}`;
+      const specs = cleanTitleCase(row.Specifications) || 'N/A';
+      const unit = (row.Unit || 'Pieces').trim();
+      const key = `${itemName.toLowerCase()}||${brand.toLowerCase()}||${specs.toLowerCase()}||${unit.toLowerCase()}`;
       if (!grouped[key]) {
         grouped[key] = {
           ProfileKey: key,
           ItemName: itemName,
           Brand: brand || 'N/A',
+          Unit: unit || 'Pieces',
           TotalQuantity: 0,
           location_balances: [],
           Locations: []
@@ -787,8 +789,7 @@ app.get('/api/supplies/grouped', async (req, res) => {
         LocationName: row.Location || 'N/A',
         Quantity: row.Quantity,
         Status: deriveStatus(row.Quantity),
-        Description: row.Description || 'N/A',
-        Specifications: row.Specifications || 'N/A',
+        Specifications: specs,
         Unit: row.Unit || 'Pieces'
       };
       grouped[key].location_balances.push(locData);
@@ -802,11 +803,14 @@ app.get('/api/supplies/grouped', async (req, res) => {
 });
 
 app.post('/api/supplies', async (req, res) => {
-  const { itemName, description, brand, quantity, location, specifications, user, unit } = req.body;
+  const { itemName, brand, quantity, location, specifications, user, unit } = req.body;
 
   const qty = parseInt(quantity);
   if (!itemName || !itemName.trim()) {
     return res.status(400).json({ message: 'Item name is required.' });
+  }
+  if (!specifications || !specifications.trim() || specifications.trim().toUpperCase() === 'N/A') {
+    return res.status(400).json({ message: 'Specifications are required.' });
   }
   if (Number.isNaN(qty) || qty < 1) {
     return res.status(400).json({ message: 'Quantity must be at least 1.' });
@@ -816,6 +820,8 @@ app.post('/api/supplies', async (req, res) => {
     const pool = await sql.connect(config);
     const normItemName = cleanTitleCase(itemName);
     const normBrand = cleanTitleCase(brand);
+    const normSpecs = cleanTitleCase(specifications) || 'N/A';
+    const normUnit = (unit || 'Pieces').trim();
     const status = deriveStatus(qty);
 
     if (normBrand) {
@@ -826,10 +832,14 @@ app.post('/api/supplies', async (req, res) => {
       .input('ItemName', sql.NVarChar, normItemName)
       .input('Brand', sql.NVarChar, normBrand)
       .input('Location', sql.NVarChar, (location || '').trim())
+      .input('Specifications', sql.NVarChar, normSpecs)
+      .input('Unit', sql.NVarChar, normUnit)
       .query(`SELECT * FROM OfficeSupplies
               WHERE ItemName = @ItemName
                 AND ISNULL(Brand,'') = @Brand
-                AND ISNULL(Location,'') = @Location`);
+                AND ISNULL(Location,'') = @Location
+                AND ISNULL(Specifications,'') = @Specifications
+                AND ISNULL(Unit,'') = @Unit`);
 
     if (existing.recordset.length > 0) {
       const match = existing.recordset[0];
@@ -840,12 +850,11 @@ app.post('/api/supplies', async (req, res) => {
         .input('Id', sql.Int, match.Id)
         .input('Quantity', sql.Int, newQty)
         .input('Status', sql.NVarChar, newStatus)
-        .input('Description', sql.NVarChar, description || match.Description || '')
-        .input('Specifications', sql.NVarChar, specifications || match.Specifications || '')
+        .input('Specifications', sql.NVarChar, normSpecs || match.Specifications || 'N/A')
         .input('Unit', sql.NVarChar, unit || match.Unit || 'Pieces')
         .input('UpdatedAt', sql.DateTime, new Date())
         .query(`UPDATE OfficeSupplies SET
-          Quantity=@Quantity, Status=@Status, Description=@Description,
+          Quantity=@Quantity, Status=@Status,
           Specifications=@Specifications, Unit=@Unit, UpdatedAt=@UpdatedAt
           WHERE Id=@Id`);
 
@@ -863,17 +872,16 @@ app.post('/api/supplies', async (req, res) => {
 
     const insertResult = await pool.request()
       .input('ItemName', sql.NVarChar, normItemName)
-      .input('Description', sql.NVarChar, description || '')
       .input('Brand', sql.NVarChar, normBrand)
       .input('Quantity', sql.Int, qty)
       .input('Status', sql.NVarChar, status)
       .input('Location', sql.NVarChar, location || '')
-      .input('Specifications', sql.NVarChar, specifications || '')
+      .input('Specifications', sql.NVarChar, normSpecs || 'N/A')
       .input('Unit', sql.NVarChar, unit || 'Pieces')
       .query(`INSERT INTO OfficeSupplies
-        (ItemName, Description, Brand, Quantity, Status, Location, Specifications, Unit)
+        (ItemName, Brand, Quantity, Status, Location, Specifications, Unit)
         OUTPUT INSERTED.Id
-        VALUES (@ItemName, @Description, @Brand, @Quantity, @Status, @Location, @Specifications, @Unit)`);
+        VALUES (@ItemName, @Brand, @Quantity, @Status, @Location, @Specifications, @Unit)`);
 
     const newId = insertResult.recordset[0].Id;
 
@@ -896,11 +904,14 @@ app.post('/api/supplies', async (req, res) => {
 app.put('/api/supplies/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { itemName, description, brand, quantity, location, specifications, user, unit } = req.body;
+    const { itemName, brand, quantity, location, specifications, user, unit } = req.body;
 
     const qty = parseInt(quantity);
     if (!itemName || !itemName.trim()) {
       return res.status(400).json({ message: 'Item name is required.' });
+    }
+    if (!specifications || !specifications.trim() || specifications.trim().toUpperCase() === 'N/A') {
+      return res.status(400).json({ message: 'Specifications are required.' });
     }
     if (Number.isNaN(qty) || qty < 0) {
       return res.status(400).json({ message: 'Quantity cannot be negative.' });
@@ -926,7 +937,6 @@ app.put('/api/supplies/:id', async (req, res) => {
     await pool.request()
       .input('Id', sql.Int, parseInt(id))
       .input('ItemName', sql.NVarChar, normItemName)
-      .input('Description', sql.NVarChar, description || '')
       .input('Brand', sql.NVarChar, normBrand)
       .input('Quantity', sql.Int, qty)
       .input('Status', sql.NVarChar, status)
@@ -935,7 +945,7 @@ app.put('/api/supplies/:id', async (req, res) => {
       .input('Unit', sql.NVarChar, unit || 'Pieces')
       .input('UpdatedAt', sql.DateTime, new Date())
       .query(`UPDATE OfficeSupplies SET
-        ItemName=@ItemName, Description=@Description, Brand=@Brand,
+        ItemName=@ItemName, Brand=@Brand,
         Quantity=@Quantity, Status=@Status,
         Location=@Location, Specifications=@Specifications,
         Unit=@Unit, UpdatedAt=@UpdatedAt WHERE Id=@Id`);
@@ -1007,10 +1017,8 @@ app.post('/api/supplies/add-stock', async (req, res) => {
     const pool = await sql.connect(config);
     transaction = new sql.Transaction(pool);
     await transaction.begin();
-
     let targetItemName = itemName;
     let targetBrand = brand;
-    let targetDescription = req.body.description || '';
     let targetSpecifications = req.body.specifications || '';
     let targetUnit = req.body.unit || 'Pieces';
 
@@ -1025,7 +1033,6 @@ app.post('/api/supplies/add-stock', async (req, res) => {
       }
       targetItemName = supply.ItemName;
       targetBrand = supply.Brand;
-      targetDescription = supply.Description || '';
       targetSpecifications = supply.Specifications || '';
       targetUnit = supply.Unit || 'Pieces';
     }
@@ -1042,13 +1049,19 @@ app.post('/api/supplies/add-stock', async (req, res) => {
       await upsertBrand(pool, normBrand);
     }
 
+    const normSpecs = cleanTitleCase(targetSpecifications) || 'N/A';
+    const normUnit = (targetUnit || 'Pieces').trim();
     const existing = await new sql.Request(transaction)
       .input('ItemName', sql.NVarChar, normItemName)
       .input('Brand', sql.NVarChar, normBrand)
       .input('Location', sql.NVarChar, location.trim())
+      .input('Specifications', sql.NVarChar, normSpecs)
+      .input('Unit', sql.NVarChar, normUnit)
       .query(`SELECT * FROM OfficeSupplies
               WHERE ItemName = @ItemName AND ISNULL(Brand,'') = @Brand
-                AND ISNULL(Location,'') = @Location`);
+                AND ISNULL(Location,'') = @Location 
+                AND ISNULL(Specifications,'') = @Specifications
+                AND ISNULL(Unit,'') = @Unit`);
 
     let rowId, previousQuantity, newQuantity;
 
@@ -1074,13 +1087,12 @@ app.post('/api/supplies/add-stock', async (req, res) => {
         .input('Quantity', sql.Int, newQuantity)
         .input('Status', sql.NVarChar, deriveStatus(newQuantity))
         .input('Location', sql.NVarChar, location.trim())
-        .input('Description', sql.NVarChar, targetDescription)
         .input('Specifications', sql.NVarChar, targetSpecifications)
         .input('Unit', sql.NVarChar, targetUnit)
         .query(`INSERT INTO OfficeSupplies
-                (ItemName, Brand, Quantity, Status, Location, Description, Specifications, Unit)
+                (ItemName, Brand, Quantity, Status, Location, Specifications, Unit)
                 OUTPUT INSERTED.Id
-                VALUES (@ItemName, @Brand, @Quantity, @Status, @Location, @Description, @Specifications, @Unit)`);
+                VALUES (@ItemName, @Brand, @Quantity, @Status, @Location, @Specifications, @Unit)`);
       rowId = insertResult.recordset[0].Id;
     }
 
@@ -1160,11 +1172,15 @@ app.post('/api/supplies/:id/add-stock', async (req, res) => {
     const normBrand = cleanTitleCase(supply.Brand);
     if (normBrand) await upsertBrand(pool, normBrand);
 
+    const normSpecs = cleanTitleCase(supply.Specifications) || 'N/A';
+    const normUnit = (supply.Unit || 'Pieces').trim();
     const existTarget = await new sql.Request(transaction)
       .input('ItemName', sql.NVarChar, normItemName)
       .input('Brand', sql.NVarChar, normBrand)
       .input('Location', sql.NVarChar, resolvedLocation.trim())
-      .query(`SELECT * FROM OfficeSupplies WHERE ItemName = @ItemName AND ISNULL(Brand,'') = @Brand AND ISNULL(Location,'') = @Location`);
+      .input('Specifications', sql.NVarChar, normSpecs)
+      .input('Unit', sql.NVarChar, normUnit)
+      .query(`SELECT * FROM OfficeSupplies WHERE ItemName = @ItemName AND ISNULL(Brand,'') = @Brand AND ISNULL(Location,'') = @Location AND ISNULL(Specifications,'') = @Specifications AND ISNULL(Unit,'') = @Unit`);
 
     let rowId, previousQuantity, newQuantity;
     if (existTarget.recordset.length > 0) {
@@ -1187,11 +1203,10 @@ app.post('/api/supplies/:id/add-stock', async (req, res) => {
         .input('Quantity', sql.Int, newQuantity)
         .input('Status', sql.NVarChar, deriveStatus(newQuantity))
         .input('Location', sql.NVarChar, resolvedLocation.trim())
-        .input('Description', sql.NVarChar, supply.Description)
         .input('Specifications', sql.NVarChar, supply.Specifications)
         .input('Unit', sql.NVarChar, supply.Unit || 'Pieces')
-        .query(`INSERT INTO OfficeSupplies (ItemName, Brand, Quantity, Status, Location, Description, Specifications, Unit)
-                OUTPUT INSERTED.Id VALUES (@ItemName, @Brand, @Quantity, @Status, @Location, @Description, @Specifications, @Unit)`);
+        .query(`INSERT INTO OfficeSupplies (ItemName, Brand, Quantity, Status, Location, Specifications, Unit)
+                OUTPUT INSERTED.Id VALUES (@ItemName, @Brand, @Quantity, @Status, @Location, @Specifications, @Unit)`);
       rowId = insertResult.recordset[0].Id;
     }
 
@@ -1261,13 +1276,19 @@ app.post('/api/supplies/:id/transfer', async (req, res) => {
     const normItemName = cleanTitleCase(source.ItemName);
     const normBrand = cleanTitleCase(source.Brand);
 
+    const normSpecs = cleanTitleCase(source.Specifications) || 'N/A';
+    const normUnit = (source.Unit || 'Pieces').trim();
     const destResult = await new sql.Request(transaction)
       .input('ItemName', sql.NVarChar, normItemName)
       .input('Brand', sql.NVarChar, normBrand)
       .input('Location', sql.NVarChar, destinationLocation.trim())
+      .input('Specifications', sql.NVarChar, normSpecs)
+      .input('Unit', sql.NVarChar, normUnit)
       .query(`SELECT * FROM OfficeSupplies
               WHERE ItemName = @ItemName AND ISNULL(Brand,'') = @Brand
-                AND ISNULL(Location,'') = @Location`);
+                AND ISNULL(Location,'') = @Location 
+                AND ISNULL(Specifications,'') = @Specifications
+                AND ISNULL(Unit,'') = @Unit`);
 
     let destId, destPrev, destNew;
     const destExisting = destResult.recordset[0];
@@ -1290,13 +1311,12 @@ app.post('/api/supplies/:id/transfer', async (req, res) => {
         .input('Quantity', sql.Int, destNew)
         .input('Status', sql.NVarChar, deriveStatus(destNew))
         .input('Location', sql.NVarChar, destinationLocation.trim())
-        .input('Description', sql.NVarChar, source.Description || '')
         .input('Specifications', sql.NVarChar, source.Specifications || '')
         .input('Unit', sql.NVarChar, source.Unit || 'Pieces')
         .query(`INSERT INTO OfficeSupplies
-                (ItemName, Brand, Quantity, Status, Location, Description, Specifications, Unit)
+                (ItemName, Brand, Quantity, Status, Location, Specifications, Unit)
                 OUTPUT INSERTED.Id
-                VALUES (@ItemName, @Brand, @Quantity, @Status, @Location, @Description, @Specifications, @Unit)`);
+                VALUES (@ItemName, @Brand, @Quantity, @Status, @Location, @Specifications, @Unit)`);
       destId = insertResult.recordset[0].Id;
     }
 
@@ -1411,7 +1431,8 @@ app.get('/api/equipment/grouped', async (req, res) => {
     for (const row of result.recordset) {
       const itemName = cleanTitleCase(row.ItemName);
       const brand = cleanTitleCase(row.Brand || '');
-      const key = `${itemName.toLowerCase()}||${brand.toLowerCase()}`;
+      const specs = cleanTitleCase(row.Specifications) || 'N/A';
+      const key = `${itemName.toLowerCase()}||${brand.toLowerCase()}||${specs.toLowerCase()}`;
       if (!grouped[key]) {
         grouped[key] = {
           ProfileKey: key,
@@ -1429,9 +1450,7 @@ app.get('/api/equipment/grouped', async (req, res) => {
         LocationName: row.Location || 'N/A',
         Quantity: row.Quantity,
         Status: deriveStatus(row.Quantity),
-        SerialNumber: row.SerialNumber || 'N/A',
-        Description: row.Description || 'N/A',
-        Specifications: row.Specifications || 'N/A'
+        Specifications: specs
       };
       grouped[key].location_balances.push(locData);
       grouped[key].Locations.push(locData);
@@ -1445,7 +1464,7 @@ app.get('/api/equipment/grouped', async (req, res) => {
 
 // ---- Add Stock: safely append stock levels directly at a location ----
 app.post('/api/equipment/add-stock', async (req, res) => {
-  const { assetId, itemName, brand, serialNumber, location, quantity, user } = req.body;
+  const { assetId, itemName, brand, location, quantity, user } = req.body;
   const qty = parseInt(quantity);
 
   if (Number.isNaN(qty) || qty < 1) {
@@ -1463,8 +1482,6 @@ app.post('/api/equipment/add-stock', async (req, res) => {
 
     let targetItemName = itemName;
     let targetBrand = brand;
-    let targetSerialNumber = serialNumber || '';
-    let targetDescription = req.body.description || '';
     let targetSpecifications = req.body.specifications || '';
 
     if (assetId) {
@@ -1478,8 +1495,6 @@ app.post('/api/equipment/add-stock', async (req, res) => {
       }
       targetItemName = asset.ItemName;
       targetBrand = asset.Brand;
-      targetSerialNumber = asset.SerialNumber || '';
-      targetDescription = asset.Description || '';
       targetSpecifications = asset.Specifications || '';
     }
 
@@ -1495,26 +1510,15 @@ app.post('/api/equipment/add-stock', async (req, res) => {
       await upsertBrand(pool, normBrand);
     }
 
-    const cleanSerial = (targetSerialNumber || '').trim();
-    const isSerialized = cleanSerial !== '' && cleanSerial.toLowerCase() !== 'n/a' && cleanSerial.toLowerCase() !== 'none';
-    let query = '';
-    const request = new sql.Request(transaction)
+    const normSpecs = cleanTitleCase(targetSpecifications) || 'N/A';
+    const existing = await new sql.Request(transaction)
       .input('ItemName', sql.NVarChar, normItemName)
       .input('Brand', sql.NVarChar, normBrand)
-      .input('Location', sql.NVarChar, location.trim());
-
-    if (isSerialized) {
-      request.input('SerialNumber', sql.NVarChar, cleanSerial);
-      query = `SELECT * FROM LibraryEquipment
-               WHERE ItemName = @ItemName AND ISNULL(Brand,'') = @Brand
-                 AND ISNULL(Location,'') = @Location AND SerialNumber = @SerialNumber`;
-    } else {
-      query = `SELECT * FROM LibraryEquipment
-               WHERE ItemName = @ItemName AND ISNULL(Brand,'') = @Brand
-                 AND ISNULL(Location,'') = @Location
-                 AND (SerialNumber IS NULL OR SerialNumber = '' OR SerialNumber = 'N/A' OR SerialNumber = 'None')`;
-    }
-    const existing = await request.query(query);
+      .input('Location', sql.NVarChar, location.trim())
+      .input('Specifications', sql.NVarChar, normSpecs)
+      .query(`SELECT * FROM LibraryEquipment
+              WHERE ItemName = @ItemName AND ISNULL(Brand,'') = @Brand
+                AND ISNULL(Location,'') = @Location AND ISNULL(Specifications,'') = @Specifications`);
 
     let rowId, previousQuantity, newQuantity;
 
@@ -1539,14 +1543,12 @@ app.post('/api/equipment/add-stock', async (req, res) => {
         .input('Brand', sql.NVarChar, normBrand)
         .input('Quantity', sql.Int, newQuantity)
         .input('Status', sql.NVarChar, deriveStatus(newQuantity))
-        .input('SerialNumber', sql.NVarChar, targetSerialNumber)
         .input('Location', sql.NVarChar, location.trim())
-        .input('Description', sql.NVarChar, targetDescription)
-        .input('Specifications', sql.NVarChar, targetSpecifications)
+        .input('Specifications', sql.NVarChar, normSpecs)
         .query(`INSERT INTO LibraryEquipment
-                (ItemName, Brand, Quantity, Status, SerialNumber, Location, Description, Specifications, Condition)
+                (ItemName, Brand, Quantity, Status, Location, Specifications, Condition)
                 OUTPUT INSERTED.Id
-                VALUES (@ItemName, @Brand, @Quantity, @Status, @SerialNumber, @Location, @Description, @Specifications, '')`);
+                VALUES (@ItemName, @Brand, @Quantity, @Status, @Location, @Specifications, '')`);
       rowId = insertResult.recordset[0].Id;
     }
 
@@ -1623,27 +1625,16 @@ app.post('/api/equipment/:id/transfer', async (req, res) => {
     // Find or create destination row
     const normItemName = cleanTitleCase(source.ItemName);
     const normBrand = cleanTitleCase(source.Brand);
+    const normSpecs = cleanTitleCase(source.Specifications) || 'N/A';
 
-    const cleanSerial = (source.SerialNumber || '').trim();
-    const isSerialized = cleanSerial !== '' && cleanSerial.toLowerCase() !== 'n/a' && cleanSerial.toLowerCase() !== 'none';
-    let destQuery = '';
-    const destRequest = new sql.Request(transaction)
+    const destResult = await new sql.Request(transaction)
       .input('ItemName', sql.NVarChar, normItemName)
       .input('Brand', sql.NVarChar, normBrand)
-      .input('Location', sql.NVarChar, destinationLocation.trim());
-
-    if (isSerialized) {
-      destRequest.input('SerialNumber', sql.NVarChar, cleanSerial);
-      destQuery = `SELECT * FROM LibraryEquipment
-                   WHERE ItemName = @ItemName AND ISNULL(Brand,'') = @Brand
-                     AND ISNULL(Location,'') = @Location AND SerialNumber = @SerialNumber`;
-    } else {
-      destQuery = `SELECT * FROM LibraryEquipment
-                   WHERE ItemName = @ItemName AND ISNULL(Brand,'') = @Brand
-                     AND ISNULL(Location,'') = @Location
-                     AND (SerialNumber IS NULL OR SerialNumber = '' OR SerialNumber = 'N/A' OR SerialNumber = 'None')`;
-    }
-    const destResult = await destRequest.query(destQuery);
+      .input('Location', sql.NVarChar, destinationLocation.trim())
+      .input('Specifications', sql.NVarChar, normSpecs)
+      .query(`SELECT * FROM LibraryEquipment
+              WHERE ItemName = @ItemName AND ISNULL(Brand,'') = @Brand
+                AND ISNULL(Location,'') = @Location AND ISNULL(Specifications,'') = @Specifications`);
 
     let destId, destPrev, destNew;
     const destExisting = destResult.recordset[0];
@@ -1665,14 +1656,12 @@ app.post('/api/equipment/:id/transfer', async (req, res) => {
         .input('Brand', sql.NVarChar, normBrand)
         .input('Quantity', sql.Int, destNew)
         .input('Status', sql.NVarChar, deriveStatus(destNew))
-        .input('SerialNumber', sql.NVarChar, source.SerialNumber || '')
         .input('Location', sql.NVarChar, destinationLocation.trim())
-        .input('Description', sql.NVarChar, source.Description || '')
-        .input('Specifications', sql.NVarChar, source.Specifications || '')
+        .input('Specifications', sql.NVarChar, normSpecs)
         .query(`INSERT INTO LibraryEquipment
-                (ItemName, Brand, Quantity, Status, SerialNumber, Location, Description, Specifications, Condition)
+                (ItemName, Brand, Quantity, Status, Location, Specifications, Condition)
                 OUTPUT INSERTED.Id
-                VALUES (@ItemName, @Brand, @Quantity, @Status, @SerialNumber, @Location, @Description, @Specifications, '')`);
+                VALUES (@ItemName, @Brand, @Quantity, @Status, @Location, @Specifications, '')`);
       destId = insertResult.recordset[0].Id;
     }
 
@@ -1698,11 +1687,14 @@ app.post('/api/equipment/:id/transfer', async (req, res) => {
 });
 
 app.post('/api/equipment', async (req, res) => {
-  const { itemName, description, brand, quantity, serialNumber, location, specifications, user } = req.body;
+  const { itemName, brand, quantity, location, specifications, user } = req.body;
 
   const qty = parseInt(quantity);
   if (!itemName || !itemName.trim()) {
     return res.status(400).json({ message: 'Item name is required.' });
+  }
+  if (!specifications || !specifications.trim() || specifications.trim().toUpperCase() === 'N/A') {
+    return res.status(400).json({ message: 'Specifications are required.' });
   }
   if (Number.isNaN(qty) || qty < 1) {
     return res.status(400).json({ message: 'Quantity must be at least 1.' });
@@ -1712,81 +1704,65 @@ app.post('/api/equipment', async (req, res) => {
     const pool = await sql.connect(config);
     const normItemName = cleanTitleCase(itemName);
     const normBrand = cleanTitleCase(brand);
+    const normSpecs = cleanTitleCase(specifications) || 'N/A';
     const status = deriveStatus(qty);
 
     if (normBrand) {
       await upsertBrand(pool, normBrand);
     }
 
-    const cleanSerial = (serialNumber || '').trim();
-    const isSerialized = cleanSerial !== '' && cleanSerial.toLowerCase() !== 'n/a' && cleanSerial.toLowerCase() !== 'none';
+    const existing = await pool.request()
+      .input('ItemName', sql.NVarChar, normItemName)
+      .input('Brand', sql.NVarChar, normBrand)
+      .input('Location', sql.NVarChar, (location || '').trim())
+      .input('Specifications', sql.NVarChar, normSpecs)
+      .query(`SELECT * FROM LibraryEquipment
+              WHERE ItemName = @ItemName
+                AND ISNULL(Brand,'') = @Brand
+                AND ISNULL(Location,'') = @Location
+                AND ISNULL(Specifications,'') = @Specifications`);
 
-    if (isSerialized) {
-      // 1. For serialized assets, check if serial number already exists anywhere
-      const dupSerial = await pool.request()
-        .input('SerialNumber', sql.NVarChar, cleanSerial)
-        .query('SELECT * FROM LibraryEquipment WHERE SerialNumber = @SerialNumber');
+    if (existing.recordset.length > 0) {
+      const match = existing.recordset[0];
+      const newQty = match.Quantity + qty;
+      const newStatus = deriveStatus(newQty);
 
-      if (dupSerial.recordset.length > 0) {
-        return res.status(400).json({ message: `An equipment asset with Serial Number "${cleanSerial}" already exists.` });
-      }
-    } else {
-      // 2. For non-serialized assets, check if the same asset/brand already exists at the same location
-      const existing = await pool.request()
-        .input('ItemName', sql.NVarChar, normItemName)
-        .input('Brand', sql.NVarChar, normBrand)
-        .input('Location', sql.NVarChar, (location || '').trim())
-        .query(`SELECT * FROM LibraryEquipment
-                WHERE ItemName = @ItemName
-                  AND ISNULL(Brand,'') = @Brand
-                  AND ISNULL(Location,'') = @Location
-                  AND (SerialNumber IS NULL OR SerialNumber = '' OR SerialNumber = 'N/A' OR SerialNumber = 'None')`);
+      await pool.request()
+        .input('Id', sql.Int, match.Id)
+        .input('Quantity', sql.Int, newQty)
+        .input('Status', sql.NVarChar, newStatus)
+        .input('Specifications', sql.NVarChar, normSpecs)
+        .input('UpdatedAt', sql.DateTime, new Date())
+        .query(`UPDATE LibraryEquipment SET
+          Quantity=@Quantity, Status=@Status,
+          Specifications=@Specifications, UpdatedAt=@UpdatedAt
+          WHERE Id=@Id`);
 
-      if (existing.recordset.length > 0) {
-        const match = existing.recordset[0];
-        const newQty = match.Quantity + qty;
-        const newStatus = deriveStatus(newQty);
+      await logAssetTransaction(pool.request(), {
+        assetId: match.Id,
+        actionType: 'Added Stock',
+        quantityChanged: qty,
+        previousQuantity: match.Quantity,
+        newQuantity: newQty,
+        createdBy: user,
+      });
 
-        await pool.request()
-          .input('Id', sql.Int, match.Id)
-          .input('Quantity', sql.Int, newQty)
-          .input('Status', sql.NVarChar, newStatus)
-          .input('Description', sql.NVarChar, description || match.Description || '')
-          .input('Specifications', sql.NVarChar, specifications || match.Specifications || '')
-          .input('UpdatedAt', sql.DateTime, new Date())
-          .query(`UPDATE LibraryEquipment SET
-            Quantity=@Quantity, Status=@Status, Description=@Description,
-            Specifications=@Specifications, UpdatedAt=@UpdatedAt
-            WHERE Id=@Id`);
-
-        await logAssetTransaction(pool.request(), {
-          assetId: match.Id,
-          actionType: 'Added Stock',
-          quantityChanged: qty,
-          previousQuantity: match.Quantity,
-          newQuantity: newQty,
-          createdBy: user,
-        });
-
-        return res.json({ success: true, id: match.Id, message: 'Stock updated on existing asset.' });
-      }
+      return res.json({ success: true, id: match.Id, message: 'Stock updated on existing asset.' });
     }
 
     const insertResult = await pool.request()
       .input('ItemName', sql.NVarChar, normItemName)
-      .input('Description', sql.NVarChar, description || '')
       .input('Brand', sql.NVarChar, normBrand)
       .input('Quantity', sql.Int, qty)
       .input('Status', sql.NVarChar, status)
-      .input('SerialNumber', sql.NVarChar, cleanSerial)
       .input('Condition', sql.NVarChar, '')
       .input('Location', sql.NVarChar, location || '')
-      .input('Specifications', sql.NVarChar, specifications || '')
+      .input('Specifications', sql.NVarChar, normSpecs)
       .query(`INSERT INTO LibraryEquipment 
-        (ItemName, Description, Brand, Quantity, Status, SerialNumber, Condition, Location, Specifications)
+        (ItemName, Brand, Quantity, Status, Condition, Location, Specifications)
         OUTPUT INSERTED.Id
         VALUES 
-        (@ItemName, @Description, @Brand, @Quantity, @Status, @SerialNumber, @Condition, @Location, @Specifications)`);
+        (@ItemName, @Brand, @Quantity, @Status, @Condition, @Location, @Specifications)`);
 
     const newId = insertResult.recordset[0].Id;
 
@@ -1809,11 +1785,14 @@ app.post('/api/equipment', async (req, res) => {
 app.put('/api/equipment/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { itemName, description, brand, quantity, serialNumber, location, specifications, user } = req.body;
+    const { itemName, brand, quantity, location, specifications, user } = req.body;
 
     const qty = parseInt(quantity);
     if (!itemName || !itemName.trim()) {
       return res.status(400).json({ message: 'Item name is required.' });
+    }
+    if (!specifications || !specifications.trim() || specifications.trim().toUpperCase() === 'N/A') {
+      return res.status(400).json({ message: 'Specifications are required.' });
     }
     if (Number.isNaN(qty) || qty < 0) {
       return res.status(400).json({ message: 'Quantity cannot be negative.' });
@@ -1839,18 +1818,16 @@ app.put('/api/equipment/:id', async (req, res) => {
     await pool.request()
       .input('Id', sql.Int, parseInt(id))
       .input('ItemName', sql.NVarChar, normItemName)
-      .input('Description', sql.NVarChar, description || '')
       .input('Brand', sql.NVarChar, normBrand)
       .input('Quantity', sql.Int, qty)
       .input('Status', sql.NVarChar, status)
-      .input('SerialNumber', sql.NVarChar, serialNumber || '')
       .input('Condition', sql.NVarChar, '')
       .input('Location', sql.NVarChar, location || '')
       .input('Specifications', sql.NVarChar, specifications || '')
       .input('UpdatedAt', sql.DateTime, new Date())
       .query(`UPDATE LibraryEquipment SET
-        ItemName=@ItemName, Description=@Description, Brand=@Brand,
-        Quantity=@Quantity, Status=@Status, SerialNumber=@SerialNumber,
+        ItemName=@ItemName, Brand=@Brand,
+        Quantity=@Quantity, Status=@Status,
         Condition=@Condition, Location=@Location, Specifications=@Specifications,
         UpdatedAt=@UpdatedAt WHERE Id=@Id`);
 
@@ -1974,11 +1951,10 @@ app.post('/api/equipment/:id/add-stock', async (req, res) => {
         .input('Quantity', sql.Int, newQuantity)
         .input('Status', sql.NVarChar, deriveStatus(newQuantity))
         .input('Location', sql.NVarChar, resolvedLocation.trim())
-        .input('Description', sql.NVarChar, asset.Description)
         .input('Specifications', sql.NVarChar, asset.Specifications)
         .input('SerialNumber', sql.NVarChar, asset.SerialNumber)
-        .query(`INSERT INTO LibraryEquipment (ItemName, Brand, Quantity, Status, Location, Description, Specifications, SerialNumber, Condition)
-                OUTPUT INSERTED.Id VALUES (@ItemName, @Brand, @Quantity, @Status, @Location, @Description, @Specifications, @SerialNumber, '')`);
+        .query(`INSERT INTO LibraryEquipment (ItemName, Brand, Quantity, Status, Location, Specifications, SerialNumber, Condition)
+                OUTPUT INSERTED.Id VALUES (@ItemName, @Brand, @Quantity, @Status, @Location, @Specifications, @SerialNumber, '')`);
       rowId = insertResult.recordset[0].Id;
     }
 
@@ -2002,6 +1978,60 @@ app.post('/api/equipment/:id/add-stock', async (req, res) => {
 app.post('/api/equipment/:id/send', async (req, res) => {
   req.body.destinationLocation = req.body.destination;
   return app._router.handle({ method: 'POST', url: `/api/equipment/${req.params.id}/transfer`, body: req.body }, res);
+});
+
+// =================== DYNAMIC CATEGORY-SPECIFIC ITEMS AND BRANDS =================== //
+
+app.get('/api/equipment/item-names', async (req, res) => {
+  try {
+    const pool = await sql.connect(config);
+    const result = await pool.request().query("SELECT DISTINCT ItemName FROM LibraryEquipment WHERE ItemName IS NOT NULL AND ItemName <> '' ORDER BY ItemName");
+    const list = result.recordset.map(r => cleanTitleCase(r.ItemName));
+    const unique = Array.from(new Set(list)).filter(Boolean);
+    res.json(unique);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch equipment item names' });
+  }
+});
+
+app.get('/api/equipment/brands', async (req, res) => {
+  try {
+    const pool = await sql.connect(config);
+    const result = await pool.request().query("SELECT DISTINCT Brand FROM LibraryEquipment WHERE Brand IS NOT NULL AND Brand <> '' AND Brand <> 'N/A' ORDER BY Brand");
+    const list = result.recordset.map(r => cleanTitleCase(r.Brand));
+    const unique = Array.from(new Set(list)).filter(Boolean);
+    res.json(unique);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch equipment brands' });
+  }
+});
+
+app.get('/api/supplies/item-names', async (req, res) => {
+  try {
+    const pool = await sql.connect(config);
+    const result = await pool.request().query("SELECT DISTINCT ItemName FROM OfficeSupplies WHERE ItemName IS NOT NULL AND ItemName <> '' ORDER BY ItemName");
+    const list = result.recordset.map(r => cleanTitleCase(r.ItemName));
+    const unique = Array.from(new Set(list)).filter(Boolean);
+    res.json(unique);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch supplies item names' });
+  }
+});
+
+app.get('/api/supplies/brands', async (req, res) => {
+  try {
+    const pool = await sql.connect(config);
+    const result = await pool.request().query("SELECT DISTINCT Brand FROM OfficeSupplies WHERE Brand IS NOT NULL AND Brand <> '' AND Brand <> 'N/A' ORDER BY Brand");
+    const list = result.recordset.map(r => cleanTitleCase(r.Brand));
+    const unique = Array.from(new Set(list)).filter(Boolean);
+    res.json(unique);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch supplies brands' });
+  }
 });
 
 // =================== BRANDS =================== //
@@ -2088,7 +2118,7 @@ app.get('/api/dashboard/summary', async (req, res) => {
       SELECT
         COUNT(*) AS totalAssets,
         ISNULL(SUM(Quantity), 0) AS totalInventory,
-        SUM(CASE WHEN Quantity > 0 AND Quantity <= ${LOW_STOCK_THRESHOLD} THEN 1 ELSE 0 END) AS lowStock
+        SUM(CASE WHEN Quantity <= 0 THEN 1 ELSE 0 END) AS outOfStock
       FROM LibraryEquipment
     `);
 
@@ -2101,7 +2131,7 @@ app.get('/api/dashboard/summary', async (req, res) => {
     res.json({
       totalAssets: assetStats.recordset[0].totalAssets,
       totalInventory: assetStats.recordset[0].totalInventory,
-      lowStock: assetStats.recordset[0].lowStock,
+      outOfStock: assetStats.recordset[0].outOfStock,
       sentToday: sentToday.recordset[0].sentToday,
     });
   } catch (err) {
