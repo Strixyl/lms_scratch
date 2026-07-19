@@ -156,7 +156,7 @@ const SendAsset = () => {
         <Paper elevation={0} sx={{ p: 3, border: '1px solid #e0e0e0', borderRadius: 3 }}>
           <Grid container spacing={2}>
             {/* 1. Select Asset Profile */}
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <TextField
                 fullWidth select label="Select Asset Profile *" value={selectedProfileKey}
                 onChange={(e) => setSelectedProfileKey(e.target.value)}
@@ -176,7 +176,7 @@ const SendAsset = () => {
             </Grid>
 
             {/* 2. Select Source Location */}
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <TextField
                 fullWidth select label="Source Location *" value={sourceLocationId}
                 onChange={(e) => { setSourceLocationId(e.target.value); setTransferQty(''); }}
@@ -193,7 +193,7 @@ const SendAsset = () => {
             </Grid>
 
             {/* 3. Destination Location / Section */}
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <TextField
                 fullWidth select label="Destination Location / Section *" value={destinationLocation}
                 onChange={(e) => setDestinationLocation(e.target.value)}
@@ -209,7 +209,7 @@ const SendAsset = () => {
 
             {/* Current details chip if source is selected */}
             {selectedSource && (
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                 <Chip
                   label={`Current Location Stock: ${selectedSource.Quantity} unit(s) at ${selectedSource.LocationName || 'Storage'}`}
                   sx={{ fontFamily: font, fontWeight: 600, backgroundColor: '#eef0ff', color: THEME.navy }}
@@ -218,7 +218,7 @@ const SendAsset = () => {
             )}
 
             {/* 4. Quantity to Send */}
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <TextField
                 fullWidth type="number" label="Quantity to Transfer *" value={transferQty}
                 onChange={(e) => setTransferQty(e.target.value)}
@@ -229,7 +229,7 @@ const SendAsset = () => {
             </Grid>
 
             {/* 5. Remarks */}
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <TextField
                 fullWidth multiline minRows={2} label="Remarks (optional)" value={remarks}
                 onChange={(e) => setRemarks(e.target.value)}

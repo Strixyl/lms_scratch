@@ -160,7 +160,7 @@ const SendSupply = () => {
               </Grid>
             )}
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <TextField
                 fullWidth select label="Destination Section *" value={destination}
                 onChange={(e) => setDestination(e.target.value)}
@@ -173,7 +173,7 @@ const SendSupply = () => {
               </TextField>
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <TextField
                 fullWidth type="number" label="Quantity to Send *" value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
