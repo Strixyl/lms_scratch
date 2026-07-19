@@ -487,7 +487,7 @@ const SuppliesEncode = () => {
     <Grid container spacing={2}>
       {/* Item Name Field - Select */}
       {itemNames.length > 0 && (
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <TextField
             fullWidth select label="Item Name *" name="itemNameOption" value={data.itemNameOption || ''}
             onChange={itemNameSelectHandler} error={!!errors.itemName}
@@ -508,7 +508,7 @@ const SuppliesEncode = () => {
 
       {/* Item Name Field - Manual Entry */}
       {(itemNames.length === 0 || data.itemNameOption === NEW_ITEM_VALUE) && (
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <TextField
             fullWidth label={itemNames.length === 0 ? "Item Name *" : "Enter New Item Name *"}
             name="itemName" value={data.itemName}
@@ -520,7 +520,7 @@ const SuppliesEncode = () => {
 
       {/* Brand Field - Select */}
       {brands.length > 0 && (
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <TextField
             fullWidth select label="Brand *" name="brandOption" value={data.brandOption}
             onChange={brandSelectHandler} error={!!errors.brand}
@@ -541,7 +541,7 @@ const SuppliesEncode = () => {
 
       {/* Brand Field - Manual Entry */}
       {(brands.length === 0 || data.brandOption === NEW_BRAND_VALUE) && (
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <TextField
             fullWidth label={brands.length === 0 ? "Brand Name *" : "Enter New Brand *"}
             name="brand" value={data.brand}
@@ -551,7 +551,7 @@ const SuppliesEncode = () => {
         </Grid>
       )}
 
-      <Grid item xs={12} sm={6} md={4}>
+      <Grid size={{ xs: 12, sm: 6, md: 4 }}>
         <TextField
           fullWidth select label="Unit *" name="unit" value={data.unit} onChange={handler}
         >
@@ -560,7 +560,7 @@ const SuppliesEncode = () => {
           ))}
         </TextField>
       </Grid>
-      <Grid item xs={12} sm={6} md={4}>
+      <Grid size={{ xs: 12, sm: 6, md: 4 }}>
         <TextField
           fullWidth label="Quantity *" name="quantity" value={data.quantity} onChange={handler}
           type="number" error={!!errors.quantity} helperText={errors.quantity}
@@ -568,7 +568,7 @@ const SuppliesEncode = () => {
         />
       </Grid>
 
-      <Grid item xs={12} sm={6} md={4}>
+      <Grid size={{ xs: 12, sm: 6, md: 4 }}>
         <TextField
           fullWidth label="Specifications *" name="specifications" value={data.specifications} onChange={handler}
           error={!!errors.specifications} helperText={errors.specifications}
@@ -576,7 +576,7 @@ const SuppliesEncode = () => {
           inputProps={{ style: { fontFamily: font } }}
         />
       </Grid>
-      <Grid item xs={12} sm={6} md={4}>
+      <Grid size={{ xs: 12, sm: 6, md: 4 }}>
         <TextField fullWidth select label="Location" name="location" value={data.location} onChange={handler}>
           <MenuItem value="">Select location</MenuItem>
           {LOCATION_OPTIONS.map((l) => (

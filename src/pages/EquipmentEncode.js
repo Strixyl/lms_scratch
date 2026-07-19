@@ -217,7 +217,7 @@ const EquipmentEncode = () => {
       errors.brand = 'Please enter the new brand name.';
     }
     if (brands.length === 0 && !data.brand.trim()) errors.brand = 'Brand name is required.';
-    
+
     if (!data.specifications || !data.specifications.trim() || data.specifications.trim().toUpperCase() === 'N/A') {
       errors.specifications = 'Specifications are required.';
     }
@@ -467,7 +467,7 @@ const EquipmentEncode = () => {
     <Grid container spacing={2}>
       {/* Item Name Field - Select */}
       {itemNames.length > 0 && (
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <TextField
             fullWidth select label="Item Name *" name="itemNameOption" value={data.itemNameOption || ''}
             onChange={itemNameSelectHandler} error={!!errors.itemName}
@@ -488,7 +488,7 @@ const EquipmentEncode = () => {
 
       {/* Item Name Field - Manual Entry */}
       {(itemNames.length === 0 || data.itemNameOption === NEW_ITEM_VALUE) && (
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <TextField
             fullWidth label={itemNames.length === 0 ? "Item Name *" : "Enter New Item Name *"}
             name="itemName" value={data.itemName}
@@ -500,7 +500,7 @@ const EquipmentEncode = () => {
 
       {/* Brand Field - Select */}
       {brands.length > 0 && (
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <TextField
             fullWidth select label="Brand *" name="brandOption" value={data.brandOption}
             onChange={brandSelectHandler} error={!!errors.brand}
@@ -521,7 +521,7 @@ const EquipmentEncode = () => {
 
       {/* Brand Field - Manual Entry */}
       {(brands.length === 0 || data.brandOption === NEW_BRAND_VALUE) && (
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <TextField
             fullWidth label={brands.length === 0 ? "Brand Name *" : "Enter New Brand *"}
             name="brand" value={data.brand}
@@ -531,7 +531,7 @@ const EquipmentEncode = () => {
         </Grid>
       )}
 
-      <Grid item xs={12} sm={6} md={4}>
+      <Grid size={{ xs: 12, sm: 6, md: 4 }}>
         <TextField
           fullWidth label="Quantity *" name="quantity" value={data.quantity} onChange={handler}
           type="number" error={!!errors.quantity} helperText={errors.quantity}
@@ -539,7 +539,7 @@ const EquipmentEncode = () => {
         />
       </Grid>
 
-      <Grid item xs={12} sm={6} md={4}>
+      <Grid size={{ xs: 12, sm: 6, md: 4 }}>
         <TextField fullWidth select label="Location" name="location" value={data.location} onChange={handler}>
           <MenuItem value="">Select location</MenuItem>
           {LOCATION_OPTIONS.map((l) => (
@@ -548,7 +548,7 @@ const EquipmentEncode = () => {
         </TextField>
       </Grid>
 
-      <Grid item xs={12} sm={6} md={4}>
+      <Grid size={{ xs: 12, sm: 6, md: 4 }}>
         <TextField
           fullWidth label="Specifications *" name="specifications" value={data.specifications} onChange={handler}
           error={!!errors.specifications} helperText={errors.specifications}
@@ -671,7 +671,7 @@ const EquipmentEncode = () => {
                     const status = getStockStatus(profile.TotalQuantity);
                     const sc = statusColor(status);
                     const isOpen = expandedRows.has(profile.ProfileKey);
-                    
+
                     const specs = profile.location_balances[0]?.Specifications;
 
                     return (
@@ -878,7 +878,7 @@ const EquipmentEncode = () => {
           <Typography sx={{ fontFamily: font, fontSize: 13, color: '#666', mb: 2 }}>
             Asset: <strong>{transferTarget?.ItemName}</strong> — Brand: <strong>{transferTarget?.Brand || 'N/A'}</strong>
           </Typography>
-          
+
           <TextField
             fullWidth select label="Source Location *" value={transferSourceId}
             onChange={(e) => { setTransferSourceId(e.target.value); setTransferError(''); }}
