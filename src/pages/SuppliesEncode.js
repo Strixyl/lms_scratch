@@ -21,14 +21,26 @@ import {
   getBrands, createBrand, getSuppliesDashboardSummary as getDashboardSummary,
 } from '../api/suppliesApi';
 
+const UNIT_OPTIONS = ['Pieces', 'Boxes', 'Reams', 'Packs'];
+
 const emptySupplyForm = {
   itemName: '',
   brand: '',
   brandOption: '',
   quantity: '',
+  unit: 'Pieces',
   location: '',
   description: '',
   specifications: '',
+};
+
+const parseDescriptionAndUnit = (descStr) => {
+  if (!descStr) return { unit: 'Pieces', description: 'N/A' };
+  const parts = descStr.split('|');
+  if (parts.length >= 2) {
+    return { unit: parts[0] || 'Pieces', description: parts.slice(1).join('|') || 'N/A' };
+  }
+  return { unit: 'Pieces', description: descStr || 'N/A' };
 };
 
 const NEW_BRAND_VALUE = '__new__';
@@ -208,8 +220,8 @@ const SuppliesEncode = () => {
         quantity,
         status: getStockStatus(quantity),
         location: formData.location,
-        description: formData.description.trim(),
-        specifications: formData.specifications.trim(),
+        description: `${formData.unit}|${formData.description.trim() || 'N/A'}`,
+        specifications: formData.specifications.trim() || 'N/A',
         user: loggedInUser,
       });
 
@@ -231,14 +243,16 @@ const SuppliesEncode = () => {
 
   const handleOpenEdit = (item) => {
     setSelectedItem(item);
+    const parsed = parseDescriptionAndUnit(item.Description);
     setEditForm({
       itemName: item.ItemName || '',
       brand: item.Brand || '',
       brandOption: item.Brand || '',
       quantity: item.Quantity ?? '',
       location: item.Location || '',
-      description: item.Description || '',
-      specifications: item.Specifications || '',
+      unit: parsed.unit,
+      description: parsed.description === 'N/A' ? '' : parsed.description,
+      specifications: item.Specifications === 'N/A' ? '' : item.Specifications || '',
     });
     setEditDialogOpen(true);
   };
@@ -257,8 +271,8 @@ const SuppliesEncode = () => {
         quantity,
         status: getStockStatus(quantity),
         location: editForm.location,
-        description: editForm.description.trim(),
-        specifications: editForm.specifications.trim(),
+        description: `${editForm.unit}|${editForm.description.trim() || 'N/A'}`,
+        specifications: editForm.specifications.trim() || 'N/A',
         user: loggedInUser,
       });
       setSnackbar({ open: true, message: 'Supply updated successfully!', severity: 'success' });
@@ -422,84 +436,94 @@ const SuppliesEncode = () => {
     if (brands.length === 0) {
       // No brands exist yet -> plain text input, first save seeds the master list
       return (
-        <Grid item xs={12} sm={6} md={4}>
-          <TextField
-            fullWidth label="Brand Name *" name="brand" value={data.brand}
-            onChange={handler} error={!!errors.brand} helperText={errors.brand}
-            inputProps={{ style: { fontFamily: font } }}
-          />
-        </Grid>
+        <TextField
+          fullWidth label="Brand Name *" name="brand" value={data.brand}
+          onChange={handler} error={!!errors.brand} helperText={errors.brand}
+          inputProps={{ style: { fontFamily: font } }}
+        />
       );
     }
     return (
-      <>
-        <Grid item xs={12} sm={6} md={4}>
-          <TextField
-            fullWidth select label="Brand *" name="brandOption" value={data.brandOption}
-            onChange={brandSelectHandler} error={!!errors.brand}
-            helperText={!data.brandOption ? errors.brand : ''}
-          >
-            <MenuItem value="" disabled sx={{ fontFamily: font }}>Select Brand</MenuItem>
-            {brands.map((b) => (
-              <MenuItem key={b.brand_id} value={b.brand_name} sx={{ fontFamily: font }}>
-                {b.brand_name}
-              </MenuItem>
-            ))}
-            <MenuItem value={NEW_BRAND_VALUE} sx={{ fontFamily: font, fontStyle: 'italic' }}>
-              Others (Input Manually)
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <TextField
+          fullWidth select label="Brand *" name="brandOption" value={data.brandOption}
+          onChange={brandSelectHandler} error={!!errors.brand}
+          helperText={!data.brandOption ? errors.brand : ''}
+        >
+          <MenuItem value="" disabled sx={{ fontFamily: font }}>Select Brand</MenuItem>
+          {brands.map((b) => (
+            <MenuItem key={b.brand_id} value={b.brand_name} sx={{ fontFamily: font }}>
+              {b.brand_name}
             </MenuItem>
-          </TextField>
-        </Grid>
+          ))}
+          <MenuItem value={NEW_BRAND_VALUE} sx={{ fontFamily: font, fontStyle: 'italic' }}>
+            Others (Input Manually)
+          </MenuItem>
+        </TextField>
         {data.brandOption === NEW_BRAND_VALUE && (
-          <Grid item xs={12} sm={6} md={4}>
-            <TextField
-              fullWidth label="Enter New Brand *" name="brand" value={data.brand}
-              onChange={handler} error={!!errors.brand} helperText={errors.brand}
-              inputProps={{ style: { fontFamily: font } }}
-            />
-          </Grid>
+          <TextField
+            fullWidth label="Enter New Brand *" name="brand" value={data.brand}
+            onChange={handler} error={!!errors.brand} helperText={errors.brand}
+            inputProps={{ style: { fontFamily: font } }}
+          />
         )}
-      </>
+      </Box>
     );
   };
 
   const formFields = (data, handler, brandSelectHandler, errors = {}) => (
     <Grid container spacing={2}>
-      <Grid item xs={12} sm={6} md={4}>
+      {/* Row 1 */}
+      <Grid item xs={12} md={4}>
         <TextField
           fullWidth label="Item Name *" name="itemName" value={data.itemName} onChange={handler}
           error={!!errors.itemName} helperText={errors.itemName}
           inputProps={{ style: { fontFamily: font } }}
         />
       </Grid>
-      {brandField(data, handler, brandSelectHandler, errors)}
-      <Grid item xs={12} sm={6} md={4}>
+      <Grid item xs={12} md={4}>
+        {brandField(data, handler, brandSelectHandler, errors)}
+      </Grid>
+      <Grid item xs={12} md={4}>
+        <TextField
+          fullWidth select label="Unit *" name="unit" value={data.unit} onChange={handler}
+        >
+          {UNIT_OPTIONS.map((u) => (
+            <MenuItem key={u} value={u} sx={{ fontFamily: font }}>{u}</MenuItem>
+          ))}
+        </TextField>
+      </Grid>
+
+      {/* Row 2 */}
+      <Grid item xs={12} md={4}>
         <TextField
           fullWidth label="Quantity *" name="quantity" value={data.quantity} onChange={handler}
           type="number" error={!!errors.quantity} helperText={errors.quantity}
           inputProps={{ style: { fontFamily: font }, min: 1 }}
         />
       </Grid>
+      <Grid item xs={12} md={4}>
+        <TextField
+          fullWidth label="Description" name="description" value={data.description} onChange={handler}
+          inputProps={{ style: { fontFamily: font } }}
+        />
+      </Grid>
+      <Grid item xs={12} md={4}>
+        <TextField
+          fullWidth label="Specifications" name="specifications" value={data.specifications} onChange={handler}
+          placeholder="e.g., Size: A4, 80gsm or Sharpness: No. 2"
+          inputProps={{ style: { fontFamily: font } }}
+        />
+      </Grid>
 
-      <Grid item xs={12} sm={6} md={4}>
+      {/* Row 3 */}
+      <Grid item xs={12} md={4}>
         <TextField fullWidth select label="Location" name="location" value={data.location} onChange={handler}>
           <MenuItem value="">Select location</MenuItem>
           {LOCATION_OPTIONS.map((l) => (
             <MenuItem key={l} value={l} sx={{ fontFamily: font }}>{l}</MenuItem>
           ))}
         </TextField>
-      </Grid>
-      <Grid item xs={12} sm={6} md={4}>
-        <TextField
-          fullWidth label="Description" name="description" value={data.description} onChange={handler}
-          inputProps={{ style: { fontFamily: font } }}
-        />
-      </Grid>
-      <Grid item xs={12} sm={6} md={4}>
-        <TextField
-          fullWidth label="Specifications" name="specifications" value={data.specifications} onChange={handler}
-          inputProps={{ style: { fontFamily: font } }}
-        />
       </Grid>
     </Grid>
   );
@@ -603,7 +627,7 @@ const SuppliesEncode = () => {
               <Table size="small">
                 <TableHead>
                   <TableRow sx={{ backgroundColor: '#fafafa' }}>
-                    {['', 'Item Name', 'Brand', 'Total Qty', 'Status', 'Actions'].map((h) => (
+                    {['', 'Item Name', 'Brand', 'Specifications', 'Status', 'Actions'].map((h) => (
                       <TableCell key={h} sx={{ fontFamily: font, fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase' }}>
                         {h}
                       </TableCell>
@@ -615,6 +639,12 @@ const SuppliesEncode = () => {
                     const status = getStockStatus(profile.TotalQuantity);
                     const sc = statusColor(status);
                     const isOpen = expandedRows.has(profile.ProfileKey);
+
+                    // Parse UOM and specifications from the first location balance
+                    const parsed = parseDescriptionAndUnit(profile.location_balances[0]?.Description);
+                    const unit = parsed.unit;
+                    const specs = profile.location_balances[0]?.Specifications;
+
                     return (
                       <React.Fragment key={profile.ProfileKey}>
                         <TableRow sx={{ '&:hover': { backgroundColor: '#fafafa' } }}>
@@ -627,7 +657,10 @@ const SuppliesEncode = () => {
                           <TableCell sx={{ fontFamily: font, fontSize: 13 }}>
                             {profile.Brand && profile.Brand !== 'N/A' ? profile.Brand : <span style={{ color: '#aaa', fontStyle: 'italic' }}>N/A</span>}
                           </TableCell>
-                          <TableCell sx={{ fontFamily: font, fontSize: 13 }}>{profile.TotalQuantity}</TableCell>
+                          <TableCell sx={{ fontFamily: font, fontSize: 13 }}>{`${profile.TotalQuantity} ${unit}`}</TableCell>
+                          <TableCell sx={{ fontFamily: font, fontSize: 13 }}>
+                            {specs && specs !== 'N/A' ? specs : <span style={{ color: '#aaa', fontStyle: 'italic' }}>N/A</span>}
+                          </TableCell>
                           <TableCell>
                             <Chip label={status} size="small" sx={{ fontFamily: font, fontWeight: 600, fontSize: 11, backgroundColor: sc.bg, color: sc.text, border: `1px solid ${sc.border}` }} />
                           </TableCell>
@@ -647,7 +680,7 @@ const SuppliesEncode = () => {
 
                         {isOpen && (
                           <TableRow>
-                            <TableCell colSpan={6} sx={{ backgroundColor: '#fafcff', py: 2 }}>
+                            <TableCell colSpan={7} sx={{ backgroundColor: '#fafcff', py: 2 }}>
                               <Table size="small">
                                 <TableHead>
                                   <TableRow>
@@ -659,12 +692,13 @@ const SuppliesEncode = () => {
                                 <TableBody>
                                   {profile.location_balances.map((loc) => {
                                     const locSc = statusColor(loc.Status);
+                                    const locParsed = parseDescriptionAndUnit(loc.Description);
                                     return (
                                       <TableRow key={loc.Id}>
                                         <TableCell sx={{ fontFamily: font, fontSize: 12 }}>
                                           {loc.LocationName && loc.LocationName !== 'N/A' ? loc.LocationName : <span style={{ color: '#aaa', fontStyle: 'italic' }}>N/A</span>}
                                         </TableCell>
-                                        <TableCell sx={{ fontFamily: font, fontSize: 12 }}>{loc.Quantity}</TableCell>
+                                        <TableCell sx={{ fontFamily: font, fontSize: 12 }}>{`${loc.Quantity} ${locParsed.unit}`}</TableCell>
                                         <TableCell>
                                           <Chip label={loc.Status} size="small" sx={{ fontFamily: font, fontSize: 10, backgroundColor: locSc.bg, color: locSc.text }} />
                                         </TableCell>
@@ -698,7 +732,7 @@ const SuppliesEncode = () => {
                   })}
                   {pagedItems.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={6} align="center" sx={{ fontFamily: font, py: 4, color: '#888' }}>
+                      <TableCell colSpan={7} align="center" sx={{ fontFamily: font, py: 4, color: '#888' }}>
                         No supply records match your search.
                       </TableCell>
                     </TableRow>
@@ -785,7 +819,7 @@ const SuppliesEncode = () => {
           <Typography sx={{ fontFamily: font, fontSize: 13, color: '#666', mb: 2 }}>
             Asset: <strong>{transferTarget?.ItemName}</strong> — Brand: <strong>{transferTarget?.Brand || 'N/A'}</strong>
           </Typography>
-          
+
           <TextField
             fullWidth select label="Source Location *" value={transferSourceLocation}
             onChange={(e) => { setTransferSourceLocation(e.target.value); setTransferError(''); }}

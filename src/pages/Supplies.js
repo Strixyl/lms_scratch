@@ -24,6 +24,16 @@ const deriveMasterStatus = (quantity) => {
   return 'In Stock';
 };
 
+const parseDescriptionAndUnit = (descStr) => {
+  if (!descStr) return { unit: 'Pieces', description: 'N/A' };
+  const parts = descStr.split('|');
+  if (parts.length >= 2) {
+    return { unit: parts[0] || 'Pieces', description: parts.slice(1).join('|') || 'N/A' };
+  }
+  return { unit: 'Pieces', description: descStr || 'N/A' };
+};
+
+
 const Supplies = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -132,7 +142,7 @@ const Supplies = () => {
                   <Table size="small">
                     <TableHead>
                       <TableRow sx={{ backgroundColor: '#fafafa' }}>
-                        {['', 'Item Name', 'Description', 'Brand', 'Qty', 'Status', 'Specifications'].map(h => (
+                        {['', 'Item Name', 'Brand', 'Stock Level', 'Specifications', 'Status'].map(h => (
                           <TableCell key={h} sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                             {h}
                           </TableCell>
@@ -144,6 +154,12 @@ const Supplies = () => {
                         const status = deriveMasterStatus(item.TotalQuantity);
                         const sc = statusColor(status);
                         const isOpen = expandedRows.has(item.ProfileKey);
+                        
+                        // Parse UOM and specifications from the first location balance
+                        const parsed = parseDescriptionAndUnit(item.location_balances[0]?.Description);
+                        const unit = parsed.unit;
+                        const specs = item.location_balances[0]?.Specifications;
+
                         return (
                           <React.Fragment key={item.ProfileKey}>
                             <TableRow sx={{ '&:hover': { backgroundColor: '#fafafa' } }}>
@@ -153,26 +169,25 @@ const Supplies = () => {
                                 </IconButton>
                               </TableCell>
                               <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 600 }}>{item.ItemName}</TableCell>
-                              <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#666', maxWidth: 150 }}>
-                                {item.location_balances[0]?.Description || '—'}
+                              <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13 }}>
+                                {item.Brand && item.Brand !== 'N/A' ? item.Brand : <span style={{ color: '#aaa', fontStyle: 'italic' }}>N/A</span>}
                               </TableCell>
-                              <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13 }}>{item.Brand}</TableCell>
-                              <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 600 }}>{item.TotalQuantity}</TableCell>
+                              <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 600 }}>{`${item.TotalQuantity} ${unit}`}</TableCell>
+                              <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#666', maxWidth: 150 }}>
+                                {specs && specs !== 'N/A' ? specs : <span style={{ color: '#aaa', fontStyle: 'italic' }}>N/A</span>}
+                              </TableCell>
                               <TableCell>
                                 <Chip label={status} size="small" sx={{
                                   backgroundColor: sc.bg, color: sc.text, border: `1px solid ${sc.border}`,
                                   fontFamily: 'Poppins, sans-serif', fontSize: 11, fontWeight: 600
                                 }} />
                               </TableCell>
-                              <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#666', maxWidth: 150 }}>
-                                {item.location_balances[0]?.Specifications || '—'}
-                              </TableCell>
                             </TableRow>
 
                             {/* Dropdown Locations Table */}
                             {isOpen && (
                               <TableRow>
-                                <TableCell colSpan={7} sx={{ backgroundColor: '#fafcff', py: 2 }}>
+                                <TableCell colSpan={6} sx={{ backgroundColor: '#fafcff', py: 2 }}>
                                   <Table size="small">
                                     <TableHead>
                                       <TableRow>
@@ -184,12 +199,13 @@ const Supplies = () => {
                                     <TableBody>
                                       {item.location_balances.map((loc) => {
                                         const locSc = statusColor(loc.Status);
+                                        const locParsed = parseDescriptionAndUnit(loc.Description);
                                         return (
                                           <TableRow key={loc.Id}>
                                             <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12 }}>
                                               {loc.LocationName && loc.LocationName !== 'N/A' ? loc.LocationName : <span style={{ color: '#aaa', fontStyle: 'italic' }}>N/A</span>}
                                             </TableCell>
-                                            <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12 }}>{loc.Quantity}</TableCell>
+                                            <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12 }}>{`${loc.Quantity} ${locParsed.unit}`}</TableCell>
                                             <TableCell>
                                               <Chip label={loc.Status} size="small" sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 10, backgroundColor: locSc.bg, color: locSc.text }} />
                                             </TableCell>
