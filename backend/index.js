@@ -3,9 +3,7 @@ const sql = require('mssql/msnodesqlv8');
 const cors = require('cors');
 const path = require('path');
 const moment = require('moment-timezone');
-const natural = require('natural');
-const vader = require('vader-sentiment');
-const afinn = require('afinn-165');
+const axios = require('axios');
 const fs = require('fs');
 const multer = require('multer');
 const app = express();
@@ -30,95 +28,47 @@ sql.connect(config)
     console.error('❌ Connection Error:', err);
   });
 
-const ratingScores = {
-  very_satisfied: 1.0,
-  satisfied: 0.5,
-  neutral: 0.0,
-  dissatisfied: -0.5,
-  very_dissatisfied: -1.0,
-  na: 0.0,
-};
+async function analyzeSentiment(responses, message) {
+  const ratingScores = {
+    very_satisfied: 1.0, satisfied: 0.5, neutral: 0.0,
+    dissatisfied: -0.5, very_dissatisfied: -1.0, na: 0.0,
+  };
 
-const classifier = new natural.BayesClassifier();
-
-classifier.addDocument('excellent service very helpful staff amazing experience', 'Positive');
-classifier.addDocument('great resources comfortable environment wonderful visit', 'Positive');
-classifier.addDocument('very satisfied with the library services highly recommend', 'Positive');
-classifier.addDocument('staff are friendly and professional books are well organized', 'Positive');
-classifier.addDocument('love the library always clean and quiet perfect for studying', 'Positive');
-classifier.addDocument('fantastic collection helpful librarians outstanding service', 'Positive');
-classifier.addDocument('very pleased with the resources available exceeded expectations', 'Positive');
-classifier.addDocument('best library experience staff went above and beyond', 'Positive');
-classifier.addDocument('books are well maintained and easy to find', 'Positive');
-classifier.addDocument('librarians are very accommodating and knowledgeable', 'Positive');
-
-
-classifier.addDocument('library is okay nothing special average experience', 'Neutral');
-classifier.addDocument('services are acceptable could be better but not bad', 'Neutral');
-classifier.addDocument('used the library for research it was fine', 'Neutral');
-classifier.addDocument('decent collection average staff response time', 'Neutral');
-classifier.addDocument('neither good nor bad just a regular visit', 'Neutral');
-classifier.addDocument('some things were good some were not satisfactory', 'Neutral');
-classifier.addDocument('average overall not impressed but not disappointed', 'Neutral');
-classifier.addDocument('the library is okay but could use more computers', 'Neutral');
-
-
-classifier.addDocument('poor service staff were unhelpful very disappointing', 'Negative');
-classifier.addDocument('terrible experience resources outdated disorganized', 'Negative');
-classifier.addDocument('very dissatisfied long wait times rude staff', 'Negative');
-classifier.addDocument('bad environment noisy dirty not comfortable at all', 'Negative');
-classifier.addDocument('worst library experience hard to find books no assistance', 'Negative');
-classifier.addDocument('frustrated with the service slow and unresponsive staff', 'Negative');
-classifier.addDocument('highly disappointed lacks resources and poor management', 'Negative');
-classifier.addDocument('books are outdated and hard to find', 'Negative');
-classifier.addDocument('no available computers and slow internet', 'Negative');
-classifier.addDocument('librarians were not helpful and ignored my questions', 'Negative');
-
-
-classifier.train();
-
-function scoreToLabel(score) {
-  if (score > 0.15) return 'Positive';
-  if (score < -0.15) return 'Negative';
-  return 'Neutral';
-}
-
-function analyzeSentiment(responses, message) {
+  // ── Emoji ratings score ──
   const validResponses = responses.filter(r => r !== null && r !== 'na');
   const ratingAvg = validResponses.length > 0
     ? validResponses.reduce((sum, r) => sum + (ratingScores[r] ?? 0), 0) / validResponses.length
     : 0;
-  const emojiSentiment = scoreToLabel(ratingAvg);
 
+  const emojiSentiment = ratingAvg > 0.15 ? 'Positive' : ratingAvg < -0.15 ? 'Negative' : 'Neutral';
+
+  // ── BERT text sentiment ──
   let textSentiment = 'Neutral';
-  let textScore = 0;
-
   if (message && message.trim().length > 0) {
-    const intensity = vader.SentimentIntensityAnalyzer.polarity_scores(message);
-    const vaderScore = intensity.compound;
-
-    const nbClassification = classifier.classify(message.toLowerCase());
-    const nbScore = nbClassification === 'Positive' ? 1 : nbClassification === 'Negative' ? -1 : 0;
-
-    const words = message.toLowerCase().replace(/[^a-z\s]/g, '').split(/\s+/);
-    const scoredWords = words.filter(w => afinn[w] !== undefined);
-    const afinnScore = scoredWords.length > 0
-      ? scoredWords.reduce((sum, w) => sum + afinn[w], 0) / scoredWords.length / 5
-      : 0;
-
-    textScore = vaderScore * 0.40 + nbScore * 0.35 + afinnScore * 0.25;
-    textSentiment = scoreToLabel(textScore);
+    try {
+      const bertResponse = await axios.post('http://localhost:5001/analyze', {
+        text: message
+      });
+      textSentiment = bertResponse.data.sentiment;
+    } catch (err) {
+      console.error('BERT service error:', err.message);
+      textSentiment = 'Neutral'; // fallback if Python is down
+    }
   }
 
+  // ── Combined result ──
   let overallSentiment;
   if (!message || message.trim().length === 0) {
     overallSentiment = emojiSentiment;
   } else {
-    const combinedScore = ratingAvg * 0.50 + textScore * 0.50;
-    overallSentiment = scoreToLabel(combinedScore);
+    // Emoji 50% + BERT 50%
+    const emojiScore = ratingAvg;
+    const bertScore = textSentiment === 'Positive' ? 1 : textSentiment === 'Negative' ? -1 : 0;
+    const combined = emojiScore * 0.5 + bertScore * 0.5;
+    overallSentiment = combined > 0.15 ? 'Positive' : combined < -0.15 ? 'Negative' : 'Neutral';
   }
 
-  console.log(`📊 Emoji: ${emojiSentiment} | Text: ${textSentiment} | Overall: ${overallSentiment}`);
+  console.log(`📊 Emoji: ${emojiSentiment} | BERT: ${textSentiment} | Overall: ${overallSentiment}`);
   return { emojiSentiment, textSentiment, overallSentiment };
 }
 
@@ -251,7 +201,7 @@ app.post('/api/survey', async (req, res) => {
   const { clientele, college, course, responses, message } = req.body;
 
   try {
-    const { emojiSentiment, textSentiment, overallSentiment } = analyzeSentiment(responses, message);
+    const { emojiSentiment, textSentiment, overallSentiment } = await analyzeSentiment(responses, message);
     const sentimentResult = overallSentiment;
 
     const pool = await sql.connect(config);
