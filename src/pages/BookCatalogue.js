@@ -26,7 +26,8 @@ import {
   CardActions,
   Checkbox,
   Divider,
-  Stack
+  Stack,
+  Tooltip
 } from '@mui/material';
 import {
   Refresh as RefreshIcon,
@@ -650,55 +651,120 @@ const BookCatalogue = () => {
                 {filteredBookData.map((book) => {
                   const isSelected = selectedSet.has(book.id);
                   return (
-                    <Grid item xs={12} sm={6} md={4} lg={3} key={book.id}>
+                    <Grid
+                      item
+                      xs={12}
+                      sm={6}
+                      md={4}
+                      lg={3}
+                      key={book.id}
+                      sx={{
+                        maxWidth: { lg: '10% !important', md: '33.333% !important', sm: '50% !important', xs: '100% !important' },
+                        flexBasis: { lg: '10% !important', md: '33.333% !important', sm: '50% !important', xs: '100% !important' },
+                        minWidth: 0,
+                        overflow: 'hidden',
+                      }}
+                    >
                       <Card
                         elevation={0}
-                        sx={{
-                          borderRadius: 2,
+                        style={{
+                          borderRadius: '8px',
                           border: isSelected ? '1px solid #d49f1e' : '1px solid #e2e8f0',
                           borderTop: '3px solid #d49f1e',
-                          bgcolor: isSelected ? '#fffbeb' : '#ffffff',
-                          transition: 'all 0.2s',
+                          backgroundColor: isSelected ? '#fffbeb' : '#ffffff',
+                          width: '100%',
+                          minWidth: 0,
+                          maxWidth: '100%',
+                          overflow: 'hidden',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between',
+                          boxSizing: 'border-box',
                         }}
                       >
-                        <CardContent sx={{ p: 2 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                        <CardContent style={{ padding: '16px', flexGrow: 1, minWidth: 0, width: '100%', overflow: 'hidden', boxSizing: 'border-box' }}>
+                          <Box style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', gap: '8px', width: '100%', minWidth: 0 }}>
                             <Checkbox
                               checked={isSelected}
                               onChange={() => handleToggleSelectRow(book.id)}
                               size="small"
-                              sx={{ p: 0, color: '#d49f1e', '&.Mui-checked': { color: '#d49f1e' } }}
+                              style={{ padding: 0, color: '#d49f1e' }}
                             />
-                            <Chip label={book.library} size="small" variant="outlined" sx={{ fontSize: '0.7rem', borderColor: '#d49f1e', color: '#b45309' }} />
+                            <Chip
+                              label={book.library}
+                              size="small"
+                              variant="outlined"
+                              style={{
+                                fontSize: '0.7rem',
+                                borderColor: '#d49f1e',
+                                color: '#b45309',
+                                maxWidth: '75%',
+                              }}
+                              sx={{
+                                '& .MuiChip-label': { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+                              }}
+                            />
                           </Box>
 
-                          <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#1b365d', mb: 0.5, lineHeight: 1.3 }}>
-                            {book.title}
-                          </Typography>
+                          <Tooltip title={book.title}>
+                            <Typography
+                              variant="subtitle2"
+                              style={{
+                                fontWeight: 600,
+                                color: '#1b365d',
+                                marginBottom: '4px',
+                                lineHeight: 1.3,
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                wordBreak: 'break-word',
+                                minHeight: '2.6em',
+                                maxHeight: '2.6em',
+                                width: '100%',
+                              }}
+                            >
+                              {book.title}
+                            </Typography>
+                          </Tooltip>
 
-                          <Typography variant="caption" display="block" sx={{ color: '#64748b', mb: 1 }}>
-                            {book.authorName || book.publisher || 'Unknown Author'}
-                          </Typography>
+                          <Tooltip title={book.authorName || book.publisher || 'Unknown Author'}>
+                            <Typography
+                              variant="caption"
+                              style={{
+                                display: 'block',
+                                color: '#64748b',
+                                marginBottom: '8px',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                width: '100%',
+                              }}
+                            >
+                              {book.authorName || book.publisher || 'Unknown Author'}
+                            </Typography>
+                          </Tooltip>
 
-                          <Divider sx={{ my: 1 }} />
+                          <Divider style={{ margin: '8px 0' }} />
 
-                          <Typography variant="caption" display="block" sx={{ color: '#475569' }}>
+                          <Typography variant="caption" style={{ display: 'block', color: '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
                             Call #: {book.callNumber || '—'}
                           </Typography>
-                          <Typography variant="caption" display="block" sx={{ color: '#475569' }}>
+                          <Typography variant="caption" style={{ display: 'block', color: '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
                             Acc #: {book.accessionNumber || '—'}
                           </Typography>
-                          <Typography variant="caption" display="block" sx={{ color: '#475569' }}>
+                          <Typography variant="caption" style={{ display: 'block', color: '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
                             Barcode: {book.barcode || '—'}
                           </Typography>
                         </CardContent>
 
-                        <CardActions sx={{ px: 2, py: 1, bgcolor: '#fafafa', justifyContent: 'space-between' }}>
-                          <Button size="small" startIcon={<VisibilityIcon fontSize="small" />} onClick={() => setPreviewBook(book)} sx={{ textTransform: 'none', color: '#1b365d', fontWeight: 600 }}>
+                        <CardActions style={{ padding: '8px 16px', backgroundColor: '#fafafa', justifyContent: 'space-between', width: '100%', boxSizing: 'border-box' }}>
+                          <Button size="small" startIcon={<VisibilityIcon fontSize="small" />} onClick={() => setPreviewBook(book)} style={{ textTransform: 'none', color: '#1b365d', fontWeight: 600 }}>
                             CPU Card
                           </Button>
                           <IconButton size="small" color="error" onClick={() => setDeleteTarget(book)}>
-                            <DeleteIcon fontSize="medium" />
+                            <DeleteIcon fontSize="small" />
                           </IconButton>
                         </CardActions>
                       </Card>
