@@ -74,11 +74,11 @@ const BookCatalogue = () => {
 
   // Helper to format full author name from record
   const getAuthorName = (record, i) => {
+    const directName = record[`authorName${i}`] || '';
+    if (directName && directName.trim()) return directName.trim();
     const last = record[`authorLastName${i}`] || '';
     const first = record[`authorFirstName${i}`] || '';
     const mi = record[`authorMiddleInitial${i}`] || '';
-    const pub = record[`publisherAuthor${i}`] || '';
-    if (pub && pub.trim()) return pub;
     if (!last && !first && !mi) return '';
     if (!first && !mi) return last;
     return `${last}${last && first ? ', ' : ''}${first}${mi ? ' ' + mi : ''}`.trim();
@@ -99,7 +99,7 @@ const BookCatalogue = () => {
             callNumber: record[`callNumber${i}`] || '',
             title: record[`bookTitle${i}`] || 'Untitled',
             authorName: getAuthorName(record, i),
-            publisher: record[`publisherAuthor${i}`] || '',
+            publisher: record[`publisherAuthor${i}`] || record[`publisher${i}`] || '',
             copyNumber: record[`copyNumber${i}`] || '',
             barcode: record[`barcodeValue${i}`] || '',
             isoCode: record[`isoCodeValue${i}`] || '',
@@ -698,7 +698,7 @@ const BookCatalogue = () => {
                             CPU Card
                           </Button>
                           <IconButton size="small" color="error" onClick={() => setDeleteTarget(book)}>
-                            <DeleteIcon fontSize="small" />
+                            <DeleteIcon fontSize="medium" />
                           </IconButton>
                         </CardActions>
                       </Card>

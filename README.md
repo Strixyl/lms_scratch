@@ -1,5 +1,5 @@
 # Library Management System with Patron Satisfaction Survey
-### Using Sentiment Analysis and Naïve Bayes Algorithm
+### Using Sentiment Analysis with BERT Transformer Model
 
 **Central Philippine University — College of Computer Studies**  
 **Bachelor of Science in Computer Science**  
@@ -9,7 +9,7 @@ Capstone Thesis Project — Henry Luce III Library
 
 ## Overview
 
-This is an enhanced web-based Library Management System developed for the **Henry Luce III Library** of Central Philippine University. The system was originally built as a Library Management System by a former IT student and has been improved by integrating additional modules and a **Patron Satisfaction Survey** with automated feedback analysis using **VADER Sentiment Analysis** and **Naïve Bayes classification** through a **TF-IDF-based NLP pipeline**.
+This is an enhanced web-based Library Management System developed for the **Henry Luce III Library** of Central Philippine University. The system was originally built as a Library Management System by a former IT student and has been improved by integrating additional modules and a **Patron Satisfaction Survey** with automated feedback analysis using a pre-trained **BERT (RoBERTa)** model via a Python Flask microservice combined with structured emoji ratings.
 
 The system unifies all core library operations — sign-in monitoring, book management, inventory tracking, and patron satisfaction analysis — into a single centralized platform.
 
@@ -21,7 +21,7 @@ The system unifies all core library operations — sign-in monitoring, book mana
 |---|---|---|
 | **HLL Sign-in Portal** | Tracks patron logins/logouts using student ID lookup, displaying patron info, and logs activity. | `Login.js`, `LoginData.js` |
 | **Patron Satisfaction Survey** | A 10-question survey featuring emoji-based ratings and an open-ended feedback comments box. | `SatisfactionSurvey.js`, `SatisfactionSurveyData.js` |
-| **Sentiment Analysis Dashboard** | Analyzes survey comments using a hybrid NLP approach (VADER + Naïve Bayes + AFINN) with emoji metrics. | `SentimentDashboard.js` |
+| **Sentiment Analysis Dashboard** | Analyzes survey comments using a hybrid NLP approach (50% Emoji Rating + 50% BERT Transformer model) with emoji metrics. | `SentimentDashboard.js`, `sentiment_service.py` |
 | **Book Card & Book Packet** | Encodes, saves, searches, and prints book card packets (supports up to 4 books per record). | `CardAndPacket.js` |
 | **Book Catalog** | A flat-list catalog viewer aggregating book data from all card-and-packet records with Excel export. | `BookCatalogue.js` |
 | **Supplies Inventory Encoding** | Manages office supplies records (add, update, delete, pagination, and search filter). | `SuppliesEncode.js`, `Supplies.js` |
@@ -29,7 +29,6 @@ The system unifies all core library operations — sign-in monitoring, book mana
 | **Office Supplies Transfer** | Safe transaction-based stock transfer to library sections with remaining stock limits. | `SendSupply.js`, `SupplyTransactionHistory.js` |
 | **Library Equipment Transfer** | Safe transaction-based stock transfer to library sections with remaining stock limits. | `Sendasset.js`, `Transactionhistory.js` |
 | **Admin Dashboard** | Handles user role credentials and session management. | Not built (RBAC in localStorage) |
-
 
 ---
 
@@ -45,23 +44,18 @@ The system unifies all core library operations — sign-in monitoring, book mana
 
 ## Sentiment Analysis Approach
 
-The sentiment analysis module processes the open-ended feedback submitted through the Patron Satisfaction Survey using a two-layer NLP pipeline:
+The sentiment analysis module processes the open-ended feedback submitted through the Patron Satisfaction Survey using a **Hybrid NLP Architecture**:
 
-### Layer 1 — VADER Sentiment Analysis
-VADER (Valence Aware Dictionary and sEntiment Reasoner) is a lexicon-based tool that assigns a compound sentiment score to each feedback entry and classifies it as **Positive**, **Negative**, or **Neutral**. It requires no training data and handles informal text well, making it suitable for short survey responses.
+### 1. Python BERT Microservice (`backend/sentiment_service.py`)
+- **Model**: Pre-trained Hugging Face transformer model `cardiffnlp/twitter-roberta-base-sentiment-latest`.
+- **Framework**: Python Flask API running on port `5001`.
+- **Process**:
+  1. Accepts open-ended survey text via POST request `/analyze`.
+  2. Truncates input text to a maximum of 512 tokens.
+  3. Classifies text into `Positive`, `Neutral`, or `Negative` sentiment based on transformer embeddings and classification heads.
+  4. Express backend calls this endpoint via `axios` in `backend/index.js`.
 
-### Layer 2 — Naïve Bayes Classification
-The Naïve Bayes classifier is trained on a labeled dataset of patron feedback comments to classify each response as **Positive**, **Negative**, or **Neutral** based on learned word patterns. TF-IDF (Term Frequency-Inverse Document Frequency) vectorization is applied to convert the raw text into numerical representations before classification.
-
-### Combined Output
-Both VADER and Naïve Bayes are applied to the same open-ended comment. Their outputs are displayed on the Sentiment Dashboard alongside word frequency analysis showing the most commonly mentioned topics across all patron responses.
-
-**Final Labels:** `Positive` | `Neutral` | `Negative`
-
----
-
-## Emoji Rating Scoring
-
+### 2. Emoji Rating Scoring
 The 10 emoji survey responses are mapped to numeric scores and averaged for the structured rating component:
 
 | Emoji | Label | Score |
@@ -71,7 +65,13 @@ The 10 emoji survey responses are mapped to numeric scores and averaged for the 
 | 😐 | Neutral | 0.0 |
 | 😠 | Dissatisfied | -0.5 |
 | 😡 | Very Dissatisfied | -1.0 |
-| ❌ | N/A | excluded |
+| ❌ | N/A | Excluded |
+
+### 3. Hybrid Combined Output & Resilience
+- **Combined Score Formula**:  
+  $$\text{Score} = (\text{Emoji Rating Avg} \times 0.50) + (\text{BERT Sentiment Score} \times 0.50)$$
+- **Thresholds**: Score $> +0.15$ ➔ `Positive` | Score $< -0.15$ ➔ `Negative` | Otherwise ➔ `Neutral`.
+- **Fallback Guard**: If the Python sentiment service is offline or unreachable, the system gracefully defaults text sentiment to `Neutral` without disrupting survey submissions.
 
 ---
 
@@ -80,12 +80,13 @@ The 10 emoji survey responses are mapped to numeric scores and averaged for the 
 | Layer | Technology |
 |---|---|
 | Frontend | React.js v19, Material UI v7 |
-| Backend | Node.js, Express.js |
+| Express Backend | Node.js, Express.js (Port 5000) |
+| Sentiment Service | Python 3.9+, Flask, Hugging Face Transformers (Port 5001) |
 | Database | Microsoft SQL Server (SQLEXPRESS) |
-| Sentiment Analysis | VADER + Naïve Bayes + TF-IDF |
+| Pre-trained NLP Model | `cardiffnlp/twitter-roberta-base-sentiment-latest` (BERT/RoBERTa) |
 | Charts | Recharts |
 | DB Driver | `mssql`, `msnodesqlv8` |
-| ML Library | `natural`, `vader-sentiment` |
+| HTTP Client | `axios` |
 
 ---
 
@@ -192,14 +193,14 @@ CREATE TABLE Sections (
 );
 ```
 
-
 ---
 
 ## Installation and Setup
 
 ### Prerequisites
-- Node.js
-- SQL Server Express (SQLEXPRESS)
+- Node.js v18+
+- Python 3.9+ (with `pip`)
+- SQL Server Express (`SQLEXPRESS`)
 - ODBC Driver 18 for SQL Server
 - SQL Server Management Studio (SSMS)
 
@@ -216,16 +217,15 @@ cd lms_scratch
 npm install --legacy-peer-deps
 ```
 
-**3. Install backend dependencies**
+**3. Install backend Node.js dependencies**
 ```bash
 cd backend
 npm install
 ```
 
-**4. Install sentiment analysis packages (inside backend folder)**
+**4. Install Python microservice dependencies**
 ```bash
-npm install natural
-npm install vader-sentiment
+pip install flask transformers torch
 ```
 
 **5. Update the database connection string in `backend/index.js`:**
@@ -233,25 +233,23 @@ npm install vader-sentiment
 connectionString: "Driver={ODBC Driver 18 for SQL Server};Server=YOUR_PC\\SQLEXPRESS;Database=hllSystem;Trusted_Connection=Yes;Encrypt=no;"
 ```
 
-**6. Run the backend (Terminal 1 — inside backend folder):**
+**6. Start the Python Sentiment Microservice (Terminal 1):**
+```bash
+python backend/sentiment_service.py
+```
+*Output:* Running on `http://127.0.0.1:5001`
+
+**7. Start the Express Backend (Terminal 2 — inside `backend` folder):**
 ```bash
 npm start
 ```
-You should see:
-```
-🚀 Server running on http://0.0.0.0:5000
-✅ Connected to SQL Server
-```
+*Output:* Server running on `http://0.0.0.0:5000`
 
-**7. Run the frontend (Terminal 2 — root folder):**
+**8. Start the React Frontend (Terminal 3 — root folder):**
 ```bash
 npm start
 ```
-
-**8. Open your browser:**
-```
-http://localhost:3000
-```
+*Output:* React application running on `http://localhost:3000`
 
 ---
 
@@ -276,7 +274,6 @@ http://localhost:3000
 | `/supply-transactions` | Supplies transaction history logs |
 | `/transactions` | Equipment transaction history logs |
 
-
 ---
 
 ## Specific Objectives
@@ -293,8 +290,7 @@ http://localhost:3000
 ## Scope and Limitations
 
 - The system is limited to the library operations of **Henry Luce III Library** only
-- Sentiment analysis supports **English-language feedback only** — local languages are not supported
-- The accuracy of the Naïve Bayes classifier depends on the quality and volume of the labeled training data collected during development
+- Sentiment analysis supports **English-language feedback** processed via pre-trained BERT transformer models
 - The system does not cover financial transactions, procurement, or operations outside of library management
 
 ---
@@ -303,9 +299,10 @@ http://localhost:3000
 
 - Always run VS Code as **Administrator** to allow SQL Server connections
 - Use `--legacy-peer-deps` when installing new npm packages to avoid dependency conflicts
-- Both terminals (frontend + backend) must be running at the same time for the system to work
-- Backend runs on `http://localhost:5000`
-- Frontend runs on `http://localhost:3000`
+- Three terminal instances (Python sentiment service, Express backend, React frontend) should run concurrently
+- Python Sentiment Service runs on `http://localhost:5001`
+- Express Backend runs on `http://localhost:5000`
+- React Frontend runs on `http://localhost:3000`
 
 ---
 
@@ -321,4 +318,3 @@ http://localhost:3000
 | **Year** | 2026 |
 
 ---
-

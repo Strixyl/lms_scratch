@@ -349,7 +349,7 @@ export default function CardAndPacket() {
   const handleLibraryChange4 = (e, v) => { setSelectedLibrary4(v); setIsoCodeValue4(getIsoCode(v)); setBarcodeValue4(`${getBarcodePrefix(v)}${accessionNumber4}`); };
   const handleAccessionNumberChange2 = (e) => { const v = e.target.value; setAccessionNumber2(v); setBarcodeValue2(`${getBarcodePrefix(selectedLibrary2)}${v}`); };
   const handleAccessionNumberChange3 = (e) => { const v = e.target.value; setAccessionNumber3(v); setBarcodeValue3(`${getBarcodePrefix(selectedLibrary3)}${v}`); };
-  const handleAccessionNumberChange4 = (e) => { const v = e.target.value; setAccessionNumber4(v); setBarcodeValue4(`${getBarcodePrefix(selectedLibrary4)}${v}`); };  const columns = [
+  const handleAccessionNumberChange4 = (e) => { const v = e.target.value; setAccessionNumber4(v); setBarcodeValue4(`${getBarcodePrefix(selectedLibrary4)}${v}`); }; const columns = [
     {
       label: 'First Column',
       library: selectedLibrary1, setLibrary: handleLibraryChange,
@@ -505,41 +505,73 @@ export default function CardAndPacket() {
         </Box>
       </Modal>
 
-      <Grid container spacing={2} sx={{ px: 3, pt: 3 }}>
-        {columns.map((col, i) => (
-          <Grid item xs={3} key={i}>
-            <Typography sx={{ fontWeight: 'light', fontStyle: 'italic', pb: 2 }}>{col.label}</Typography>
+      <Box sx={{ width: '100%', px: { xs: 2, sm: 3, md: 4 }, py: 3, boxSizing: 'border-box' }}>
+        <Box sx={{ display: 'flex', gap: { xs: 2, md: 3 }, width: '100%', boxSizing: 'border-box', flexWrap: { xs: 'wrap', md: 'nowrap' } }}>
+          {columns.map((col, i) => (
+            <Box key={i} sx={{ flex: { xs: '1 1 100%', md: '1 1 0px' }, minWidth: 0 }}>
+              <Typography sx={{ fontWeight: 'light', fontStyle: 'italic', pb: 2 }}>{col.label}</Typography>
 
-            <Typography fontWeight="bold">Library</Typography>
-            <Autocomplete options={libraries} freeSolo value={col.library} onChange={col.setLibrary}
-              renderInput={(params) => <TextField {...params} label="Choose library" margin="dense" variant="outlined" fullWidth sx={{ mb: 3 }} />} />
+              <Typography fontWeight="bold">
+                Library <Typography component="span" sx={{ color: '#ef4444', fontWeight: 'bold' }}>*</Typography>
+              </Typography>
+              <Autocomplete options={libraries} freeSolo value={col.library} onChange={col.setLibrary}
+                renderInput={(params) => <TextField {...params} label="Choose library *" margin="dense" variant="outlined" fullWidth sx={{ mb: 3 }} />} />
 
-            <Typography fontWeight="bold">Section</Typography>
-            <Autocomplete options={sections} freeSolo value={col.section} onChange={col.setSection}
-              renderInput={(params) => <TextField {...params} label="Choose section" margin="dense" variant="outlined" fullWidth sx={{ mb: 3 }} />} />
+              <Typography fontWeight="bold">
+                Section <Typography component="span" sx={{ color: '#ef4444', fontWeight: 'bold' }}>*</Typography>
+              </Typography>
+              <Autocomplete options={sections} freeSolo value={col.section} onChange={col.setSection}
+                renderInput={(params) => <TextField {...params} label="Choose section *" margin="dense" variant="outlined" fullWidth sx={{ mb: 3 }} />} />
 
-            <Typography fontWeight="bold">Author</Typography>
-            <TextField value={col.authorName} onChange={col.setAuthorName} fullWidth label="Full Name" placeholder="e.g. Last Name, First Name M.I." margin="dense" variant="outlined" disabled={col.publisher.trim() !== ''} />
-            <TextField value={col.publisher} onChange={col.setPublisher} fullWidth placeholder="Type here if the Author is a Publisher" margin="dense" variant="outlined" helperText="*Type here if the Author is a Publisher."
-              disabled={col.authorName.trim() !== ''} sx={{ mb: 3 }} />
+              <Typography fontWeight="bold">
+                Author (Full Name)
+              </Typography>
+              <TextField
+                value={col.authorName}
+                onChange={col.setAuthorName}
+                fullWidth
+                label="Author Full Name"
+                placeholder="e.g. Last Name, First Name M.I."
+                margin="dense"
+                variant="outlined"
+              />
 
-            <Typography fontWeight="bold">Title</Typography>
-            <TextField value={col.title} onChange={col.setTitle} fullWidth multiline minRows={3} margin="dense" variant="outlined" sx={{ mb: 3 }} />
+              <Typography fontWeight="bold" sx={{ mt: 1.5, color: '#334155' }}>
+                Publisher (Corporate / Institutional Author)
+              </Typography>
+              <TextField
+                value={col.publisher}
+                onChange={col.setPublisher}
+                fullWidth
+                label="Publisher Name"
+                placeholder="Enter Publisher Name"
+                margin="dense"
+                variant="outlined"
+                sx={{ mb: 3 }}
+              />
 
-            <Typography fontWeight="bold">Accession Number</Typography>
-            <TextField fullWidth margin="dense" variant="outlined" sx={{ mb: 3 }} value={col.accession} onChange={col.setAccession} />
+              <Typography fontWeight="bold">
+                Title <Typography component="span" sx={{ color: '#ef4444', fontWeight: 'bold' }}>*</Typography>
+              </Typography>
+              <TextField value={col.title} onChange={col.setTitle} fullWidth multiline minRows={3} label="Book Title *" margin="dense" variant="outlined" sx={{ mb: 3 }} />
 
-            <Typography fontWeight="bold">Call Number</Typography>
-            <TextField value={col.callNum} onChange={col.setCallNum} fullWidth multiline minRows={6} margin="dense" variant="outlined" sx={{ mb: 3 }} />
+              <Typography fontWeight="bold">
+                Accession Number <Typography component="span" sx={{ color: '#ef4444', fontWeight: 'bold' }}>*</Typography>
+              </Typography>
+              <TextField fullWidth margin="dense" variant="outlined" label="Accession Number *" sx={{ mb: 3 }} value={col.accession} onChange={col.setAccession} />
 
-            <Typography fontWeight="bold">Barcode</Typography>
-            <TextField fullWidth margin="dense" variant="outlined" sx={{ mb: 3 }} value={col.barcode} label="Auto-generated" onChange={col.setBarcode} />
+              <Typography fontWeight="bold">Call Number</Typography>
+              <TextField value={col.callNum} onChange={col.setCallNum} fullWidth multiline minRows={6} label="Call Number" margin="dense" variant="outlined" sx={{ mb: 3 }} />
 
-            <Typography fontWeight="bold">ISO Code</Typography>
-            <TextField fullWidth margin="dense" variant="outlined" sx={{ mb: 3 }} value={col.isoCode} label="Auto-generated" onChange={col.setIsoCode} />
-          </Grid>
-        ))}
-      </Grid>
+              <Typography fontWeight="bold">Barcode</Typography>
+              <TextField fullWidth margin="dense" variant="outlined" sx={{ mb: 3 }} value={col.barcode} label="Auto-generated Barcode" onChange={col.setBarcode} />
+
+              <Typography fontWeight="bold">ISO Code</Typography>
+              <TextField fullWidth margin="dense" variant="outlined" sx={{ mb: 3 }} value={col.isoCode} label="Auto-generated ISO Code" onChange={col.setIsoCode} />
+            </Box>
+          ))}
+        </Box>
+      </Box>
 
       <Grid container spacing={2} sx={{ px: { xs: 2, sm: 4, md: 8, lg: 10 }, pb: { xs: 4, sm: 6, md: 10, lg: 20 }, pt: { xs: 2, sm: 3 } }} justifyContent="center" alignItems="center">
         <Button variant="contained" color="primary" onClick={handleSave} sx={{ mr: 1 }}>Save Entry</Button>
