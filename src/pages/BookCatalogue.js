@@ -606,20 +606,25 @@ const BookCatalogue = () => {
                     border: 'none',
                     '& .MuiDataGrid-columnHeaders': {
                       bgcolor: '#1b365d',
-                      color: '#ffffff',
-                      fontWeight: 600,
-                      fontSize: '0.825rem',
-                      borderBottom: '2px solid #d49f1e',
-                      '& .MuiDataGrid-columnHeaderTitle': {
-                        color: '#ffffff',
-                        fontWeight: 600,
+                      borderBottom: '3px solid #d49f1e',
+                    },
+                    '& .MuiDataGrid-columnHeader': {
+                      bgcolor: '#1b365d !important',
+                      color: '#ffffff !important',
+                    },
+                    '& .MuiDataGrid-columnHeaderTitle': {
+                      color: '#ffffff !important',
+                      fontWeight: 700,
+                      fontSize: '0.85rem',
+                    },
+                    '& .MuiDataGrid-columnHeader .MuiCheckbox-root': {
+                      color: '#ffffff !important',
+                      '&.Mui-checked': {
+                        color: '#d49f1e !important',
                       },
-                      '& .MuiCheckbox-root': {
-                        color: '#ffffff',
-                      },
-                      '& .MuiDataGrid-iconButtonContainer, & .MuiDataGrid-menuIcon': {
-                        color: '#ffffff',
-                      },
+                    },
+                    '& .MuiDataGrid-columnHeader .MuiSvgIcon-root, & .MuiDataGrid-columnHeader .MuiDataGrid-iconButtonContainer, & .MuiDataGrid-columnHeader .MuiDataGrid-menuIcon': {
+                      color: '#ffffff !important',
                     },
                     '& .MuiDataGrid-row': {
                       '&:hover': {
