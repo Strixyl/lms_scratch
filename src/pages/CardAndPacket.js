@@ -22,10 +22,10 @@ export default function CardAndPacket() {
   const [barcodeValue1, setBarcodeValue] = useState(''); const [barcodeValue2, setBarcodeValue2] = useState(''); const [barcodeValue3, setBarcodeValue3] = useState(''); const [barcodeValue4, setBarcodeValue4] = useState('');
   const [isoCodeValue1, setIsoCodeValue] = useState(''); const [isoCodeValue2, setIsoCodeValue2] = useState(''); const [isoCodeValue3, setIsoCodeValue3] = useState(''); const [isoCodeValue4, setIsoCodeValue4] = useState('');
   const [accessionNumber1, setAccessionNumber] = useState(''); const [accessionNumber2, setAccessionNumber2] = useState(''); const [accessionNumber3, setAccessionNumber3] = useState(''); const [accessionNumber4, setAccessionNumber4] = useState('');
-  const [authorLastName1, setAuthorLastName] = useState(''); const [authorFirstName1, setAuthorFirstName] = useState(''); const [authorMiddleInitial1, setAuthorMiddleInitial] = useState(''); const [publisherAuthor1, setPublisherAuthor] = useState('');
-  const [authorLastName2, setAuthorLastName2] = useState(''); const [authorFirstName2, setAuthorFirstName2] = useState(''); const [authorMiddleInitial2, setAuthorMiddleInitial2] = useState(''); const [publisherAuthor2, setPublisherAuthor2] = useState('');
-  const [authorLastName3, setAuthorLastName3] = useState(''); const [authorFirstName3, setAuthorFirstName3] = useState(''); const [authorMiddleInitial3, setAuthorMiddleInitial3] = useState(''); const [publisherAuthor3, setPublisherAuthor3] = useState('');
-  const [authorLastName4, setAuthorLastName4] = useState(''); const [authorFirstName4, setAuthorFirstName4] = useState(''); const [authorMiddleInitial4, setAuthorMiddleInitial4] = useState(''); const [publisherAuthor4, setPublisherAuthor4] = useState('');
+  const [authorLastName1, setAuthorLastName] = useState(''); const [publisherAuthor1, setPublisherAuthor] = useState('');
+  const [authorLastName2, setAuthorLastName2] = useState(''); const [publisherAuthor2, setPublisherAuthor2] = useState('');
+  const [authorLastName3, setAuthorLastName3] = useState(''); const [publisherAuthor3, setPublisherAuthor3] = useState('');
+  const [authorLastName4, setAuthorLastName4] = useState(''); const [publisherAuthor4, setPublisherAuthor4] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [openModal, setOpenModal] = useState(false);
@@ -40,15 +40,21 @@ export default function CardAndPacket() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const formatAuthorName = (last, first, mi) => {
+    if (!last && !first && !mi) return '';
+    if (!first && !mi) return last || '';
+    return `${last || ''}${last && first ? ', ' : ''}${first || ''}${mi ? ' ' + mi : ''}`.trim();
+  };
+
   // ✅ Save with duplicate check
   const handleSave = async () => {
     try {
       await axios.post('http://localhost:5000/api/card-and-packet', {
         selectedLibrary1, section1, selectedLibrary2, section2, selectedLibrary3, section3, selectedLibrary4, section4,
-        authorLastName1, authorFirstName1, authorMiddleInitial1: authorMiddleInitial1 ? `${authorMiddleInitial1}.` : '', publisherAuthor1,
-        authorLastName2, authorFirstName2, authorMiddleInitial2: authorMiddleInitial2 ? `${authorMiddleInitial2}.` : '', publisherAuthor2,
-        authorLastName3, authorFirstName3, authorMiddleInitial3: authorMiddleInitial3 ? `${authorMiddleInitial3}.` : '', publisherAuthor3,
-        authorLastName4, authorFirstName4, authorMiddleInitial4: authorMiddleInitial4 ? `${authorMiddleInitial4}.` : '', publisherAuthor4,
+        authorName1: authorLastName1, publisherAuthor1,
+        authorName2: authorLastName2, publisherAuthor2,
+        authorName3: authorLastName3, publisherAuthor3,
+        authorName4: authorLastName4, publisherAuthor4,
         bookTitle1, bookTitle2, bookTitle3, bookTitle4,
         accessionNumber1, accessionNumber2, accessionNumber3, accessionNumber4,
         callNumber1, callNumber2, callNumber3, callNumber4,
@@ -89,9 +95,10 @@ export default function CardAndPacket() {
     setSelectedDocId(entry.CardID);
     setSelectedLibrary1(entry.selectedLibrary1); setSelectedLibrary2(entry.selectedLibrary2); setSelectedLibrary3(entry.selectedLibrary3); setSelectedLibrary4(entry.selectedLibrary4);
     setSection1(entry.section1); setSection2(entry.section2); setSection3(entry.section3); setSection4(entry.section4);
-    setAuthorLastName(entry.authorLastName1); setAuthorLastName2(entry.authorLastName2); setAuthorLastName3(entry.authorLastName3); setAuthorLastName4(entry.authorLastName4);
-    setAuthorFirstName(entry.authorFirstName1); setAuthorFirstName2(entry.authorFirstName2); setAuthorFirstName3(entry.authorFirstName3); setAuthorFirstName4(entry.authorFirstName4);
-    setAuthorMiddleInitial(entry.authorMiddleInitial1); setAuthorMiddleInitial2(entry.authorMiddleInitial2); setAuthorMiddleInitial3(entry.authorMiddleInitial3); setAuthorMiddleInitial4(entry.authorMiddleInitial4);
+    setAuthorLastName(entry.authorName1 || formatAuthorName(entry.authorLastName1, entry.authorFirstName1, entry.authorMiddleInitial1));
+    setAuthorLastName2(entry.authorName2 || formatAuthorName(entry.authorLastName2, entry.authorFirstName2, entry.authorMiddleInitial2));
+    setAuthorLastName3(entry.authorName3 || formatAuthorName(entry.authorLastName3, entry.authorFirstName3, entry.authorMiddleInitial3));
+    setAuthorLastName4(entry.authorName4 || formatAuthorName(entry.authorLastName4, entry.authorFirstName4, entry.authorMiddleInitial4));
     setPublisherAuthor(entry.publisherAuthor1); setPublisherAuthor2(entry.publisherAuthor2); setPublisherAuthor3(entry.publisherAuthor3); setPublisherAuthor4(entry.publisherAuthor4);
     setBookTitle(entry.bookTitle1); setBookTitle2(entry.bookTitle2); setBookTitle3(entry.bookTitle3); setBookTitle4(entry.bookTitle4);
     setAccessionNumber(entry.accessionNumber1); setAccessionNumber2(entry.accessionNumber2); setAccessionNumber3(entry.accessionNumber3); setAccessionNumber4(entry.accessionNumber4);
@@ -107,10 +114,10 @@ export default function CardAndPacket() {
     try {
       await axios.put(`http://localhost:5000/api/card-and-packet/${selectedDocId}`, {
         selectedLibrary1, section1, selectedLibrary2, section2, selectedLibrary3, section3, selectedLibrary4, section4,
-        authorLastName1, authorFirstName1, authorMiddleInitial1, publisherAuthor1,
-        authorLastName2, authorFirstName2, authorMiddleInitial2, publisherAuthor2,
-        authorLastName3, authorFirstName3, authorMiddleInitial3, publisherAuthor3,
-        authorLastName4, authorFirstName4, authorMiddleInitial4, publisherAuthor4,
+        authorName1: authorLastName1, publisherAuthor1,
+        authorName2: authorLastName2, publisherAuthor2,
+        authorName3: authorLastName3, publisherAuthor3,
+        authorName4: authorLastName4, publisherAuthor4,
         bookTitle1, bookTitle2, bookTitle3, bookTitle4,
         accessionNumber1, accessionNumber2, accessionNumber3, accessionNumber4,
         callNumber1, callNumber2, callNumber3, callNumber4,
@@ -129,8 +136,6 @@ export default function CardAndPacket() {
     setSelectedLibrary1(''); setSelectedLibrary2(''); setSelectedLibrary3(''); setSelectedLibrary4('');
     setSection1(''); setSection2(''); setSection3(''); setSection4('');
     setAuthorLastName(''); setAuthorLastName2(''); setAuthorLastName3(''); setAuthorLastName4('');
-    setAuthorFirstName(''); setAuthorFirstName2(''); setAuthorFirstName3(''); setAuthorFirstName4('');
-    setAuthorMiddleInitial(''); setAuthorMiddleInitial2(''); setAuthorMiddleInitial3(''); setAuthorMiddleInitial4('');
     setPublisherAuthor(''); setPublisherAuthor2(''); setPublisherAuthor3(''); setPublisherAuthor4('');
     setBookTitle(''); setBookTitle2(''); setBookTitle3(''); setBookTitle4('');
     setAccessionNumber(''); setAccessionNumber2(''); setAccessionNumber3(''); setAccessionNumber4('');
@@ -145,10 +150,10 @@ export default function CardAndPacket() {
 
   const handlePrint = () => {
     const cardData = [
-      { library: selectedLibrary1, section: section1, author: publisherAuthor1 || `${authorLastName1}, ${authorFirstName1} ${authorMiddleInitial1}`, title: bookTitle1, accession: accessionNumber1, barcode: barcodeValue1, callNum: callNumber1, isoCode: isoCodeValue1 },
-      { library: selectedLibrary2, section: section2, author: publisherAuthor2 || `${authorLastName2}, ${authorFirstName2} ${authorMiddleInitial2}`, title: bookTitle2, accession: accessionNumber2, barcode: barcodeValue2, callNum: callNumber2, isoCode: isoCodeValue2 },
-      { library: selectedLibrary3, section: section3, author: publisherAuthor3 || `${authorLastName3}, ${authorFirstName3} ${authorMiddleInitial3}`, title: bookTitle3, accession: accessionNumber3, barcode: barcodeValue3, callNum: callNumber3, isoCode: isoCodeValue3 },
-      { library: selectedLibrary4, section: section4, author: publisherAuthor4 || `${authorLastName4}, ${authorFirstName4} ${authorMiddleInitial4}`, title: bookTitle4, accession: accessionNumber4, barcode: barcodeValue4, callNum: callNumber4, isoCode: isoCodeValue4 },
+      { library: selectedLibrary1, section: section1, author: publisherAuthor1 || authorLastName1, title: bookTitle1, accession: accessionNumber1, barcode: barcodeValue1, callNum: callNumber1, isoCode: isoCodeValue1 },
+      { library: selectedLibrary2, section: section2, author: publisherAuthor2 || authorLastName2, title: bookTitle2, accession: accessionNumber2, barcode: barcodeValue2, callNum: callNumber2, isoCode: isoCodeValue2 },
+      { library: selectedLibrary3, section: section3, author: publisherAuthor3 || authorLastName3, title: bookTitle3, accession: accessionNumber3, barcode: barcodeValue3, callNum: callNumber3, isoCode: isoCodeValue3 },
+      { library: selectedLibrary4, section: section4, author: publisherAuthor4 || authorLastName4, title: bookTitle4, accession: accessionNumber4, barcode: barcodeValue4, callNum: callNumber4, isoCode: isoCodeValue4 },
     ];
 
     const emptyRows = Array(10).fill('<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>').join('');
@@ -344,16 +349,12 @@ export default function CardAndPacket() {
   const handleLibraryChange4 = (e, v) => { setSelectedLibrary4(v); setIsoCodeValue4(getIsoCode(v)); setBarcodeValue4(`${getBarcodePrefix(v)}${accessionNumber4}`); };
   const handleAccessionNumberChange2 = (e) => { const v = e.target.value; setAccessionNumber2(v); setBarcodeValue2(`${getBarcodePrefix(selectedLibrary2)}${v}`); };
   const handleAccessionNumberChange3 = (e) => { const v = e.target.value; setAccessionNumber3(v); setBarcodeValue3(`${getBarcodePrefix(selectedLibrary3)}${v}`); };
-  const handleAccessionNumberChange4 = (e) => { const v = e.target.value; setAccessionNumber4(v); setBarcodeValue4(`${getBarcodePrefix(selectedLibrary4)}${v}`); };
-
-  const columns = [
+  const handleAccessionNumberChange4 = (e) => { const v = e.target.value; setAccessionNumber4(v); setBarcodeValue4(`${getBarcodePrefix(selectedLibrary4)}${v}`); };  const columns = [
     {
       label: 'First Column',
       library: selectedLibrary1, setLibrary: handleLibraryChange,
       section: section1, setSection: (e, v) => setSection1(v),
-      lastName: authorLastName1, setLastName: (e) => setAuthorLastName(e.target.value),
-      firstName: authorFirstName1, setFirstName: (e) => setAuthorFirstName(e.target.value),
-      middleInitial: authorMiddleInitial1, setMiddleInitial: (e) => setAuthorMiddleInitial(e.target.value),
+      authorName: authorLastName1, setAuthorName: (e) => setAuthorLastName(e.target.value),
       publisher: publisherAuthor1, setPublisher: (e) => setPublisherAuthor(e.target.value),
       title: bookTitle1, setTitle: (e) => setBookTitle(e.target.value),
       accession: accessionNumber1, setAccession: handleAccessionNumberChange,
@@ -365,9 +366,7 @@ export default function CardAndPacket() {
       label: 'Second Column',
       library: selectedLibrary2, setLibrary: handleLibraryChange2,
       section: section2, setSection: (e, v) => setSection2(v),
-      lastName: authorLastName2, setLastName: (e) => setAuthorLastName2(e.target.value),
-      firstName: authorFirstName2, setFirstName: (e) => setAuthorFirstName2(e.target.value),
-      middleInitial: authorMiddleInitial2, setMiddleInitial: (e) => setAuthorMiddleInitial2(e.target.value),
+      authorName: authorLastName2, setAuthorName: (e) => setAuthorLastName2(e.target.value),
       publisher: publisherAuthor2, setPublisher: (e) => setPublisherAuthor2(e.target.value),
       title: bookTitle2, setTitle: (e) => setBookTitle2(e.target.value),
       accession: accessionNumber2, setAccession: handleAccessionNumberChange2,
@@ -379,9 +378,7 @@ export default function CardAndPacket() {
       label: 'Third Column',
       library: selectedLibrary3, setLibrary: handleLibraryChange3,
       section: section3, setSection: (e, v) => setSection3(v),
-      lastName: authorLastName3, setLastName: (e) => setAuthorLastName3(e.target.value),
-      firstName: authorFirstName3, setFirstName: (e) => setAuthorFirstName3(e.target.value),
-      middleInitial: authorMiddleInitial3, setMiddleInitial: (e) => setAuthorMiddleInitial3(e.target.value),
+      authorName: authorLastName3, setAuthorName: (e) => setAuthorLastName3(e.target.value),
       publisher: publisherAuthor3, setPublisher: (e) => setPublisherAuthor3(e.target.value),
       title: bookTitle3, setTitle: (e) => setBookTitle3(e.target.value),
       accession: accessionNumber3, setAccession: handleAccessionNumberChange3,
@@ -393,9 +390,7 @@ export default function CardAndPacket() {
       label: 'Fourth Column',
       library: selectedLibrary4, setLibrary: handleLibraryChange4,
       section: section4, setSection: (e, v) => setSection4(v),
-      lastName: authorLastName4, setLastName: (e) => setAuthorLastName4(e.target.value),
-      firstName: authorFirstName4, setFirstName: (e) => setAuthorFirstName4(e.target.value),
-      middleInitial: authorMiddleInitial4, setMiddleInitial: (e) => setAuthorMiddleInitial4(e.target.value),
+      authorName: authorLastName4, setAuthorName: (e) => setAuthorLastName4(e.target.value),
       publisher: publisherAuthor4, setPublisher: (e) => setPublisherAuthor4(e.target.value),
       title: bookTitle4, setTitle: (e) => setBookTitle4(e.target.value),
       accession: accessionNumber4, setAccession: handleAccessionNumberChange4,
@@ -432,7 +427,7 @@ export default function CardAndPacket() {
                       <Box sx={{ height: '12px' }} />
                       <Box sx={{ display: 'flex', alignItems: 'flex-end', borderBottom: '1.5px solid black', mb: 0.5 }}>
                         <Typography fontSize="8.5pt" sx={{ whiteSpace: 'nowrap', mr: 0.5 }}>Author</Typography>
-                        <Typography fontSize="8.5pt" fontWeight="bold" sx={{ flexGrow: 1 }}>{col.publisher || `${col.lastName}, ${col.firstName} ${col.middleInitial}`}</Typography>
+                        <Typography fontSize="8.5pt" fontWeight="bold" sx={{ flexGrow: 1 }}>{col.publisher || col.authorName}</Typography>
                       </Box>
                       <Box sx={{ display: 'flex', alignItems: 'flex-end', borderBottom: '1.5px solid black', mb: 0.5 }}>
                         <Typography fontSize="8.5pt" sx={{ whiteSpace: 'nowrap', mr: 0.5 }}>Title</Typography>
@@ -524,11 +519,9 @@ export default function CardAndPacket() {
               renderInput={(params) => <TextField {...params} label="Choose section" margin="dense" variant="outlined" fullWidth sx={{ mb: 3 }} />} />
 
             <Typography fontWeight="bold">Author</Typography>
-            <TextField value={col.lastName} onChange={col.setLastName} fullWidth label="Last Name" margin="dense" variant="outlined" disabled={col.publisher.trim() !== ''} />
-            <TextField value={col.firstName} onChange={col.setFirstName} fullWidth label="First Name" margin="dense" variant="outlined" disabled={col.publisher.trim() !== ''} />
-            <TextField value={col.middleInitial} onChange={col.setMiddleInitial} fullWidth label="Middle Initial" margin="dense" variant="outlined" disabled={col.publisher.trim() !== ''} />
+            <TextField value={col.authorName} onChange={col.setAuthorName} fullWidth label="Full Name" placeholder="e.g. Last Name, First Name M.I." margin="dense" variant="outlined" disabled={col.publisher.trim() !== ''} />
             <TextField value={col.publisher} onChange={col.setPublisher} fullWidth placeholder="Type here if the Author is a Publisher" margin="dense" variant="outlined" helperText="*Type here if the Author is a Publisher."
-              disabled={col.lastName.trim() !== '' || col.firstName.trim() !== '' || col.middleInitial.trim() !== ''} sx={{ mb: 3 }} />
+              disabled={col.authorName.trim() !== ''} sx={{ mb: 3 }} />
 
             <Typography fontWeight="bold">Title</Typography>
             <TextField value={col.title} onChange={col.setTitle} fullWidth multiline minRows={3} margin="dense" variant="outlined" sx={{ mb: 3 }} />

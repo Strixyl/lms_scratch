@@ -72,6 +72,18 @@ const BookCatalogue = () => {
     fetchCardPackets();
   }, []);
 
+  // Helper to format full author name from record
+  const getAuthorName = (record, i) => {
+    const last = record[`authorLastName${i}`] || '';
+    const first = record[`authorFirstName${i}`] || '';
+    const mi = record[`authorMiddleInitial${i}`] || '';
+    const pub = record[`publisherAuthor${i}`] || '';
+    if (pub && pub.trim()) return pub;
+    if (!last && !first && !mi) return '';
+    if (!first && !mi) return last;
+    return `${last}${last && first ? ', ' : ''}${first}${mi ? ' ' + mi : ''}`.trim();
+  };
+
   // Flatten book entries (1-4)
   const flatBookData = useMemo(() => {
     const list = [];
@@ -86,9 +98,7 @@ const BookCatalogue = () => {
             section: record[`section${i}`] || 'General',
             callNumber: record[`callNumber${i}`] || '',
             title: record[`bookTitle${i}`] || 'Untitled',
-            authorLastName: record[`authorLastName${i}`] || '',
-            authorFirstName: record[`authorFirstName${i}`] || '',
-            authorMiddleInitial: record[`authorMiddleInitial${i}`] || '',
+            authorName: getAuthorName(record, i),
             publisher: record[`publisherAuthor${i}`] || '',
             copyNumber: record[`copyNumber${i}`] || '',
             barcode: record[`barcodeValue${i}`] || '',
@@ -121,7 +131,7 @@ const BookCatalogue = () => {
       const term = searchTerm.toLowerCase().trim();
       if (!term) return matchesLib && matchesSec;
 
-      const author = `${book.authorFirstName} ${book.authorLastName} ${book.publisher}`.toLowerCase();
+      const author = (book.authorName || '').toLowerCase();
       const matchesSearch =
         book.title.toLowerCase().includes(term) ||
         author.includes(term) ||
@@ -167,9 +177,7 @@ const BookCatalogue = () => {
       'Section': row.section || '',
       'Call Number': row.callNumber || '',
       'Book Title': row.title || '',
-      'Author Last Name': row.authorLastName || '',
-      'Author First Name': row.authorFirstName || '',
-      'Middle Initial': row.authorMiddleInitial || '',
+      'Author': row.authorName || row.publisher || '',
       'Publisher': row.publisher || '',
       'Copy Number': row.copyNumber || '',
       'Barcode': row.barcode || '',
@@ -215,7 +223,7 @@ const BookCatalogue = () => {
       doc.write(`
         <div class="card">
           <div style="text-align:center; font-weight:bold;">Central Philippine University</div>
-          <div class="row"><span class="label">Author:</span><span>${row.authorLastName || row.publisher}, ${row.authorFirstName || ''} ${row.authorMiddleInitial || ''}</span></div>
+          <div class="row"><span class="label">Author:</span><span>${row.authorName || row.publisher || ''}</span></div>
           <div class="row"><span class="label">Title:</span><span>${row.title}</span></div>
           <div class="row"><span class="label">Acc. No.:</span><span>${row.accessionNumber}</span></div>
           <div class="row"><span class="label">Barcode:</span><span>${row.barcode}</span></div>
@@ -293,9 +301,7 @@ const BookCatalogue = () => {
     { field: 'section', headerName: 'Section', flex: 1, minWidth: 110 },
     { field: 'callNumber', headerName: 'Call Number', flex: 1, minWidth: 110 },
     { field: 'title', headerName: 'Book Title', flex: 1.8, minWidth: 180 },
-    { field: 'authorLastName', headerName: 'Last Name', flex: 0.9, minWidth: 100 },
-    { field: 'authorFirstName', headerName: 'First Name', flex: 0.9, minWidth: 100 },
-    { field: 'authorMiddleInitial', headerName: 'M.I.', flex: 0.5, minWidth: 60 },
+    { field: 'authorName', headerName: 'Author', flex: 1.5, minWidth: 150 },
     { field: 'publisher', headerName: 'Publisher', flex: 1, minWidth: 110 },
     { field: 'copyNumber', headerName: 'Copy #', flex: 0.6, minWidth: 70 },
     { field: 'barcode', headerName: 'Barcode', flex: 1, minWidth: 110 },
@@ -666,9 +672,7 @@ const BookCatalogue = () => {
                           </Typography>
 
                           <Typography variant="caption" display="block" sx={{ color: '#64748b', mb: 1 }}>
-                            {book.authorLastName
-                              ? `${book.authorLastName}, ${book.authorFirstName || ''}`
-                              : book.publisher || 'Unknown Author'}
+                            {book.authorName || book.publisher || 'Unknown Author'}
                           </Typography>
 
                           <Divider sx={{ my: 1 }} />
@@ -716,7 +720,7 @@ const BookCatalogue = () => {
                     {previewBook.library} - {previewBook.section}
                   </Typography>
                   <Divider sx={{ mb: 1 }} />
-                  <Typography variant="body2"><strong>Author:</strong> {previewBook.authorLastName || previewBook.publisher}, {previewBook.authorFirstName || ''}</Typography>
+                  <Typography variant="body2"><strong>Author:</strong> {previewBook.authorName || previewBook.publisher || 'Unknown Author'}</Typography>
                   <Typography variant="body2"><strong>Title:</strong> {previewBook.title}</Typography>
                   <Typography variant="body2"><strong>Acc #:</strong> {previewBook.accessionNumber}</Typography>
                   <Typography variant="body2"><strong>Barcode:</strong> {previewBook.barcode}</Typography>

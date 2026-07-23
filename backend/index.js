@@ -430,7 +430,7 @@ app.delete('/api/card-and-packet/:id/book/:bookNum', async (req, res) => {
       .query(`
         UPDATE CardAndPacket SET
           selectedLibrary${n} = '', section${n} = '',
-          authorLastName${n} = '', authorFirstName${n} = '', authorMiddleInitial${n} = '', publisherAuthor${n} = '',
+          authorName${n} = '', publisherAuthor${n} = '',
           bookTitle${n} = '', accessionNumber${n} = '', callNumber${n} = '',
           copyNumber${n} = '', barcodeValue${n} = '', isoCodeValue${n} = '',
           updatedAt = GETDATE()
@@ -469,10 +469,10 @@ app.get('/api/card-and-packet', async (req, res) => {
 app.post('/api/card-and-packet', async (req, res) => {
   const {
     selectedLibrary1, section1, selectedLibrary2, section2, selectedLibrary3, section3, selectedLibrary4, section4,
-    authorLastName1, authorFirstName1, authorMiddleInitial1, publisherAuthor1,
-    authorLastName2, authorFirstName2, authorMiddleInitial2, publisherAuthor2,
-    authorLastName3, authorFirstName3, authorMiddleInitial3, publisherAuthor3,
-    authorLastName4, authorFirstName4, authorMiddleInitial4, publisherAuthor4,
+    authorName1, authorLastName1, publisherAuthor1,
+    authorName2, authorLastName2, publisherAuthor2,
+    authorName3, authorLastName3, publisherAuthor3,
+    authorName4, authorLastName4, publisherAuthor4,
     bookTitle1, bookTitle2, bookTitle3, bookTitle4,
     accessionNumber1, accessionNumber2, accessionNumber3, accessionNumber4,
     callNumber1, callNumber2, callNumber3, callNumber4,
@@ -501,21 +501,13 @@ app.post('/api/card-and-packet', async (req, res) => {
       .input('section3', sql.NVarChar, section3 || '')
       .input('selectedLibrary4', sql.NVarChar, selectedLibrary4 || '')
       .input('section4', sql.NVarChar, section4 || '')
-      .input('authorLastName1', sql.NVarChar, authorLastName1 || '')
-      .input('authorFirstName1', sql.NVarChar, authorFirstName1 || '')
-      .input('authorMiddleInitial1', sql.NVarChar, authorMiddleInitial1 || '')
+      .input('authorName1', sql.NVarChar, authorName1 || authorLastName1 || '')
       .input('publisherAuthor1', sql.NVarChar, publisherAuthor1 || '')
-      .input('authorLastName2', sql.NVarChar, authorLastName2 || '')
-      .input('authorFirstName2', sql.NVarChar, authorFirstName2 || '')
-      .input('authorMiddleInitial2', sql.NVarChar, authorMiddleInitial2 || '')
+      .input('authorName2', sql.NVarChar, authorName2 || authorLastName2 || '')
       .input('publisherAuthor2', sql.NVarChar, publisherAuthor2 || '')
-      .input('authorLastName3', sql.NVarChar, authorLastName3 || '')
-      .input('authorFirstName3', sql.NVarChar, authorFirstName3 || '')
-      .input('authorMiddleInitial3', sql.NVarChar, authorMiddleInitial3 || '')
+      .input('authorName3', sql.NVarChar, authorName3 || authorLastName3 || '')
       .input('publisherAuthor3', sql.NVarChar, publisherAuthor3 || '')
-      .input('authorLastName4', sql.NVarChar, authorLastName4 || '')
-      .input('authorFirstName4', sql.NVarChar, authorFirstName4 || '')
-      .input('authorMiddleInitial4', sql.NVarChar, authorMiddleInitial4 || '')
+      .input('authorName4', sql.NVarChar, authorName4 || authorLastName4 || '')
       .input('publisherAuthor4', sql.NVarChar, publisherAuthor4 || '')
       .input('bookTitle1', sql.NVarChar, bookTitle1 || '')
       .input('bookTitle2', sql.NVarChar, bookTitle2 || '')
@@ -544,10 +536,10 @@ app.post('/api/card-and-packet', async (req, res) => {
       .query(`
         INSERT INTO CardAndPacket (
           selectedLibrary1, section1, selectedLibrary2, section2, selectedLibrary3, section3, selectedLibrary4, section4,
-          authorLastName1, authorFirstName1, authorMiddleInitial1, publisherAuthor1,
-          authorLastName2, authorFirstName2, authorMiddleInitial2, publisherAuthor2,
-          authorLastName3, authorFirstName3, authorMiddleInitial3, publisherAuthor3,
-          authorLastName4, authorFirstName4, authorMiddleInitial4, publisherAuthor4,
+          authorName1, publisherAuthor1,
+          authorName2, publisherAuthor2,
+          authorName3, publisherAuthor3,
+          authorName4, publisherAuthor4,
           bookTitle1, bookTitle2, bookTitle3, bookTitle4,
           accessionNumber1, accessionNumber2, accessionNumber3, accessionNumber4,
           callNumber1, callNumber2, callNumber3, callNumber4,
@@ -556,10 +548,10 @@ app.post('/api/card-and-packet', async (req, res) => {
           isoCodeValue1, isoCodeValue2, isoCodeValue3, isoCodeValue4
         ) VALUES (
           @selectedLibrary1, @section1, @selectedLibrary2, @section2, @selectedLibrary3, @section3, @selectedLibrary4, @section4,
-          @authorLastName1, @authorFirstName1, @authorMiddleInitial1, @publisherAuthor1,
-          @authorLastName2, @authorFirstName2, @authorMiddleInitial2, @publisherAuthor2,
-          @authorLastName3, @authorFirstName3, @authorMiddleInitial3, @publisherAuthor3,
-          @authorLastName4, @authorFirstName4, @authorMiddleInitial4, @publisherAuthor4,
+          @authorName1, @publisherAuthor1,
+          @authorName2, @publisherAuthor2,
+          @authorName3, @publisherAuthor3,
+          @authorName4, @publisherAuthor4,
           @bookTitle1, @bookTitle2, @bookTitle3, @bookTitle4,
           @accessionNumber1, @accessionNumber2, @accessionNumber3, @accessionNumber4,
           @callNumber1, @callNumber2, @callNumber3, @callNumber4,
@@ -602,10 +594,10 @@ app.put('/api/card-and-packet/:id', async (req, res) => {
   const { id } = req.params;
   const {
     selectedLibrary1, section1, selectedLibrary2, section2, selectedLibrary3, section3, selectedLibrary4, section4,
-    authorLastName1, authorFirstName1, authorMiddleInitial1, publisherAuthor1,
-    authorLastName2, authorFirstName2, authorMiddleInitial2, publisherAuthor2,
-    authorLastName3, authorFirstName3, authorMiddleInitial3, publisherAuthor3,
-    authorLastName4, authorFirstName4, authorMiddleInitial4, publisherAuthor4,
+    authorName1, authorLastName1, publisherAuthor1,
+    authorName2, authorLastName2, publisherAuthor2,
+    authorName3, authorLastName3, publisherAuthor3,
+    authorName4, authorLastName4, publisherAuthor4,
     bookTitle1, bookTitle2, bookTitle3, bookTitle4,
     accessionNumber1, accessionNumber2, accessionNumber3, accessionNumber4,
     callNumber1, callNumber2, callNumber3, callNumber4,
@@ -626,21 +618,13 @@ app.put('/api/card-and-packet/:id', async (req, res) => {
       .input('section3', sql.NVarChar, section3 || '')
       .input('selectedLibrary4', sql.NVarChar, selectedLibrary4 || '')
       .input('section4', sql.NVarChar, section4 || '')
-      .input('authorLastName1', sql.NVarChar, authorLastName1 || '')
-      .input('authorFirstName1', sql.NVarChar, authorFirstName1 || '')
-      .input('authorMiddleInitial1', sql.NVarChar, authorMiddleInitial1 || '')
+      .input('authorName1', sql.NVarChar, authorName1 || authorLastName1 || '')
       .input('publisherAuthor1', sql.NVarChar, publisherAuthor1 || '')
-      .input('authorLastName2', sql.NVarChar, authorLastName2 || '')
-      .input('authorFirstName2', sql.NVarChar, authorFirstName2 || '')
-      .input('authorMiddleInitial2', sql.NVarChar, authorMiddleInitial2 || '')
+      .input('authorName2', sql.NVarChar, authorName2 || authorLastName2 || '')
       .input('publisherAuthor2', sql.NVarChar, publisherAuthor2 || '')
-      .input('authorLastName3', sql.NVarChar, authorLastName3 || '')
-      .input('authorFirstName3', sql.NVarChar, authorFirstName3 || '')
-      .input('authorMiddleInitial3', sql.NVarChar, authorMiddleInitial3 || '')
+      .input('authorName3', sql.NVarChar, authorName3 || authorLastName3 || '')
       .input('publisherAuthor3', sql.NVarChar, publisherAuthor3 || '')
-      .input('authorLastName4', sql.NVarChar, authorLastName4 || '')
-      .input('authorFirstName4', sql.NVarChar, authorFirstName4 || '')
-      .input('authorMiddleInitial4', sql.NVarChar, authorMiddleInitial4 || '')
+      .input('authorName4', sql.NVarChar, authorName4 || authorLastName4 || '')
       .input('publisherAuthor4', sql.NVarChar, publisherAuthor4 || '')
       .input('bookTitle1', sql.NVarChar, bookTitle1 || '')
       .input('bookTitle2', sql.NVarChar, bookTitle2 || '')
@@ -672,10 +656,10 @@ app.put('/api/card-and-packet/:id', async (req, res) => {
           selectedLibrary2=@selectedLibrary2, section2=@section2,
           selectedLibrary3=@selectedLibrary3, section3=@section3,
           selectedLibrary4=@selectedLibrary4, section4=@section4,
-          authorLastName1=@authorLastName1, authorFirstName1=@authorFirstName1, authorMiddleInitial1=@authorMiddleInitial1, publisherAuthor1=@publisherAuthor1,
-          authorLastName2=@authorLastName2, authorFirstName2=@authorFirstName2, authorMiddleInitial2=@authorMiddleInitial2, publisherAuthor2=@publisherAuthor2,
-          authorLastName3=@authorLastName3, authorFirstName3=@authorFirstName3, authorMiddleInitial3=@authorMiddleInitial3, publisherAuthor3=@publisherAuthor3,
-          authorLastName4=@authorLastName4, authorFirstName4=@authorFirstName4, authorMiddleInitial4=@authorMiddleInitial4, publisherAuthor4=@publisherAuthor4,
+          authorName1=@authorName1, publisherAuthor1=@publisherAuthor1,
+          authorName2=@authorName2, publisherAuthor2=@publisherAuthor2,
+          authorName3=@authorName3, publisherAuthor3=@publisherAuthor3,
+          authorName4=@authorName4, publisherAuthor4=@publisherAuthor4,
           bookTitle1=@bookTitle1, bookTitle2=@bookTitle2, bookTitle3=@bookTitle3, bookTitle4=@bookTitle4,
           accessionNumber1=@accessionNumber1, accessionNumber2=@accessionNumber2, accessionNumber3=@accessionNumber3, accessionNumber4=@accessionNumber4,
           callNumber1=@callNumber1, callNumber2=@callNumber2, callNumber3=@callNumber3, callNumber4=@callNumber4,
