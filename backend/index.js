@@ -353,10 +353,11 @@ app.get('/api/logins', async (req, res) => {
 });
 
 app.get('/api/surveys', async (req, res) => {
-  const { startDate, endDate } = req.query;
+  const { startDate, endDate, clientele, college, course } = req.query;
 
   try {
     const pool = await sql.connect(config);
+    const request = pool.request();
 
     let query = `
       SELECT Id, Clientele, College, Course, Message,
@@ -367,19 +368,33 @@ app.get('/api/surveys', async (req, res) => {
       FROM SatisfactionSurveys
     `;
 
+    const conditions = [];
+
     if (startDate && endDate) {
-      query += `
-        WHERE (DateSubmitted AT TIME ZONE 'UTC' AT TIME ZONE 'SE Asia Standard Time')
-        BETWEEN @startDate AND @endDate
-      `;
-      const result = await pool.request()
-        .input('startDate', sql.DateTime, new Date(startDate))
-        .input('endDate', sql.DateTime, new Date(endDate))
-        .query(query);
-      return res.json(result.recordset);
+      conditions.push(`(DateSubmitted AT TIME ZONE 'UTC' AT TIME ZONE 'SE Asia Standard Time') BETWEEN @startDate AND @endDate`);
+      request.input('startDate', sql.DateTime, new Date(startDate));
+      request.input('endDate', sql.DateTime, new Date(endDate));
+    }
+    if (clientele && clientele.trim() !== '') {
+      conditions.push(`Clientele = @clientele`);
+      request.input('clientele', sql.NVarChar, clientele.trim());
+    }
+    if (college && college.trim() !== '') {
+      conditions.push(`College = @college`);
+      request.input('college', sql.NVarChar, college.trim());
+    }
+    if (course && course.trim() !== '') {
+      conditions.push(`Course = @course`);
+      request.input('course', sql.NVarChar, course.trim());
     }
 
-    const result = await pool.request().query(query);
+    if (conditions.length > 0) {
+      query += ` WHERE ${conditions.join(' AND ')}`;
+    }
+
+    query += ` ORDER BY DateSubmitted DESC`;
+
+    const result = await request.query(query);
     res.json(result.recordset);
 
   } catch (err) {
