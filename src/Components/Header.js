@@ -12,6 +12,7 @@ const Header = ({ children }) => {
     { text: 'HOME', path: '/' },
     { text: 'HLL LOGIN', path: '/login' },
     { text: 'LOGIN RECORDS', path: '/logindata' },
+    { text: 'LOGIN DASHBOARD', path: '/login-dashboard' },
     { text: 'SATISFACTION SURVEY', path: '/satisfaction-survey' },
     { text: 'SURVEY RECORDS', path: '/surveys' },
     { text: 'SENTIMENT DASHBOARD', path: '/sentiment-dashboard' },
@@ -36,14 +37,14 @@ const Header = ({ children }) => {
           <List>
             {menuItems.map((item, index) => (
               <ListItem key={index} disablePadding>
-                <ListItemButton 
-                  onClick={() => { 
-                    navigate(item.path); 
-                    setOpen(false); 
+                <ListItemButton
+                  onClick={() => {
+                    navigate(item.path);
+                    setOpen(false);
                   }}
                 >
-                  <ListItemText 
-                    primary={item.text} 
+                  <ListItemText
+                    primary={item.text}
                     primaryTypographyProps={{ fontFamily: 'Poppins, sans-serif', fontWeight: 500 }}
                   />
                 </ListItemButton>

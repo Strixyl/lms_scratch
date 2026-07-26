@@ -13,11 +13,18 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../Components/Header';
 import TopBar from '../Components/TopBar';
 
-// ── Sentiment helpers ────────────────────────────────────────────────
+// ── Sentiment & Category helpers ──────────────────────────────────────
 const SENTIMENT_COLORS = {
   Positive: { bg: '#1b5e20', light: '#e8f5e9', text: '#1b5e20', dot: '#2e7d32' },
   Neutral: { bg: '#e65100', light: '#fff3e0', text: '#e65100', dot: '#f57c00' },
   Negative: { bg: '#b71c1c', light: '#ffebee', text: '#b71c1c', dot: '#c62828' },
+};
+
+const CATEGORY_COLORS = {
+  Facilities: { bg: '#0288d1', light: '#e1f5fe', text: '#0288d1', dot: '#039be5' },
+  Staff: { bg: '#7b1fa2', light: '#f3e5f5', text: '#7b1fa2', dot: '#8e24aa' },
+  Collection: { bg: '#ed6c02', light: '#fff3e0', text: '#ed6c02', dot: '#f57c00' },
+  'Other/Uncategorized': { bg: '#616161', light: '#f5f5f5', text: '#616161', dot: '#757575' },
 };
 
 const CHART_COLORS = ['#2e7d32', '#f57c00', '#c62828'];
@@ -29,6 +36,8 @@ const COLLEGE_OPTIONS = [
   'COL', 'CMLS', 'COM', 'CON', 'COP', 'COT', 'SGS',
   'SHS', 'JHS', 'ELEM', 'KINDER'
 ];
+
+const CATEGORY_OPTIONS = ['Facilities', 'Staff', 'Collection', 'Other/Uncategorized'];
 
 const selectSx = {
   backgroundColor: 'white',
@@ -48,6 +57,23 @@ const SentimentChip = ({ label }) => {
       <Box sx={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: cfg.dot }} />
       <Typography sx={{ fontSize: 12, fontWeight: 600, color: cfg.text, fontFamily: 'Poppins, sans-serif' }}>
         {label}
+      </Typography>
+    </Box>
+  );
+};
+
+const CategoryChip = ({ label }) => {
+  const norm = label || 'Other/Uncategorized';
+  const cfg = CATEGORY_COLORS[norm] || CATEGORY_COLORS['Other/Uncategorized'];
+  return (
+    <Box sx={{
+      display: 'inline-flex', alignItems: 'center', gap: 0.5,
+      px: 1.5, py: 0.4, borderRadius: '20px',
+      backgroundColor: cfg.light, border: `1px solid ${cfg.dot}`,
+    }}>
+      <Box sx={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: cfg.dot }} />
+      <Typography sx={{ fontSize: 12, fontWeight: 600, color: cfg.text, fontFamily: 'Poppins, sans-serif' }}>
+        {norm}
       </Typography>
     </Box>
   );
@@ -105,7 +131,7 @@ const SentimentDashboard = () => {
     const savedUser = localStorage.getItem('loggedInUser');
     if (savedUser) {
       setLoggedInUser(savedUser);
-      setShowLoginModal(true);
+      setShowLoginModal(false);
     }
   }, []);
 
@@ -136,6 +162,7 @@ const SentimentDashboard = () => {
   const [filterClientele, setFilterClientele] = useState('');
   const [filterCollege, setFilterCollege] = useState('');
   const [filterSentiment, setFilterSentiment] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
   const [page, setPage] = useState(0);
   const [sortOrder, setSortOrder] = useState('latest');
   const printRef = useRef(); // Added printable container reference
@@ -183,6 +210,7 @@ const SentimentDashboard = () => {
     setFilterClientele('');
     setFilterCollege('');
     setFilterSentiment('');
+    setFilterCategory('');
     setSortOrder('latest');
     setTimeout(fetchSurveys, 0);
   };
@@ -193,17 +221,35 @@ const SentimentDashboard = () => {
     if (filterClientele && s.Clientele?.toLowerCase() !== filterClientele.toLowerCase()) return false;
     if (filterCollege && s.College !== filterCollege) return false;
     if (filterSentiment && s.SentimentResult !== filterSentiment) return false;
+    if (filterCategory && (s.Category || 'Other/Uncategorized') !== filterCategory) return false;
     return true;
   });
 
   const counts = { Positive: 0, Neutral: 0, Negative: 0 };
-  filtered.forEach(s => { if (counts[s.SentimentResult] !== undefined) counts[s.SentimentResult]++; });
+  const categoryCounts = { Facilities: 0, Staff: 0, Collection: 0, 'Other/Uncategorized': 0 };
+
+  filtered.forEach(s => {
+    if (counts[s.SentimentResult] !== undefined) counts[s.SentimentResult]++;
+    const cat = s.Category || 'Other/Uncategorized';
+    if (categoryCounts[cat] !== undefined) {
+      categoryCounts[cat]++;
+    } else {
+      categoryCounts['Other/Uncategorized']++;
+    }
+  });
   const total = filtered.length;
 
   const chartData = [
     { name: 'Positive', value: counts.Positive },
     { name: 'Neutral', value: counts.Neutral },
     { name: 'Negative', value: counts.Negative },
+  ].filter(d => d.value > 0);
+
+  const categoryChartData = [
+    { name: 'Facilities', value: categoryCounts.Facilities, color: CATEGORY_COLORS.Facilities.dot },
+    { name: 'Staff', value: categoryCounts.Staff, color: CATEGORY_COLORS.Staff.dot },
+    { name: 'Collection', value: categoryCounts.Collection, color: CATEGORY_COLORS.Collection.dot },
+    { name: 'Other/Uncategorized', value: categoryCounts['Other/Uncategorized'], color: CATEGORY_COLORS['Other/Uncategorized'].dot },
   ].filter(d => d.value > 0);
 
   const reviewRows = filtered
@@ -216,7 +262,7 @@ const SentimentDashboard = () => {
   const totalPages = Math.ceil(reviewRows.length / ROWS_PER_PAGE);
   const pageRows = reviewRows.slice(page * ROWS_PER_PAGE, (page + 1) * ROWS_PER_PAGE);
 
-  const hasActiveFilter = startDate || endDate || filterClientele || filterCollege || filterSentiment;
+  const hasActiveFilter = startDate || endDate || filterClientele || filterCollege || filterSentiment || filterCategory;
 
   // ── Excel Export Handler ──────────────────────────────────────────
   const handleExportExcel = () => {
@@ -231,6 +277,10 @@ const SentimentDashboard = () => {
       { 'Metric Indicator': 'Positive Sentiments Count', 'Count': counts.Positive },
       { 'Metric Indicator': 'Neutral Sentiments Count', 'Count': counts.Neutral },
       { 'Metric Indicator': 'Negative Sentiments Count', 'Count': counts.Negative },
+      { 'Metric Indicator': 'Facilities Category Count', 'Count': categoryCounts.Facilities },
+      { 'Metric Indicator': 'Staff Category Count', 'Count': categoryCounts.Staff },
+      { 'Metric Indicator': 'Collection Category Count', 'Count': categoryCounts.Collection },
+      { 'Metric Indicator': 'Other/Uncategorized Count', 'Count': categoryCounts['Other/Uncategorized'] },
     ];
 
     // Tab 2: Detailed Text Classifications
@@ -240,6 +290,7 @@ const SentimentDashboard = () => {
       'College': row.College || 'N/A',
       'Text Response Inputted': row.Message || '',
       'Overall Sentiment': row.SentimentResult || '',
+      'Category': row.Category || 'Other/Uncategorized',
       'Date Submitted': row.DateSubmitted ? new Date(row.DateSubmitted).toLocaleDateString() : 'N/A'
     }));
 
@@ -271,7 +322,7 @@ const SentimentDashboard = () => {
     const dateStamp = new Date().toISOString().split('T')[0];
     XLSX.writeFile(workbook, `HLL_Sentiment_Analysis_${dateStamp}.xlsx`);
   };
-  
+
   // ── Print PDF Report Handler ──────────────────────────────────────
   const handlePrint = () => {
     const printContents = printRef.current.innerHTML;
@@ -333,360 +384,417 @@ const SentimentDashboard = () => {
             />
 
             {!showLoginModal && (
-      <Box sx={{ p: 3, backgroundColor: '#f5f6fa', minHeight: '100vh' }}>
+              <Box sx={{ p: 3, backgroundColor: '#f5f6fa', minHeight: '100vh' }}>
 
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
-              <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#555', mr: 2, alignSelf: 'center' }}>
-                Logged in as <strong>{loggedInUser}</strong>
-              </Typography>
-              <Button
-                variant="outlined"
-                color="secondary"
-                size="small"
-                onClick={handleLogout}
-                sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none' }}
-              >
-                Logout
-              </Button>
-            </Box>
-
-            {/* ── Filter Bar ── */}
-            <Box sx={{ display: 'flex', gap: 2, mb: 3, alignItems: 'center', flexWrap: 'wrap' }}>
-
-              {/* Date filters */}
-              <TextField type="date" label="Start Date" size="small"
-                InputLabelProps={{ shrink: true }} value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                sx={{ backgroundColor: 'white', borderRadius: 1 }} />
-              <TextField type="date" label="End Date" size="small"
-                InputLabelProps={{ shrink: true }} value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                sx={{ backgroundColor: 'white', borderRadius: 1 }} />
-
-              {/* Clientele filter */}
-              <FormControl size="small" sx={selectSx}>
-                <InputLabel>Clientele</InputLabel>
-                <Select value={filterClientele} label="Clientele"
-                  onChange={(e) => { setFilterClientele(e.target.value); setPage(0); }}>
-                  <MenuItem value="">All</MenuItem>
-                  {CLIENTELE_OPTIONS.map(c => (
-                    <MenuItem key={c} value={c.toLowerCase()}>{c}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-
-              {/* College filter */}
-              <FormControl size="small" sx={selectSx}>
-                <InputLabel>College</InputLabel>
-                <Select value={filterCollege} label="College"
-                  onChange={(e) => { setFilterCollege(e.target.value); setPage(0); }}>
-                  <MenuItem value="">All</MenuItem>
-                  {COLLEGE_OPTIONS.map(c => (
-                    <MenuItem key={c} value={c}>{c}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-
-              {/* Sentiment filter */}
-              <FormControl size="small" sx={selectSx}>
-                <InputLabel>Sentiment</InputLabel>
-                <Select value={filterSentiment} label="Sentiment"
-                  onChange={(e) => { setFilterSentiment(e.target.value); setPage(0); }}>
-                  <MenuItem value="">All</MenuItem>
-                  <MenuItem value="Positive">Positive</MenuItem>
-                  <MenuItem value="Neutral">Neutral</MenuItem>
-                  <MenuItem value="Negative">Negative</MenuItem>
-                </Select>
-              </FormControl>
-
-              {/* Sort Order */}
-              <FormControl size="small" sx={selectSx}>
-                <InputLabel>Sort By</InputLabel>
-                <Select
-                  value={sortOrder}
-                  label="Sort By"
-                  onChange={(e) => { setSortOrder(e.target.value); setPage(0); }}
-                >
-                  <MenuItem value="latest">Latest to Oldest</MenuItem>
-                  <MenuItem value="oldest">Oldest to Latest</MenuItem>
-                </Select>
-              </FormControl>
-
-              <Button variant="contained" onClick={fetchSurveys}
-                sx={{ backgroundColor: '#1b0892', fontFamily: 'Poppins, sans-serif', textTransform: 'none', px: 3, height: 40 }}>
-                Apply Filter
-              </Button>
-
-              {hasActiveFilter && (
-                <Button variant="outlined" size="small" onClick={handleClear}
-                  sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', height: 40 }}>
-                  Clear
-                </Button>
-              )}
-
-              {/* 🖨️ PDF Print Button */}
-              <Button variant="outlined" color="secondary" onClick={handlePrint}
-                sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', height: 40 }}>
-                🖨️ Print / Save as PDF
-              </Button>
-
-              {/* 📥 Excel Export Button */}
-              <Button variant="outlined" color="success" onClick={handleExportExcel}
-                sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', height: 40 }}>
-                📥 Export to Excel
-              </Button>
-            </Box>
-
-            {loading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
-                <CircularProgress sx={{ color: '#1b0892' }} />
-              </Box>
-            ) : (
-              <>
-                {/* ── Summary Cards ── */}
-                <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
-                  {['Positive', 'Neutral', 'Negative'].map(label => (
-                    <SummaryCard key={label} label={label} count={counts[label]} total={total} />
-                  ))}
-                  <Card elevation={0} sx={{ border: '1.5px solid #1b0892', borderRadius: 3, background: 'linear-gradient(135deg, #e8eaf6 0%, #ffffff 100%)', flex: 1, minWidth: 160 }}>
-                    <CardContent sx={{ p: 2.5 }}>
-                      <Typography sx={{ fontSize: 28, mb: 0.5 }}>📋</Typography>
-                      <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 32, color: '#1b0892', lineHeight: 1 }}>
-                        {total}
-                      </Typography>
-                      <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 14, color: '#1b0892', mt: 0.5 }}>
-                        Total Analyzed
-                      </Typography>
-                      <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#666', mt: 0.5 }}>
-                        survey responses
-                      </Typography>
-                    </CardContent>
-                  </Card>
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+                  <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#555', mr: 2, alignSelf: 'center' }}>
+                    Logged in as <strong>{loggedInUser}</strong>
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    color="secondary"
+                    size="small"
+                    onClick={handleLogout}
+                    sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none' }}
+                  >
+                    Logout
+                  </Button>
                 </Box>
-                {/* ── Donut Chart ── */}
-                <Card elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: 3, mb: 3, backgroundColor: 'white' }}>
-                  <CardContent sx={{ p: 3 }}>
-                    <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 13, color: '#666', letterSpacing: 1, textTransform: 'uppercase', mb: 2 }}>
-                      Dataset Distribution
-                    </Typography>
-                    {total === 0 ? (
-                      <Typography sx={{ fontFamily: 'Poppins, sans-serif', color: '#999', textAlign: 'center', py: 4 }}>
-                        No sentiment data available for the selected filters.
-                      </Typography>
-                    ) : (
-                      <ResponsiveContainer width="100%" height={260}>
-                        <PieChart>
-                          <Pie data={chartData} cx="50%" cy="50%"
-                            innerRadius={70} outerRadius={110} paddingAngle={3}
-                            dataKey="value" labelLine={false} label={renderCustomLabel}>
-                            {chartData.map((entry) => (
-                              <Cell key={entry.name} fill={CHART_COLORS[['Positive', 'Neutral', 'Negative'].indexOf(entry.name)]} />
-                            ))}
-                          </Pie>
-                          <Tooltip formatter={(value, name) => [`${value} responses`, name]}
-                            contentStyle={{ fontFamily: 'Poppins, sans-serif', fontSize: 13 }} />
-                          <Legend formatter={(value, entry) => {
-                            const pct = total > 0 ? Math.round((entry.payload.value / total) * 100) : 0;
-                            return <span style={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#333' }}>{value} {pct}%</span>;
-                          }} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    )}
-                  </CardContent>
-                </Card>
 
-                {/* ── Survey Response Review Table ── */}
-                <Card elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: 3, backgroundColor: 'white' }}>
-                  <CardContent sx={{ p: 3 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.5, mb: 2 }}>
-                      <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 16, color: '#1a1a1a' }}>
-                        Survey Response Review
-                      </Typography>
-                      <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#888' }}>
-                        {reviewRows.length} responses · page {page + 1} of {totalPages || 1}
-                      </Typography>
+                {/* ── Filter Bar ── */}
+                <Box sx={{ display: 'flex', gap: 2, mb: 3, alignItems: 'center', flexWrap: 'wrap' }}>
+
+                  {/* Date filters */}
+                  <TextField type="date" label="Start Date" size="small"
+                    InputLabelProps={{ shrink: true }} value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    sx={{ backgroundColor: 'white', borderRadius: 1 }} />
+                  <TextField type="date" label="End Date" size="small"
+                    InputLabelProps={{ shrink: true }} value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    sx={{ backgroundColor: 'white', borderRadius: 1 }} />
+
+                  {/* Clientele filter */}
+                  <FormControl size="small" sx={selectSx}>
+                    <InputLabel>Clientele</InputLabel>
+                    <Select value={filterClientele} label="Clientele"
+                      onChange={(e) => { setFilterClientele(e.target.value); setPage(0); }}>
+                      <MenuItem value="">All</MenuItem>
+                      {CLIENTELE_OPTIONS.map(c => (
+                        <MenuItem key={c} value={c.toLowerCase()}>{c}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  {/* College filter */}
+                  <FormControl size="small" sx={selectSx}>
+                    <InputLabel>College</InputLabel>
+                    <Select value={filterCollege} label="College"
+                      onChange={(e) => { setFilterCollege(e.target.value); setPage(0); }}>
+                      <MenuItem value="">All</MenuItem>
+                      {COLLEGE_OPTIONS.map(c => (
+                        <MenuItem key={c} value={c}>{c}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  {/* Sentiment filter */}
+                  <FormControl size="small" sx={selectSx}>
+                    <InputLabel>Sentiment</InputLabel>
+                    <Select value={filterSentiment} label="Sentiment"
+                      onChange={(e) => { setFilterSentiment(e.target.value); setPage(0); }}>
+                      <MenuItem value="">All</MenuItem>
+                      <MenuItem value="Positive">Positive</MenuItem>
+                      <MenuItem value="Neutral">Neutral</MenuItem>
+                      <MenuItem value="Negative">Negative</MenuItem>
+                    </Select>
+                  </FormControl>
+
+                  {/* Category filter */}
+                  <FormControl size="small" sx={selectSx}>
+                    <InputLabel>Category</InputLabel>
+                    <Select value={filterCategory} label="Category"
+                      onChange={(e) => { setFilterCategory(e.target.value); setPage(0); }}>
+                      <MenuItem value="">All</MenuItem>
+                      {CATEGORY_OPTIONS.map(c => (
+                        <MenuItem key={c} value={c}>{c}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  {/* Sort Order */}
+                  <FormControl size="small" sx={selectSx}>
+                    <InputLabel>Sort By</InputLabel>
+                    <Select
+                      value={sortOrder}
+                      label="Sort By"
+                      onChange={(e) => { setSortOrder(e.target.value); setPage(0); }}
+                    >
+                      <MenuItem value="latest">Latest to Oldest</MenuItem>
+                      <MenuItem value="oldest">Oldest to Latest</MenuItem>
+                    </Select>
+                  </FormControl>
+
+                  <Button variant="contained" onClick={fetchSurveys}
+                    sx={{ backgroundColor: '#1b0892', fontFamily: 'Poppins, sans-serif', textTransform: 'none', px: 3, height: 40 }}>
+                    Apply Filter
+                  </Button>
+
+                  {hasActiveFilter && (
+                    <Button variant="outlined" size="small" onClick={handleClear}
+                      sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', height: 40 }}>
+                      Clear
+                    </Button>
+                  )}
+
+                  {/* 🖨️ PDF Print Button */}
+                  <Button variant="outlined" color="secondary" onClick={handlePrint}
+                    sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', height: 40 }}>
+                    🖨️ Print / Save as PDF
+                  </Button>
+
+                  {/* 📥 Excel Export Button */}
+                  <Button variant="outlined" color="success" onClick={handleExportExcel}
+                    sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', height: 40 }}>
+                    📥 Export to Excel
+                  </Button>
+                </Box>
+
+                {loading ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
+                    <CircularProgress sx={{ color: '#1b0892' }} />
+                  </Box>
+                ) : (
+                  <>
+                    {/* ── Summary Cards ── */}
+                    <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
+                      {['Positive', 'Neutral', 'Negative'].map(label => (
+                        <SummaryCard key={label} label={label} count={counts[label]} total={total} />
+                      ))}
+                      <Card elevation={0} sx={{ border: '1.5px solid #1b0892', borderRadius: 3, background: 'linear-gradient(135deg, #e8eaf6 0%, #ffffff 100%)', flex: 1, minWidth: 160 }}>
+                        <CardContent sx={{ p: 2.5 }}>
+                          <Typography sx={{ fontSize: 28, mb: 0.5 }}>📋</Typography>
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 32, color: '#1b0892', lineHeight: 1 }}>
+                            {total}
+                          </Typography>
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 14, color: '#1b0892', mt: 0.5 }}>
+                            Total Analyzed
+                          </Typography>
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#666', mt: 0.5 }}>
+                            survey responses
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Box>
+                    {/* ── Charts Section: Sentiment Distribution & Category Breakdown ── */}
+                    <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
+                      {/* ── Sentiment Donut Chart ── */}
+                      <Card elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: 3, backgroundColor: 'white', flex: 1, minWidth: 320 }}>
+                        <CardContent sx={{ p: 3 }}>
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 13, color: '#666', letterSpacing: 1, textTransform: 'uppercase', mb: 2 }}>
+                            Sentiment Distribution
+                          </Typography>
+                          {total === 0 ? (
+                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', color: '#999', textAlign: 'center', py: 4 }}>
+                              No sentiment data available for the selected filters.
+                            </Typography>
+                          ) : (
+                            <ResponsiveContainer width="100%" height={260}>
+                              <PieChart>
+                                <Pie data={chartData} cx="50%" cy="50%"
+                                  innerRadius={65} outerRadius={100} paddingAngle={3}
+                                  dataKey="value" labelLine={false} label={renderCustomLabel}>
+                                  {chartData.map((entry) => (
+                                    <Cell key={entry.name} fill={CHART_COLORS[['Positive', 'Neutral', 'Negative'].indexOf(entry.name)]} />
+                                  ))}
+                                </Pie>
+                                <Tooltip formatter={(value, name) => [`${value} responses`, name]}
+                                  contentStyle={{ fontFamily: 'Poppins, sans-serif', fontSize: 13 }} />
+                                <Legend formatter={(value, entry) => {
+                                  const pct = total > 0 ? Math.round((entry.payload.value / total) * 100) : 0;
+                                  return <span style={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#333' }}>{value} {pct}%</span>;
+                                }} />
+                              </PieChart>
+                            </ResponsiveContainer>
+                          )}
+                        </CardContent>
+                      </Card>
+
+                      {/* ── Category Breakdown Chart ── */}
+                      <Card elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: 3, backgroundColor: 'white', flex: 1, minWidth: 320 }}>
+                        <CardContent sx={{ p: 3 }}>
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 13, color: '#666', letterSpacing: 1, textTransform: 'uppercase', mb: 2 }}>
+                            Category Breakdown
+                          </Typography>
+                          {total === 0 || categoryChartData.length === 0 ? (
+                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', color: '#999', textAlign: 'center', py: 4 }}>
+                              No category data available for the selected filters.
+                            </Typography>
+                          ) : (
+                            <ResponsiveContainer width="100%" height={260}>
+                              <PieChart>
+                                <Pie data={categoryChartData} cx="50%" cy="50%"
+                                  innerRadius={65} outerRadius={100} paddingAngle={3}
+                                  dataKey="value" labelLine={false} label={renderCustomLabel}>
+                                  {categoryChartData.map((entry) => (
+                                    <Cell key={entry.name} fill={entry.color} />
+                                  ))}
+                                </Pie>
+                                <Tooltip formatter={(value, name) => [`${value} responses`, name]}
+                                  contentStyle={{ fontFamily: 'Poppins, sans-serif', fontSize: 13 }} />
+                                <Legend formatter={(value, entry) => {
+                                  const pct = total > 0 ? Math.round((entry.payload.value / total) * 100) : 0;
+                                  return <span style={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#333' }}>{value} {pct}%</span>;
+                                }} />
+                              </PieChart>
+                            </ResponsiveContainer>
+                          )}
+                        </CardContent>
+                      </Card>
                     </Box>
 
-                    {reviewRows.length === 0 ? (
-                      <Typography sx={{ fontFamily: 'Poppins, sans-serif', color: '#999', py: 3, textAlign: 'center' }}>
-                        No text responses found for the selected filters.
-                      </Typography>
-                    ) : (
-                      <>
-                        <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #f0f0f0', borderRadius: 2 }}>
-                          <Table size="small">
-                            <TableHead>
-                              <TableRow sx={{ backgroundColor: '#fafafa' }}>
-                                <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', letterSpacing: 1, textTransform: 'uppercase', width: '25%' }}>
-                                  Clientele
-                                </TableCell>
-                                <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', letterSpacing: 1, textTransform: 'uppercase', width: '15%' }}>
-                                  College
-                                </TableCell>
-                                <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', letterSpacing: 1, textTransform: 'uppercase', width: '35%' }}>
-                                  Response
-                                </TableCell>
-                                <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', letterSpacing: 1, textTransform: 'uppercase', width: '15%' }}>
-                                  Sentiment
-                                </TableCell>
-                                <TableCell align="center" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', letterSpacing: 1, textTransform: 'uppercase', width: '10%' }}>
-                                  Actions
-                                </TableCell>
-                              </TableRow>
-                            </TableHead>
-                            <TableBody>
-                              {pageRows.map((row) => (
-                                <TableRow key={row.Id} sx={{ '&:hover': { backgroundColor: '#fafafa' }, borderBottom: '1px solid #f5f5f5' }}>
-                                  <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#333', py: 1.5, textTransform: 'capitalize' }}>
-                                    {row.Clientele}
-                                  </TableCell>
-                                  <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#333', py: 1.5 }}>
-                                    {row.College}
-                                  </TableCell>
-                                  <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#333', py: 1.5, pr: 3 }}>
-                                    {row.Message}
-                                  </TableCell>
-                                  <TableCell sx={{ py: 1.5 }}>
-                                    <SentimentChip label={row.SentimentResult} />
-                                  </TableCell>
-                                  <TableCell align="center" sx={{ py: 1.5 }}>
-                                    <Button
-                                      variant="contained"
-                                      size="small"
-                                      onClick={() => handleDelete(row.Id)}
-                                      sx={{
-                                        backgroundColor: '#d32f2f',
-                                        '&:hover': { backgroundColor: '#b71c1c' },
-                                        fontFamily: 'Poppins, sans-serif',
-                                        fontSize: '11px',
-                                        textTransform: 'none',
-                                        minWidth: '65px',
-                                        py: 0.3
-                                      }}
-                                    >
-                                      Delete
-                                    </Button>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </TableContainer>
-
-                        {/* Pagination */}
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
-                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#888' }}>
-                            Showing {page * ROWS_PER_PAGE + 1}–{Math.min((page + 1) * ROWS_PER_PAGE, reviewRows.length)} of {reviewRows.length}
+                    {/* ── Survey Response Review Table ── */}
+                    <Card elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: 3, backgroundColor: 'white' }}>
+                      <CardContent sx={{ p: 3 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.5, mb: 2 }}>
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 16, color: '#1a1a1a' }}>
+                            Survey Response Review
                           </Typography>
-                          <Box sx={{ display: 'flex', gap: 1 }}>
-                            <Button size="small" disabled={page === 0} onClick={() => setPage(p => p - 1)}
-                              sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', color: '#1b0892' }}>
-                              &larr; Prev
-                            </Button>
-                            <Button size="small" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}
-                              sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', color: '#1b0892' }}>
-                              Next &rarr;
-                            </Button>
-                          </Box>
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#888' }}>
+                            {reviewRows.length} responses · page {page + 1} of {totalPages || 1}
+                          </Typography>
                         </Box>
-                      </>
-                    )}
-                  </CardContent>
-                </Card>
-              </>
+
+                        {reviewRows.length === 0 ? (
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', color: '#999', py: 3, textAlign: 'center' }}>
+                            No text responses found for the selected filters.
+                          </Typography>
+                        ) : (
+                          <>
+                            <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #f0f0f0', borderRadius: 2 }}>
+                              <Table size="small">
+                                <TableHead>
+                                  <TableRow sx={{ backgroundColor: '#fafafa' }}>
+                                    <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', letterSpacing: 1, textTransform: 'uppercase', width: '20%' }}>
+                                      Clientele
+                                    </TableCell>
+                                    <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', letterSpacing: 1, textTransform: 'uppercase', width: '12%' }}>
+                                      College
+                                    </TableCell>
+                                    <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', letterSpacing: 1, textTransform: 'uppercase', width: '30%' }}>
+                                      Response
+                                    </TableCell>
+                                    <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', letterSpacing: 1, textTransform: 'uppercase', width: '14%' }}>
+                                      Sentiment
+                                    </TableCell>
+                                    <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', letterSpacing: 1, textTransform: 'uppercase', width: '14%' }}>
+                                      Category
+                                    </TableCell>
+                                    <TableCell align="center" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', letterSpacing: 1, textTransform: 'uppercase', width: '10%' }}>
+                                      Actions
+                                    </TableCell>
+                                  </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                  {pageRows.map((row) => (
+                                    <TableRow key={row.Id} sx={{ '&:hover': { backgroundColor: '#fafafa' }, borderBottom: '1px solid #f5f5f5' }}>
+                                      <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#333', py: 1.5, textTransform: 'capitalize' }}>
+                                        {row.Clientele}
+                                      </TableCell>
+                                      <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#333', py: 1.5 }}>
+                                        {row.College}
+                                      </TableCell>
+                                      <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#333', py: 1.5, pr: 3 }}>
+                                        {row.Message}
+                                      </TableCell>
+                                      <TableCell sx={{ py: 1.5 }}>
+                                        <SentimentChip label={row.SentimentResult} />
+                                      </TableCell>
+                                      <TableCell sx={{ py: 1.5 }}>
+                                        <CategoryChip label={row.Category} />
+                                      </TableCell>
+                                      <TableCell align="center" sx={{ py: 1.5 }}>
+                                        <Button
+                                          variant="contained"
+                                          size="small"
+                                          onClick={() => handleDelete(row.Id)}
+                                          sx={{
+                                            backgroundColor: '#d32f2f',
+                                            '&:hover': { backgroundColor: '#b71c1c' },
+                                            fontFamily: 'Poppins, sans-serif',
+                                            fontSize: '11px',
+                                            textTransform: 'none',
+                                            minWidth: '65px',
+                                            py: 0.3
+                                          }}
+                                        >
+                                          Delete
+                                        </Button>
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </TableContainer>
+
+                            {/* Pagination */}
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
+                              <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#888' }}>
+                                Showing {page * ROWS_PER_PAGE + 1}–{Math.min((page + 1) * ROWS_PER_PAGE, reviewRows.length)} of {reviewRows.length}
+                              </Typography>
+                              <Box sx={{ display: 'flex', gap: 1 }}>
+                                <Button size="small" disabled={page === 0} onClick={() => setPage(p => p - 1)}
+                                  sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', color: '#1b0892' }}>
+                                  &larr; Prev
+                                </Button>
+                                <Button size="small" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}
+                                  sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', color: '#1b0892' }}>
+                                  Next &rarr;
+                                </Button>
+                              </Box>
+                            </Box>
+                          </>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </>
+                )}
+              </Box>
             )}
-      </Box>
-            )}
 
-          {/* Hidden Printable HTML Template */}
-          <div ref={printRef} style={{ display: 'none' }}>
-            <h1>Henry Luce III Library</h1>
-            <h2>Patron Satisfaction Sentiment Analysis Report</h2>
-            <p className="daterange">
-              {startDate && endDate ? `Date Range: ${startDate} to ${endDate}` : 'All Batched Records'}
-              {filterClientele ? ` | Clientele: ${filterClientele}` : ''}
-              {filterCollege ? ` | College: ${filterCollege}` : ''}
-              {filterSentiment ? ` | Sentiment: ${filterSentiment}` : ''}
-            </p>
+            {/* Hidden Printable HTML Template */}
+            <div ref={printRef} style={{ display: 'none' }}>
+              <h1>Henry Luce III Library</h1>
+              <h2>Patron Satisfaction Sentiment Analysis Report</h2>
+              <p className="daterange">
+                {startDate && endDate ? `Date Range: ${startDate} to ${endDate}` : 'All Batched Records'}
+                {filterClientele ? ` | Clientele: ${filterClientele}` : ''}
+                {filterCollege ? ` | College: ${filterCollege}` : ''}
+                {filterSentiment ? ` | Sentiment: ${filterSentiment}` : ''}
+              </p>
 
-            <div className="summary">
-              <div className="summary-box tot"><div className="value">{total}</div><div className="label">Total Analyzed</div></div>
-              <div className="summary-box pos"><div className="value">{counts.Positive}</div><div className="label">Positive</div></div>
-              <div className="summary-box neu"><div className="value">{counts.Neutral}</div><div className="label">Neutral</div></div>
-              <div className="summary-box neg"><div className="value">{counts.Negative}</div><div className="label">Negative</div></div>
-            </div>
+              <div className="summary">
+                <div className="summary-box tot"><div className="value">{total}</div><div className="label">Total Analyzed</div></div>
+                <div className="summary-box pos"><div className="value">{counts.Positive}</div><div className="label">Positive</div></div>
+                <div className="summary-box neu"><div className="value">{counts.Neutral}</div><div className="label">Neutral</div></div>
+                <div className="summary-box neg"><div className="value">{counts.Negative}</div><div className="label">Negative</div></div>
+              </div>
 
-            <table>
-              <thead>
-                <tr>
-                  <th>Clientele</th>
-                  <th>College/Dept</th>
-                  <th>Patron Feedback Message</th>
-                  <th>Sentiment Result</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reviewRows.map((row) => (
-                  <tr key={row.Id}>
-                    <td style={{ textTransform: 'capitalize' }}>{row.Clientele}</td>
-                    <td>{row.College}</td>
-                    <td>{row.Message}</td>
-                    <td><strong>{row.SentimentResult}</strong></td>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Clientele</th>
+                    <th>College/Dept</th>
+                    <th>Patron Feedback Message</th>
+                    <th>Sentiment Result</th>
+                    <th>Category</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {reviewRows.map((row) => (
+                    <tr key={row.Id}>
+                      <td style={{ textTransform: 'capitalize' }}>{row.Clientele}</td>
+                      <td>{row.College}</td>
+                      <td>{row.Message}</td>
+                      <td><strong>{row.SentimentResult}</strong></td>
+                      <td>{row.Category || 'Other/Uncategorized'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
 
-            <div className="footer">
-              Generated via Naïve Bayes Classification System on {new Date().toLocaleDateString('en-PH')} — Central Philippine University
+              <div className="footer">
+                Generated via Naïve Bayes Classification System on {new Date().toLocaleDateString('en-PH')} — Central Philippine University
+              </div>
             </div>
-          </div>
           </>
         )}
       </Header>
 
-      {/* 👇 Login Popup */}
-      <Dialog open={showLoginModal}>
-        <DialogTitle>You need to login as an Admin to view this page</DialogTitle>
-        <DialogContent>
-          <TextField
-            fullWidth
-            margin="dense"
-            label="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
-          <TextField
-            fullWidth
-            margin="dense"
-            label="Password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          {loginError && (
-            <Typography color="error" fontSize={14} mt={1}>
-              {loginError}
-            </Typography>
-          )}
-          <Button
-            variant="contained"
-            fullWidth
-            sx={{ mt: 2 }}
-            onClick={handleLogin}
-          >
-            Login
-          </Button>
-          <Button
-            variant="outlined"
-            fullWidth
-            sx={{ mt: 1 }}
-            onClick={() => navigate('/')}
-          >
-            Home
-          </Button>
-        </DialogContent>
-      </Dialog>
+      {/* 👇 Login Popup (only mounted when user is not logged in) */}
+      {showLoginModal && (
+        <Dialog open={true}>
+          <DialogTitle>You need to login as an Admin to view this page</DialogTitle>
+          <DialogContent>
+            <TextField
+              fullWidth
+              margin="dense"
+              label="Username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
+            <TextField
+              fullWidth
+              margin="dense"
+              label="Password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            {loginError && (
+              <Typography color="error" fontSize={14} mt={1}>
+                {loginError}
+              </Typography>
+            )}
+            <Button
+              variant="contained"
+              fullWidth
+              sx={{ mt: 2 }}
+              onClick={handleLogin}
+            >
+              Login
+            </Button>
+            <Button
+              variant="outlined"
+              fullWidth
+              sx={{ mt: 1 }}
+              onClick={() => navigate('/')}
+            >
+              Home
+            </Button>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 };

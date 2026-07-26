@@ -1,74 +1,155 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Header from '../Components/Header';
 import TopBar from '../Components/TopBar';
-import axios from 'axios';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button,
   Typography, Box, Grid, MenuItem, Snackbar, Alert,
   Table, TableBody, TableCell, TableContainer, TableHead,
-  TableRow, Paper, Chip, IconButton
+  TableRow, Paper, Chip, IconButton, InputAdornment,
+  TablePagination, Tooltip,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import SearchIcon from '@mui/icons-material/Search';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import { useNavigate } from 'react-router-dom';
 
-// Updated: Only 'In Stock' and 'Out of Stock' remain
-const STATUS_OPTIONS = ['In Stock', 'Out of Stock'];
-const LOCATION_OPTIONS = [
-  'Entrance', 'Reference', 'Circulation', 'Theology', 'Filipiniana',
-  'Serials', 'Law', 'American Corner', 'Graduate Studies', 'Cyber Library',
-  'Senior High School', 'Junior High School', 'Elementary', 'Kindergarten',
-  'Office', 'Storage Room',
-];
+import {
+  LOCATION_OPTIONS, THEME, emptyAssetForm, getStockStatus, statusColor,
+} from '../constants/equipmentConstants';
+import {
+  getAssets, createAsset, updateAsset, deleteAsset, addStock, transferAsset,
+  getBrands, createBrand, getDashboardSummary, getEquipmentItemNames,
+} from '../api/equipmentApi';
 
-const statusColor = (status) => {
-  if (status === 'In Stock') return { bg: '#e8f5e9', text: '#2e7d32', border: '#a5d6a7' };
-  return { bg: '#ffebee', text: '#c62828', border: '#ef9a9a' };
-};
+const NEW_BRAND_VALUE = '__new__';
+const NEW_ITEM_VALUE = '___NEW_ITEM___';
+const font = THEME.font;
 
-// Removed condition field from state structure (serialNumber, description, and specifications stay)
-const emptyForm = {
-  itemName: '', description: '', brand: '', quantity: '',
-  status: 'In Stock', serialNumber: '',
-  location: '', specifications: '',
-};
 
 const EquipmentEncode = () => {
   const navigate = useNavigate();
+
+  // ---- auth (unchanged from existing app) ----
   const [showLoginModal, setShowLoginModal] = useState(true);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [loggedInUser, setLoggedInUser] = useState('');
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-  const [formData, setFormData] = useState(emptyForm);
+
+  // ---- data ----
   const [items, setItems] = useState([]);
+  const [itemNames, setItemNames] = useState([]);
+  const [brands, setBrands] = useState([]);
+
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+
+  // ---- add asset form ----
+  const [formData, setFormData] = useState(emptyAssetForm);
+  const [formErrors, setFormErrors] = useState({});
+
+  // ---- edit / delete ----
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
-  const [editForm, setEditForm] = useState(emptyForm);
+  const [editForm, setEditForm] = useState(emptyAssetForm);
+
+  // ---- add stock ----
+  const [stockDialogOpen, setStockDialogOpen] = useState(false);
+  const [stockTarget, setStockTarget] = useState(null);
+  const [stockAmount, setStockAmount] = useState('');
+  const [stockError, setStockError] = useState('');
+
+  // ---- expandable rows ----
+  const [expandedRows, setExpandedRows] = useState(new Set());
+  const toggleExpand = (profileKey) =>
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      next.has(profileKey) ? next.delete(profileKey) : next.add(profileKey);
+      return next;
+    });
+
+  // ---- add stock (now profile + location) ----
+  const [stockLocation, setStockLocation] = useState('');
+
+  // ---- transfer modal ----
+  const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+  const [transferTarget, setTransferTarget] = useState(null);
+  const [transferSourceId, setTransferSourceId] = useState('');
+  const [transferDestLocation, setTransferDestLocation] = useState('');
+  const [transferAmount, setTransferAmount] = useState('');
+  const [transferError, setTransferError] = useState('');
+
+  // ---- search / filter / pagination ----
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   useEffect(() => {
     const savedUser = localStorage.getItem('equipmentUser');
     if (savedUser) {
       setLoggedInUser(savedUser);
       setUsername(savedUser);
+      setShowLoginModal(false);
     }
   }, []);
 
+
   useEffect(() => {
-    if (!showLoginModal) fetchItems();
+    if (!showLoginModal) {
+      fetchItems();
+      fetchBrands();
+      fetchItemNames();
+      fetchSummary();
+    }
   }, [showLoginModal]);
 
   const fetchItems = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/equipment');
-      setItems(res.data);
+      const data = await getAssets();
+      console.log('DEBUG [fetchItems]:', data);
+      setItems(data);
     } catch (err) {
       console.error('Error fetching equipment:', err);
+      setSnackbar({ open: true, message: 'Failed to load equipment records.', severity: 'error' });
     }
   };
 
+  const fetchBrands = async () => {
+    try {
+      const data = await getBrands();
+      const mappedBrands = data.map((b, idx) => ({ brand_id: String(idx), brand_name: b }));
+      setBrands(mappedBrands);
+    } catch (err) {
+      console.error('Error fetching brands:', err);
+    }
+  };
+
+  const fetchItemNames = async () => {
+    try {
+      const data = await getEquipmentItemNames();
+      setItemNames(data);
+    } catch (err) {
+      console.error('Error fetching item names:', err);
+    }
+  };
+
+  const fetchSummary = async () => {
+    try {
+      const data = await getDashboardSummary();
+      console.log('DEBUG [fetchSummary]:', data);
+
+    } catch (err) {
+      // Fall back to client-side computation below if the endpoint isn't ready yet
+      console.error('Error fetching dashboard summary:', err);
+    }
+  };
+
+  // ---------------- auth handlers ----------------
   const handleLogin = (e) => {
     e.preventDefault();
     if (username === 'admin' && password === '!HLL2025*') {
@@ -89,46 +170,163 @@ const EquipmentEncode = () => {
     setPassword('');
   };
 
-  const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  const handleEditChange = (e) => setEditForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  // ---------------- add asset ----------------
+  const handleChange = (e) => setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+
+  const handleBrandSelect = (e) => {
+    const value = e.target.value;
+    setFormData((prev) => ({
+      ...prev,
+      brandOption: value,
+      brand: value === NEW_BRAND_VALUE ? '' : value,
+    }));
+  };
+
+  const handleItemNameSelect = (e) => {
+    const value = e.target.value;
+    setFormData((prev) => ({
+      ...prev,
+      itemNameOption: value,
+      itemName: value === NEW_ITEM_VALUE ? '' : value,
+    }));
+  };
+
+  const handleEditItemNameSelect = (e) => {
+    const value = e.target.value;
+    setEditForm((prev) => ({
+      ...prev,
+      itemNameOption: value,
+      itemName: value === NEW_ITEM_VALUE ? '' : value,
+    }));
+  };
+
+  const validateAssetForm = (data) => {
+    const errors = {};
+    if (itemNames.length > 0 && !data.itemNameOption) {
+      errors.itemName = 'Please select an item name.';
+    }
+    if (itemNames.length > 0 && data.itemNameOption === NEW_ITEM_VALUE && !data.itemName.trim()) {
+      errors.itemName = 'Please enter the item name.';
+    }
+    if (itemNames.length === 0 && !data.itemName.trim()) {
+      errors.itemName = 'Item name is required.';
+    }
+
+    if (brands.length > 0 && !data.brandOption) errors.brand = 'Please select a brand.';
+    if (brands.length > 0 && data.brandOption === NEW_BRAND_VALUE && !data.brand.trim()) {
+      errors.brand = 'Please enter the new brand name.';
+    }
+    if (brands.length === 0 && !data.brand.trim()) errors.brand = 'Brand name is required.';
+
+    if (!data.specifications || !data.specifications.trim() || data.specifications.trim().toUpperCase() === 'N/A') {
+      errors.specifications = 'Specifications are required.';
+    }
+
+    const qty = Number(data.quantity);
+    if (data.quantity === '' || Number.isNaN(qty) || qty < 1) {
+      errors.quantity = 'Quantity must be at least 1.';
+    }
+    return errors;
+  };
 
   const handleSubmit = async () => {
-    if (!formData.itemName.trim()) {
-      setSnackbar({ open: true, message: 'Item name is required.', severity: 'error' });
-      return;
-    }
+    const errors = validateAssetForm(formData);
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
     try {
-      await axios.post('http://localhost:5000/api/equipment', formData);
+      // If the admin typed a brand new brand name, register it first so it's
+      // immediately available in future dropdowns (also fine if the backend
+      // upserts brands itself — this just guarantees it either way).
+      const brandName = formData.brand.trim();
+      if (brandName && !brands.some((b) => b.brand_name.toLowerCase() === brandName.toLowerCase())) {
+        await createBrand(brandName);
+      }
+
+      const quantity = Number(formData.quantity);
+      await createAsset({
+        itemName: formData.itemName.trim(),
+        brand: brandName,
+        quantity,
+        status: getStockStatus(quantity),
+        location: formData.location,
+        specifications: formData.specifications.trim(),
+        user: loggedInUser,
+      });
+
       setSnackbar({ open: true, message: 'Equipment saved successfully!', severity: 'success' });
-      setFormData(emptyForm);
+      setFormData({
+        itemName: '',
+        itemNameOption: '',
+        brand: '',
+        brandOption: '',
+        quantity: '',
+        location: '',
+        specifications: '',
+      });
+      setFormErrors({});
       fetchItems();
+      fetchBrands();
+      fetchItemNames();
+      fetchSummary();
     } catch (err) {
-      setSnackbar({ open: true, message: 'Failed to save equipment.', severity: 'error' });
+      console.error(err);
+      const apiMessage = err?.response?.data?.error || err?.response?.data?.message || 'Failed to save asset.';
+      setSnackbar({ open: true, message: apiMessage, severity: 'error' });
     }
   };
 
+  // ---------------- edit ----------------
+  const handleEditChange = (e) => setEditForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+
   const handleOpenEdit = (item) => {
     setSelectedItem(item);
+    const existingBrand = brands.some((b) => b.brand_name.toLowerCase() === (item.Brand || '').toLowerCase());
+    const existingItemName = itemNames.some((n) => n.toLowerCase() === (item.ItemName || '').toLowerCase());
+
     setEditForm({
-      itemName: item.ItemName || '', description: item.Description || '',
-      brand: item.Brand || '', quantity: item.Quantity || '',
-      status: item.Status || 'In Stock', serialNumber: item.SerialNumber || '',
-      location: item.Location || '', specifications: item.Specifications || '',
+      itemName: item.ItemName || '',
+      itemNameOption: existingItemName ? item.ItemName : NEW_ITEM_VALUE,
+      brand: item.Brand || '',
+      brandOption: existingBrand ? item.Brand : NEW_BRAND_VALUE,
+      quantity: item.Quantity ?? '',
+      location: item.Location || '',
+      specifications: item.Specifications || '',
     });
     setEditDialogOpen(true);
   };
 
   const handleUpdate = async () => {
+    const errors = validateAssetForm(editForm);
+    if (Object.keys(errors).length > 0) {
+      setSnackbar({ open: true, message: 'Please fix the highlighted fields.', severity: 'error' });
+      return;
+    }
     try {
-      await axios.put(`http://localhost:5000/api/equipment/${selectedItem.Id}`, editForm);
+      const quantity = Number(editForm.quantity);
+      await updateAsset(selectedItem.Id, {
+        itemName: editForm.itemName.trim(),
+        brand: editForm.brand.trim(),
+        quantity,
+        status: getStockStatus(quantity),
+        location: editForm.location,
+        specifications: editForm.specifications.trim(),
+        user: loggedInUser,
+      });
       setSnackbar({ open: true, message: 'Equipment updated successfully!', severity: 'success' });
       setEditDialogOpen(false);
       fetchItems();
+      fetchBrands();
+      fetchItemNames();
+      fetchSummary();
     } catch (err) {
-      setSnackbar({ open: true, message: 'Failed to update equipment.', severity: 'error' });
+      console.error(err);
+      const apiMessage = err?.response?.data?.message || err?.response?.data?.error || 'Failed to update equipment.';
+      setSnackbar({ open: true, message: apiMessage, severity: 'error' });
     }
   };
 
+  // ---------------- delete ----------------
   const handleOpenDelete = (item) => {
     setSelectedItem(item);
     setDeleteDialogOpen(true);
@@ -136,51 +334,226 @@ const EquipmentEncode = () => {
 
   const handleDelete = async () => {
     try {
-      await axios.delete(`http://localhost:5000/api/equipment/${selectedItem.Id}`);
+      await deleteAsset(selectedItem.Id);
       setSnackbar({ open: true, message: 'Equipment deleted successfully!', severity: 'success' });
       setDeleteDialogOpen(false);
       fetchItems();
+      fetchSummary();
     } catch (err) {
       setSnackbar({ open: true, message: 'Failed to delete equipment.', severity: 'error' });
     }
   };
 
-  const formFields = (data, handler) => (
+  // ---------------- add stock ----------------
+  const handleOpenStock = (profile) => {
+    setStockTarget(profile);
+    setStockLocation('');
+    setStockAmount('');
+    setStockError('');
+    setStockDialogOpen(true);
+  };
+
+  const handleConfirmStock = async () => {
+    const qty = Number(stockAmount);
+    if (!stockLocation) return setStockError('Select a location.');
+    if (!stockAmount || Number.isNaN(qty) || qty < 1) {
+      return setStockError('Additional quantity must be at least 1.');
+    }
+    try {
+      // Pass existing Asset ID if location exists, else the first location's ID as a base
+      const existingLoc = stockTarget.location_balances.find((l) => l.LocationName === stockLocation);
+      const assetId = existingLoc ? existingLoc.Id : (stockTarget.location_balances[0]?.Id || null);
+
+      await addStock({
+        assetId,
+        itemName: stockTarget.ItemName,
+        brand: stockTarget.Brand,
+        serialNumber: stockTarget.SerialNumber || '',
+        location: stockLocation,
+        specifications: stockTarget.location_balances[0]?.Specifications || '',
+        quantity: qty,
+        user: loggedInUser,
+      });
+      setSnackbar({ open: true, message: `Added ${qty} to ${stockLocation}.`, severity: 'success' });
+      setStockDialogOpen(false);
+      fetchItems();
+      fetchSummary();
+    } catch (err) {
+      setStockError(err.response?.data?.message || 'Failed to add stock.');
+    }
+  };
+
+  // ---------------- transfer ----------------
+  const handleOpenTransfer = (profile, sourceLocationId = '') => {
+    setTransferTarget(profile);
+    const resolvedId = sourceLocationId || (profile.location_balances[0]?.Id || '');
+    setTransferSourceId(resolvedId);
+    setTransferDestLocation('');
+    setTransferAmount('');
+    setTransferError('');
+    setTransferDialogOpen(true);
+  };
+
+  const handleConfirmTransfer = async () => {
+    const sourceLoc = transferTarget.location_balances.find((l) => String(l.Id) === String(transferSourceId));
+    if (!sourceLoc) {
+      setTransferError('Invalid source location.');
+      return;
+    }
+    const qty = Number(transferAmount);
+    if (!transferDestLocation) {
+      setTransferError('Select destination location.');
+      return;
+    }
+    if (!transferAmount || Number.isNaN(qty) || qty < 1) {
+      setTransferError('Quantity must be at least 1.');
+      return;
+    }
+    if (qty > sourceLoc.Quantity) {
+      setTransferError(`Transfer quantity cannot exceed source balance of ${sourceLoc.Quantity}.`);
+      return;
+    }
+
+    try {
+      await transferAsset(sourceLoc.Id, {
+        destinationLocation: transferDestLocation,
+        quantity: qty,
+        user: loggedInUser,
+      });
+      setSnackbar({ open: true, message: `Successfully transferred ${qty} to ${transferDestLocation}.`, severity: 'success' });
+      setTransferDialogOpen(false);
+      fetchItems();
+      fetchSummary();
+    } catch (err) {
+      setTransferError(err.response?.data?.message || 'Failed to transfer asset.');
+    }
+  };
+
+  const currentSourceBalance = useMemo(() => {
+    if (!transferTarget || !transferSourceId) return 0;
+    const loc = transferTarget.location_balances.find((l) => String(l.Id) === String(transferSourceId));
+    return loc ? loc.Quantity : 0;
+  }, [transferTarget, transferSourceId]);
+
+  const isTransferInvalid = useMemo(() => {
+    const qty = Number(transferAmount);
+    return !transferAmount || Number.isNaN(qty) || qty < 1 || qty > currentSourceBalance || !transferDestLocation;
+  }, [transferAmount, currentSourceBalance, transferDestLocation]);
+
+  // ---------------- derived data ----------------
+  const filteredItems = useMemo(() => {
+    return items.filter((profile) => {
+      const masterStatus = getStockStatus(profile.TotalQuantity);
+      const matchesMasterStatus = statusFilter === 'All' || masterStatus === statusFilter;
+      const matchesSubStatus = statusFilter === 'All' || (profile.location_balances || []).some(loc => loc.Status === statusFilter);
+      const matchesStatus = matchesMasterStatus || matchesSubStatus;
+
+      const q = search.trim().toLowerCase();
+      const matchesSearch = !q || [
+        profile.ItemName, profile.Brand,
+        ...(profile.location_balances || []).map((l) => l.LocationName),
+        ...(profile.location_balances || []).map((l) => l.Specifications),
+      ].some((f) => (f || '').toLowerCase().includes(q));
+      return matchesStatus && matchesSearch;
+    });
+  }, [items, search, statusFilter]);
+
+  const pagedItems = filteredItems.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
+
+
+  // ---------------- shared form fields renderer ----------------
+  const formFields = (data, handler, itemNameSelectHandler, brandSelectHandler, errors = {}) => (
     <Grid container spacing={2}>
-      <Grid item xs={12} sm={6} md={4}>
-        <TextField fullWidth label="Item Name *" name="itemName" value={data.itemName} onChange={handler}
-          inputProps={{ style: { fontFamily: 'Poppins, sans-serif' } }} />
+      {/* Item Name Field - Select */}
+      {itemNames.length > 0 && (
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <TextField
+            fullWidth select label="Item Name *" name="itemNameOption" value={data.itemNameOption || ''}
+            onChange={itemNameSelectHandler} error={!!errors.itemName}
+            helperText={!data.itemNameOption ? errors.itemName : ''}
+          >
+            <MenuItem value="" disabled sx={{ fontFamily: font }}>Select Item Name</MenuItem>
+            {itemNames.map((name) => (
+              <MenuItem key={name} value={name} sx={{ fontFamily: font }}>
+                {name}
+              </MenuItem>
+            ))}
+            <MenuItem value={NEW_ITEM_VALUE} sx={{ fontFamily: font, fontStyle: 'italic' }}>
+              Others (Input Manually)
+            </MenuItem>
+          </TextField>
+        </Grid>
+      )}
+
+      {/* Item Name Field - Manual Entry */}
+      {(itemNames.length === 0 || data.itemNameOption === NEW_ITEM_VALUE) && (
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <TextField
+            fullWidth label={itemNames.length === 0 ? "Item Name *" : "Enter New Item Name *"}
+            name="itemName" value={data.itemName}
+            onChange={handler} error={!!errors.itemName} helperText={errors.itemName}
+            inputProps={{ style: { fontFamily: font } }}
+          />
+        </Grid>
+      )}
+
+      {/* Brand Field - Select */}
+      {brands.length > 0 && (
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <TextField
+            fullWidth select label="Brand *" name="brandOption" value={data.brandOption}
+            onChange={brandSelectHandler} error={!!errors.brand}
+            helperText={!data.brandOption ? errors.brand : ''}
+          >
+            <MenuItem value="" disabled sx={{ fontFamily: font }}>Select Brand</MenuItem>
+            {brands.map((b) => (
+              <MenuItem key={b.brand_id} value={b.brand_name} sx={{ fontFamily: font }}>
+                {b.brand_name}
+              </MenuItem>
+            ))}
+            <MenuItem value={NEW_BRAND_VALUE} sx={{ fontFamily: font, fontStyle: 'italic' }}>
+              Others (Input Manually)
+            </MenuItem>
+          </TextField>
+        </Grid>
+      )}
+
+      {/* Brand Field - Manual Entry */}
+      {(brands.length === 0 || data.brandOption === NEW_BRAND_VALUE) && (
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <TextField
+            fullWidth label={brands.length === 0 ? "Brand Name *" : "Enter New Brand *"}
+            name="brand" value={data.brand}
+            onChange={handler} error={!!errors.brand} helperText={errors.brand}
+            inputProps={{ style: { fontFamily: font } }}
+          />
+        </Grid>
+      )}
+
+      <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+        <TextField
+          fullWidth label="Quantity *" name="quantity" value={data.quantity} onChange={handler}
+          type="number" error={!!errors.quantity} helperText={errors.quantity}
+          inputProps={{ style: { fontFamily: font }, min: 1 }}
+        />
       </Grid>
-      <Grid item xs={12} sm={6} md={4}>
-        <TextField fullWidth label="Brand" name="brand" value={data.brand} onChange={handler}
-          inputProps={{ style: { fontFamily: 'Poppins, sans-serif' } }} />
-      </Grid>
-      <Grid item xs={12} sm={6} md={4}>
-        <TextField fullWidth label="Quantity" name="quantity" value={data.quantity} onChange={handler}
-          type="number" inputProps={{ style: { fontFamily: 'Poppins, sans-serif' } }} />
-      </Grid>
-      <Grid item xs={12} sm={6} md={4}>
-        <TextField fullWidth select label="Status" name="status" value={data.status} onChange={handler}>
-          {STATUS_OPTIONS.map(s => <MenuItem key={s} value={s} sx={{ fontFamily: 'Poppins, sans-serif' }}>{s}</MenuItem>)}
-        </TextField>
-      </Grid>
-      <Grid item xs={12} sm={6} md={4}>
-        <TextField fullWidth label="Serial Number" name="serialNumber" value={data.serialNumber} onChange={handler}
-          inputProps={{ style: { fontFamily: 'Poppins, sans-serif' } }} />
-      </Grid>
-      <Grid item xs={12} sm={6} md={4}>
+
+      <Grid size={{ xs: 12, sm: 6, md: 4 }}>
         <TextField fullWidth select label="Location" name="location" value={data.location} onChange={handler}>
           <MenuItem value="">Select location</MenuItem>
-          {LOCATION_OPTIONS.map(l => <MenuItem key={l} value={l} sx={{ fontFamily: 'Poppins, sans-serif' }}>{l}</MenuItem>)}
+          {LOCATION_OPTIONS.map((l) => (
+            <MenuItem key={l} value={l} sx={{ fontFamily: font }}>{l}</MenuItem>
+          ))}
         </TextField>
       </Grid>
-      <Grid item xs={12} sm={6} md={4}>
-        <TextField fullWidth label="Description" name="description" value={data.description} onChange={handler}
-          inputProps={{ style: { fontFamily: 'Poppins, sans-serif' } }} />
-      </Grid>
-      <Grid item xs={12} sm={6} md={4}>
-        <TextField fullWidth label="Specifications" name="specifications" value={data.specifications} onChange={handler}
-          inputProps={{ style: { fontFamily: 'Poppins, sans-serif' } }} />
+
+      <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+        <TextField
+          fullWidth label="Specifications *" name="specifications" value={data.specifications} onChange={handler}
+          error={!!errors.specifications} helperText={errors.specifications}
+          inputProps={{ style: { fontFamily: font } }}
+        />
       </Grid>
     </Grid>
   );
@@ -193,122 +566,360 @@ const EquipmentEncode = () => {
             <TopBar title="Equipment Encoding" onMenuClick={toggleDrawer} subtitle="LIBRARY EQUIPMENT ENCODING" />
             {!showLoginModal && (
               <Box sx={{ px: 3, pt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 14, color: '#555' }}>
+                <Typography sx={{ fontFamily: font, fontSize: 14, color: '#555' }}>
                   Logged in as <strong>{loggedInUser}</strong>
                 </Typography>
-                <Button variant="outlined" size="small" color="secondary" onClick={handleLogout} sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none' }}>
-                  Logout
-                </Button>
+                <Box sx={{ display: 'flex', gap: 1.5 }}>
+                  <Button
+                    variant="outlined" size="small"
+                    onClick={() => navigate('/send-asset')}
+                    sx={{ fontFamily: font, textTransform: 'none', borderColor: THEME.navy, color: THEME.navy }}
+                  >
+                    Send Asset
+                  </Button>
+                  <Button
+                    variant="outlined" size="small"
+                    onClick={() => navigate('/transactions')}
+                    sx={{ fontFamily: font, textTransform: 'none', borderColor: THEME.navy, color: THEME.navy }}
+                  >
+                    Transaction History
+                  </Button>
+                  <Button variant="outlined" size="small" color="secondary" onClick={handleLogout} sx={{ fontFamily: font, textTransform: 'none' }}>
+                    Logout
+                  </Button>
+                </Box>
               </Box>
             )}
           </>
         )}
       </Header>
 
-      {/* Login Dialog */}
-      <Dialog open={showLoginModal} disableEscapeKeyDown>
-        <DialogTitle sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700 }}>Login Required</DialogTitle>
-        <DialogContent>
-          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#666', mb: 2 }}>
-            You need to login to access equipment encoding.
-          </Typography>
-          <TextField fullWidth margin="dense" label="Username" value={username} onChange={(e) => setUsername(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleLogin(e)} inputProps={{ style: { fontFamily: 'Poppins, sans-serif' } }} />
-          <TextField fullWidth margin="dense" label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleLogin(e)} inputProps={{ style: { fontFamily: 'Poppins, sans-serif' } }} />
-          {loginError && <Typography color="error" sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, mt: 1 }}>{loginError}</Typography>}
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => navigate('/')} sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none' }}>Back to Home</Button>
-          <Button variant="contained" onClick={handleLogin} sx={{ backgroundColor: '#1b0892', fontFamily: 'Poppins, sans-serif', textTransform: 'none', px: 3 }}>Login</Button>
-        </DialogActions>
-      </Dialog>
+      {/* Login Dialog — conditionally rendered so it fully unmounts when logged in */}
+      {showLoginModal && (
+        <Dialog open disableEscapeKeyDown>
+          <DialogTitle sx={{ fontFamily: font, fontWeight: 700 }}>Login Required</DialogTitle>
+          <DialogContent>
+            <Typography sx={{ fontFamily: font, fontSize: 13, color: '#666', mb: 2 }}>
+              You need to login to access equipment encoding.
+            </Typography>
+            <TextField fullWidth margin="dense" label="Username" value={username} onChange={(e) => setUsername(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleLogin(e)} inputProps={{ style: { fontFamily: font } }} />
+            <TextField fullWidth margin="dense" label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleLogin(e)} inputProps={{ style: { fontFamily: font } }} />
+            {loginError && <Typography color="error" sx={{ fontFamily: font, fontSize: 12, mt: 1 }}>{loginError}</Typography>}
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={() => navigate('/')} sx={{ fontFamily: font, textTransform: 'none' }}>Back to Home</Button>
+            <Button variant="contained" onClick={handleLogin} sx={{ backgroundColor: THEME.navy, fontFamily: font, textTransform: 'none', px: 3 }}>Login</Button>
+          </DialogActions>
+        </Dialog>
+      )}
 
       {!showLoginModal && (
-        <Box sx={{ p: 3, maxWidth: 1200, margin: '0 auto' }}>
-          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 20, mb: 3, color: '#1b0892' }}>
+        <Box sx={{ p: 3, maxWidth: 1300, margin: '0 auto' }}>
+
+          <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: 20, mb: 3, mt: 1, color: THEME.navy }}>
             Encode New Equipment Asset
           </Typography>
           <Paper elevation={0} sx={{ p: 3, border: '1px solid #e0e0e0', borderRadius: 3, mb: 4 }}>
-            {formFields(formData, handleChange)}
+            {formFields(formData, handleChange, handleItemNameSelect, handleBrandSelect, formErrors)}
             <Box sx={{ mt: 3, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-              <Button variant="outlined" onClick={() => setFormData(emptyForm)} sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', px: 4 }}>Clear</Button>
-              <Button variant="contained" onClick={handleSubmit} sx={{ backgroundColor: '#1b0892', fontFamily: 'Poppins, sans-serif', textTransform: 'none', px: 4 }}>Save Asset</Button>
+              <Button variant="outlined" onClick={() => { setFormData({ itemName: '', itemNameOption: '', brand: '', brandOption: '', quantity: '', location: '', specifications: '' }); setFormErrors({}); }} sx={{ fontFamily: font, textTransform: 'none', px: 4 }}>Clear</Button>
+              <Button variant="contained" onClick={handleSubmit} sx={{ backgroundColor: THEME.navy, fontFamily: font, textTransform: 'none', px: 4 }}>Save Asset</Button>
             </Box>
           </Paper>
 
-          {/* Records Table */}
-          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 16, mt: 5, mb: 2, color: '#1b0892' }}>
-            Equipment Records
-          </Typography>
+          {/* ---- Records header: search + filter ---- */}
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center', justifyContent: 'space-between', mt: 5, mb: 2 }}>
+            <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: 16, color: THEME.navy }}>
+              Equipment Records
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+              <TextField
+                size="small" placeholder="Search item, brand, location"
+                value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+                sx={{ minWidth: 280 }}
+                InputProps={{
+                  startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>,
+                  style: { fontFamily: font },
+                }}
+              />
+              <TextField
+                size="small" select value={statusFilter}
+                onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
+                sx={{ minWidth: 160, fontFamily: font }}
+              >
+                {['All', 'In Stock', 'Out of Stock'].map((s) => (
+                  <MenuItem key={s} value={s} sx={{ fontFamily: font }}>{s}</MenuItem>
+                ))}
+              </TextField>
+            </Box>
+          </Box>
+
           <Paper elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: 3 }}>
             <TableContainer>
               <Table size="small">
                 <TableHead>
                   <TableRow sx={{ backgroundColor: '#fafafa' }}>
-                    {['Item Name', 'Brand', 'Qty', 'Status', 'Serial No.', 'Location', 'Actions'].map(h => (
-                      <TableCell key={h} sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase' }}>
+                    {['', 'Item Name', 'Brand', 'Total Qty', 'Specifications', 'Status', 'Actions'].map((h) => (
+                      <TableCell key={h} sx={{ fontFamily: font, fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase' }}>
                         {h}
                       </TableCell>
                     ))}
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {items.map((item) => {
-                    const sc = statusColor(item.Status);
+                  {pagedItems.map((profile) => {
+                    const status = getStockStatus(profile.TotalQuantity);
+                    const sc = statusColor(status);
+                    const isOpen = expandedRows.has(profile.ProfileKey);
+
+                    const specs = profile.location_balances[0]?.Specifications;
+
                     return (
-                      <TableRow key={item.Id} sx={{ '&:hover': { backgroundColor: '#fafafa' } }}>
-                        <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 600 }}>{item.ItemName}</TableCell>
-                        <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13 }}>{item.Brand || '—'}</TableCell>
-                        <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13 }}>{item.Quantity}</TableCell>
-                        <TableCell>
-                          <Chip label={item.Status} size="small" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 11, backgroundColor: sc.bg, color: sc.text, border: `1px solid ${sc.border}` }} />
-                        </TableCell>
-                        <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13 }}>{item.SerialNumber || '—'}</TableCell>
-                        <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13 }}>{item.Location || '—'}</TableCell>
-                        <TableCell>
-                          <IconButton size="small" onClick={() => handleOpenEdit(item)} sx={{ color: '#1b0892' }}><EditIcon fontSize="small" /></IconButton>
-                          <IconButton size="small" onClick={() => handleOpenDelete(item)} sx={{ color: '#c62828' }}><DeleteIcon fontSize="small" /></IconButton>
-                        </TableCell>
-                      </TableRow>
+                      <React.Fragment key={profile.ProfileKey}>
+                        <TableRow sx={{ '&:hover': { backgroundColor: '#fafafa' } }}>
+                          <TableCell sx={{ width: 40 }}>
+                            <IconButton size="small" onClick={() => toggleExpand(profile.ProfileKey)} title={isOpen ? "Collapse" : "Expand"}>
+                              {isOpen ? <KeyboardArrowDownIcon /> : <KeyboardArrowRightIcon />}
+                            </IconButton>
+                          </TableCell>
+                          <TableCell sx={{ fontFamily: font, fontSize: 13, fontWeight: 600 }}>
+                            <Button
+                              onClick={() => toggleExpand(profile.ProfileKey)}
+                              sx={{
+                                justifyContent: 'flex-start',
+                                textAlign: 'left',
+                                padding: 0,
+                                minWidth: 0,
+                                fontFamily: font,
+                                fontSize: 13,
+                                fontWeight: 600,
+                                textTransform: 'none',
+                                color: 'inherit',
+                                '&:hover': {
+                                  textDecoration: 'underline',
+                                  backgroundColor: 'transparent',
+                                }
+                              }}
+                            >
+                              {profile.ItemName}
+                            </Button>
+                          </TableCell>
+                          <TableCell sx={{ fontFamily: font, fontSize: 13 }}>
+                            {profile.Brand && profile.Brand !== 'N/A' ? profile.Brand : <span style={{ color: '#aaa', fontStyle: 'italic' }}>N/A</span>}
+                          </TableCell>
+                          <TableCell sx={{ fontFamily: font, fontSize: 13 }}>{profile.TotalQuantity}</TableCell>
+
+                          <TableCell sx={{ fontFamily: font, fontSize: 13 }}>
+                            {specs && specs !== 'N/A' ? specs : <span style={{ color: '#aaa', fontStyle: 'italic' }}>N/A</span>}
+                          </TableCell>
+                          <TableCell>
+                            <Chip label={status} size="small" sx={{ fontFamily: font, fontWeight: 600, fontSize: 11, backgroundColor: sc.bg, color: sc.text, border: `1px solid ${sc.border}` }} />
+                          </TableCell>
+                          <TableCell>
+                            <Tooltip title="Add / Update Stock">
+                              <IconButton size="small" onClick={() => handleOpenStock(profile)} sx={{ color: '#2e7d32' }}>
+                                <AddCircleOutlineIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Transfer Location">
+                              <IconButton size="small" onClick={() => handleOpenTransfer(profile)} sx={{ color: THEME.gold }}>
+                                <SwapHorizIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </TableCell>
+                        </TableRow>
+
+                        {isOpen && (
+                          <TableRow>
+                            <TableCell colSpan={7} sx={{ backgroundColor: '#fafcff', py: 2 }}>
+                              <Table size="small">
+                                <TableHead>
+                                  <TableRow>
+                                    {['Location', 'Qty', 'Status', 'Actions'].map((h) => (
+                                      <TableCell key={h} sx={{ fontFamily: font, fontWeight: 700, fontSize: 10, color: '#888', textTransform: 'uppercase' }}>{h}</TableCell>
+                                    ))}
+                                  </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                  {profile.location_balances.map((loc) => {
+                                    const locSc = statusColor(loc.Status);
+                                    return (
+                                      <TableRow key={loc.Id}>
+                                        <TableCell sx={{ fontFamily: font, fontSize: 12 }}>
+                                          {loc.LocationName && loc.LocationName !== 'N/A' ? loc.LocationName : <span style={{ color: '#aaa', fontStyle: 'italic' }}>N/A</span>}
+                                        </TableCell>
+
+                                        <TableCell sx={{ fontFamily: font, fontSize: 12 }}>{loc.Quantity}</TableCell>
+                                        <TableCell>
+                                          <Chip label={loc.Status} size="small" sx={{ fontFamily: font, fontSize: 10, backgroundColor: locSc.bg, color: locSc.text }} />
+                                        </TableCell>
+                                        <TableCell>
+                                          <Tooltip title="Transfer Location">
+                                            <IconButton size="small" onClick={() => handleOpenTransfer(profile, loc.Id)} sx={{ color: THEME.gold }}>
+                                              <SwapHorizIcon fontSize="small" />
+                                            </IconButton>
+                                          </Tooltip>
+                                          <Tooltip title="Edit">
+                                            <IconButton size="small" onClick={() => handleOpenEdit({ ...profile, ...loc, Id: loc.Id, Location: loc.LocationName, Quantity: loc.Quantity })} sx={{ color: THEME.navy }}>
+                                              <EditIcon fontSize="small" />
+                                            </IconButton>
+                                          </Tooltip>
+                                          <Tooltip title="Delete">
+                                            <IconButton size="small" onClick={() => handleOpenDelete({ Id: loc.Id, ItemName: profile.ItemName, LocationName: loc.LocationName })} sx={{ color: '#c62828' }}>
+                                              <DeleteIcon fontSize="small" />
+                                            </IconButton>
+                                          </Tooltip>
+                                        </TableCell>
+                                      </TableRow>
+                                    );
+                                  })}
+                                </TableBody>
+                              </Table>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </React.Fragment>
                     );
                   })}
-                  {items.length === 0 && (
+                  {pagedItems.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={7} align="center" sx={{ fontFamily: 'Poppins, sans-serif', py: 4, color: '#888' }}>No equipment pieces recorded yet.</TableCell>
+                      <TableCell colSpan={7} align="center" sx={{ fontFamily: font, py: 4, color: '#888' }}>
+                        No equipment records match your search.
+                      </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
               </Table>
             </TableContainer>
+            <TablePagination
+              component="div"
+              count={filteredItems.length}
+              page={page}
+              onPageChange={(_, p) => setPage(p)}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+              rowsPerPageOptions={[10, 25, 50]}
+              sx={{ fontFamily: font }}
+            />
           </Paper>
         </Box>
       )}
 
       {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700 }}>Edit Equipment Asset Details</DialogTitle>
-        <DialogContent dividers>{formFields(editForm, handleEditChange)}</DialogContent>
+        <DialogTitle sx={{ fontFamily: font, fontWeight: 700 }}>Edit Equipment Asset Details</DialogTitle>
+        <DialogContent dividers>
+          {formFields(
+            editForm,
+            handleEditChange,
+            handleEditItemNameSelect,
+            (e) => setEditForm((p) => ({ ...p, brandOption: e.target.value, brand: e.target.value === NEW_BRAND_VALUE ? '' : e.target.value })),
+            {}
+          )}
+        </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setEditDialogOpen(false)} sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none' }}>Cancel</Button>
-          <Button variant="contained" onClick={handleUpdate} sx={{ backgroundColor: '#1b0892', fontFamily: 'Poppins, sans-serif', textTransform: 'none', px: 3 }}>Update</Button>
+          <Button onClick={() => setEditDialogOpen(false)} sx={{ fontFamily: font, textTransform: 'none' }}>Cancel</Button>
+          <Button variant="contained" onClick={handleUpdate} sx={{ backgroundColor: THEME.navy, fontFamily: font, textTransform: 'none', px: 3 }}>Update</Button>
         </DialogActions>
       </Dialog>
 
       {/* Delete Dialog */}
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700 }}>Delete Equipment</DialogTitle>
+        <DialogTitle sx={{ fontFamily: font, fontWeight: 700 }}>Delete Equipment</DialogTitle>
         <DialogContent>
-          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 14 }}>
+          <Typography sx={{ fontFamily: font, fontSize: 14 }}>
             Are you sure you want to delete <strong>{selectedItem?.ItemName}</strong>? This action cannot be undone.
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setDeleteDialogOpen(false)} sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none' }}>Cancel</Button>
-          <Button variant="contained" onClick={handleDelete} sx={{ backgroundColor: '#c62828', fontFamily: 'Poppins, sans-serif', textTransform: 'none', px: 3 }}>Delete</Button>
+          <Button onClick={() => setDeleteDialogOpen(false)} sx={{ fontFamily: font, textTransform: 'none' }}>Cancel</Button>
+          <Button variant="contained" onClick={handleDelete} sx={{ backgroundColor: '#c62828', fontFamily: font, textTransform: 'none', px: 3 }}>Delete</Button>
         </DialogActions>
       </Dialog>
 
-      <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar(p => ({ ...p, open: false }))} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
-        <Alert severity={snackbar.severity} sx={{ fontFamily: 'Poppins, sans-serif' }}>{snackbar.message}</Alert>
+      {/* Add Stock Dialog */}
+      <Dialog open={stockDialogOpen} onClose={() => setStockDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontFamily: font, fontWeight: 700 }}>Add Stock</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ fontFamily: font, fontSize: 13, color: '#666', mb: 2 }}>
+            Asset: <strong>{stockTarget?.ItemName}</strong> — Total Current Stock: <strong>{stockTarget?.TotalQuantity || 0}</strong>
+          </Typography>
+          <TextField
+            fullWidth select label="Location *" value={stockLocation}
+            onChange={(e) => { setStockLocation(e.target.value); setStockError(''); }}
+            sx={{ mb: 2 }}
+          >
+            {LOCATION_OPTIONS.map((l) => (
+              <MenuItem key={l} value={l} sx={{ fontFamily: font }}>{l}</MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            fullWidth autoFocus type="number" label="Additional Quantity *"
+            value={stockAmount} onChange={(e) => { setStockAmount(e.target.value); setStockError(''); }}
+            error={!!stockError} helperText={stockError}
+            inputProps={{ min: 1, style: { fontFamily: font } }}
+          />
+          {stockAmount && !stockError && Number(stockAmount) > 0 && (
+            <Typography sx={{ fontFamily: font, fontSize: 12, color: '#2e7d32', mt: 1 }}>
+              New total quantity will be {Number(stockTarget?.TotalQuantity || 0) + Number(stockAmount)}.
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setStockDialogOpen(false)} sx={{ fontFamily: font, textTransform: 'none' }}>Cancel</Button>
+          <Button variant="contained" onClick={handleConfirmStock} sx={{ backgroundColor: THEME.navy, fontFamily: font, textTransform: 'none', px: 3 }}>Confirm</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Transfer Location Dialog */}
+      <Dialog open={transferDialogOpen} onClose={() => setTransferDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontFamily: font, fontWeight: 700 }}>Transfer Location</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ fontFamily: font, fontSize: 13, color: '#666', mb: 2 }}>
+            Asset: <strong>{transferTarget?.ItemName}</strong> — Brand: <strong>{transferTarget?.Brand || 'N/A'}</strong>
+          </Typography>
+
+          <TextField
+            fullWidth select label="Source Location *" value={transferSourceId}
+            onChange={(e) => { setTransferSourceId(e.target.value); setTransferError(''); }}
+            sx={{ mb: 2 }}
+          >
+            {transferTarget?.location_balances.map((l) => (
+              <MenuItem key={l.Id} value={String(l.Id)} sx={{ fontFamily: font }}>
+                {l.LocationName} {l.SerialNumber && l.SerialNumber !== 'N/A' && l.SerialNumber !== 'None' ? `[S/N: ${l.SerialNumber}]` : ''} ({l.Quantity} available)
+              </MenuItem>
+            ))}
+          </TextField>
+
+          <TextField
+            fullWidth select label="Destination Location *" value={transferDestLocation}
+            onChange={(e) => { setTransferDestLocation(e.target.value); setTransferError(''); }}
+            sx={{ mb: 2 }}
+          >
+            {LOCATION_OPTIONS.filter((l) => {
+              const currentSource = transferTarget?.location_balances.find((x) => String(x.Id) === String(transferSourceId));
+              return l !== currentSource?.LocationName;
+            }).map((l) => (
+              <MenuItem key={l.Id} value={l} sx={{ fontFamily: font }}>{l}</MenuItem>
+            ))}
+          </TextField>
+
+          <TextField
+            fullWidth autoFocus type="number" label="Transfer Quantity *"
+            value={transferAmount} onChange={(e) => { setTransferAmount(e.target.value); setTransferError(''); }}
+            error={!!transferError || (transferAmount && Number(transferAmount) > currentSourceBalance)}
+            helperText={transferError || (transferAmount && Number(transferAmount) > currentSourceBalance ? `Transfer quantity cannot exceed source balance of ${currentSourceBalance}` : '')}
+            inputProps={{ min: 1, style: { fontFamily: font } }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setTransferDialogOpen(false)} sx={{ fontFamily: font, textTransform: 'none' }}>Cancel</Button>
+          <Button variant="contained" onClick={handleConfirmTransfer} disabled={isTransferInvalid} sx={{ backgroundColor: THEME.navy, fontFamily: font, textTransform: 'none', px: 3 }}>Transfer</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar((p) => ({ ...p, open: false }))} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+        <Alert severity={snackbar.severity} sx={{ fontFamily: font }}>{snackbar.message}</Alert>
       </Snackbar>
     </>
   );

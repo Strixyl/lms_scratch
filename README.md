@@ -1,31 +1,45 @@
 # Library Management System with Patron Satisfaction Survey
-### Using Sentiment Analysis and Naïve Bayes Algorithm
+### Powered by Dual-Engine NLP (RoBERTa BERT Sentiment Analysis & Naïve Bayes Category Classification)
 
 **Central Philippine University — College of Computer Studies**  
 **Bachelor of Science in Computer Science**  
-Capstone Thesis Project — Henry Luce III Library
+**Capstone Thesis Project — Henry Luce III Library**
 
 ---
 
 ## Overview
 
-This is an enhanced web-based Library Management System developed for the **Henry Luce III Library** of Central Philippine University. The system was originally built as a Library Management System by a former IT student and has been improved by integrating additional modules and a **Patron Satisfaction Survey** with automated feedback analysis using **VADER Sentiment Analysis** and **Naïve Bayes classification** through a **TF-IDF-based NLP pipeline**.
+This is an enhanced web-based Library Management System developed for the **Henry Luce III Library** of Central Philippine University. The system unifies core library operations — sign-in access monitoring, book card & packet encoding, inventory tracking for supplies and equipment — with an automated feedback analysis module powered by a **Dual-Engine NLP Pipeline** (RoBERTa BERT Sentiment Analysis + Naïve Bayes Category Classification).
 
-The system unifies all core library operations — sign-in monitoring, book management, inventory tracking, and patron satisfaction analysis — into a single centralized platform.
+---
+
+## 📌 Recent Updates (July 2026)
+
+- **Dual-Engine NLP Architecture**:
+  - Combined **RoBERTa BERT** transformer model (`cardiffnlp/twitter-roberta-base-sentiment-latest`) for fine-grained sentiment analysis (`POST /analyze`) with a **Multinomial Naïve Bayes** classifier for category prediction (`POST /categorize`).
+  - Implemented confidence threshold fallback ($\tau = 0.45$) for Naïve Bayes categorization to tag low-confidence inputs as `Other/Uncategorized`.
+- **Machine Learning Preprocessing & Training (`backend/ml/`)**:
+  - `clean_dataset.py`: Cleans raw spreadsheets, dynamically maps text/category/sentiment columns, filters noise/ultra-short responses.
+  - `naive_bayes.py`: Encapsulates TF-IDF vectorization and confidence-thresholded classification.
+  - `train_category_model.py`: 80/20 stratified split, hyperparameter tuning (`alpha`, `ngram_range`, `min_df`), exports `category_model.pkl` and confusion matrices.
+- **Express Backend Parallel Execution**: Updated `backend/index.js` to execute BERT sentiment and Naïve Bayes category calls concurrently using `Promise.all`.
+- **SQL Server Database Migration**: Created migration `query/addc_category.sql` adding `Category NVARCHAR(50) NULL` to `dbo.SatisfactionSurveys`.
+- **Frontend UI & Dashboard**: Enhanced `SentimentDashboard.js` and `SatisfactionSurveyData.js` with domain filtering, MUI color-coded `CategoryChip` badges (Facilities, Staff, Collection, Other/Uncategorized), Excel exports, and PDF print reports.
 
 ---
 
 ## System Modules
 
-| Module | Description |
-|---|---|
-| **HLL Sign-in Portal** | Tracks patron login and logout using student ID lookup, displays patron image, activity logs, traffic monitoring, and report generation |
-| **Patron Satisfaction Survey** | 10-question survey with emoji-based ratings and open-ended feedback text box |
-| **Sentiment Analysis Dashboard** | Automatically classifies open-ended feedback as Positive, Neutral, or Negative using VADER and Naïve Bayes |
-| **Book Card and Book Packet** | Encodes, stores, and retrieves book details with a centralized database; supports save, update, clear, search, and print |
-| **Inventory Module** | Two separate inventories for office supplies and library equipment with full item details |
-| **Report Generation** | Generates real-time and operational reports for sign-in records and survey results, exportable as PDF or Excel |
-| **Admin Dashboard** | Account management for role-based user accounts (Admin, Librarian, Standard User) |
+| Module | Description | Key Files |
+|---|---|---|
+| **HLL Sign-in Portal** | Tracks patron logins/logouts using student ID lookup, displaying patron info, and logs activity. | `Login.js`, `LoginData.js` |
+| **Patron Satisfaction Survey** | A 10-question survey featuring emoji-based ratings and an open-ended feedback comments box. | `SatisfactionSurvey.js`, `SatisfactionSurveyData.js` |
+| **Sentiment & Category Dashboard** | Analyzes survey comments using a hybrid dual-engine NLP approach (Emoji Rating + BERT + Naïve Bayes Category Classification). | `SentimentDashboard.js`, `sentiment_service.py` |
+| **Book Card & Book Packet** | Encodes, saves, searches, and prints book card packets (supports up to 4 books per record). | `CardAndPacket.js` |
+| **Book Catalog** | A flat-list catalog viewer aggregating book data from all card-and-packet records with Excel export. | `BookCatalogue.js` |
+| **Supplies Inventory Encoding** | Manages office supplies records (add, update, delete, stock adjustments, section transfers). | `SuppliesEncode.js`, `Supplies.js`, `SendSupply.js` |
+| **Equipment Inventory Encoding** | Manages library equipment records (add, update, delete, stock adjustments, section transfers). | `EquipmentEncode.js`, `Equipment.js`, `Sendasset.js` |
+| **Transaction History** | Audit log for supply and equipment stock adjustments and transfers. | `SupplyTransactionHistory.js`, `Transactionhistory.js` |
 
 ---
 
@@ -33,41 +47,35 @@ The system unifies all core library operations — sign-in monitoring, book mana
 
 | Role | Access |
 |---|---|
-| **Admin** | Full control — all modules including Admin Dashboard and Account Management |
+| **Admin** | Full control — all modules including inventory management and analytics dashboard |
 | **Librarian** | Book Card and Packet encoding, inventory editing and viewing, report generation |
 | **Standard User** | HLL Sign-in Portal, Patron Satisfaction Survey, inventory viewing only |
 
 ---
 
-## Sentiment Analysis Approach
+## Dual-Engine NLP Analysis Approach
 
-The sentiment analysis module processes the open-ended feedback submitted through the Patron Satisfaction Survey using a two-layer NLP pipeline:
+The feedback management module processes open-ended responses using a **Dual-Engine NLP Architecture**:
 
-### Layer 1 — VADER Sentiment Analysis
-VADER (Valence Aware Dictionary and sEntiment Reasoner) is a lexicon-based tool that assigns a compound sentiment score to each feedback entry and classifies it as **Positive**, **Negative**, or **Neutral**. It requires no training data and handles informal text well, making it suitable for short survey responses.
+### 1. Python BERT Microservice (`backend/sentiment_service.py`)
+- **Model**: Pre-trained Hugging Face transformer model `cardiffnlp/twitter-roberta-base-sentiment-latest`.
+- **Process**:
+  1. Accepts open-ended survey text via POST request `/analyze`.
+  2. Truncates input text to a maximum of 512 tokens.
+  3. Classifies text into `Positive`, `Neutral`, or `Negative` sentiment.
 
-### Layer 2 — Naïve Bayes Classification
-The Naïve Bayes classifier is trained on a labeled dataset of patron feedback comments to classify each response as **Positive**, **Negative**, or **Neutral** based on learned word patterns. TF-IDF (Term Frequency-Inverse Document Frequency) vectorization is applied to convert the raw text into numerical representations before classification.
+### 2. Naïve Bayes Category Classifier (`backend/ml/naive_bayes.py`)
+- **Model**: `TfidfVectorizer` + `MultinomialNB` trained pipeline.
+- **Process**:
+  1. Accepts survey text via POST request `/categorize`.
+  2. Calculates class probability distribution across domains (**Facilities**, **Staff**, **Collection**).
+  3. Applies confidence threshold fallback ($\tau = 0.45$). Inputs below $\tau$ are categorized as `Other/Uncategorized`.
 
-### Combined Output
-Both VADER and Naïve Bayes are applied to the same open-ended comment. Their outputs are displayed on the Sentiment Dashboard alongside word frequency analysis showing the most commonly mentioned topics across all patron responses.
-
-**Final Labels:** `Positive` | `Neutral` | `Negative`
-
----
-
-## Emoji Rating Scoring
-
-The 10 emoji survey responses are mapped to numeric scores and averaged for the structured rating component:
-
-| Emoji | Label | Score |
-|---|---|---|
-| 🤩 | Very Satisfied | +1.0 |
-| 😍 | Satisfied | +0.5 |
-| 😐 | Neutral | 0.0 |
-| 😠 | Dissatisfied | -0.5 |
-| 😡 | Very Dissatisfied | -1.0 |
-| ❌ | N/A | excluded |
+### 3. Emoji Rating Scoring
+- Structured emoji ratings are mapped: Very Satisfied (+1.0), Satisfied (+0.5), Neutral (0.0), Dissatisfied (-0.5), Very Dissatisfied (-1.0).
+- Combined score formula:  
+  $$\text{Final Score} = (\text{Emoji Rating Avg} \times 0.50) + (\text{BERT Sentiment Score} \times 0.50)$$
+- Thresholds: Score $> +0.15 \Rightarrow$ `Positive` | Score $< -0.15 \Rightarrow$ `Negative` | Otherwise $\Rightarrow$ `Neutral`.
 
 ---
 
@@ -76,49 +84,24 @@ The 10 emoji survey responses are mapped to numeric scores and averaged for the 
 | Layer | Technology |
 |---|---|
 | Frontend | React.js v19, Material UI v7 |
-| Backend | Node.js, Express.js |
+| Express Backend | Node.js, Express.js (Port 5000) |
+| Sentiment & Categorization Microservice | Python 3.9+, Flask, Hugging Face Transformers, Scikit-learn (Port 5001) |
 | Database | Microsoft SQL Server (SQLEXPRESS) |
-| Sentiment Analysis | VADER + Naïve Bayes + TF-IDF |
-| Charts | Recharts |
+| Pre-trained NLP Models | `cardiffnlp/twitter-roberta-base-sentiment-latest`, Naïve Bayes Classifier (`category_model.pkl`) |
+| Charts & Exports | Recharts, `jspdf`, `xlsx` |
 | DB Driver | `mssql`, `msnodesqlv8` |
-| ML Library | `natural`, `vader-sentiment` |
 
 ---
 
 ## Database Setup
 
-1. Restore the provided `.bak` file using SQL Server Management Studio (SSMS)
-2. Connect to your SQL Server instance (e.g. `YOUR_PC\SQLEXPRESS`)
-3. Run the following in SSMS to ensure the required columns exist:
-
+1. Restore the database from `hllSystem-clean-2.bak` using SQL Server Management Studio (SSMS).
+2. Run database migration `query/addc_category.sql` to add the `Category` column:
 ```sql
-ALTER TABLE SatisfactionSurveys
-ADD SentimentResult NVARCHAR(50)
-
-CREATE TABLE OfficeSupplies (
-  Id INT IDENTITY(1,1) PRIMARY KEY,
-  ItemName NVARCHAR(200) NOT NULL,
-  Description NVARCHAR(500), Brand NVARCHAR(100),
-  Quantity INT DEFAULT 0, Status NVARCHAR(50),
-  ControlNumber NVARCHAR(100), Condition NVARCHAR(100),
-  Location NVARCHAR(200), Specifications NVARCHAR(500),
-  DateAdded DATETIME DEFAULT GETDATE(), UpdatedAt DATETIME
-)
-
-CREATE TABLE LibraryEquipment (
-  Id INT IDENTITY(1,1) PRIMARY KEY,
-  ItemName NVARCHAR(200) NOT NULL,
-  Description NVARCHAR(500), Brand NVARCHAR(100),
-  Quantity INT DEFAULT 0, Status NVARCHAR(50),
-  SerialNumber NVARCHAR(100), Condition NVARCHAR(100),
-  Location NVARCHAR(200), Specifications NVARCHAR(500),
-  DateAdded DATETIME DEFAULT GETDATE(), UpdatedAt DATETIME
-)
-
-drop the ControlNumber according to sir Genecis
-
-ALTER TABLE OfficeSupplies DROP COLUMN ControlNumber;
-
+USE hllSystem;
+GO
+ALTER TABLE SatisfactionSurveys ADD Category NVARCHAR(50) NULL;
+GO
 ```
 
 ---
@@ -126,60 +109,47 @@ ALTER TABLE OfficeSupplies DROP COLUMN ControlNumber;
 ## Installation and Setup
 
 ### Prerequisites
-- Node.js
-- SQL Server Express (SQLEXPRESS)
+- Node.js v18+
+- Python 3.9+ (with `pip`)
+- SQL Server Express (`SQLEXPRESS`)
 - ODBC Driver 18 for SQL Server
-- SQL Server Management Studio (SSMS)
 
 ### Steps
 
-**1. Clone the repository**
-```bash
-git clone https://github.com/Strixyl/lms_scratch.git
-cd lms_scratch
-```
-
-**2. Install frontend dependencies**
+**1. Install frontend dependencies**
 ```bash
 npm install --legacy-peer-deps
 ```
 
-**3. Install backend dependencies**
+**2. Install backend Node.js dependencies**
 ```bash
 cd backend
 npm install
 ```
 
-**4. Install sentiment analysis packages (inside backend folder)**
+**3. Install Python microservice dependencies**
 ```bash
-npm install natural
-npm install vader-sentiment
+pip install flask transformers torch scikit-learn pandas joblib
 ```
 
-**5. Update the database connection string in `backend/index.js`:**
-```js
-connectionString: "Driver={ODBC Driver 18 for SQL Server};Server=YOUR_PC\\SQLEXPRESS;Database=hllSystem;Trusted_Connection=Yes;Encrypt=no;"
+**4. Start the Python ML Microservice (Terminal 1):**
+```bash
+python backend/sentiment_service.py
 ```
+*Output:* Running on `http://127.0.0.1:5001`
 
-**6. Run the backend (Terminal 1 — inside backend folder):**
+**5. Start the Express Backend (Terminal 2 — inside `backend` folder):**
+```bash
+cd backend
+npm start
+```
+*Output:* Server running on `http://localhost:5000`
+
+**6. Start the React Frontend (Terminal 3 — root folder):**
 ```bash
 npm start
 ```
-You should see:
-```
-🚀 Server running on http://0.0.0.0:5000
-✅ Connected to SQL Server
-```
-
-**7. Run the frontend (Terminal 2 — root folder):**
-```bash
-npm start
-```
-
-**8. Open your browser:**
-```
-http://localhost:3000
-```
+*Output:* React application running on `http://localhost:3000`
 
 ---
 
@@ -187,45 +157,22 @@ http://localhost:3000
 
 | Route | Description |
 |---|---|
-| `/` | Home |
-| `/login` | HLL Sign-in Portal |
-| `/logindata` | Sign-in Records and Report Generation |
+| `/` | Home / Main Landing Page |
+| `/login` | HLL Sign-in Portal (Time In & Time Out Lookup) |
+| `/logindata` | Sign-in Records, traffic monitoring logs, and analytics |
 | `/satisfaction-survey` | Patron Satisfaction Survey Form |
-| `/surveys` | Survey Data Records |
-| `/sentiment-dashboard` | Sentiment Analysis Dashboard |
-| `/book-card` | Book Card and Book Packet |
-| `/inventory` | Office Supplies and Equipment Inventory |
-| `/admin` | Admin Dashboard and Account Management |
-
----
-
-## Specific Objectives
-
-1. To develop a centralized library management module that integrates sign-in, book management, inventory tracking, and survey management functionalities into a unified system.
-2. To design a patron access monitoring and reporting module for managing user sign-in, guest access recording, activity logs, traffic monitoring, and report generation.
-3. To develop a book card and packet management module with centralized database storage to enable efficient record management, retrieval, and persistent data storage.
-4. To design an inventory tracking and asset management module for monitoring office supplies and library computer equipment.
-5. To develop a survey sentiment analysis and feedback management module that utilizes automated sentiment analysis for interpreting patron feedback, identifying service improvement areas, and measuring user satisfaction.
-6. To develop a report generation and analytics module for generating real-time and operational reports.
-
----
-
-## Scope and Limitations
-
-- The system is limited to the library operations of **Henry Luce III Library** only
-- Sentiment analysis supports **English-language feedback only** — local languages are not supported
-- The accuracy of the Naïve Bayes classifier depends on the quality and volume of the labeled training data collected during development
-- The system does not cover financial transactions, procurement, or operations outside of library management
-
----
-
-## Notes
-
-- Always run VS Code as **Administrator** to allow SQL Server connections
-- Use `--legacy-peer-deps` when installing new npm packages to avoid dependency conflicts
-- Both terminals (frontend + backend) must be running at the same time for the system to work
-- Backend runs on `http://localhost:5000`
-- Frontend runs on `http://localhost:3000`
+| `/surveys` | Survey Data Records (All survey submissions and sentiment/category labels) |
+| `/sentiment-dashboard` | Dual-Engine Sentiment & Category Analysis Dashboard |
+| `/card-and-packet` | Book Card and Packet Encoding Form |
+| `/book-catalogue` | Unified Book Catalog flattened list view with Excel exports |
+| `/supplies` | View-only Office Supplies Inventory |
+| `/equipment` | View-only Library Equipment Inventory |
+| `/supplies-encoding` | Office Supplies Encoding Panel (Add/Edit/Delete/Restock) |
+| `/equipment-encoding` | Library Equipment Encoding Panel (Add/Edit/Delete/Restock) |
+| `/send-supply` | Transfer/Send Office Supplies to specific library sections |
+| `/send-asset` | Transfer/Send Library Equipment to specific library sections |
+| `/supply-transactions` | Supplies transaction history logs |
+| `/transactions` | Equipment transaction history logs |
 
 ---
 
@@ -241,4 +188,3 @@ http://localhost:3000
 | **Year** | 2026 |
 
 ---
-
