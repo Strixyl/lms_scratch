@@ -1,4 +1,4 @@
-# Library Management System Backend & Sentiment Service
+# Library Management System Backend & Dual-Engine NLP Microservices
 
 **Central Philippine University — College of Computer Studies**  
 **Bachelor of Science in Computer Science**  
@@ -8,38 +8,77 @@ Capstone Thesis Project — Henry Luce III Library
 
 ## Overview
 
-This directory contains the backend services for the **Henry Luce III Library Management System**, comprising:
-1. **Node.js Express Server (`index.js`)**: Main REST API server on port `5000` connected to SQL Server (`hllSystem`).
-2. **Python BERT Sentiment Microservice (`sentiment_service.py`)**: Flask API service on port `5001` running Hugging Face Transformers.
+This directory contains the backend infrastructure for the **Henry Luce III Library Management System**, comprising:
+1. **Node.js Express Server (`index.js`)**: Main REST API server running on port `5000` connected to Microsoft SQL Server (`hllSystem`).
+2. **Python Dual-Engine NLP Microservice (`sentiment_service.py`)**: Flask API microservice on port `5001` providing RoBERTa BERT Sentiment Analysis & Naïve Bayes Category Classification.
+3. **Machine Learning Pipeline (`ml/`)**: Preprocessing, model training, and artifact generation scripts for survey comment categorization.
 
 ---
 
-## Sentiment Analysis Architecture (`sentiment_service.py`)
+## Dual-Engine NLP Architecture (`sentiment_service.py`)
 
-The system utilizes a hybrid sentiment classification pipeline combining structured emoji scores and deep learning transformer embeddings:
+The system utilizes a hybrid dual-engine NLP classification pipeline combining transformer deep learning with scikit-learn probabilistic classification:
 
-### Microservice Details
-- **File Path**: `backend/sentiment_service.py`
-- **Framework**: Python Flask
+### 1. Sentiment Analysis Engine (`POST /analyze`)
 - **Model**: `cardiffnlp/twitter-roberta-base-sentiment-latest` (Pre-trained BERT / RoBERTa Model)
 - **Port**: `5001`
 - **Endpoint**: `POST /analyze`
-- **Input Payload**: `{ "text": "Library staff are very accommodating" }`
-- **Response Payload**: `{ "sentiment": "Positive", "score": 0.982 }`
+- **Payload**: `{ "text": "Library staff are very accommodating" }`
+- **Response**: `{ "sentiment": "Positive", "score": 0.982 }`
 
-### Node.js Integration & Fallback (`index.js`)
-- `index.js` sends text feedback to `http://localhost:5001/analyze` using `axios`.
-- Computes overall sentiment score combining Emoji rating averages ($50\%$) and BERT text sentiment ($50\%$).
-- If the Python microservice is offline, the backend catches the error and defaults text sentiment to `Neutral` to keep survey logging active.
+### 2. Category Classification Engine (`POST /categorize`)
+- **Model**: Scikit-Learn `TfidfVectorizer` + `MultinomialNB` pipeline with confidence threshold fallback ($\tau = 0.45$).
+- **Port**: `5001`
+- **Endpoint**: `POST /categorize`
+- **Payload**: `{ "text": "The aircon in the 2nd floor is warm" }`
+- **Response**: `{ "category": "Facilities", "confidence": 0.894 }`
+- **Categories**: `Facilities`, `Staff`, `Collection`, `Other/Uncategorized` (Fallback).
+
+### Node.js Express Concurrent Integration (`index.js`)
+- Express invokes both microservice endpoints concurrently via `Promise.all` (`http://localhost:5001/analyze` and `http://localhost:5001/categorize`).
+- Overall sentiment combines Emoji survey scores ($50\%$) and BERT text sentiment ($50\%$).
+- Persists sentiment ratings and category domains into `dbo.SatisfactionSurveys`.
+- Includes graceful fallback: defaults to `Neutral` sentiment and `Other/Uncategorized` category if the Python microservice is unavailable.
+
+---
+
+## 🧠 Machine Learning & Category Classification Pipeline (`ml/`)
+
+Designed and implemented in accordance with [`CATEGORY_CLASSIFICATION_FILE_PLAN.md`](file:///c:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/CATEGORY_CLASSIFICATION_FILE_PLAN.md):
+
+```
+backend/
+├── index.js                     # Node.js Express server & DB controller
+├── sentiment_service.py          # Dual-Engine Flask microservice (Port 5001)
+└── ml/                           # Machine learning pipeline directory
+    ├── data/
+    │   └── clean_category_dataset.csv  # Preprocessed training dataset
+    ├── clean_dataset.py         # Step 1: Data cleaning & noise filtering script
+    ├── naive_bayes.py           # Step 2: CategoryClassifier pipeline class
+    ├── train_category_model.py  # Step 3: Stratified split & hyperparameter grid search
+    ├── category_model.pkl       # Serialized Naïve Bayes model artifact
+    └── alpha_search_category.png# Accuracy-vs-Alpha hyperparameter plot
+```
+
+### Python ML File Responsibilities
+
+| Step | File / Artifact | Type | Function & Description |
+|---|---|---|---|
+| **Step 1** | [`clean_dataset.py`](file:///c:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/ml/clean_dataset.py) | Python Script | Loads raw XLSX/CSV datasets (`3000withnoise.xlsx`, `category_training_dataset.xlsx`, or `sat-survey.xlsx`), maps column candidates dynamically, strips non-informative noise (`"none"`, `"n/a"`, `"ok"`, `"asdf"`, `"wala"`), numeric strings, and short texts $<3$ chars, normalizes label casing, deduplicates, and saves `data/clean_category_dataset.csv`. |
+| **Output** | `data/clean_category_dataset.csv` | Clean CSV | Standardized 3-column CSV (`comment, category, sentiment`) for model training. |
+| **Step 2** | [`naive_bayes.py`](file:///c:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/ml/naive_bayes.py) | Python Class | Defines `CategoryClassifier` wrapping `Pipeline([TfidfVectorizer, MultinomialNB])`. Implements lightweight text normalization (`preprocess`: lowercasing, URL/mention/hashtag stripping, regex `[^a-z\s]`) and confidence-gated predictions (`predict_with_fallback()`, $\tau = 0.45$). |
+| **Step 3** | [`train_category_model.py`](file:///c:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/ml/train_category_model.py) | Python Script | Loads cleaned CSV, performs an 80/20 stratified split (`random_state=42`), grid searches hyperparameter space (`alpha` $[0.01..5.0]$, `ngram_range` $(1,1)$ vs $(1,2)$, `min_df` $1$ vs $2$), outputs classification reports and confusion matrices, and dumps `category_model.pkl`. |
+| **Output** | [`category_model.pkl`](file:///c:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/ml/category_model.pkl) | Model Artifact | Binary joblib model artifact loaded by `sentiment_service.py` at service initialization. |
+| **Output** | [`alpha_search_category.png`](file:///c:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/ml/alpha_search_category.png) | Plot | Accuracy vs alpha hyperparameter sweep plot generated during training. |
 
 ---
 
 ## Prerequisites & Installation
 
 ### 1. Python Environment Setup
-Install Python 3.9+ and required machine learning packages:
+Install Python 3.9+ and required machine learning dependencies:
 ```bash
-pip install flask transformers torch
+pip install flask transformers torch scikit-learn pandas joblib matplotlib
 ```
 
 ### 2. Node.js Dependencies
@@ -49,23 +88,37 @@ npm install
 ```
 
 ### 3. Database Connection
-Ensure Microsoft SQL Server (`SQLEXPRESS`) is running and update `config` in `index.js`:
+Ensure Microsoft SQL Server (`SQLEXPRESS`) is running and update connection settings in `index.js`:
 ```js
 connectionString: "Driver={ODBC Driver 18 for SQL Server};Server=YOUR_PC\\SQLEXPRESS;Database=hllSystem;Trusted_Connection=Yes;Encrypt=no;"
 ```
 
 ---
 
-## Running the Backend Services
+## Running Backend & Retraining ML Model
 
-1. **Start Python Sentiment Microservice**:
+### Retraining the Category Classification Model (`backend/ml`)
+```bash
+# 1. Open terminal in backend/ml directory
+cd "hllsystem - Oct10-2025/backend/ml"
+
+# 2. Clean raw dataset
+python clean_dataset.py
+
+# 3. Train Naïve Bayes model & export category_model.pkl
+python train_category_model.py
+```
+
+### Launching Backend Microservices
+1. **Start Python Dual-Engine Microservice**:
    ```bash
    python sentiment_service.py
    ```
-   *Runs on port 5001*
+   *Runs on `http://localhost:5001`*
 
 2. **Start Express Node Backend**:
    ```bash
    npm start
    ```
-   *Runs on port 5000*
+   *Runs on `http://localhost:5000`*
+
