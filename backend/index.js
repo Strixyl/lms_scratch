@@ -732,7 +732,7 @@ app.get('/api/supplies/grouped', async (req, res) => {
         };
       }
       grouped[key].TotalQuantity += row.Quantity;
-      
+
       const locData = {
         Id: row.Id,
         LocationName: row.Location || 'N/A',
@@ -1058,7 +1058,7 @@ app.post('/api/supplies/add-stock', async (req, res) => {
     res.json({ success: true, id: rowId, previousQuantity, newQuantity });
   } catch (err) {
     console.error(err);
-    if (transaction) await transaction.rollback().catch(() => {});
+    if (transaction) await transaction.rollback().catch(() => { });
     res.status(500).json({ message: 'Failed to add stock.' });
   }
 });
@@ -1081,7 +1081,7 @@ app.post('/api/supplies/:id/add-stock', async (req, res) => {
       if (row.recordset.length > 0) {
         resolvedLocation = row.recordset[0].Location;
       }
-    } catch(e) {}
+    } catch (e) { }
   }
 
   req.body.supplyId = id;
@@ -1102,7 +1102,7 @@ app.post('/api/supplies/:id/add-stock', async (req, res) => {
     }
     // Perform standard add-stock
     req.body.itemName = existing.recordset[0].ItemName;
-    
+
     // We can call add-stock logic directly or mock a request. Since we want it to be direct:
     const mockReq = { body: req.body };
     // Let's call the logic
@@ -1285,7 +1285,7 @@ app.post('/api/supplies/:id/transfer', async (req, res) => {
     res.json({ sourceId: source.Id, newSourceQty, destinationId: destId, newDestinationQty: destNew });
   } catch (err) {
     console.error(err);
-    if (transaction) await transaction.rollback().catch(() => {});
+    if (transaction) await transaction.rollback().catch(() => { });
     res.status(500).json({ message: 'Failed to transfer supply.' });
   }
 });
@@ -1393,7 +1393,7 @@ app.get('/api/equipment/grouped', async (req, res) => {
         };
       }
       grouped[key].TotalQuantity += row.Quantity;
-      
+
       const locData = {
         Id: row.Id,
         LocationName: row.Location || 'N/A',
@@ -1515,7 +1515,7 @@ app.post('/api/equipment/add-stock', async (req, res) => {
     res.json({ success: true, id: rowId, previousQuantity, newQuantity });
   } catch (err) {
     console.error(err);
-    if (transaction) await transaction.rollback().catch(() => {});
+    if (transaction) await transaction.rollback().catch(() => { });
     res.status(500).json({ message: 'Failed to add stock.' });
   }
 });
@@ -1630,7 +1630,7 @@ app.post('/api/equipment/:id/transfer', async (req, res) => {
     res.json({ sourceId: source.Id, newSourceQty, destinationId: destId, newDestinationQty: destNew });
   } catch (err) {
     console.error(err);
-    if (transaction) await transaction.rollback().catch(() => {});
+    if (transaction) await transaction.rollback().catch(() => { });
     res.status(500).json({ message: 'Failed to transfer asset.' });
   }
 });
@@ -1848,7 +1848,7 @@ app.post('/api/equipment/:id/add-stock', async (req, res) => {
       if (row.recordset.length > 0) {
         resolvedLocation = row.recordset[0].Location;
       }
-    } catch(e) {}
+    } catch (e) { }
   }
 
   req.body.assetId = id;
