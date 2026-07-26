@@ -131,7 +131,7 @@ const SentimentDashboard = () => {
     const savedUser = localStorage.getItem('loggedInUser');
     if (savedUser) {
       setLoggedInUser(savedUser);
-      setShowLoginModal(true);
+      setShowLoginModal(false);
     }
   }, []);
 
@@ -692,48 +692,50 @@ const SentimentDashboard = () => {
         )}
       </Header>
 
-      {/* 👇 Login Popup */}
-      <Dialog open={showLoginModal}>
-        <DialogTitle>You need to login as an Admin to view this page</DialogTitle>
-        <DialogContent>
-          <TextField
-            fullWidth
-            margin="dense"
-            label="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
-          <TextField
-            fullWidth
-            margin="dense"
-            label="Password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          {loginError && (
-            <Typography color="error" fontSize={14} mt={1}>
-              {loginError}
-            </Typography>
-          )}
-          <Button
-            variant="contained"
-            fullWidth
-            sx={{ mt: 2 }}
-            onClick={handleLogin}
-          >
-            Login
-          </Button>
-          <Button
-            variant="outlined"
-            fullWidth
-            sx={{ mt: 1 }}
-            onClick={() => navigate('/')}
-          >
-            Home
-          </Button>
-        </DialogContent>
-      </Dialog>
+      {/* 👇 Login Popup (only mounted when user is not logged in) */}
+      {showLoginModal && (
+        <Dialog open={true}>
+          <DialogTitle>You need to login as an Admin to view this page</DialogTitle>
+          <DialogContent>
+            <TextField
+              fullWidth
+              margin="dense"
+              label="Username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
+            <TextField
+              fullWidth
+              margin="dense"
+              label="Password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            {loginError && (
+              <Typography color="error" fontSize={14} mt={1}>
+                {loginError}
+              </Typography>
+            )}
+            <Button
+              variant="contained"
+              fullWidth
+              sx={{ mt: 2 }}
+              onClick={handleLogin}
+            >
+              Login
+            </Button>
+            <Button
+              variant="outlined"
+              fullWidth
+              sx={{ mt: 1 }}
+              onClick={() => navigate('/')}
+            >
+              Home
+            </Button>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 };

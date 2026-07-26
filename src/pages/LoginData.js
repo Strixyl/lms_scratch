@@ -2,21 +2,17 @@ import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { DataGrid } from '@mui/x-data-grid';
 import { Box, TextField, Button, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
-import * as XLSX from 'xlsx'; // Import SheetJS
+import * as XLSX from 'xlsx';
 import Header from '../Components/Header';
 import TopBar from '../Components/TopBar';
-
-const sections = [
-  'All', 'Entrance', 'Reference', 'Circulation', 'Theology', 'Filipiniana',
-  'Serials', 'Law', 'American Corner', 'Graduate Studies', 'Cyber Library',
-  'Senior High School', 'Junior High School', 'Elementary', 'Kindergarten',
-];
+import { COLLEGE_OPTIONS, SECTION_OPTIONS, getCollegeGroup, formatDate } from '../constants/collegeMap';
 
 const LoginData = () => {
   const [logins, setLogins] = useState([]);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [selectedSection, setSelectedSection] = useState('All');
+  const [selectedCollege, setSelectedCollege] = useState('All');
   const printRef = useRef();
 
   const fetchLogins = async () => {
@@ -29,13 +25,24 @@ const LoginData = () => {
       if (selectedSection && selectedSection !== 'All') {
         params.section = selectedSection;
       }
+      if (selectedCollege && selectedCollege !== 'All') {
+        params.college = selectedCollege;
+      }
 
       const response = await axios.get('http://localhost:5000/api/logins', { params });
 
-      const formatted = response.data.map((row, index) => ({
+      let formatted = response.data.map((row, index) => ({
         id: index + 1,
         ...row,
+        displayCollege: getCollegeGroup(row.studCollege, row.studCourse),
       }));
+
+      if (selectedCollege && selectedCollege !== 'All') {
+        formatted = formatted.filter((row) => row.displayCollege === selectedCollege);
+      }
+      if (selectedSection && selectedSection !== 'All') {
+        formatted = formatted.filter((row) => row.Section === selectedSection);
+      }
 
       setLogins(formatted);
     } catch (error) {
@@ -43,53 +50,51 @@ const LoginData = () => {
     }
   };
 
-  useEffect(() => {
-    fetchLogins();
-  }, []);
-
-  const totalVisits = logins.length;
-
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '';
-    const [datePart, timePart] = String(dateStr).split(' ');
-    if (!datePart || !timePart) return dateStr;
-    const [year, month, day] = datePart.split('-');
-    const [hour, minute, second] = timePart.split(':');
-    const d = new Date(year, month - 1, day, hour, minute, second);
-    return d.toLocaleString('en-US', {
-      year: 'numeric', month: 'long', day: 'numeric',
-      hour: 'numeric', minute: '2-digit', second: '2-digit',
-      hour12: true,
-    });
+  const handleClear = async () => {
+    setStartDate('');
+    setEndDate('');
+    setSelectedCollege('All');
+    setSelectedSection('All');
+    try {
+      const response = await axios.get('http://localhost:5000/api/logins');
+      const formatted = response.data.map((row, index) => ({
+        id: index + 1,
+        ...row,
+        displayCollege: getCollegeGroup(row.studCollege, row.studCourse),
+      }));
+      setLogins(formatted);
+    } catch (error) {
+      console.error('Error clearing filters:', error);
+    }
   };
 
-  // 📝 New Excel Export Handler
+  useEffect(() => {
+    fetchLogins();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleExportExcel = () => {
     if (logins.length === 0) {
-      alert("No data available to export.");
+      alert('No data available to export for the selected filter.');
       return;
     }
 
-    // Map your database fields to clean, academic column headers
     const excelData = logins.map((row) => ({
       'ID Number': row.studIDnumber || 'N/A',
       'Last Name': row.studLname || '',
       'First Name': row.studFname || '',
       'Course': row.studCourse || 'N/A',
       'Year': row.studYear || 'N/A',
-      'College/Department': row.studCollege || 'N/A',
+      'College/Department': row.displayCollege || getCollegeGroup(row.studCollege, row.studCourse),
       'Section': row.Section || 'N/A',
       'Time Logged': formatDate(row.TimeLogged),
       'Log Type': row.studLogType || '',
       'Gender': row.studGender || '',
     }));
 
-    // creates worksheets and workboos and can be exported using the infnsdfalled moudle
     const worksheet = XLSX.utils.json_to_sheet(excelData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Login Records');
 
-  
     const objectMaxWidth = [];
     excelData.forEach((row) => {
       Object.keys(row).forEach((key) => {
@@ -100,16 +105,13 @@ const LoginData = () => {
       });
     });
     worksheet['!cols'] = Object.keys(objectMaxWidth).map((key) => ({
-      wch: objectMaxWidth[key] + 3, // Add padding
+      wch: objectMaxWidth[key] + 3,
     }));
 
-    // fitlered file name dependingg on the current data that expoerted
+    const collegeName = selectedCollege !== 'All' ? `_${selectedCollege}` : '';
     const sectionName = selectedSection !== 'All' ? `_${selectedSection}` : '';
     const dateStamp = new Date().toISOString().split('T')[0];
-    const filename = `HLL_Logins${sectionName}_${dateStamp}.xlsx`;
-
-    // download execel sheet 
-    XLSX.writeFile(workbook, filename);
+    XLSX.writeFile(workbook, `HLL_Logins${collegeName}${sectionName}_${dateStamp}.xlsx`);
   };
 
   const handlePrint = () => {
@@ -162,16 +164,18 @@ const LoginData = () => {
     { field: 'studFname', headerName: 'First Name', flex: 1 },
     { field: 'studCourse', headerName: 'Course', flex: 1 },
     { field: 'studYear', headerName: 'Year', flex: 1 },
-    { field: 'studCollege', headerName: 'College/Department', flex: 1 },
+    {
+      field: 'displayCollege',
+      headerName: 'College/Department',
+      flex: 1,
+      renderCell: (params) => params.row?.displayCollege || getCollegeGroup(params.row?.studCollege, params.row?.studCourse),
+    },
     { field: 'Section', headerName: 'Section', flex: 1 },
     {
       field: 'TimeLogged',
       headerName: 'Time Logged',
       flex: 1.5,
-      renderCell: (params) => {
-        if (!params.value) return '';
-        return formatDate(params.value);
-      },
+      renderCell: (params) => (params.value ? formatDate(params.value) : ''),
     },
     { field: 'studLogType', headerName: 'Log Type', flex: 1 },
     { field: 'studGender', headerName: 'Gender', flex: 1 },
@@ -184,7 +188,6 @@ const LoginData = () => {
           <TopBar title="Login Data" onMenuClick={toggleDrawer} subtitle="LIBRARY LOGIN RECORDS" />
 
           <Box sx={{ p: 3 }}>
-            {/* Date Filter + Section Filter + Buttons */}
             <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap', alignItems: 'center' }}>
               <TextField
                 type="date"
@@ -201,13 +204,25 @@ const LoginData = () => {
                 onChange={(e) => setEndDate(e.target.value)}
               />
               <FormControl sx={{ minWidth: 200 }}>
+                <InputLabel>College/Department</InputLabel>
+                <Select
+                  value={selectedCollege}
+                  label="College/Department"
+                  onChange={(e) => setSelectedCollege(e.target.value)}
+                >
+                  {COLLEGE_OPTIONS.map((c) => (
+                    <MenuItem key={c} value={c}>{c}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl sx={{ minWidth: 200 }}>
                 <InputLabel>Section</InputLabel>
                 <Select
                   value={selectedSection}
                   label="Section"
                   onChange={(e) => setSelectedSection(e.target.value)}
                 >
-                  {sections.map((s) => (
+                  {SECTION_OPTIONS.map((s) => (
                     <MenuItem key={s} value={s}>{s}</MenuItem>
                   ))}
                 </Select>
@@ -215,16 +230,17 @@ const LoginData = () => {
               <Button variant="contained" onClick={fetchLogins}>
                 Apply Filter
               </Button>
+              <Button variant="outlined" color="inherit" onClick={handleClear}>
+                Clear
+              </Button>
               <Button variant="outlined" color="secondary" onClick={handlePrint}>
                 🖨️ Print / Save as PDF
               </Button>
-              {/* 🟢 Export to Excel Button added next to Print */}
               <Button variant="outlined" color="success" onClick={handleExportExcel}>
                 📥 Export to Excel
               </Button>
             </Box>
 
-            {/* DataGrid */}
             <Box sx={{ height: 600, width: '100%' }}>
               <DataGrid
                 rows={logins}
@@ -234,29 +250,23 @@ const LoginData = () => {
                 disableColumnFilter={false}
                 disableColumnMenu={false}
                 getRowId={(row) => row.LogID}
-                initialState={{
-                  filter: {
-                    filterModel: { items: [] },
-                  },
-                }}
+                initialState={{ filter: { filterModel: { items: [] } } }}
               />
             </Box>
           </Box>
 
-          {/* Hidden Printable Report */}
           <div ref={printRef} style={{ display: 'none' }}>
             <h1>Henry Luce III Library</h1>
             <h2>Library Login Records Report</h2>
             <p className="daterange">
-              {startDate && endDate
-                ? `Date Range: ${startDate} to ${endDate}`
-                : 'All Records'}
+              {startDate && endDate ? `Date Range: ${startDate} to ${endDate}` : 'All Records'}
+              {selectedCollege !== 'All' ? ` | College: ${selectedCollege}` : ''}
               {selectedSection !== 'All' ? ` | Section: ${selectedSection}` : ''}
             </p>
 
             <div className="summary">
               <div className="summary-box">
-                <div className="value">{totalVisits}</div>
+                <div className="value">{logins.length}</div>
                 <div className="label">Total Visits</div>
               </div>
             </div>
@@ -284,7 +294,7 @@ const LoginData = () => {
                     <td>{row.studFname}</td>
                     <td>{row.studCourse}</td>
                     <td>{row.studYear}</td>
-                    <td>{row.studCollege}</td>
+                    <td>{row.displayCollege}</td>
                     <td>{row.Section}</td>
                     <td>{formatDate(row.TimeLogged)}</td>
                     <td>{row.studLogType}</td>

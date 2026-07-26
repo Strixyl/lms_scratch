@@ -1,6 +1,5 @@
 import React from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
-import Header from './Components/Header';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import SatisfactionSurvey from './pages/SatisfactionSurvey';
@@ -9,10 +8,10 @@ import BookCatalogue from './pages/BookCatalogue';
 import Supplies from './pages/Supplies';
 import Equipment from './pages/Equipment';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
 import EquipmentEncode from './pages/EquipmentEncode';
 import SuppliesEncode from './pages/SuppliesEncode';
 import LoginData from './pages/LoginData';
+import LoginDashboard from './pages/LoginDashboard';
 import SatisfactionSurveyData from './pages/SatisfactionSurveyData';
 import SentimentDashboard from './pages/SentimentDashboard';
 import SendAsset from './pages/Sendasset';
@@ -51,6 +50,7 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/logindata" element={<LoginData />} />
+            <Route path="/login-dashboard" element={<LoginDashboard />} />
             <Route path="/satisfaction-survey" element={<SatisfactionSurvey />} />
             <Route path="/surveys" element={<SatisfactionSurveyData />} />
             <Route path="/card-and-packet" element={<CardAndPacket />} />

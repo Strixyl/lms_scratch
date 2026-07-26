@@ -320,15 +320,55 @@ app.post('/api/student-lookup', async (req, res) => {
   }
 });
 
+const COLLEGE_MAP = {
+  CARES: ['CARES', 'Agriculture', 'Environmental', 'BSA', 'BSABE', 'BSEM'],
+  CAS: ['CAS', 'Arts', 'Sciences', 'BAComm', 'BAELS', 'BAPolSci', 'BSBio', 'BSChem', 'BSPsyc', 'BSSW', 'ABPSPA'],
+  CBA: ['CBA', 'Business', 'Accountancy', 'BSActy', 'BSAd', 'BSBABM', 'BSBAFM', 'BSBAMM', 'BSEnt', 'BSBAMA'],
+  CCS: ['CCS', 'Computer Studies', 'Computer', 'BSCS', 'BSDMIA', 'BSIT', 'BLIS'],
+  COED: ['COED', 'Education', 'BECEd', 'BEEd', 'BPEd', 'BSBMic', 'BSEd', 'BSMath'],
+  COE: ['COE', 'Engineering', 'BSCE', 'BSChE', 'BSEE', 'BSECE', 'BSME', 'BSPkgE', 'BSSE'],
+  CHM: ['CHM', 'Hospitality', 'BSHM', 'BSTM', 'BSHRM'],
+  CMLS: ['CMLS', 'Medical Laboratory', 'BSMLS'],
+  CON: ['CON', 'Nursing', 'BSN'],
+  COP: ['COP', 'Pharmacy', 'BSPhar'],
+  COL: ['COL', 'Law', 'Juris Doctor', 'J.D.', 'LL.B', 'EdD'],
+  COM: ['COM', 'Medicine', 'Respiratory', 'MD', 'BSRT'],
+  COT: ['COT', 'Theology', 'BTh', 'DipT-S'],
+  SGS: ['SGS', 'Graduate Studies', 'DM', 'DMin', 'DM-THM', 'MAEd', 'MAELL', 'MAEng', 'MAN', 'MBA', 'MBATHM', 'MDiv', 'MEngr', 'MLIS', 'MPA', 'MSAgri', 'MSCS', 'MSGC', 'MSSW'],
+  KINDER: ['KINDER', 'Kindergarten', 'Kinder'],
+  ELEM: ['ELEM', 'Elementary', 'Elem'],
+  JHS: ['JHS', 'Junior High School'],
+  SHS: ['SHS', 'Senior High School', 'SHSTEM', 'SHGAS', 'SHHUMSS', 'SHABM']
+};
+
 app.get('/api/logins', async (req, res) => {
-  const { startDate, endDate, section } = req.query;
+  const { startDate, endDate, section, college } = req.query;
 
   try {
     const pool = await sql.connect(config);
+    const request = pool.request();
 
     const conditions = [];
-    if (startDate && endDate) conditions.push(`CAST(TimeLogged AS DATE) BETWEEN @startDate AND @endDate`);
-    if (section) conditions.push(`Section = @section`);
+    if (startDate && endDate) {
+      conditions.push(`CAST(TimeLogged AS DATE) BETWEEN @startDate AND @endDate`);
+      request.input('startDate', sql.Date, new Date(startDate));
+      request.input('endDate', sql.Date, new Date(endDate));
+    }
+
+    if (section && section !== 'All') {
+      conditions.push(`Section = @section`);
+      request.input('section', sql.VarChar, section);
+    }
+
+    if (college && college !== 'All') {
+      const terms = COLLEGE_MAP[college.toUpperCase()] || [college];
+      const colOrs = terms.map((_, idx) => `(studCollege LIKE @colTerm${idx} OR studCourse LIKE @colTerm${idx})`);
+      conditions.push(`(${colOrs.join(' OR ')})`);
+      terms.forEach((term, idx) => {
+        request.input(`colTerm${idx}`, sql.VarChar, `%${term}%`);
+      });
+    }
+
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     const query = `
@@ -341,13 +381,6 @@ app.get('/api/logins', async (req, res) => {
       ${whereClause}
       ORDER BY TimeLogged DESC
     `;
-
-    const request = pool.request();
-    if (startDate && endDate) {
-      request.input('startDate', sql.Date, new Date(startDate));
-      request.input('endDate', sql.Date, new Date(endDate));
-    }
-    if (section) request.input('section', sql.VarChar, section);
 
     const result = await request.query(query);
     res.json(result.recordset);
