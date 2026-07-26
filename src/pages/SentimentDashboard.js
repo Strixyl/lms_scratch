@@ -226,13 +226,30 @@ const SentimentDashboard = () => {
   });
 
   const counts = { Positive: 0, Neutral: 0, Negative: 0 };
-  filtered.forEach(s => { if (counts[s.SentimentResult] !== undefined) counts[s.SentimentResult]++; });
+  const categoryCounts = { Facilities: 0, Staff: 0, Collection: 0, 'Other/Uncategorized': 0 };
+
+  filtered.forEach(s => {
+    if (counts[s.SentimentResult] !== undefined) counts[s.SentimentResult]++;
+    const cat = s.Category || 'Other/Uncategorized';
+    if (categoryCounts[cat] !== undefined) {
+      categoryCounts[cat]++;
+    } else {
+      categoryCounts['Other/Uncategorized']++;
+    }
+  });
   const total = filtered.length;
 
   const chartData = [
     { name: 'Positive', value: counts.Positive },
     { name: 'Neutral', value: counts.Neutral },
     { name: 'Negative', value: counts.Negative },
+  ].filter(d => d.value > 0);
+
+  const categoryChartData = [
+    { name: 'Facilities', value: categoryCounts.Facilities, color: CATEGORY_COLORS.Facilities.dot },
+    { name: 'Staff', value: categoryCounts.Staff, color: CATEGORY_COLORS.Staff.dot },
+    { name: 'Collection', value: categoryCounts.Collection, color: CATEGORY_COLORS.Collection.dot },
+    { name: 'Other/Uncategorized', value: categoryCounts['Other/Uncategorized'], color: CATEGORY_COLORS['Other/Uncategorized'].dot },
   ].filter(d => d.value > 0);
 
   const reviewRows = filtered
@@ -260,6 +277,10 @@ const SentimentDashboard = () => {
       { 'Metric Indicator': 'Positive Sentiments Count', 'Count': counts.Positive },
       { 'Metric Indicator': 'Neutral Sentiments Count', 'Count': counts.Neutral },
       { 'Metric Indicator': 'Negative Sentiments Count', 'Count': counts.Negative },
+      { 'Metric Indicator': 'Facilities Category Count', 'Count': categoryCounts.Facilities },
+      { 'Metric Indicator': 'Staff Category Count', 'Count': categoryCounts.Staff },
+      { 'Metric Indicator': 'Collection Category Count', 'Count': categoryCounts.Collection },
+      { 'Metric Indicator': 'Other/Uncategorized Count', 'Count': categoryCounts['Other/Uncategorized'] },
     ];
 
     // Tab 2: Detailed Text Classifications
@@ -269,6 +290,7 @@ const SentimentDashboard = () => {
       'College': row.College || 'N/A',
       'Text Response Inputted': row.Message || '',
       'Overall Sentiment': row.SentimentResult || '',
+      'Category': row.Category || 'Other/Uncategorized',
       'Date Submitted': row.DateSubmitted ? new Date(row.DateSubmitted).toLocaleDateString() : 'N/A'
     }));
 
@@ -504,37 +526,72 @@ const SentimentDashboard = () => {
                         </CardContent>
                       </Card>
                     </Box>
-                    {/* ── Donut Chart ── */}
-                    <Card elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: 3, mb: 3, backgroundColor: 'white' }}>
-                      <CardContent sx={{ p: 3 }}>
-                        <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 13, color: '#666', letterSpacing: 1, textTransform: 'uppercase', mb: 2 }}>
-                          Dataset Distribution
-                        </Typography>
-                        {total === 0 ? (
-                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', color: '#999', textAlign: 'center', py: 4 }}>
-                            No sentiment data available for the selected filters.
+                    {/* ── Charts Section: Sentiment Distribution & Category Breakdown ── */}
+                    <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
+                      {/* ── Sentiment Donut Chart ── */}
+                      <Card elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: 3, backgroundColor: 'white', flex: 1, minWidth: 320 }}>
+                        <CardContent sx={{ p: 3 }}>
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 13, color: '#666', letterSpacing: 1, textTransform: 'uppercase', mb: 2 }}>
+                            Sentiment Distribution
                           </Typography>
-                        ) : (
-                          <ResponsiveContainer width="100%" height={260}>
-                            <PieChart>
-                              <Pie data={chartData} cx="50%" cy="50%"
-                                innerRadius={70} outerRadius={110} paddingAngle={3}
-                                dataKey="value" labelLine={false} label={renderCustomLabel}>
-                                {chartData.map((entry) => (
-                                  <Cell key={entry.name} fill={CHART_COLORS[['Positive', 'Neutral', 'Negative'].indexOf(entry.name)]} />
-                                ))}
-                              </Pie>
-                              <Tooltip formatter={(value, name) => [`${value} responses`, name]}
-                                contentStyle={{ fontFamily: 'Poppins, sans-serif', fontSize: 13 }} />
-                              <Legend formatter={(value, entry) => {
-                                const pct = total > 0 ? Math.round((entry.payload.value / total) * 100) : 0;
-                                return <span style={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#333' }}>{value} {pct}%</span>;
-                              }} />
-                            </PieChart>
-                          </ResponsiveContainer>
-                        )}
-                      </CardContent>
-                    </Card>
+                          {total === 0 ? (
+                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', color: '#999', textAlign: 'center', py: 4 }}>
+                              No sentiment data available for the selected filters.
+                            </Typography>
+                          ) : (
+                            <ResponsiveContainer width="100%" height={260}>
+                              <PieChart>
+                                <Pie data={chartData} cx="50%" cy="50%"
+                                  innerRadius={65} outerRadius={100} paddingAngle={3}
+                                  dataKey="value" labelLine={false} label={renderCustomLabel}>
+                                  {chartData.map((entry) => (
+                                    <Cell key={entry.name} fill={CHART_COLORS[['Positive', 'Neutral', 'Negative'].indexOf(entry.name)]} />
+                                  ))}
+                                </Pie>
+                                <Tooltip formatter={(value, name) => [`${value} responses`, name]}
+                                  contentStyle={{ fontFamily: 'Poppins, sans-serif', fontSize: 13 }} />
+                                <Legend formatter={(value, entry) => {
+                                  const pct = total > 0 ? Math.round((entry.payload.value / total) * 100) : 0;
+                                  return <span style={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#333' }}>{value} {pct}%</span>;
+                                }} />
+                              </PieChart>
+                            </ResponsiveContainer>
+                          )}
+                        </CardContent>
+                      </Card>
+
+                      {/* ── Category Breakdown Chart ── */}
+                      <Card elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: 3, backgroundColor: 'white', flex: 1, minWidth: 320 }}>
+                        <CardContent sx={{ p: 3 }}>
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 13, color: '#666', letterSpacing: 1, textTransform: 'uppercase', mb: 2 }}>
+                            Category Breakdown
+                          </Typography>
+                          {total === 0 || categoryChartData.length === 0 ? (
+                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', color: '#999', textAlign: 'center', py: 4 }}>
+                              No category data available for the selected filters.
+                            </Typography>
+                          ) : (
+                            <ResponsiveContainer width="100%" height={260}>
+                              <PieChart>
+                                <Pie data={categoryChartData} cx="50%" cy="50%"
+                                  innerRadius={65} outerRadius={100} paddingAngle={3}
+                                  dataKey="value" labelLine={false} label={renderCustomLabel}>
+                                  {categoryChartData.map((entry) => (
+                                    <Cell key={entry.name} fill={entry.color} />
+                                  ))}
+                                </Pie>
+                                <Tooltip formatter={(value, name) => [`${value} responses`, name]}
+                                  contentStyle={{ fontFamily: 'Poppins, sans-serif', fontSize: 13 }} />
+                                <Legend formatter={(value, entry) => {
+                                  const pct = total > 0 ? Math.round((entry.payload.value / total) * 100) : 0;
+                                  return <span style={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#333' }}>{value} {pct}%</span>;
+                                }} />
+                              </PieChart>
+                            </ResponsiveContainer>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </Box>
 
                     {/* ── Survey Response Review Table ── */}
                     <Card elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: 3, backgroundColor: 'white' }}>
@@ -670,6 +727,7 @@ const SentimentDashboard = () => {
                     <th>College/Dept</th>
                     <th>Patron Feedback Message</th>
                     <th>Sentiment Result</th>
+                    <th>Category</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -679,6 +737,7 @@ const SentimentDashboard = () => {
                       <td>{row.College}</td>
                       <td>{row.Message}</td>
                       <td><strong>{row.SentimentResult}</strong></td>
+                      <td>{row.Category || 'Other/Uncategorized'}</td>
                     </tr>
                   ))}
                 </tbody>
