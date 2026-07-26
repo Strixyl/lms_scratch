@@ -71,6 +71,28 @@ backend/
 | **Output** | [`category_model.pkl`](file:///c:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/ml/category_model.pkl) | Model Artifact | Binary joblib model artifact loaded by `sentiment_service.py` at service initialization. |
 | **Output** | [`alpha_search_category.png`](file:///c:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/ml/alpha_search_category.png) | Plot | Accuracy vs alpha hyperparameter sweep plot generated during training. |
 
+#### 🔬 Key Python Functions & Implementation Details
+
+##### 1. `naive_bayes.py` ([CategoryClassifier](file:///c:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/ml/naive_bayes.py))
+- **`preprocess(text: str) -> str`**: Standalone preprocessor applied before TF-IDF vectorization. Lowercases input, removes URLs (`http...`/`www...`), `@mentions`, `#hashtags`, keeps letters only (`[^a-z\s]`), and collapses whitespace.
+- **`CategoryClassifier.__init__(alpha=1.0, ngram_range=(1,1), min_df=1)`**: Instantiates the scikit-learn `Pipeline` (`TfidfVectorizer(preprocessor=preprocess)` → `MultinomialNB(alpha)`).
+- **`CategoryClassifier.fit(X, y)`**: Trains TF-IDF vectorizer and Multinomial Naïve Bayes on training comment corpus; saves class labels (`Facilities`, `Staff`, `Collection`).
+- **`CategoryClassifier.predict(texts)`**: Returns class prediction(s) for a single comment string or list of comments.
+- **`CategoryClassifier.predict_proba(texts)`**: Returns raw probability distribution array across trained classes.
+- **`CategoryClassifier.predict_with_fallback(text, threshold=0.45) -> str`**: Calculates `predict_proba(text)`; if maximum class confidence level is below $\tau = 0.45$, it defaults prediction to `"Other/Uncategorized"`.
+- **`CategoryClassifier.score(X, y) -> float`**: Evaluates mean accuracy score on validation datasets.
+
+##### 2. `train_category_model.py` ([Training Script](file:///c:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/ml/train_category_model.py))
+- **`load_data()`**: Reads `data/clean_category_dataset.csv`, returning comment list $X$ and category label list $y$.
+- **`grid_search(X_train, y_train, X_val, y_val)`**: Sweeps hyperparameter combinations (`alpha` $[0.01, 0.1, 0.5, 1.0, 1.5, 2.0, 5.0]$, `ngram_range` $[(1,1), (1,2)]$, `min_df` $[1, 2]$) to select the model with highest validation accuracy.
+- **`maybe_plot(all_results)`**: Generates a log-scale validation accuracy plot vs `alpha` curve (`alpha_search_category.png`) for thesis methodology documentation.
+- **`main()`**: Executes dataset loading, 80/20 stratified split (`test_size=0.2`, `random_state=42`), baseline model evaluation, grid search execution, confusion matrix logging, and serializes best model to `category_model.pkl` via `joblib.dump()`.
+
+##### 3. `clean_dataset.py` ([Data Cleaner](file:///c:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/ml/clean_dataset.py))
+- **`load_raw(path, sheet_name="All_Data")`**: Loads raw survey/training datasets from `.xlsx` or `.csv`.
+- **`clean(df)`**: Performs dynamic candidate matching for text/category/sentiment columns, filters out non-informative noise strings (`"none"`, `"n/a"`, `"ok"`, `"asdf"`, `"wala"`), numeric values, and text $<3$ characters, normalizes label casing, deduplicates, and resets index.
+- **`main()`**: Controls dataset loading, cleaning pipeline invocation, and writes clean CSV to `data/clean_category_dataset.csv`.
+
 ---
 
 ## Prerequisites & Installation
