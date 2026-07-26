@@ -145,6 +145,7 @@ const SatisfactionSurveyData = () => {
     { field: 'Question8', headerName: 'Q8', width: 100 },
     { field: 'Question9', headerName: 'Q9', width: 100 },
     { field: 'Question10', headerName: 'Q10', width: 100 },
+    { field: 'Category', headerName: 'Category', width: 160 },
     {
       field: 'DateSubmitted',
       headerName: 'Date Submitted',

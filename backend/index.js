@@ -42,18 +42,23 @@ async function analyzeSentiment(responses, message) {
 
   const emojiSentiment = ratingAvg > 0.15 ? 'Positive' : ratingAvg < -0.15 ? 'Negative' : 'Neutral';
 
-  // ── BERT text sentiment ──
+  // ── BERT text sentiment + Naive Bayes category (run in parallel, same input) ──
   let textSentiment = 'Neutral';
+  let category = 'Other/Uncategorized';
   if (message && message.trim().length > 0) {
-    try {
-      const bertResponse = await axios.post('http://localhost:5001/analyze', {
-        text: message
-      });
-      textSentiment = bertResponse.data.sentiment;
-    } catch (err) {
-      console.error('BERT service error:', err.message);
-      textSentiment = 'Neutral'; // fallback if Python is down
-    }
+    const [sentimentResult, categoryResult] = await Promise.all([
+      axios.post('http://localhost:5001/analyze', { text: message }).catch(err => {
+        console.error('BERT service error:', err.message);
+        return null; // fallback if Python is down
+      }),
+      axios.post('http://localhost:5001/categorize', { text: message }).catch(err => {
+        console.error('Category service error:', err.message);
+        return null; // fallback if Python is down
+      }),
+    ]);
+
+    textSentiment = sentimentResult?.data?.sentiment ?? 'Neutral';
+    category = categoryResult?.data?.category ?? 'Other/Uncategorized';
   }
 
   // ── Combined result ──
@@ -68,8 +73,8 @@ async function analyzeSentiment(responses, message) {
     overallSentiment = combined > 0.15 ? 'Positive' : combined < -0.15 ? 'Negative' : 'Neutral';
   }
 
-  console.log(`📊 Emoji: ${emojiSentiment} | BERT: ${textSentiment} | Overall: ${overallSentiment}`);
-  return { emojiSentiment, textSentiment, overallSentiment };
+  console.log(`📊 Emoji: ${emojiSentiment} | BERT: ${textSentiment} | Category: ${category} | Overall: ${overallSentiment}`);
+  return { emojiSentiment, textSentiment, overallSentiment, category };
 }
 
 // =================== MULTER SETUP =================== //
@@ -201,7 +206,7 @@ app.post('/api/survey', async (req, res) => {
   const { clientele, college, course, responses, message } = req.body;
 
   try {
-    const { emojiSentiment, textSentiment, overallSentiment } = await analyzeSentiment(responses, message);
+    const { emojiSentiment, textSentiment, overallSentiment, category } = await analyzeSentiment(responses, message);
     const sentimentResult = overallSentiment;
 
     const pool = await sql.connect(config);
@@ -212,6 +217,7 @@ app.post('/api/survey', async (req, res) => {
     request.input('course', sql.NVarChar, course);
     request.input('message', sql.NVarChar, message);
     request.input('sentimentResult', sql.NVarChar, sentimentResult);
+    request.input('category', sql.NVarChar, category);
 
     for (let i = 0; i < 10; i++) {
       request.input(`q${i + 1}`, sql.NVarChar, responses[i] ?? null);
@@ -222,16 +228,16 @@ app.post('/api/survey', async (req, res) => {
         Clientele, College, Course, Message,
         Question1, Question2, Question3, Question4, Question5,
         Question6, Question7, Question8, Question9, Question10,
-        SentimentResult
+        SentimentResult, Category
       )
       VALUES (
         @clientele, @college, @course, @message,
         @q1, @q2, @q3, @q4, @q5, @q6, @q7, @q8, @q9, @q10,
-        @sentimentResult
+        @sentimentResult, @category
       )
     `);
 
-    res.json({ message: 'Survey submitted', sentimentResult, emojiSentiment, textSentiment });
+    res.json({ message: 'Survey submitted', sentimentResult, emojiSentiment, textSentiment, category });
   } catch (err) {
     console.error('SQL error:', err);
     res.status(500).send('Failed to save survey');
@@ -363,7 +369,7 @@ app.get('/api/surveys', async (req, res) => {
       SELECT Id, Clientele, College, Course, Message,
              Question1, Question2, Question3, Question4, Question5,
              Question6, Question7, Question8, Question9, Question10,
-             SentimentResult,
+             SentimentResult, Category,
              FORMAT(DateSubmitted AT TIME ZONE 'UTC' AT TIME ZONE 'SE Asia Standard Time', 'yyyy-MM-dd HH:mm:ss') AS DateSubmitted
       FROM SatisfactionSurveys
     `;

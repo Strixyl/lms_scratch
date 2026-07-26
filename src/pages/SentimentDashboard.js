@@ -13,11 +13,18 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../Components/Header';
 import TopBar from '../Components/TopBar';
 
-// ── Sentiment helpers ────────────────────────────────────────────────
+// ── Sentiment & Category helpers ──────────────────────────────────────
 const SENTIMENT_COLORS = {
   Positive: { bg: '#1b5e20', light: '#e8f5e9', text: '#1b5e20', dot: '#2e7d32' },
   Neutral: { bg: '#e65100', light: '#fff3e0', text: '#e65100', dot: '#f57c00' },
   Negative: { bg: '#b71c1c', light: '#ffebee', text: '#b71c1c', dot: '#c62828' },
+};
+
+const CATEGORY_COLORS = {
+  Facilities: { bg: '#0288d1', light: '#e1f5fe', text: '#0288d1', dot: '#039be5' },
+  Staff: { bg: '#7b1fa2', light: '#f3e5f5', text: '#7b1fa2', dot: '#8e24aa' },
+  Collection: { bg: '#ed6c02', light: '#fff3e0', text: '#ed6c02', dot: '#f57c00' },
+  'Other/Uncategorized': { bg: '#616161', light: '#f5f5f5', text: '#616161', dot: '#757575' },
 };
 
 const CHART_COLORS = ['#2e7d32', '#f57c00', '#c62828'];
@@ -29,6 +36,8 @@ const COLLEGE_OPTIONS = [
   'COL', 'CMLS', 'COM', 'CON', 'COP', 'COT', 'SGS',
   'SHS', 'JHS', 'ELEM', 'KINDER'
 ];
+
+const CATEGORY_OPTIONS = ['Facilities', 'Staff', 'Collection', 'Other/Uncategorized'];
 
 const selectSx = {
   backgroundColor: 'white',
@@ -48,6 +57,23 @@ const SentimentChip = ({ label }) => {
       <Box sx={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: cfg.dot }} />
       <Typography sx={{ fontSize: 12, fontWeight: 600, color: cfg.text, fontFamily: 'Poppins, sans-serif' }}>
         {label}
+      </Typography>
+    </Box>
+  );
+};
+
+const CategoryChip = ({ label }) => {
+  const norm = label || 'Other/Uncategorized';
+  const cfg = CATEGORY_COLORS[norm] || CATEGORY_COLORS['Other/Uncategorized'];
+  return (
+    <Box sx={{
+      display: 'inline-flex', alignItems: 'center', gap: 0.5,
+      px: 1.5, py: 0.4, borderRadius: '20px',
+      backgroundColor: cfg.light, border: `1px solid ${cfg.dot}`,
+    }}>
+      <Box sx={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: cfg.dot }} />
+      <Typography sx={{ fontSize: 12, fontWeight: 600, color: cfg.text, fontFamily: 'Poppins, sans-serif' }}>
+        {norm}
       </Typography>
     </Box>
   );
@@ -136,6 +162,7 @@ const SentimentDashboard = () => {
   const [filterClientele, setFilterClientele] = useState('');
   const [filterCollege, setFilterCollege] = useState('');
   const [filterSentiment, setFilterSentiment] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
   const [page, setPage] = useState(0);
   const [sortOrder, setSortOrder] = useState('latest');
   const printRef = useRef(); // Added printable container reference
@@ -183,6 +210,7 @@ const SentimentDashboard = () => {
     setFilterClientele('');
     setFilterCollege('');
     setFilterSentiment('');
+    setFilterCategory('');
     setSortOrder('latest');
     setTimeout(fetchSurveys, 0);
   };
@@ -193,6 +221,7 @@ const SentimentDashboard = () => {
     if (filterClientele && s.Clientele?.toLowerCase() !== filterClientele.toLowerCase()) return false;
     if (filterCollege && s.College !== filterCollege) return false;
     if (filterSentiment && s.SentimentResult !== filterSentiment) return false;
+    if (filterCategory && (s.Category || 'Other/Uncategorized') !== filterCategory) return false;
     return true;
   });
 
@@ -216,7 +245,7 @@ const SentimentDashboard = () => {
   const totalPages = Math.ceil(reviewRows.length / ROWS_PER_PAGE);
   const pageRows = reviewRows.slice(page * ROWS_PER_PAGE, (page + 1) * ROWS_PER_PAGE);
 
-  const hasActiveFilter = startDate || endDate || filterClientele || filterCollege || filterSentiment;
+  const hasActiveFilter = startDate || endDate || filterClientele || filterCollege || filterSentiment || filterCategory;
 
   // ── Excel Export Handler ──────────────────────────────────────────
   const handleExportExcel = () => {
@@ -399,6 +428,18 @@ const SentimentDashboard = () => {
                     </Select>
                   </FormControl>
 
+                  {/* Category filter */}
+                  <FormControl size="small" sx={selectSx}>
+                    <InputLabel>Category</InputLabel>
+                    <Select value={filterCategory} label="Category"
+                      onChange={(e) => { setFilterCategory(e.target.value); setPage(0); }}>
+                      <MenuItem value="">All</MenuItem>
+                      {CATEGORY_OPTIONS.map(c => (
+                        <MenuItem key={c} value={c}>{c}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
                   {/* Sort Order */}
                   <FormControl size="small" sx={selectSx}>
                     <InputLabel>Sort By</InputLabel>
@@ -517,17 +558,20 @@ const SentimentDashboard = () => {
                               <Table size="small">
                                 <TableHead>
                                   <TableRow sx={{ backgroundColor: '#fafafa' }}>
-                                    <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', letterSpacing: 1, textTransform: 'uppercase', width: '25%' }}>
+                                    <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', letterSpacing: 1, textTransform: 'uppercase', width: '20%' }}>
                                       Clientele
                                     </TableCell>
-                                    <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', letterSpacing: 1, textTransform: 'uppercase', width: '15%' }}>
+                                    <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', letterSpacing: 1, textTransform: 'uppercase', width: '12%' }}>
                                       College
                                     </TableCell>
-                                    <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', letterSpacing: 1, textTransform: 'uppercase', width: '35%' }}>
+                                    <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', letterSpacing: 1, textTransform: 'uppercase', width: '30%' }}>
                                       Response
                                     </TableCell>
-                                    <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', letterSpacing: 1, textTransform: 'uppercase', width: '15%' }}>
+                                    <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', letterSpacing: 1, textTransform: 'uppercase', width: '14%' }}>
                                       Sentiment
+                                    </TableCell>
+                                    <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', letterSpacing: 1, textTransform: 'uppercase', width: '14%' }}>
+                                      Category
                                     </TableCell>
                                     <TableCell align="center" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', letterSpacing: 1, textTransform: 'uppercase', width: '10%' }}>
                                       Actions
@@ -548,6 +592,9 @@ const SentimentDashboard = () => {
                                       </TableCell>
                                       <TableCell sx={{ py: 1.5 }}>
                                         <SentimentChip label={row.SentimentResult} />
+                                      </TableCell>
+                                      <TableCell sx={{ py: 1.5 }}>
+                                        <CategoryChip label={row.Category} />
                                       </TableCell>
                                       <TableCell align="center" sx={{ py: 1.5 }}>
                                         <Button

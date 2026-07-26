@@ -17,7 +17,6 @@ import {
   MenuItem,
   Snackbar,
   Alert,
-  Chip,
   ToggleButton,
   ToggleButtonGroup,
 } from '@mui/material';
@@ -35,7 +34,6 @@ const SatisfactionSurvey = () => {
   const [submitError, setSubmitError] = useState('');
   const [submitSuccess, setSubmitSuccess] = useState('');
   const [showSuccessSnackbar, setShowSuccessSnackbar] = useState(false);
-  const [sentimentResult, setSentimentResult] = useState(null);
   const [ratingStyle, setRatingStyle] = useState('radio');
 
   const surveyQuestions = [
@@ -62,22 +60,10 @@ const SatisfactionSurvey = () => {
     { id: 'na', label: 'N/A', short: '0' },
   ];
 
-  const getSentimentColor = (sentiment) => {
-    if (sentiment === 'Positive') return '#2e7d32';
-    if (sentiment === 'Negative') return '#c62828';
-    return '#f57c00';
-  };
-
-  const getSentimentEmoji = (sentiment) => {
-    if (sentiment === 'Positive') return '😊';
-    if (sentiment === 'Negative') return '😞';
-    return '😐';
-  };
 
   const handleSubmit = async () => {
     setSubmitError('');
     setSubmitSuccess('');
-    setSentimentResult(null);
 
     if (!clientele || !selectedCollege) {
       setSubmitError('Clientele, College and Satisfaction Ratings are required.');
@@ -98,7 +84,6 @@ const SatisfactionSurvey = () => {
         message,
       });
 
-      setSentimentResult(res.data.sentimentResult);
       setShowSuccessSnackbar(true);
 
       setClientele('');
@@ -268,25 +253,6 @@ const SatisfactionSurvey = () => {
                       </Typography>
                     )}
 
-                    {/* Sentiment Result Display */}
-                    {sentimentResult && (
-                      <Box sx={{ mt: 2, p: 2, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.1)', textAlign: 'center' }}>
-                        <Typography variant="caption" sx={{ color: 'white', fontFamily: 'Poppins, sans-serif', display: 'block', mb: 0.5 }}>
-                          Sentiment Analysis Result:
-                        </Typography>
-                        <Chip
-                          label={`${getSentimentEmoji(sentimentResult)}  ${sentimentResult}`}
-                          sx={{
-                            backgroundColor: getSentimentColor(sentimentResult),
-                            color: 'white',
-                            fontWeight: 'bold',
-                            fontFamily: 'Poppins, sans-serif',
-                            fontSize: '0.85rem',
-                            px: 1,
-                          }}
-                        />
-                      </Box>
-                    )}
 
                     <Typography variant="caption" sx={{ mt: 1, display: 'block' }}>
                       *Select a rating before submitting.
