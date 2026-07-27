@@ -423,10 +423,11 @@ const SentimentDashboard = () => {
       .sort((a, b) => b.value - a.value).slice(0, 60);
   })();
   const wordCloudOptions = {
-    deterministic: true,
-    randomSeed: 'hll-library-wordcloud',
-    rotations: 2, rotationAngles: [0, 90], fontFamily: 'Poppins, sans-serif',
-    fontSizes: [14, 48], padding: 2,
+    rotations: 1,
+    rotationAngles: [0, 0],
+    fontFamily: 'Poppins, sans-serif',
+    fontSizes: [16, 44],
+    padding: 3,
     colors: ['#1b0892', '#2e7d32', '#f57c00', '#c62828', '#6a1b9a'],
   };
 
