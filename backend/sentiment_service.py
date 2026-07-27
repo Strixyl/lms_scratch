@@ -34,7 +34,7 @@ def analyze():
     if not text.strip():
         return jsonify({ 'sentiment': 'Neutral', 'score': 0 })
     
-    result = sentiment_pipeline(text[:512])[0]  # BERT max 512 tokens
+    result = sentiment_pipeline(text[:512])[0]  
     
     # Map labels to Positive/Neutral/Negative
     label_map = {

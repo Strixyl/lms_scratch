@@ -9,7 +9,7 @@ a cleaned CSV to data/clean_category_dataset.csv.
 
 Supports:
   - category_training_dataset.xlsx (columns: Text, Category, Sentiment)
-  - 3000withnoise.xlsx (columns: Text, Category, Sentiment)
+  - dataset_5k_wnoise.xlsx (columns: Text, Category, Sentiment)
   - sat-survey.xlsx (columns: Message, Clientele, College, etc.)
   - Any custom dataset with text feedback
 
@@ -25,7 +25,7 @@ import pandas as pd
 # ── Paths ─────────────────────────────────────────────────────────────
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 # Manually change the filename below to whichever dataset you want to clean:
-RAW_XLSX_PATH = os.path.abspath(os.path.join(THIS_DIR, "..", "..", "3000withnoise.xlsx"))
+RAW_XLSX_PATH = os.path.abspath(os.path.join(THIS_DIR, "..", "..", "dataset_5k_wnoise.xlsx"))
 
 OUTPUT_DIR = os.path.join(THIS_DIR, "data")
 OUTPUT_CSV_PATH = os.path.join(OUTPUT_DIR, "clean_category_dataset.csv")

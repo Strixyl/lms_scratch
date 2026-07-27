@@ -7,7 +7,8 @@ import {
   MenuItem, Select, FormControl, InputLabel,
   Dialog, DialogTitle, DialogContent
 } from '@mui/material';
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend as BarLegend } from 'recharts';
+import ReactWordcloud from 'react-wordcloud';
 import * as XLSX from 'xlsx'; // Import SheetJS
 import { useNavigate } from 'react-router-dom';
 import Header from '../Components/Header';
@@ -38,6 +39,115 @@ const COLLEGE_OPTIONS = [
 ];
 
 const CATEGORY_OPTIONS = ['Facilities', 'Staff', 'Collection', 'Other/Uncategorized'];
+
+const RATING_SCORES = {
+  very_satisfied: 1.0, satisfied: 0.5, neutral: 0.0,
+  dissatisfied: -0.5, very_dissatisfied: -1.0, na: 0.0,
+};
+
+const getSurveyScore = (s) => {
+  if (typeof s.SentimentScore === 'number' && !isNaN(s.SentimentScore)) {
+    return s.SentimentScore;
+  }
+  const qList = [
+    s.Question1, s.Question2, s.Question3, s.Question4, s.Question5,
+    s.Question6, s.Question7, s.Question8, s.Question9, s.Question10
+  ].filter(q => q != null && q !== 'na');
+
+  const ratingAvg = qList.length > 0
+    ? qList.reduce((sum, q) => sum + (RATING_SCORES[q] ?? 0), 0) / qList.length
+    : 0;
+
+  if (!s.Message || !s.Message.trim()) {
+    return ratingAvg;
+  }
+
+  const bertScore = s.SentimentResult === 'Positive' ? 1 : s.SentimentResult === 'Negative' ? -1 : 0;
+  return ratingAvg * 0.5 + bertScore * 0.5;
+};
+
+const STOPWORDS = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'is', 'are', 'was', 'were', 'to', 'of', 'in', 'on',
+  'for', 'it', 'this', 'that', 'i', 'we', 'you', 'my', 'our', 'with', 'be', 'have', 'has', 'very', 'so', 'too']);
+
+const RECOMMENDATIONS = {
+  Facilities: {
+    moderate: 'Consider a facilities walkthrough to address recurring comfort/accessibility complaints (lighting, seating, temperature, cleanliness).',
+    high: 'Facilities feedback is predominantly negative - prioritize an infrastructure audit and budget request for repairs/upgrades this term.',
+  },
+  Staff: {
+    moderate: 'Some patrons report friction with staff interactions - a refresher on frontline service standards may help.',
+    high: 'Staff-related complaints are high - recommend a service-quality review with librarians and targeted retraining.',
+  },
+  Collection: {
+    moderate: 'Patrons are flagging gaps in available materials - review acquisition requests for undersupplied subject areas.',
+    high: 'Collection dissatisfaction is high - conduct a collection audit and prioritize acquisitions for the most-requested subjects.',
+  },
+};
+
+const CATEGORY_KEYWORDS = {
+  Facilities: {
+    aircon: 'poor air conditioning/temperature control',
+    ac: 'air conditioning issues',
+    temperature: 'temperature control issues',
+    temp: 'temperature issues',
+    lighting: 'insufficient lighting',
+    light: 'lighting issues',
+    wifi: 'unreliable wifi/internet connection',
+    internet: 'unreliable internet connection',
+    seating: 'insufficient or uncomfortable seating',
+    seat: 'seating issues',
+    chair: 'uncomfortable seating/chairs',
+    table: 'workspace/table issues',
+    cleanliness: 'cleanliness/sanitation concerns',
+    clean: 'cleanliness concerns',
+    restroom: 'restroom cleanliness/maintenance',
+    toilet: 'restroom issues',
+    noise: 'high noise levels affecting study',
+    loud: 'noise levels',
+  },
+  Staff: {
+    rude: 'patron friction with staff courtesy/attitude',
+    slow: 'slow service response times',
+    unhelpful: 'unhelpful staff assistance',
+    attitude: 'staff attitude concerns',
+    service: 'frontline service quality',
+    retraining: 'staff retraining needs',
+  },
+  Collection: {
+    outdated: 'outdated books/materials',
+    old: 'outdated materials',
+    missing: 'missing or unlocatable books',
+    textbook: 'insufficient textbook copies',
+    book: 'missing/unavailable books',
+    journal: 'lack of recent research journals/e-resources',
+    database: 'digital database access issues',
+  },
+};
+
+const TopCommentsCard = ({ title, rows, accent }) => (
+  <Card elevation={0} sx={{ border: `1.5px solid ${accent}`, borderRadius: 3, backgroundColor: 'white', flex: 1, minWidth: 300 }}>
+    <CardContent sx={{ p: 2.5 }}>
+      <Typography sx={{
+        fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 13, color: accent,
+        letterSpacing: 1, textTransform: 'uppercase', mb: 1.5
+      }}>
+        {title}
+      </Typography>
+      {rows.length === 0 ? (
+        <Typography sx={{ fontFamily: 'Poppins, sans-serif', color: '#999', fontSize: 13 }}>No comments yet.</Typography>
+      ) : rows.map((row, i) => (
+        <Box key={i} sx={{ py: 1, borderBottom: i < rows.length - 1 ? '1px solid #f0f0f0' : 'none' }}>
+          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#333' }}>
+            "{row.Message}"
+          </Typography>
+          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 11, color: '#999', mt: 0.5 }}>
+            {row.Clientele} - {row.College} - score {getSurveyScore(row).toFixed(2)}
+          </Typography>
+        </Box>
+      ))}
+    </CardContent>
+  </Card>
+);
 
 const selectSx = {
   backgroundColor: 'white',
@@ -263,6 +373,111 @@ const SentimentDashboard = () => {
   const pageRows = reviewRows.slice(page * ROWS_PER_PAGE, (page + 1) * ROWS_PER_PAGE);
 
   const hasActiveFilter = startDate || endDate || filterClientele || filterCollege || filterSentiment || filterCategory;
+
+  // ── Requirement #2 — Average Satisfaction Score ──
+  const avgScore = filtered.length
+    ? filtered.reduce((sum, s) => sum + getSurveyScore(s), 0) / filtered.length
+    : 0;
+
+  // ── Requirement #4 — Sentiment Trend by Month (stacked bar) ──
+  const monthlyData = (() => {
+    const buckets = {};
+    filtered.forEach(s => {
+      if (!s.DateSubmitted) return;
+      const d = new Date(s.DateSubmitted.replace ? s.DateSubmitted.replace(' ', 'T') : s.DateSubmitted);
+      if (isNaN(d.getTime())) return;
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (!buckets[key]) buckets[key] = { month: key, Positive: 0, Neutral: 0, Negative: 0 };
+      if (buckets[key][s.SentimentResult] !== undefined) buckets[key][s.SentimentResult]++;
+    });
+    return Object.values(buckets).sort((a, b) => a.month.localeCompare(b.month));
+  })();
+
+  // ── Requirements #5 & #6 — Top 5 Positive / Negative Comments ──
+  const positivePool = surveys.filter(s => {
+    if (s.SentimentResult !== 'Positive' || !s.Message?.trim()) return false;
+    if (filterClientele && s.Clientele?.toLowerCase() !== filterClientele.toLowerCase()) return false;
+    if (filterCollege && s.College !== filterCollege) return false;
+    return true;
+  });
+  const negativePool = surveys.filter(s => {
+    if (s.SentimentResult !== 'Negative' || !s.Message?.trim()) return false;
+    if (filterClientele && s.Clientele?.toLowerCase() !== filterClientele.toLowerCase()) return false;
+    if (filterCollege && s.College !== filterCollege) return false;
+    return true;
+  });
+  const topPositive = [...positivePool].sort((a, b) => getSurveyScore(b) - getSurveyScore(a)).slice(0, 5);
+  const topNegative = [...negativePool].sort((a, b) => getSurveyScore(a) - getSurveyScore(b)).slice(0, 5);
+
+  // ── Requirement #7 — Word Cloud (Constant & Based on All Survey Responses) ──
+  const wordCloudWords = (() => {
+    const freq = {};
+    surveys.forEach(s => {
+      if (!s.Message) return;
+      s.Message.toLowerCase().match(/[a-z']+/g)?.forEach(w => {
+        if (w.length < 3 || STOPWORDS.has(w)) return;
+        freq[w] = (freq[w] || 0) + 1;
+      });
+    });
+    return Object.entries(freq).map(([text, value]) => ({ text, value }))
+      .sort((a, b) => b.value - a.value).slice(0, 60);
+  })();
+  const wordCloudOptions = {
+    deterministic: true,
+    randomSeed: 'hll-library-wordcloud',
+    rotations: 2, rotationAngles: [0, 90], fontFamily: 'Poppins, sans-serif',
+    fontSizes: [14, 48], padding: 2,
+    colors: ['#1b0892', '#2e7d32', '#f57c00', '#c62828', '#6a1b9a'],
+  };
+
+  // ── Requirement #8 — Service Improvement Recommendations (Option A + Option B) ──
+  const categoryStats = (() => {
+    const cats = {};
+    filtered.forEach(s => {
+      const cat = s.Category || 'Other/Uncategorized';
+      if (!RECOMMENDATIONS[cat]) return;
+      if (!cats[cat]) cats[cat] = { total: 0, negative: 0, items: [] };
+      cats[cat].total++;
+      cats[cat].items.push(s);
+      if (s.SentimentResult === 'Negative') cats[cat].negative++;
+    });
+
+    return Object.entries(cats).map(([category, { total, negative, items }]) => {
+      const pct = total ? Math.round((negative / total) * 100) : 0;
+      let severity = null;
+      if (pct >= 50) severity = 'high';
+      else if (pct >= 30) severity = 'moderate';
+
+      if (!severity) return null;
+
+      const negativeItems = items.filter(s => s.SentimentResult === 'Negative');
+
+      // Option A: Keyword-driven sub-rules count
+      const kwCounts = {};
+      const dict = CATEGORY_KEYWORDS[category] || {};
+      negativeItems.forEach(s => {
+        if (!s.Message) return;
+        const msgLower = s.Message.toLowerCase();
+        Object.entries(dict).forEach(([kw, phrase]) => {
+          if (msgLower.includes(kw)) {
+            kwCounts[phrase] = (kwCounts[phrase] || 0) + 1;
+          }
+        });
+      });
+      const matchedKeywords = Object.entries(kwCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([phrase, count]) => `${phrase} (${count} mention${count > 1 ? 's' : ''})`);
+
+      // Option B: Surface raw supporting evidence (top 2-3 most severe negative comments)
+      const topEvidences = [...negativeItems]
+        .filter(s => s.Message && s.Message.trim().length > 0)
+        .sort((a, b) => getSurveyScore(a) - getSurveyScore(b))
+        .slice(0, 3);
+
+      return { category, total, negative, pct, severity, matchedKeywords, topEvidences };
+    }).filter(Boolean);
+  })();
 
   // ── Excel Export Handler ──────────────────────────────────────────
   const handleExportExcel = () => {
@@ -508,6 +723,19 @@ const SentimentDashboard = () => {
                   <>
                     {/* ── Summary Cards ── */}
                     <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
+                      <Card elevation={0} sx={{ border: '1.5px solid #6a1b9a', borderRadius: 3, background: 'linear-gradient(135deg, #f3e5f5 0%, #ffffff 100%)', flex: 1, minWidth: 160 }}>
+                        <CardContent sx={{ p: 2.5 }}>
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 32, color: '#6a1b9a', lineHeight: 1 }}>
+                            {avgScore.toFixed(2)}
+                          </Typography>
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 14, color: '#6a1b9a', mt: 0.5 }}>
+                            Avg. Satisfaction Score
+                          </Typography>
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#666', mt: 0.5 }}>
+                            scale: -1.0 to +1.0
+                          </Typography>
+                        </CardContent>
+                      </Card>
                       {['Positive', 'Neutral', 'Negative'].map(label => (
                         <SummaryCard key={label} label={label} count={counts[label]} total={total} />
                       ))}
@@ -525,6 +753,12 @@ const SentimentDashboard = () => {
                           </Typography>
                         </CardContent>
                       </Card>
+                    </Box>
+
+                    {/* ── Requirements #5 & #6 — Top Comments Row ── */}
+                    <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
+                      <TopCommentsCard title="Top 5 Positive Comments" rows={topPositive} accent="#2e7d32" />
+                      <TopCommentsCard title="Top 5 Negative Comments" rows={topNegative} accent="#c62828" />
                     </Box>
                     {/* ── Charts Section: Sentiment Distribution & Category Breakdown ── */}
                     <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
@@ -592,6 +826,115 @@ const SentimentDashboard = () => {
                         </CardContent>
                       </Card>
                     </Box>
+
+                    {/* ── Requirement #4 — Sentiment Trend by Month (stacked bar) ── */}
+                    <Card elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: 3, mb: 3, backgroundColor: 'white' }}>
+                      <CardContent sx={{ p: 3 }}>
+                        <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 13, color: '#666', letterSpacing: 1, textTransform: 'uppercase', mb: 2 }}>
+                          Sentiment Trend by Month
+                        </Typography>
+                        {monthlyData.length === 0 ? (
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', color: '#999', textAlign: 'center', py: 4 }}>
+                            No dated responses available for the selected filters.
+                          </Typography>
+                        ) : (
+                          <ResponsiveContainer width="100%" height={280}>
+                            <BarChart data={monthlyData}>
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                              <XAxis dataKey="month" tick={{ fontFamily: 'Poppins, sans-serif', fontSize: 12 }} />
+                              <YAxis allowDecimals={false} tick={{ fontFamily: 'Poppins, sans-serif', fontSize: 12 }} />
+                              <Tooltip contentStyle={{ fontFamily: 'Poppins, sans-serif', fontSize: 13 }} />
+                              <BarLegend wrapperStyle={{ fontFamily: 'Poppins, sans-serif', fontSize: 13 }} />
+                              <Bar dataKey="Positive" stackId="a" fill="#2e7d32" />
+                              <Bar dataKey="Neutral" stackId="a" fill="#f57c00" />
+                              <Bar dataKey="Negative" stackId="a" fill="#c62828" />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    {/* ── Requirement #8 — Service Improvement Recommendations ── */}
+                    <Card elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: 3, mb: 3, backgroundColor: 'white' }}>
+                      <CardContent sx={{ p: 3 }}>
+                        <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 13, color: '#666', letterSpacing: 1, textTransform: 'uppercase', mb: 2 }}>
+                          Service Improvement Recommendations
+                        </Typography>
+                        {categoryStats.length === 0 ? (
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', color: '#999', textAlign: 'center', py: 4 }}>
+                            No category is currently above the concern threshold.
+                          </Typography>
+                        ) : categoryStats.map(c => (
+                          <Box key={c.category} sx={{ py: 2, borderBottom: '1px solid #f0f0f0' }}>
+                            <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', mb: 1 }}>
+                              <Box sx={{
+                                px: 1.5, py: 0.4, borderRadius: '20px', flexShrink: 0,
+                                backgroundColor: c.severity === 'high' ? '#ffebee' : '#fff3e0',
+                                border: `1px solid ${c.severity === 'high' ? '#c62828' : '#f57c00'}`,
+                              }}>
+                                <Typography sx={{ fontSize: 12, fontWeight: 700, color: c.severity === 'high' ? '#c62828' : '#f57c00', fontFamily: 'Poppins, sans-serif' }}>
+                                  {c.category} - {c.pct}% negative - {c.severity}
+                                </Typography>
+                              </Box>
+                              <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#333', fontWeight: 600 }}>
+                                {RECOMMENDATIONS[c.category][c.severity]}
+                              </Typography>
+                            </Box>
+
+                            {/* Option A: Keyword Sub-insights */}
+                            {c.matchedKeywords.length > 0 && (
+                              <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#666', fontStyle: 'italic', ml: 0.5, mb: 1 }}>
+                                🔍 <strong>Frequent Category Issue Signals:</strong> {c.matchedKeywords.join('; ')}
+                              </Typography>
+                            )}
+
+                            {/* Option B: Raw Supporting Evidence (Top Negative Comments per Category) */}
+                            {c.topEvidences.length > 0 && (
+                              <Box sx={{ mt: 1.5, p: 2, backgroundColor: '#fcfcfc', borderRadius: 2, border: '1px solid #eeeeee' }}>
+                                <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 11, fontWeight: 700, color: '#777', textTransform: 'uppercase', letterSpacing: 0.8, mb: 1 }}>
+                                  💬 Supporting Patron Feedback Evidence ({c.topEvidences.length})
+                                </Typography>
+                                {c.topEvidences.map((ev, idx) => (
+                                  <Box key={idx} sx={{ py: 0.5, borderBottom: idx < c.topEvidences.length - 1 ? '1px dashed #e0e0e0' : 'none' }}>
+                                    <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12.5, color: '#333' }}>
+                                      "{ev.Message}"
+                                    </Typography>
+                                    <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 11, color: '#888', mt: 0.2 }}>
+                                      {ev.Clientele} - {ev.College} · score {getSurveyScore(ev).toFixed(2)}
+                                    </Typography>
+                                  </Box>
+                                ))}
+                              </Box>
+                            )}
+                          </Box>
+                        ))}
+                      </CardContent>
+                    </Card>
+
+                    {/* ── Requirement #7 — Word Cloud ── */}
+                    <Card elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: 3, mb: 3, backgroundColor: 'white' }}>
+                      <CardContent sx={{ p: 3 }}>
+                        <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 13, color: '#666', letterSpacing: 1, textTransform: 'uppercase', mb: 2 }}>
+                          Frequently Used Words
+                        </Typography>
+                        {wordCloudWords.length === 0 ? (
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', color: '#999', textAlign: 'center', py: 4 }}>
+                            No comment text available for the selected filters.
+                          </Typography>
+                        ) : (
+                          <Box sx={{ height: 300 }}>
+                            <ReactWordcloud
+                              words={wordCloudWords}
+                              options={wordCloudOptions}
+                              minSize={[300, 300]}
+                              callbacks={{
+                                getWordTooltip: (word) => `${word.text} (${word.value})`,
+                              }}
+                            />
+                          </Box>
+                        )}
+                      </CardContent>
+                    </Card>
 
                     {/* ── Survey Response Review Table ── */}
                     <Card elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: 3, backgroundColor: 'white' }}>

@@ -13,18 +13,25 @@ This is an enhanced web-based Library Management System developed for the **Henr
 
 ---
 
-## 📌 Recent Updates (July 2026)
+## 📌 Recent Updates (July 2026 Session Updates)
 
-- **Dual-Engine NLP Architecture**:
-  - Combined **RoBERTa BERT** transformer model (`cardiffnlp/twitter-roberta-base-sentiment-latest`) for fine-grained sentiment analysis (`POST /analyze`) with a **Multinomial Naïve Bayes** classifier for category prediction (`POST /categorize`).
-  - Implemented confidence threshold fallback ($\tau = 0.45$) for Naïve Bayes categorization to tag low-confidence inputs as `Other/Uncategorized`.
-- **Machine Learning Preprocessing & Training (`backend/ml/`)**:
-  - `clean_dataset.py`: Cleans raw spreadsheets, dynamically maps text/category/sentiment columns, filters noise/ultra-short responses.
-  - `naive_bayes.py`: Encapsulates TF-IDF vectorization and confidence-thresholded classification.
-  - `train_category_model.py`: 80/20 stratified split, hyperparameter tuning (`alpha`, `ngram_range`, `min_df`), exports `category_model.pkl` and confusion matrices.
-- **Express Backend Parallel Execution**: Updated `backend/index.js` to execute BERT sentiment and Naïve Bayes category calls concurrently using `Promise.all`.
-- **SQL Server Database Migration**: Created migration `query/addc_category.sql` adding `Category NVARCHAR(50) NULL` to `dbo.SatisfactionSurveys`.
-- **Frontend UI & Dashboard**: Enhanced `SentimentDashboard.js` and `SatisfactionSurveyData.js` with domain filtering, MUI color-coded `CategoryChip` badges (Facilities, Staff, Collection, Other/Uncategorized), Excel exports, and PDF print reports.
+- **SQL Server Database Migrations**:
+  - Executed migration adding `SentimentScore FLOAT NULL` to `dbo.SatisfactionSurveys` to persist combined emoji + BERT sentiment scores (-1.0 to +1.0).
+- **New Frontend Dependencies**:
+  - Installed `react-wordcloud` (via `npm install react-wordcloud --legacy-peer-deps`) for interactive keyword visualization.
+- **6 New Sentiment Dashboard Features (`SentimentDashboard.js`)**:
+  1. **Average Satisfaction Score**: KPI card rendering average sentiment score scaled from `-1.0` to `+1.0` (with dynamic fallback score calculation for historical records created prior to migration).
+  2. **Sentiment Trend by Month**: Stacked bar chart (`BarChart` via Recharts) displaying monthly Positive, Neutral, and Negative response distributions (`YYYY-MM`).
+  3. **Top 5 Positive Comments**: Score-ranked list displaying top 5 positive comments sorted descending (independent of Sentiment dropdown per locked-in design decision).
+  4. **Top 5 Negative Comments**: Score-ranked list displaying top 5 negative comments sorted ascending.
+  5. **Constant & Deterministic Word Cloud**: Displays top 60 frequent comment keywords across all survey responses using `ReactWordcloud` with `deterministic: true` and `randomSeed: 'hll-library-wordcloud'` for stable layout rendering across page visits.
+  6. **Service Improvement Recommendations (Options A & B)**: Rule-based recommendation engine for categories reaching moderate (≥30%) or high (≥50%) negative response ratios. Incorporates:
+     - **Option A (Keyword Signals)**: Detects top trending issue signals within category negative comments (`aircon`, `wifi`, `rude`, `outdated`, etc.).
+     - **Option B (Raw Supporting Evidence)**: Surfaces the top 2-3 most severe patron comments per category alongside sentiment scores as empirical evidence for thesis defense review.
+- **Machine Learning Dataset Expansion & Retraining (`backend/ml/`)**:
+  - Updated preprocessing pipeline (`clean_dataset.py`) to handle `dataset_5k_wnoise.xlsx` (5,000 samples).
+  - Retrained Multinomial Naïve Bayes category model (`train_category_model.py`), expanding vocabulary coverage to include security personnel terms (`guard`, `guards`, `security`) classified as `Staff` with **99.95% confidence**.
+  - Re-classified and updated all existing SQL Server survey database records via automated batch script.
 
 ---
 
@@ -71,10 +78,10 @@ The feedback management module processes open-ended responses using a **Dual-Eng
   2. Calculates class probability distribution across domains (**Facilities**, **Staff**, **Collection**).
   3. Applies confidence threshold fallback ($\tau = 0.45$). Inputs below $\tau$ are categorized as `Other/Uncategorized`.
 
-### 3. Emoji Rating Scoring
+### 3. Emoji Rating & Combined Scoring Formula
 - Structured emoji ratings are mapped: Very Satisfied (+1.0), Satisfied (+0.5), Neutral (0.0), Dissatisfied (-0.5), Very Dissatisfied (-1.0).
 - Combined score formula:  
-  $$\text{Final Score} = (\text{Emoji Rating Avg} \times 0.50) + (\text{BERT Sentiment Score} \times 0.50)$$
+  $$\text{SentimentScore} = (\text{Emoji Rating Avg} \times 0.50) + (\text{BERT Sentiment Score} \times 0.50)$$
 - Thresholds: Score $> +0.15 \Rightarrow$ `Positive` | Score $< -0.15 \Rightarrow$ `Negative` | Otherwise $\Rightarrow$ `Neutral`.
 
 ---
@@ -88,19 +95,25 @@ The feedback management module processes open-ended responses using a **Dual-Eng
 | Sentiment & Categorization Microservice | Python 3.9+, Flask, Hugging Face Transformers, Scikit-learn (Port 5001) |
 | Database | Microsoft SQL Server (SQLEXPRESS) |
 | Pre-trained NLP Models | `cardiffnlp/twitter-roberta-base-sentiment-latest`, Naïve Bayes Classifier (`category_model.pkl`) |
-| Charts & Exports | Recharts, `jspdf`, `xlsx` |
+| Charts & Exports | Recharts, `react-wordcloud`, `jspdf`, `xlsx` |
 | DB Driver | `mssql`, `msnodesqlv8` |
 
 ---
 
-## Database Setup
+## Database Migration Queries
 
-1. Restore the database from `hllSystem-clean-2.bak` using SQL Server Management Studio (SSMS).
-2. Run database migration `query/addc_category.sql` to add the `Category` column:
+Run the following SQL queries in SQL Server Management Studio (SSMS) on database `hllSystem`:
+
 ```sql
 USE hllSystem;
 GO
+
+-- 1. Add Category column
 ALTER TABLE SatisfactionSurveys ADD Category NVARCHAR(50) NULL;
+GO
+
+-- 2. Add SentimentScore column
+ALTER TABLE SatisfactionSurveys ADD SentimentScore FLOAT NULL;
 GO
 ```
 
@@ -118,7 +131,8 @@ GO
 
 **1. Install frontend dependencies**
 ```bash
-npm install --legacy-peer-deps
+npm install react-wordcloud --legacy-peer-deps
+npm install
 ```
 
 **2. Install backend Node.js dependencies**
@@ -132,20 +146,27 @@ npm install
 pip install flask transformers torch scikit-learn pandas joblib
 ```
 
-**4. Start the Python ML Microservice (Terminal 1):**
+**4. Retrain Category Model (Optional, when updating datasets in `backend/ml`):**
+```bash
+cd backend/ml
+python clean_dataset.py
+python train_category_model.py
+```
+
+**5. Start the Python ML Microservice (Terminal 1):**
 ```bash
 python backend/sentiment_service.py
 ```
 *Output:* Running on `http://127.0.0.1:5001`
 
-**5. Start the Express Backend (Terminal 2 — inside `backend` folder):**
+**6. Start the Express Backend (Terminal 2 — inside `backend` folder):**
 ```bash
 cd backend
 npm start
 ```
 *Output:* Server running on `http://localhost:5000`
 
-**6. Start the React Frontend (Terminal 3 — root folder):**
+**7. Start the React Frontend (Terminal 3 — root folder):**
 ```bash
 npm start
 ```
@@ -186,5 +207,3 @@ npm start
 | **Library** | Henry Luce III Library |
 | **Degree** | Bachelor of Science in Computer Science |
 | **Year** | 2026 |
-
----
