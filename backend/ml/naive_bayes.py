@@ -1,24 +1,3 @@
-"""
-naive_bayes.py
----------------
-Step 2 of the Naive Bayes category classification pipeline.
-
-Defines the CategoryClassifier — a thin wrapper around an sklearn Pipeline
-(TfidfVectorizer -> MultinomialNB) used to classify open-ended survey
-comments into one of the library's feedback categories (Facilities, Staff,
-Collection).
-
-This file has NO side effects (no data loading, no training loop). It is
-imported by:
-  - train_category_model.py  (Step 3, calls .fit())
-  - sentiment_service.py     (Step 4, loads a pickled instance and calls
-                               .predict())
-
-Keeping the class + its custom `preprocess` step in one place means the
-exact same text-cleaning logic used during training is guaranteed to run
-at inference time too.
-"""
-
 import re
 
 from sklearn.feature_extraction.text import TfidfVectorizer

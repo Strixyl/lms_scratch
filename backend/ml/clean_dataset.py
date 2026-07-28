@@ -1,31 +1,10 @@
-"""
-clean_dataset.py
------------------
-Step 1 of the Naive Bayes category classification pipeline.
-
-Reads raw survey/training datasets (.xlsx or .csv), cleans them,
-filters out non-informative/garbage text, normalizes columns, and writes 
-a cleaned CSV to data/clean_category_dataset.csv.
-
-Supports:
-  - category_training_dataset.xlsx (columns: Text, Category, Sentiment)
-  - 3000withnoise.xlsx (columns: Text, Category, Sentiment)
-  - sat-survey.xlsx (columns: Message, Clientele, College, etc.)
-  - Any custom dataset with text feedback
-
-Usage:
-    cd backend/ml
-    python clean_dataset.py [optional_path_to_dataset]
-"""
-
 import sys
 import os
 import pandas as pd
 
 # ── Paths ─────────────────────────────────────────────────────────────
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-# Manually change the filename below to whichever dataset you want to clean:
-RAW_XLSX_PATH = os.path.abspath(os.path.join(THIS_DIR, "..", "..", "3000withnoise.xlsx"))
+RAW_XLSX_PATH = os.path.abspath(os.path.join(THIS_DIR, "..", "..", "3kwithnoise.xlsx"))
 
 OUTPUT_DIR = os.path.join(THIS_DIR, "data")
 OUTPUT_CSV_PATH = os.path.join(OUTPUT_DIR, "clean_category_dataset.csv")

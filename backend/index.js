@@ -10,6 +10,9 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 app.use((req, res, next) => {
+  if (req.url.startsWith('/performance') || req.url === '/favicon.ico') {
+    return res.status(200).end();
+  }
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   next();
 });
@@ -63,18 +66,21 @@ async function analyzeSentiment(responses, message) {
 
   // ── Combined result ──
   let overallSentiment;
+  let sentimentScore;
   if (!message || message.trim().length === 0) {
     overallSentiment = emojiSentiment;
+    sentimentScore = ratingAvg;
   } else {
     // Emoji 50% + BERT 50%
     const emojiScore = ratingAvg;
     const bertScore = textSentiment === 'Positive' ? 1 : textSentiment === 'Negative' ? -1 : 0;
     const combined = emojiScore * 0.5 + bertScore * 0.5;
     overallSentiment = combined > 0.15 ? 'Positive' : combined < -0.15 ? 'Negative' : 'Neutral';
+    sentimentScore = combined;
   }
 
   console.log(`📊 Emoji: ${emojiSentiment} | BERT: ${textSentiment} | Category: ${category} | Overall: ${overallSentiment}`);
-  return { emojiSentiment, textSentiment, overallSentiment, category };
+  return { emojiSentiment, textSentiment, overallSentiment, category, sentimentScore };
 }
 
 // =================== MULTER SETUP =================== //
@@ -206,7 +212,7 @@ app.post('/api/survey', async (req, res) => {
   const { clientele, college, course, responses, message } = req.body;
 
   try {
-    const { emojiSentiment, textSentiment, overallSentiment, category } = await analyzeSentiment(responses, message);
+    const { emojiSentiment, textSentiment, overallSentiment, category, sentimentScore } = await analyzeSentiment(responses, message);
     const sentimentResult = overallSentiment;
 
     const pool = await sql.connect(config);
@@ -218,6 +224,7 @@ app.post('/api/survey', async (req, res) => {
     request.input('message', sql.NVarChar, message);
     request.input('sentimentResult', sql.NVarChar, sentimentResult);
     request.input('category', sql.NVarChar, category);
+    request.input('sentimentScore', sql.Float, sentimentScore);
 
     for (let i = 0; i < 10; i++) {
       request.input(`q${i + 1}`, sql.NVarChar, responses[i] ?? null);
@@ -228,16 +235,16 @@ app.post('/api/survey', async (req, res) => {
         Clientele, College, Course, Message,
         Question1, Question2, Question3, Question4, Question5,
         Question6, Question7, Question8, Question9, Question10,
-        SentimentResult, Category
+        SentimentResult, Category, SentimentScore
       )
       VALUES (
         @clientele, @college, @course, @message,
         @q1, @q2, @q3, @q4, @q5, @q6, @q7, @q8, @q9, @q10,
-        @sentimentResult, @category
+        @sentimentResult, @category, @sentimentScore
       )
     `);
 
-    res.json({ message: 'Survey submitted', sentimentResult, emojiSentiment, textSentiment, category });
+    res.json({ message: 'Survey submitted', sentimentResult, emojiSentiment, textSentiment, category, sentimentScore });
   } catch (err) {
     console.error('SQL error:', err);
     res.status(500).send('Failed to save survey');
@@ -402,7 +409,7 @@ app.get('/api/surveys', async (req, res) => {
       SELECT Id, Clientele, College, Course, Message,
              Question1, Question2, Question3, Question4, Question5,
              Question6, Question7, Question8, Question9, Question10,
-             SentimentResult, Category,
+             SentimentResult, Category, SentimentScore,
              FORMAT(DateSubmitted AT TIME ZONE 'UTC' AT TIME ZONE 'SE Asia Standard Time', 'yyyy-MM-dd HH:mm:ss') AS DateSubmitted
       FROM SatisfactionSurveys
     `;

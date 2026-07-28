@@ -1,26 +1,3 @@
-"""
-train_category_model.py
-------------------------
-Step 3 of the Naive Bayes category classification pipeline.
-
-Loads the cleaned dataset (produced by clean_dataset.py), performs an
-80/20 stratified train/validation split, sweeps hyperparameters for the
-CategoryClassifier (TfidfVectorizer + MultinomialNB), evaluates the best
-combination, and saves it to category_model.pkl for sentiment_service.py
-to load at startup.
-
-Usage:
-    cd backend/ml
-    python train_category_model.py
-
-Input:
-    data/clean_category_dataset.csv   (produced by clean_dataset.py)
-
-Output:
-    category_model.pkl                (best trained CategoryClassifier)
-    alpha_search_category.png         (optional accuracy-vs-alpha plot)
-"""
-
 import os
 
 import joblib
