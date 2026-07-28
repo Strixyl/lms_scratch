@@ -14,7 +14,7 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../Components/Header';
 import TopBar from '../Components/TopBar';
 
-// ── Sentiment & Category helpers ──────────────────────────────────────
+
 const SENTIMENT_COLORS = {
   Positive: { bg: '#1b5e20', light: '#e8f5e9', text: '#1b5e20', dot: '#2e7d32' },
   Neutral: { bg: '#e65100', light: '#fff3e0', text: '#e65100', dot: '#f57c00' },
@@ -46,14 +46,11 @@ const RATING_SCORES = {
 };
 
 const getSurveyScore = (s) => {
-  // Preferred path: SentimentScore was already computed and persisted at submission time
-  // (emoji 50% + BERT 50% blend, or emoji-only when there's no message — computed in backend/index.js's analyzeSentiment())
   if (typeof s.SentimentScore === 'number' && !isNaN(s.SentimentScore)) {
     return s.SentimentScore;
   }
 
-  // Fallback path: for legacy survey rows submitted before the SentimentScore column existed.
-  // Recomputes an equivalent score from raw Question1..10 emoji ratings so older data still ranks consistently alongside new data.
+
   const qList = [
     s.Question1, s.Question2, s.Question3, s.Question4, s.Question5,
     s.Question6, s.Question7, s.Question8, s.Question9, s.Question10
@@ -90,7 +87,7 @@ const RECOMMENDATIONS = {
 };
 
 
-// USE OF WORD FREQUUENCY FOR INPORVEMET RECCOMENDATION
+
 const CATEGORY_KEYWORDS = {
   Facilities: {
     aircon: 'poor air conditioning/temperature control',
@@ -332,7 +329,7 @@ const SentimentDashboard = () => {
     setTimeout(fetchSurveys, 0);
   };
 
-  // ── Client-side filtering ────────────────────────────────────────
+
   const filtered = surveys.filter(s => {
     if (!s.SentimentResult) return false;
     if (filterClientele && s.Clientele?.toLowerCase() !== filterClientele.toLowerCase()) return false;
@@ -380,12 +377,12 @@ const SentimentDashboard = () => {
 
   const hasActiveFilter = startDate || endDate || filterClientele || filterCollege || filterSentiment || filterCategory;
 
-  // ── Requirement #2 — Average Satisfaction Score ──
+
   const avgScore = filtered.length
     ? filtered.reduce((sum, s) => sum + getSurveyScore(s), 0) / filtered.length
     : 0;
 
-  // ── Requirement #4 — Sentiment Trend by Month (stacked bar) ──
+
   const monthlyData = (() => {
     const buckets = {};
     filtered.forEach(s => {
@@ -399,7 +396,7 @@ const SentimentDashboard = () => {
     return Object.values(buckets).sort((a, b) => a.month.localeCompare(b.month));
   })();
 
-  // ── Requirements #5 & #6 — Top 5 Positive / Negative Comments ──
+
   const positivePool = surveys.filter(s => {
     if (s.SentimentResult !== 'Positive' || !s.Message?.trim()) return false;
     if (filterClientele && s.Clientele?.toLowerCase() !== filterClientele.toLowerCase()) return false;
@@ -415,7 +412,7 @@ const SentimentDashboard = () => {
   const topPositive = [...positivePool].sort((a, b) => getSurveyScore(b) - getSurveyScore(a)).slice(0, 5);
   const topNegative = [...negativePool].sort((a, b) => getSurveyScore(a) - getSurveyScore(b)).slice(0, 5);
 
-  // ── Requirement #7 — Word Cloud (Constant & Based on All Survey Responses) ──
+
   const wordCloudWords = (() => {
     const freq = {};
     surveys.forEach(s => {
@@ -439,7 +436,7 @@ const SentimentDashboard = () => {
     colors: ['#1b0892', '#2e7d32', '#f57c00', '#c62828', '#6a1b9a'],
   };
 
-  // ── Requirement #8 — Service Improvement Recommendations (Option A + Option B) ──
+
   const categoryStats = (() => {
     const cats = {};
     filtered.forEach(s => {
@@ -487,14 +484,13 @@ const SentimentDashboard = () => {
     }).filter(Boolean);
   })();
 
-  // ── Excel Export Handler ──────────────────────────────────────────
+  // excek output
   const handleExportExcel = () => {
     if (filtered.length === 0) {
       alert("No sentiment metrics data available to export.");
       return;
     }
 
-    // Tab 1: High-level KPI summary cards
     const summaryKPIs = [
       { 'Metric Indicator': 'Total Analyzed Responses', 'Count': total },
       { 'Metric Indicator': 'Positive Sentiments Count', 'Count': counts.Positive },
@@ -506,7 +502,6 @@ const SentimentDashboard = () => {
       { 'Metric Indicator': 'Other/Uncategorized Count', 'Count': categoryCounts['Other/Uncategorized'] },
     ];
 
-    // Tab 2: Detailed Text Classifications
     const textDetails = reviewRows.map((row, index) => ({
       'No.': index + 1,
       'Clientele Group': row.Clientele || 'N/A',
@@ -521,7 +516,7 @@ const SentimentDashboard = () => {
     const wsSummary = XLSX.utils.json_to_sheet(summaryKPIs);
     const wsDetails = XLSX.utils.json_to_sheet(textDetails);
 
-    // Auto-adjust column width calculations for clean cell spacing
+
     const adjustWidths = (worksheet, data) => {
       const colWidths = [];
       data.forEach((row) => {
@@ -546,7 +541,7 @@ const SentimentDashboard = () => {
     XLSX.writeFile(workbook, `HLL_Sentiment_Analysis_${dateStamp}.xlsx`);
   };
 
-  // ── Print PDF Report Handler ──────────────────────────────────────
+  //pdf output
   const handlePrint = () => {
     const printContents = printRef.current.innerHTML;
     const iframe = document.createElement('iframe');
@@ -624,10 +619,9 @@ const SentimentDashboard = () => {
                   </Button>
                 </Box>
 
-                {/* ── Filter Bar ── */}
                 <Box sx={{ display: 'flex', gap: 2, mb: 3, alignItems: 'center', flexWrap: 'wrap' }}>
 
-                  {/* Date filters */}
+
                   <TextField type="date" label="Start Date" size="small"
                     InputLabelProps={{ shrink: true }} value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
@@ -637,7 +631,6 @@ const SentimentDashboard = () => {
                     onChange={(e) => setEndDate(e.target.value)}
                     sx={{ backgroundColor: 'white', borderRadius: 1 }} />
 
-                  {/* Clientele filter */}
                   <FormControl size="small" sx={selectSx}>
                     <InputLabel>Clientele</InputLabel>
                     <Select value={filterClientele} label="Clientele"
@@ -649,7 +642,6 @@ const SentimentDashboard = () => {
                     </Select>
                   </FormControl>
 
-                  {/* College filter */}
                   <FormControl size="small" sx={selectSx}>
                     <InputLabel>College</InputLabel>
                     <Select value={filterCollege} label="College"
@@ -661,7 +653,7 @@ const SentimentDashboard = () => {
                     </Select>
                   </FormControl>
 
-                  {/* Sentiment filter */}
+
                   <FormControl size="small" sx={selectSx}>
                     <InputLabel>Sentiment</InputLabel>
                     <Select value={filterSentiment} label="Sentiment"
@@ -673,7 +665,6 @@ const SentimentDashboard = () => {
                     </Select>
                   </FormControl>
 
-                  {/* Category filter */}
                   <FormControl size="small" sx={selectSx}>
                     <InputLabel>Category</InputLabel>
                     <Select value={filterCategory} label="Category"
@@ -685,7 +676,7 @@ const SentimentDashboard = () => {
                     </Select>
                   </FormControl>
 
-                  {/* Sort Order */}
+
                   <FormControl size="small" sx={selectSx}>
                     <InputLabel>Sort By</InputLabel>
                     <Select
@@ -710,13 +701,11 @@ const SentimentDashboard = () => {
                     </Button>
                   )}
 
-                  {/* 🖨️ PDF Print Button */}
                   <Button variant="outlined" color="secondary" onClick={handlePrint}
                     sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', height: 40 }}>
                     🖨️ Print / Save as PDF
                   </Button>
 
-                  {/* 📥 Excel Export Button */}
                   <Button variant="outlined" color="success" onClick={handleExportExcel}
                     sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', height: 40 }}>
                     📥 Export to Excel
@@ -729,7 +718,6 @@ const SentimentDashboard = () => {
                   </Box>
                 ) : (
                   <>
-                    {/* ── Summary Cards ── */}
                     <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
                       <Card elevation={0} sx={{ border: '1.5px solid #6a1b9a', borderRadius: 3, background: 'linear-gradient(135deg, #f3e5f5 0%, #ffffff 100%)', flex: 1, minWidth: 160 }}>
                         <CardContent sx={{ p: 2.5 }}>
@@ -763,12 +751,10 @@ const SentimentDashboard = () => {
                       </Card>
                     </Box>
 
-                    {/* ── Requirements #5 & #6 — Top Comments Row ── */}
                     <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
                       <TopCommentsCard title="Top 5 Positive Comments" rows={topPositive} accent="#2e7d32" />
                       <TopCommentsCard title="Top 5 Negative Comments" rows={topNegative} accent="#c62828" />
                     </Box>
-                    {/* ── Charts Section: Sentiment Distribution & Category Breakdown ── */}
                     <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
                       {/* ── Sentiment Donut Chart ── */}
                       <Card elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: 3, backgroundColor: 'white', flex: 1, minWidth: 320 }}>
@@ -802,7 +788,6 @@ const SentimentDashboard = () => {
                         </CardContent>
                       </Card>
 
-                      {/* ── Category Breakdown Chart ── */}
                       <Card elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: 3, backgroundColor: 'white', flex: 1, minWidth: 320 }}>
                         <CardContent sx={{ p: 3 }}>
                           <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 13, color: '#666', letterSpacing: 1, textTransform: 'uppercase', mb: 2 }}>
@@ -835,7 +820,6 @@ const SentimentDashboard = () => {
                       </Card>
                     </Box>
 
-                    {/* ── Requirement #4 — Sentiment Trend by Month (stacked bar) ── */}
                     <Card elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: 3, mb: 3, backgroundColor: 'white' }}>
                       <CardContent sx={{ p: 3 }}>
                         <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 13, color: '#666', letterSpacing: 1, textTransform: 'uppercase', mb: 2 }}>
@@ -862,7 +846,6 @@ const SentimentDashboard = () => {
                       </CardContent>
                     </Card>
 
-                    {/* ── Requirement #8 — Service Improvement Recommendations ── */}
                     <Card elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: 3, mb: 3, backgroundColor: 'white' }}>
                       <CardContent sx={{ p: 3 }}>
                         <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 13, color: '#666', letterSpacing: 1, textTransform: 'uppercase', mb: 2 }}>
@@ -889,14 +872,12 @@ const SentimentDashboard = () => {
                               </Typography>
                             </Box>
 
-                            {/* Option A: Keyword Sub-insights */}
                             {c.matchedKeywords.length > 0 && (
                               <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#666', fontStyle: 'italic', ml: 0.5, mb: 1 }}>
                                 🔍 <strong>Frequent Category Issue Signals:</strong> {c.matchedKeywords.join('; ')}
                               </Typography>
                             )}
 
-                            {/* Option B: Raw Supporting Evidence (Top Negative Comments per Category) */}
                             {c.topEvidences.length > 0 && (
                               <Box sx={{ mt: 1.5, p: 2, backgroundColor: '#fcfcfc', borderRadius: 2, border: '1px solid #eeeeee' }}>
                                 <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 11, fontWeight: 700, color: '#777', textTransform: 'uppercase', letterSpacing: 0.8, mb: 1 }}>
@@ -919,7 +900,6 @@ const SentimentDashboard = () => {
                       </CardContent>
                     </Card>
 
-                    {/* ── Requirement #7 — Word Cloud ── */}
                     <Card elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: 3, mb: 3, backgroundColor: 'white' }}>
                       <CardContent sx={{ p: 3 }}>
                         <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 13, color: '#666', letterSpacing: 1, textTransform: 'uppercase', mb: 2 }}>
@@ -944,7 +924,6 @@ const SentimentDashboard = () => {
                       </CardContent>
                     </Card>
 
-                    {/* ── Survey Response Review Table ── */}
                     <Card elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: 3, backgroundColor: 'white' }}>
                       <CardContent sx={{ p: 3 }}>
                         <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.5, mb: 2 }}>
@@ -1045,7 +1024,6 @@ const SentimentDashboard = () => {
                               </Table>
                             </TableContainer>
 
-                            {/* Pagination */}
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
                               <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#888' }}>
                                 Showing {page * ROWS_PER_PAGE + 1}–{Math.min((page + 1) * ROWS_PER_PAGE, reviewRows.length)} of {reviewRows.length}
@@ -1070,7 +1048,6 @@ const SentimentDashboard = () => {
               </Box>
             )}
 
-            {/* Hidden Printable HTML Template */}
             <div ref={printRef} style={{ display: 'none' }}>
               <h1>Henry Luce III Library</h1>
               <h2>Patron Satisfaction Sentiment Analysis Report</h2>
@@ -1119,7 +1096,6 @@ const SentimentDashboard = () => {
         )}
       </Header>
 
-      {/* 👇 Login Popup (only mounted when user is not logged in) */}
       {showLoginModal && (
         <Dialog open={true}>
           <DialogTitle>You need to login as an Admin to view this page</DialogTitle>
