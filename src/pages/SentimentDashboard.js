@@ -46,9 +46,14 @@ const RATING_SCORES = {
 };
 
 const getSurveyScore = (s) => {
+  // Preferred path: SentimentScore was already computed and persisted at submission time
+  // (emoji 50% + BERT 50% blend, or emoji-only when there's no message — computed in backend/index.js's analyzeSentiment())
   if (typeof s.SentimentScore === 'number' && !isNaN(s.SentimentScore)) {
     return s.SentimentScore;
   }
+
+  // Fallback path: for legacy survey rows submitted before the SentimentScore column existed.
+  // Recomputes an equivalent score from raw Question1..10 emoji ratings so older data still ranks consistently alongside new data.
   const qList = [
     s.Question1, s.Question2, s.Question3, s.Question4, s.Question5,
     s.Question6, s.Question7, s.Question8, s.Question9, s.Question10
