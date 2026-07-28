@@ -84,6 +84,8 @@ const RECOMMENDATIONS = {
   },
 };
 
+
+// USE OF WORD FREQUUENCY FOR INPORVEMET RECCOMENDATION
 const CATEGORY_KEYWORDS = {
   Facilities: {
     aircon: 'poor air conditioning/temperature control',
@@ -362,8 +364,7 @@ const SentimentDashboard = () => {
     { name: 'Other/Uncategorized', value: categoryCounts['Other/Uncategorized'], color: CATEGORY_COLORS['Other/Uncategorized'].dot },
   ].filter(d => d.value > 0);
 
-  const reviewRows = filtered
-    .filter(s => s.Message && s.Message.trim().length > 0)
+  const reviewRows = [...filtered]
     .sort((a, b) => {
       const dateA = new Date(a.DateSubmitted);
       const dateB = new Date(b.DateSubmitted);
@@ -423,6 +424,8 @@ const SentimentDashboard = () => {
       .sort((a, b) => b.value - a.value).slice(0, 60);
   })();
   const wordCloudOptions = {
+    deterministic: true,
+    randomSeed: 'hll-library-wordcloud',
     rotations: 1,
     rotationAngles: [0, 0],
     fontFamily: 'Poppins, sans-serif',
@@ -453,7 +456,6 @@ const SentimentDashboard = () => {
 
       const negativeItems = items.filter(s => s.SentimentResult === 'Negative');
 
-      // Option A: Keyword-driven sub-rules count
       const kwCounts = {};
       const dict = CATEGORY_KEYWORDS[category] || {};
       negativeItems.forEach(s => {
@@ -470,7 +472,7 @@ const SentimentDashboard = () => {
         .slice(0, 3)
         .map(([phrase, count]) => `${phrase} (${count} mention${count > 1 ? 's' : ''})`);
 
-      // Option B: Surface raw supporting evidence (top 2-3 most severe negative comments)
+
       const topEvidences = [...negativeItems]
         .filter(s => s.Message && s.Message.trim().length > 0)
         .sort((a, b) => getSurveyScore(a) - getSurveyScore(b))
@@ -989,7 +991,24 @@ const SentimentDashboard = () => {
                                         {row.College}
                                       </TableCell>
                                       <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#333', py: 1.5, pr: 3 }}>
-                                        {row.Message}
+                                        {row.Message && row.Message.trim().length > 0 ? (
+                                          row.Message
+                                        ) : (
+                                          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+                                            <Typography component="span" sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12.5, color: '#888', fontStyle: 'italic' }}>
+                                              (No written comment)
+                                            </Typography>
+                                            <Box sx={{
+                                              px: 1, py: 0.2, borderRadius: '12px',
+                                              backgroundColor: '#eef2ff', border: '1px solid #c7d2fe',
+                                              display: 'inline-block'
+                                            }}>
+                                              <Typography component="span" sx={{ fontSize: 10.5, fontWeight: 600, color: '#3730a3', fontFamily: 'Poppins, sans-serif' }}>
+                                                📊 Rating Only
+                                              </Typography>
+                                            </Box>
+                                          </Box>
+                                        )}
                                       </TableCell>
                                       <TableCell sx={{ py: 1.5 }}>
                                         <SentimentChip label={row.SentimentResult} />

@@ -57,10 +57,17 @@ const SatisfactionSurvey = () => {
   const handleSubmit = async () => {
     setSubmitError('');
 
-    if (!clientele || !selectedCollege) {
-      setSubmitError('Clientele, College and Satisfaction Ratings are required.');
+    if (!clientele) {
+      setSubmitError('Please select a clientele type.');
       return;
     }
+
+    const isStudentOrFaculty = clientele === 'student' || clientele === 'faculty';
+    if (isStudentOrFaculty && (!selectedCollege || !selectedCourse)) {
+      setSubmitError('College and Course are required for Student and Faculty.');
+      return;
+    }
+
     const allRated = responses.every((response) => response !== null);
     if (!allRated) {
       setSubmitError('Please answer all 10 survey questions.');
@@ -224,8 +231,8 @@ const SatisfactionSurvey = () => {
                         <MenuItem key={index} value={course}>{course}</MenuItem>
                       ))}
                     </Select>
-                    <Typography variant="caption" sx={{ mt: 1 }}>
-                      *Can leave blank if not student.
+                    <Typography variant="caption" sx={{ mt: 1, display: 'block' }}>
+                      *Required for Student and Faculty only.
                     </Typography>
                   </FormControl>
 
