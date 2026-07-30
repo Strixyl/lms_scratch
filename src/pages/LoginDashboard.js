@@ -6,7 +6,7 @@ import {
   TableRow, Paper, Button, TextField, CircularProgress,
   MenuItem, Select, FormControl, InputLabel,
   Dialog, DialogTitle, DialogContent, DialogActions,
-  Avatar, LinearProgress, Checkbox, IconButton, Snackbar, Alert, Tooltip
+  Avatar, LinearProgress, Checkbox, IconButton, Snackbar, Alert, Tooltip, Chip
 } from '@mui/material';
 import {
   WavingHand as WavingHandIcon,
@@ -26,7 +26,7 @@ import {
 } from '@mui/icons-material';
 import {
   PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, ComposedChart, Scatter
 } from 'recharts';
 import * as XLSX from 'xlsx';
 import { useNavigate } from 'react-router-dom';
@@ -142,7 +142,6 @@ const SummaryCard = ({ title, value, subtitle, icon, color = '#1a237e' }) => {
         <Avatar sx={{ bgcolor: `${color}15`, color: color, width: 50, height: 50, fontSize: 24 }}>
           {icon}
         </Avatar>
-        <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 700, letterSpacing: 0.6, fontSize: 11 }}>METRIC</Typography>
       </Box>
       <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 34, color: '#0f172a', lineHeight: 1.1 }}>
         {value}
@@ -156,6 +155,289 @@ const SummaryCard = ({ title, value, subtitle, icon, color = '#1a237e' }) => {
         </Typography>
       )}
     </Card>
+  );
+};
+
+// ── Item Chips Breakdown Component (UX alternative for low-density / 2-4 course filtering) ───────
+const ItemChipsView = ({ data = [], totalVisits = 0, isCollegeLevel = false, selectedCollege = 'All' }) => {
+  const maxVal = useMemo(() => Math.max(...data.map(d => d.total || 0), 1), [data]);
+
+  if (!data || data.length === 0) {
+    return (
+      <Box sx={{ p: 4, height: 340, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <Typography color="textSecondary" sx={{ fontFamily: 'Poppins, sans-serif' }}>
+          No data available for Item Chips view.
+        </Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ py: 1, minHeight: 340 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+        <Chip
+          label={isCollegeLevel ? "Colleges Breakdown (Item Chips View)" : `Courses in ${selectedCollege} (Item Chips)`}
+          size="small"
+          sx={{ fontWeight: 700, fontFamily: 'Poppins, sans-serif', bgcolor: '#1d0a61', color: '#ffffff' }}
+        />
+        <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#64748b', fontWeight: 600 }}>
+          Total Visits: <strong style={{ color: '#1a237e' }}>{totalVisits}</strong>
+        </Typography>
+      </Box>
+
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+        {data.map((item, idx) => {
+          const itemTotal = item.total || 0;
+          const percentage = totalVisits > 0 ? ((itemTotal / totalVisits) * 100).toFixed(1) : '0.0';
+          const progressVal = maxVal > 0 ? (itemTotal / maxVal) * 100 : 0;
+          const color = COURSE_COLORS[idx % COURSE_COLORS.length];
+          const lightColor = COURSE_LIGHT_COLORS[idx % COURSE_LIGHT_COLORS.length] || color;
+          const title = item.fullName || item.name || `Item ${idx + 1}`;
+
+          return (
+            <Paper
+              key={title + idx}
+              elevation={0}
+              sx={{
+                p: 2.2,
+                borderRadius: 3,
+                border: '1.5px solid #e2e8f0',
+                bgcolor: '#ffffff',
+                transition: 'all 0.25s ease',
+                position: 'relative',
+                overflow: 'hidden',
+                '&:hover': {
+                  borderColor: color,
+                  transform: 'translateY(-2px)',
+                  boxShadow: `0 8px 20px -6px ${color}33`
+                }
+              }}
+            >
+              {/* Color accent bar on left */}
+              <Box sx={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: 6, bgcolor: color }} />
+
+              <Box sx={{ pl: 1 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.2 }}>
+                  <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 14, color: '#0f172a', pr: 1, lineHeight: 1.3 }}>
+                    {title}
+                  </Typography>
+                  <Chip
+                    label={`${itemTotal} visits`}
+                    size="small"
+                    sx={{
+                      fontWeight: 800,
+                      fontFamily: 'Poppins, sans-serif',
+                      bgcolor: `${color}15`,
+                      color: color,
+                      border: `1px solid ${color}40`,
+                      fontSize: 12,
+                      height: 24
+                    }}
+                  />
+                </Box>
+
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.8 }}>
+                  <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#64748b', fontWeight: 600 }}>
+                    Share of Foot Traffic
+                  </Typography>
+                  <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 700, color: '#1e293b' }}>
+                    {percentage}%
+                  </Typography>
+                </Box>
+
+                <LinearProgress
+                  variant="determinate"
+                  value={progressVal}
+                  sx={{
+                    height: 8,
+                    borderRadius: 4,
+                    bgcolor: '#f1f5f9',
+                    '& .MuiLinearProgress-bar': {
+                      borderRadius: 4,
+                      background: `linear-gradient(90deg, ${color} 0%, ${lightColor} 100%)`
+                    }
+                  }}
+                />
+              </Box>
+            </Paper>
+          );
+        })}
+      </Box>
+    </Box>
+  );
+};
+
+// ── Suggestion 2: Lollipop / Dot Plot View ───────
+const LollipopChartView = ({ data = [], selectedCollege = 'All' }) => {
+  if (!data || data.length === 0) {
+    return (
+      <Box sx={{ p: 4, height: 340, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <Typography color="textSecondary" sx={{ fontFamily: 'Poppins, sans-serif' }}>
+          No data available for Lollipop Chart view.
+        </Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ py: 1, height: 340 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+        <Chip
+          label={selectedCollege === 'All' ? "Colleges Stem Dot Plot" : `Courses in ${selectedCollege} (Lollipop Chart)`}
+          size="small"
+          sx={{ fontWeight: 700, fontFamily: 'Poppins, sans-serif', bgcolor: '#ed6c02', color: '#ffffff' }}
+        />
+      </Box>
+      <ResponsiveContainer width="100%" height={300}>
+        <ComposedChart
+          data={data}
+          margin={{ top: 20, right: 30, left: 0, bottom: 25 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+          <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} interval={0} angle={-25} textAnchor="end" height={65} />
+          <YAxis tick={{ fontSize: 12, fill: '#64748b' }} />
+          <RechartsTooltip content={<CustomBarTooltip />} />
+          <Bar dataKey="total" barSize={4} radius={[4, 4, 0, 0]}>
+            {data.map((entry, index) => (
+              <Cell key={`cell-lolly-${index}`} fill={COURSE_COLORS[index % COURSE_COLORS.length]} />
+            ))}
+          </Bar>
+          <Scatter dataKey="total" fill="#f57c00" shape="circle" />
+        </ComposedChart>
+      </ResponsiveContainer>
+    </Box>
+  );
+};
+
+// ── Suggestion 3: Compact Progress Indicator Rows ───────
+const ProgressRowsView = ({ data = [], totalVisits = 0, selectedCollege = 'All' }) => {
+  const maxVal = useMemo(() => Math.max(...data.map(d => d.total || 0), 1), [data]);
+
+  if (!data || data.length === 0) {
+    return (
+      <Box sx={{ p: 4, height: 340, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <Typography color="textSecondary" sx={{ fontFamily: 'Poppins, sans-serif' }}>
+          No data available for Progress Rows view.
+        </Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ py: 1, minHeight: 340, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+        <Chip label="Compact Linear Progress Indicator Rows" size="small" sx={{ fontWeight: 700, fontFamily: 'Poppins, sans-serif', bgcolor: '#0288d1', color: '#ffffff' }} />
+        <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#64748b', fontWeight: 600 }}>
+          Max Threshold: <strong style={{ color: '#0288d1' }}>{maxVal}</strong> visits
+        </Typography>
+      </Box>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, maxHeight: 290, overflowY: 'auto', pr: 0.5 }}>
+        {data.map((item, idx) => {
+          const itemTotal = item.total || 0;
+          const percentage = totalVisits > 0 ? ((itemTotal / totalVisits) * 100).toFixed(1) : '0.0';
+          const progressVal = maxVal > 0 ? (itemTotal / maxVal) * 100 : 0;
+          const color = COURSE_COLORS[idx % COURSE_COLORS.length];
+          const title = item.fullName || item.name || `Item ${idx + 1}`;
+
+          return (
+            <Paper elevation={0} key={title + idx} sx={{ p: 2, borderRadius: 2.5, border: '1.5px solid #e2e8f0', bgcolor: '#f8fafc' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 14, color: '#0f172a' }}>
+                  {title}
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                  <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 700, color: '#64748b' }}>
+                    {percentage}%
+                  </Typography>
+                  <Chip label={`${itemTotal} visits`} size="small" sx={{ fontWeight: 800, fontFamily: 'Poppins, sans-serif', bgcolor: `${color}15`, color: color }} />
+                </Box>
+              </Box>
+              <LinearProgress
+                variant="determinate"
+                value={progressVal}
+                sx={{
+                  height: 10,
+                  borderRadius: 5,
+                  bgcolor: '#e2e8f0',
+                  '& .MuiLinearProgress-bar': { borderRadius: 5, bgcolor: color }
+                }}
+              />
+            </Paper>
+          );
+        })}
+      </Box>
+    </Box>
+  );
+};
+
+// ── Suggestion 4: Donut / Radial Breakdown View ───────
+const DonutBreakdownView = ({ data = [], totalVisits = 0, selectedCollege = 'All' }) => {
+  if (!data || data.length === 0) {
+    return (
+      <Box sx={{ p: 4, height: 340, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <Typography color="textSecondary" sx={{ fontFamily: 'Poppins, sans-serif' }}>
+          No data available for Donut Breakdown view.
+        </Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ py: 1, minHeight: 340, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'center', gap: 2 }}>
+      <Box sx={{ flex: 1, height: 290, position: 'relative', width: '100%' }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={data}
+              dataKey="total"
+              nameKey="name"
+              cx="50%"
+              cy="50%"
+              innerRadius={65}
+              outerRadius={100}
+              paddingAngle={4}
+            >
+              {data.map((entry, index) => (
+                <Cell key={`cell-donut-sugg-${index}`} fill={COURSE_COLORS[index % COURSE_COLORS.length]} />
+              ))}
+            </Pie>
+            <RechartsTooltip formatter={(val, name) => [`${val} visits`, name]} />
+          </PieChart>
+        </ResponsiveContainer>
+        <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
+          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 24, color: '#0f172a', lineHeight: 1 }}>
+            {totalVisits}
+          </Typography>
+          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 11, color: '#64748b', fontWeight: 600 }}>
+            Total Visits
+          </Typography>
+        </Box>
+      </Box>
+
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1, width: '100%', maxHeight: 290, overflowY: 'auto' }}>
+        <Chip label="Proportional Donut Distribution" size="small" sx={{ fontWeight: 700, fontFamily: 'Poppins, sans-serif', bgcolor: '#7b1fa2', color: '#ffffff', width: 'fit-content', mb: 1 }} />
+        {data.map((item, idx) => {
+          const itemTotal = item.total || 0;
+          const percentage = totalVisits > 0 ? ((itemTotal / totalVisits) * 100).toFixed(1) : '0.0';
+          const color = COURSE_COLORS[idx % COURSE_COLORS.length];
+          const title = item.fullName || item.name || `Item ${idx + 1}`;
+
+          return (
+            <Paper key={title + idx} elevation={0} sx={{ p: 1.5, borderRadius: 2, border: '1.5px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+                <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: color }} />
+                <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 13, color: '#1e293b' }}>
+                  {title}
+                </Typography>
+              </Box>
+              <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 13, color: '#0f172a' }}>
+                {itemTotal} ({percentage}%)
+              </Typography>
+            </Paper>
+          );
+        })}
+      </Box>
+    </Box>
   );
 };
 
@@ -219,55 +501,116 @@ const CustomBarTooltip = ({ active, payload, label }) => {
 const ROWS_PER_PAGE = 10;
 
 const COURSE_ACRONYMS_MAP = {
-  'Civil Engineering': ['bsce', 'civil'],
-  'Chemical Engineering': ['bsche', 'chemical'],
-  'Electrical Engineering': ['bsee', 'electrical'],
-  'Electronics Engineering': ['bsece', 'electronics'],
-  'Mechanical Engineering': ['bsme', 'mechanical'],
-  'Packaging Engineering': ['bspkge', 'packaging'],
-  'Software Engineering': ['bsse', 'software engineering'],
-  'Diploma in Packaging Technology': ['diploma in packaging'],
-  'Computer Science': ['bscs', 'computer science'],
-  'Information Technology': ['bsit', 'information technology'],
-  'Digital Media and Interactive Arts': ['bsdmia', 'digital media'],
-  'Library and Information Science': ['blis', 'library'],
-  'Accountancy': ['bsacty', 'accountancy'],
-  'Management Accounting': ['management accounting'],
-  'Business Administration major in Human Resource Management': ['bsbahrm', 'human resource'],
-  'Business Administration major in Financial Management': ['bsba-fm', 'bscafm', 'financial management'],
-  'Business Administration major in Marketing Management': ['bsbamm', 'marketing management'],
-  'Entrepreneurship': ['bsent', 'entrepreneurship'],
-  'Agriculture': ['bsa', 'agriculture'],
-  'Agricultural and Biosystems Engineering': ['bsabe'],
-  'Environmental Management': ['bsem'],
-  'Nursing': ['bsn', 'nursing'],
-  'Pharmacy': ['bsphar', 'pharmacy'],
-  'Medical Laboratory Science': ['bsmls', 'medical laboratory'],
-  'Juris Doctor': ['jd', 'juris doctor'],
-  'Respiratory Therapy': ['bsrt', 'respiratory'],
-  'Doctor of Medicine': ['md', 'doctor of medicine'],
-  'Theology': ['bth', 'theology'],
+  'BSCS': ['bscs', 'bs cs', 'computer science', 'bs computer science', 'bachelor of science in computer science'],
+  'BSIT': ['bsit', 'bs it', 'information technology', 'bs information technology', 'bachelor of science in information technology'],
+  'BSDMIA': ['bsdmia', 'bs dmia', 'digital media', 'interactive arts', 'digital media and interactive arts'],
+  'BLIS': ['blis', 'library science', 'library and information science'],
+  'BSCE': ['bsce', 'civil engineering', 'civil'],
+  'BSCHE': ['bsche', 'chemical engineering', 'chemical'],
+  'BSEE': ['bsee', 'electrical engineering', 'electrical'],
+  'BSECE': ['bsece', 'electronics engineering', 'electronics'],
+  'BSME': ['bsme', 'mechanical engineering', 'mechanical'],
+  'BSPKGE': ['bspkge', 'packaging engineering', 'packaging'],
+  'BSSE': ['bsse', 'software engineering'],
+  'BSA': ['bsa', 'bsacty', 'accountancy', 'agriculture'],
+  'BSMA': ['bsma', 'management accounting'],
+  'BSBA-HRM': ['bsbahrm', 'bsba-hrm', 'human resource'],
+  'BSBA-FM': ['bsba-fm', 'bsbafm', 'financial management'],
+  'BSBA-MM': ['bsbamm', 'bsba-mm', 'marketing management'],
+  'BSENT': ['bsent', 'entrepreneurship'],
+  'BSABE': ['bsabe', 'agricultural and biosystems'],
+  'BSEM': ['bsem', 'environmental management'],
+  'BSN': ['bsn', 'bsn - nursing', 'nursing'],
+  'BSPHAR': ['bsphar', 'pharmacy'],
+  'BSMLS': ['bsmls', 'medical laboratory', 'medical technology'],
+  'JD': ['jd', 'juris doctor'],
+  'BSRT': ['bsrt', 'respiratory therapy'],
+  'MD': ['md', 'doctor of medicine'],
+  'BTh': ['bth', 'theology'],
+  'BSHM': ['bshm', 'bshrm', 'hospitality management'],
+  'BSTM': ['bstm', 'tourism management']
 };
 
 const COLLEGE_COURSES_SURVEY_MAP = {
-  CARES: ['Agriculture', 'Agricultural and Biosystems Engineering', 'Environmental Management'],
-  CAS: ['English Language Studies', 'Biology with specialization in Medical Biology', 'Biology with specialization in Microbiology', 'Chemistry', 'Psychology', 'Social Work'],
-  CBA: ['Accountancy', 'Management Accounting', 'Business Administration major in Human Resource Management', 'Business Administration major in Financial Management', 'Business Administration major in Marketing Management', 'Entrepreneurship'],
-  CCS: ['Computer Science', 'Digital Media and Interactive Arts', 'Information Technology', 'Library and Information Science'],
-  COED: ['Early Childhood Education', 'Elementary Education', 'Physical Education', 'Secondary Education major in English', 'Secondary Education major in Filipino', 'Secondary Education major in Mathematics', 'Secondary Education major in Science', 'Secondary Education major in Special Needs Education'],
-  COE: ['Chemical Engineering', 'Civil Engineering', 'Electrical Engineering', 'Electronics Engineering', 'Mechanical Engineering', 'Packaging Engineering', 'Software Engineering', 'Diploma in Packaging Technology'],
-  CHM: ['Hospitality Management', 'Tourism Management'],
-  CMLS: ['Medical Laboratory Science'],
-  CON: ['Nursing'],
-  COP: ['Pharmacy'],
-  COL: ['Juris Doctor'],
-  COM: ['Respiratory Therapy', 'Doctor of Medicine'],
-  COT: ['Theology', 'Certificate in Christian Ministry', 'Diploma in Christian Ministry'],
-  SGS: ['Doctor of Education major in Curriculum and Instruction', 'Doctor of Education major in Educational Administration and Supervision', 'Doctor of Education major in Guidance and Counseling', 'Doctor of Management major in Business Management', 'Doctor of Management major in Public Management', 'Doctor of Management major in Development Management', 'Doctor of Management major in Tourism and Hospitality Management', 'Doctor of Ministry major in Pastoral Counseling & Pastoral Supervision', 'Doctor of Ministry major in Church Management and Practical Ministries', 'Master of Divinity', 'Master of Theology', 'Master of Ministry', 'Master of Arts in Pastoral Counseling', 'Master of Arts in Education major in Educational Administration and Supervision', 'Master of Arts in Education major in Guidance and Counseling', 'Master of Arts in Education major in Mathematics', 'Master of Arts in Education major in Filipino', 'Master of Arts in Education major in English Language and Literature', 'Master of Science in Agriculture', 'Master in Business Administration with Thesis', 'Master in Business Administration major in Tourism and Hospitality Management', 'Master of Arts in Nursing major in Nursing Service Administration', 'Master of Arts in Nursing major in Adult Health Nursing', 'Master of Arts in Nursing major in Women and Child Health Nursing', 'Master in Public Administration', 'Master of Science in Guidance and Counseling', 'Master of Science in Teaching Biology'],
-  SHS: ['ABM', 'HUMSS', 'STEM'],
+  CARES: ['BSA', 'BSABE', 'BSEM'],
+  CAS: ['BAELS', 'BSBIO', 'BSCHEM', 'BSPSYC', 'BSSW'],
+  CBA: ['BSA', 'BSMA', 'BSBA-HRM', 'BSBA-FM', 'BSBA-MM', 'BSENT'],
+  CCS: ['BSCS', 'BSIT', 'BSDMIA', 'BLIS'],
+  COED: ['BECED', 'BEED', 'BPED', 'BSED'],
+  COE: ['BSCE', 'BSCHE', 'BSEE', 'BSECE', 'BSME', 'BSPKGE', 'BSSE'],
+  CHM: ['BSHM', 'BSTM'],
+  CMLS: ['BSMLS'],
+  CON: ['BSN'],
+  COP: ['BSPHAR'],
+  COL: ['JD'],
+  COM: ['BSRT', 'MD'],
+  COT: ['BTh'],
+  SGS: ['EdD', 'DM', 'DMin', 'MDiv', 'MBA', 'MPA', 'MAN', 'MSAgri'],
+  SHS: ['STEM', 'ABM', 'HUMSS', 'GAS'],
   JHS: ['Grade 7', 'Grade 8', 'Grade 9', 'Grade 10'],
   ELEM: ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6'],
   KINDER: ['Kinder', 'Pre Kinder', 'Junior Kinder']
+};
+
+const isCourseMatch = (studCourse, targetOption) => {
+  if (!studCourse || !targetOption || targetOption === 'All') return true;
+
+  const c = studCourse.trim().toLowerCase();
+  const target = targetOption.trim().toLowerCase();
+
+  // 1. Direct equality or substring match
+  if (c === target || c.includes(target) || target.includes(c)) return true;
+
+  // 2. Remove non-alphanumeric (e.g. "bs cs" vs "bscs")
+  const cleanC = c.replace(/[^a-z0-9]/g, '');
+  const cleanTarget = target.replace(/[^a-z0-9]/g, '');
+  if (cleanC && cleanTarget && (cleanC.includes(cleanTarget) || cleanTarget.includes(cleanC))) return true;
+
+  // 3. Check ACRONYMS map
+  for (const [fullTitle, aliases] of Object.entries(COURSE_ACRONYMS_MAP)) {
+    const titleLower = fullTitle.toLowerCase();
+    const allMatches = [titleLower, ...aliases];
+
+    const targetMatches = allMatches.some(m => target.includes(m) || m.includes(target));
+    const studentMatches = allMatches.some(m => c === m || c.includes(m) || cleanC.includes(m.replace(/[^a-z0-9]/g, '')));
+
+    if (targetMatches && studentMatches) return true;
+  }
+
+  return false;
+};
+
+// ── Strict College Course Isolation Helper ─────────────────────────────────
+const getCoursesForCollege = (collegeCode, loginItems) => {
+  if (!collegeCode || collegeCode === 'All') return [];
+  const surveyCourses = COLLEGE_COURSES_SURVEY_MAP[collegeCode] || [];
+  const normalizedSet = new Set(surveyCourses);
+
+  loginItems.forEach(item => {
+    const colGroup = getCollegeGroup(item.studCollege, item.studCourse);
+    if (colGroup === collegeCode && item.studCourse && item.studCourse.trim()) {
+      const rawC = item.studCourse.trim();
+
+      let matchedAcronym = null;
+      for (const acronym of surveyCourses) {
+        if (isCourseMatch(rawC, acronym)) {
+          matchedAcronym = acronym;
+          break;
+        }
+      }
+
+      if (matchedAcronym) {
+        normalizedSet.add(matchedAcronym);
+      } else {
+        const rawGroup = getCollegeGroup('', rawC);
+        if (rawGroup === collegeCode || rawGroup === 'N/A' || rawC.toLowerCase().includes('faculty') || rawC.toLowerCase().includes('staff')) {
+          normalizedSet.add(rawC);
+        }
+      }
+    }
+  });
+
+  return Array.from(normalizedSet);
 };
 
 const LoginDashboard = () => {
@@ -293,6 +636,7 @@ const LoginDashboard = () => {
   const [recordToDelete, setRecordToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [snackbarMsg, setSnackbarMsg] = useState('');
+  const [visualizerMode, setVisualizerMode] = useState('auto');
 
   const printRef = useRef();
 
@@ -327,24 +671,27 @@ const LoginDashboard = () => {
   const fetchLogins = async () => {
     setLoading(true);
     try {
-      const params = {};
-      if (startDate && endDate) {
-        params.startDate = startDate;
-        params.endDate = endDate;
-      }
-      if (selectedSection && selectedSection !== 'All') {
-        params.section = selectedSection;
-      }
-      if (selectedCollege && selectedCollege !== 'All') {
-        params.college = selectedCollege;
-      }
+      const response = await axios.get('http://localhost:5000/api/logins');
+      let data = response.data || [];
 
-      const response = await axios.get('http://localhost:5000/api/logins', { params });
-      // Exclude 'Time Out' logout records so entrance foot traffic is not doubled
-      const data = (response.data || []).filter(item => {
+      data = data.filter(item => {
         const type = (item.studLogType || '').toLowerCase();
         return !type.includes('out');
       });
+
+      if (startDate && endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+
+        data = data.filter((item) => {
+          if (!item.TimeLogged) return false;
+          const [datePart] = String(item.TimeLogged).split(' ');
+          const itemDate = new Date(datePart);
+          return itemDate >= start && itemDate <= end;
+        });
+      }
+
       setRawLogins(data);
 
       let filtered = data;
@@ -357,12 +704,7 @@ const LoginDashboard = () => {
         filtered = filtered.filter((item) => item.Section === selectedSection);
       }
       if (selectedCourse && selectedCourse !== 'All') {
-        filtered = filtered.filter((item) => {
-          if (!item.studCourse) return false;
-          const c = item.studCourse.trim().toLowerCase();
-          const target = selectedCourse.trim().toLowerCase();
-          return c === target || c.includes(target) || target.includes(c);
-        });
+        filtered = filtered.filter((item) => isCourseMatch(item.studCourse, selectedCourse));
       }
 
       setLogins(filtered);
@@ -401,14 +743,14 @@ const LoginDashboard = () => {
     fetchLogins();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Dynamic Available Courses Options (Full Names Only) ─────────────────
+  // ── Dynamic Available Courses Options (Strict College Isolation) ─────────
   const availableCourses = useMemo(() => {
     if (!selectedCollege || selectedCollege === 'All') {
       return ['All'];
     }
-    const surveyCourses = COLLEGE_COURSES_SURVEY_MAP[selectedCollege] || [];
-    return ['All', ...[...surveyCourses].sort()];
-  }, [selectedCollege]);
+    const courses = getCoursesForCollege(selectedCollege, rawLogins);
+    return ['All', ...courses.sort()];
+  }, [selectedCollege, rawLogins]);
 
   useEffect(() => {
     if (selectedCollege === 'All') {
@@ -421,37 +763,89 @@ const LoginDashboard = () => {
   // ── Computations for KPI Cards & Visual Charts ───────────────────────
   const totalEntries = logins.length;
 
-  // Stacked Bar Data: Always display all colleges constantly
-  const { collegeChartData, activeCoursesInChart } = useMemo(() => {
+  const { mainChartData, activeChartSeries, isSingleCourseCollege, singleCourseName, collegeChartData } = useMemo(() => {
     const collegeMap = {};
     ALL_COLLEGES.forEach(col => {
       collegeMap[col] = { total: 0 };
     });
 
     const coursesSet = new Set();
-
     logins.forEach((item) => {
       const col = getCollegeGroup(item.studCollege, item.studCourse);
       const crs = item.studCourse && item.studCourse.trim() ? item.studCourse.trim() : 'Unspecified';
       coursesSet.add(crs);
 
-      if (!collegeMap[col]) {
-        collegeMap[col] = { total: 0 };
-      }
+      if (!collegeMap[col]) collegeMap[col] = { total: 0 };
       collegeMap[col][crs] = (collegeMap[col][crs] || 0) + 1;
       collegeMap[col].total += 1;
     });
 
-    const chartData = ALL_COLLEGES.map((col) => ({
+    const colChartData = ALL_COLLEGES.map((col) => ({
       name: col,
       ...collegeMap[col],
     }));
 
-    return {
-      collegeChartData: chartData,
-      activeCoursesInChart: Array.from(coursesSet),
-    };
-  }, [logins]);
+    if (!selectedCollege || selectedCollege === 'All') {
+      return {
+        mainChartData: colChartData,
+        activeChartSeries: Array.from(coursesSet),
+        isSingleCourseCollege: false,
+        singleCourseName: '',
+        collegeChartData: colChartData
+      };
+    } else {
+      // Specific College Selected -> Strictly get courses for this college ONLY!
+      const allCourses = getCoursesForCollege(selectedCollege, logins);
+
+      if (allCourses.length <= 1) {
+        return {
+          mainChartData: [],
+          activeChartSeries: ['total'],
+          isSingleCourseCollege: true,
+          singleCourseName: allCourses[0] || selectedCollege,
+          collegeChartData: colChartData
+        };
+      }
+
+      const courseCounts = {};
+      allCourses.forEach(c => { courseCounts[c] = 0; });
+
+      logins.forEach(item => {
+        const itemGroup = getCollegeGroup(item.studCollege, item.studCourse);
+        if (itemGroup === selectedCollege) {
+          const crs = item.studCourse ? item.studCourse.trim() : 'Unspecified';
+          for (const target of allCourses) {
+            if (isCourseMatch(crs, target)) {
+              courseCounts[target] = (courseCounts[target] || 0) + 1;
+              break;
+            }
+          }
+        }
+      });
+
+      const courseChartData = allCourses.map(crs => ({
+        name: crs.length > 24 ? crs.substring(0, 22) + '...' : crs,
+        fullName: crs,
+        total: courseCounts[crs] || 0
+      }));
+
+      return {
+        mainChartData: courseChartData,
+        activeChartSeries: ['total'],
+        isSingleCourseCollege: false,
+        singleCourseName: '',
+        collegeChartData: colChartData
+      };
+    }
+  }, [selectedCollege, logins]);
+
+  const effectiveMode = useMemo(() => {
+    if (visualizerMode !== 'auto') return visualizerMode;
+    if (selectedCollege !== 'All' && mainChartData.length >= 2 && mainChartData.length <= 4) {
+      return 'chips';
+    }
+    return 'bar';
+  }, [visualizerMode, selectedCollege, mainChartData.length]);
 
   const sortedColleges = useMemo(() => {
     return [...collegeChartData].sort((a, b) => b.total - a.total);
@@ -671,10 +1065,10 @@ const LoginDashboard = () => {
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                   <Box>
                     <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 26, fontWeight: 800, color: '#0f172a' }}>
-                      Henry Luce III Library — Log-In Dashboard
+                      Henry Luce III Library Log-In Dashboard
                     </Typography>
                     <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 14, color: '#475569', fontWeight: 500, mt: 0.5 }}>
-                      Departmental foot traffic, section distribution, and patron entry intelligence analytics
+                      Departmental foot traffic, section distribution, and patron entry analytics
                     </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
@@ -737,12 +1131,20 @@ const LoginDashboard = () => {
                   </Box>
                 </Box>
 
-                {/* ── Filter Controls Container (Bold & Larger Typography) ───── */}
-                <Paper elevation={0} sx={{ p: 3, mb: 3, borderRadius: 3.5, border: '1.5px solid #cbd5e1', bgcolor: '#ffffff' }}>
-                  <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 17, color: '#1a237e', mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <FilterAltIcon sx={{ fontSize: 22, color: '#1a237e' }} /> Filter & Analytics Controls
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+                {/* ── Filter Controls Container (Styled matching Book Catalogue page header) ───── */}
+                <Paper elevation={0} sx={{ mb: 3, borderRadius: 3.5, border: '1.5px solid #cbd5e1', bgcolor: '#ffffff', overflow: 'hidden' }}>
+                  <Box sx={{
+                    bgcolor: '#1d0a61',
+                    px: 3, py: 1.8,
+                    borderBottom: '3px solid #f57c00',
+                    display: 'flex', alignItems: 'center', gap: 1.2
+                  }}>
+                    <FilterAltIcon sx={{ fontSize: 22, color: '#ffffff' }} />
+                    <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 16, color: '#ffffff', letterSpacing: 0.3 }}>
+                      Filter & Analytics Controls
+                    </Typography>
+                  </Box>
+                  <Box sx={{ p: 3, display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
                     <TextField
                       type="date"
                       label="Start Date"
@@ -848,72 +1250,169 @@ const LoginDashboard = () => {
 
                     {/* ── Middle Visualizer Section (Layout matching reference image: Main Chart + Side Donut) ── */}
                     <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', mb: 3 }}>
-                      {/* Left: Main Stacked Bar Chart (~70% width) */}
+                      {/* Left: Main Visualizer Bar Chart (~70% width) */}
                       <Paper elevation={0} sx={{ p: 3, borderRadius: 3.5, border: '1px solid #e2e8f0', bgcolor: '#ffffff', flex: 3, minWidth: 480 }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                           <Box>
                             <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 17, color: '#1e293b' }}>
-                              Visits by College & Course Breakdown
+                              {selectedCollege === 'All'
+                                ? 'Visits by College & Course Breakdown'
+                                : `Available Course Foot Traffic (${selectedCollege})`}
                             </Typography>
                             <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#94a3b8' }}>
-                              Hover over any bar to inspect course breakdown
+                              {selectedCollege === 'All'
+                                ? 'Hover over any bar or switch view modes'
+                                : `Comparing student foot traffic across available courses in ${selectedCollege}`}
                             </Typography>
                           </Box>
-                        </Box>
-                        <ResponsiveContainer width="100%" height={360}>
-                          <BarChart
-                            data={collegeChartData}
-                            maxBarSize={45}
-                            onMouseMove={(state) => {
-                              if (state && state.activeLabel) {
-                                setHoveredCollege(state.activeLabel);
-                              } else {
-                                setHoveredCollege(null);
-                              }
-                            }}
-                            onMouseLeave={() => setHoveredCollege(null)}
-                          >
-                            <defs>
-                              {/* Standard Default College Bar Gradient */}
-                              <linearGradient id="barDefaultGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="#1a237e" />
-                                <stop offset="100%" stopColor="#0288d1" />
-                              </linearGradient>
 
-                              {/* Course Breakdown Gradients for Hovering */}
-                              {COURSE_COLORS.map((col, idx) => (
-                                <linearGradient key={`barCourseGrad_${idx}`} id={`barCourseGrad_${idx}`} x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="0%" stopColor={col} />
-                                  <stop offset="100%" stopColor={COURSE_LIGHT_COLORS[idx % COURSE_LIGHT_COLORS.length] || col} />
+                          {/* Visualizer Mode Select Dropdown (All 4 Suggestions) */}
+                          <FormControl size="small" sx={{ minWidth: 210 }}>
+                            <InputLabel id="visualizer-mode-select-label" sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 700, color: '#1a237e' }}>
+                              Visualization View
+                            </InputLabel>
+                            <Select
+                              labelId="visualizer-mode-select-label"
+                              value={effectiveMode}
+                              label="Visualization View"
+                              onChange={(e) => setVisualizerMode(e.target.value)}
+                              sx={{
+                                height: 40,
+                                borderRadius: 2.5,
+                                bgcolor: '#ffffff',
+                                fontFamily: 'Poppins, sans-serif',
+                                fontWeight: 700,
+                                fontSize: 13,
+                                color: '#0f172a',
+                                '& .MuiOutlinedInput-notchedOutline': { borderColor: '#cbd5e1', borderWidth: 1.5 },
+                                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#1a237e' }
+                              }}
+                            >
+                              <MenuItem value="bar" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 13 }}>
+                                📊 Standard Bar Chart
+                              </MenuItem>
+                              <MenuItem value="chips" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 13 }}>
+                                🏷️ 1. Item Chips View
+                              </MenuItem>
+                              <MenuItem value="lollipop" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 13 }}>
+                                🍭 2. Lollipop / Dot Plot Chart
+                              </MenuItem>
+                              <MenuItem value="progress" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 13 }}>
+                                📈 3. Linear Progress Rows
+                              </MenuItem>
+                              <MenuItem value="donut" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 13 }}>
+                                🍩 4. Donut Breakdown Chart
+                              </MenuItem>
+                            </Select>
+                          </FormControl>
+                        </Box>
+
+                        {isSingleCourseCollege ? (
+                          <Box sx={{
+                            p: 4, height: 340, display: 'flex', flexDirection: 'column',
+                            justifyContent: 'center', alignItems: 'center', textAlign: 'center',
+                            bgcolor: '#f8fafc', borderRadius: 3, border: '1.5px dashed #cbd5e1'
+                          }}>
+                            <Chip
+                              label="Single-Course Academic Program"
+                              size="small"
+                              sx={{ fontWeight: 700, fontFamily: 'Poppins, sans-serif', mb: 2, bgcolor: '#1d0a61', color: '#ffffff' }}
+                            />
+                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 22, color: '#0f172a', mb: 1 }}>
+                              {singleCourseName}
+                            </Typography>
+                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 14, color: '#64748b', maxWidth: 480, mb: 3 }}>
+                              This academic department offers <strong>1 dedicated degree program</strong>. 100% of the department's library foot traffic ({totalEntries} visits) belongs to this single course.
+                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 2 }}>
+                              <Paper elevation={0} sx={{ p: 2, px: 3, bgcolor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 2 }}>
+                                <Typography sx={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>Total Program Visits</Typography>
+                                <Typography sx={{ fontSize: 24, fontWeight: 800, color: '#1a237e' }}>{totalEntries} Visits</Typography>
+                              </Paper>
+                              <Paper elevation={0} sx={{ p: 2, px: 3, bgcolor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 2 }}>
+                                <Typography sx={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>Department Share</Typography>
+                                <Typography sx={{ fontSize: 24, fontWeight: 800, color: '#2e7d32' }}>100% Traffic</Typography>
+                              </Paper>
+                            </Box>
+                          </Box>
+                        ) : effectiveMode === 'chips' ? (
+                          <ItemChipsView
+                            data={mainChartData}
+                            totalVisits={totalEntries}
+                            isCollegeLevel={selectedCollege === 'All'}
+                            selectedCollege={selectedCollege}
+                          />
+                        ) : effectiveMode === 'lollipop' ? (
+                          <LollipopChartView
+                            data={mainChartData}
+                            selectedCollege={selectedCollege}
+                          />
+                        ) : effectiveMode === 'progress' ? (
+                          <ProgressRowsView
+                            data={mainChartData}
+                            totalVisits={totalEntries}
+                            selectedCollege={selectedCollege}
+                          />
+                        ) : effectiveMode === 'donut' ? (
+                          <DonutBreakdownView
+                            data={mainChartData}
+                            totalVisits={totalEntries}
+                            selectedCollege={selectedCollege}
+                          />
+                        ) : (
+                          <ResponsiveContainer width="100%" height={360}>
+                            <BarChart
+                              data={mainChartData}
+                              maxBarSize={45}
+                              onMouseMove={(state) => {
+                                if (state && state.activeLabel) {
+                                  setHoveredCollege(state.activeLabel);
+                                } else {
+                                  setHoveredCollege(null);
+                                }
+                              }}
+                              onMouseLeave={() => setHoveredCollege(null)}
+                            >
+                              <defs>
+                                <linearGradient id="barDefaultGrad" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="0%" stopColor="#1a237e" />
+                                  <stop offset="100%" stopColor="#0288d1" />
                                 </linearGradient>
-                              ))}
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                            <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} interval={0} angle={-30} textAnchor="end" height={60} />
-                            <YAxis tick={{ fontSize: 12, fill: '#64748b' }} />
-                            <RechartsTooltip content={<CustomBarTooltip />} />
-                            {activeCoursesInChart.map((course, courseIndex) => {
-                              const isTopCourse = courseIndex === activeCoursesInChart.length - 1;
-                              return (
-                                <Bar
-                                  key={course}
-                                  dataKey={course}
-                                  stackId="a"
-                                  maxBarSize={45}
-                                  radius={isTopCourse ? [6, 6, 0, 0] : [0, 0, 0, 0]}
-                                >
-                                  {collegeChartData.map((entry, index) => {
-                                    const isHovered = hoveredCollege === entry.name;
-                                    const fillColor = isHovered
-                                      ? `url(#barCourseGrad_${courseIndex % COURSE_COLORS.length})`
-                                      : '#5542f6';
-                                    return <Cell key={`cell-${index}`} fill={fillColor} stroke="none" strokeWidth={0} />;
-                                  })}
-                                </Bar>
-                              );
-                            })}
-                          </BarChart>
-                        </ResponsiveContainer>
+
+                                {COURSE_COLORS.map((col, idx) => (
+                                  <linearGradient key={`barCourseGrad_${idx}`} id={`barCourseGrad_${idx}`} x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor={col} />
+                                    <stop offset="100%" stopColor={COURSE_LIGHT_COLORS[idx % COURSE_LIGHT_COLORS.length] || col} />
+                                  </linearGradient>
+                                ))}
+                              </defs>
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                              <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} interval={0} angle={-25} textAnchor="end" height={65} />
+                              <YAxis tick={{ fontSize: 12, fill: '#64748b' }} />
+                              <RechartsTooltip content={<CustomBarTooltip />} />
+                              {activeChartSeries.map((course, courseIndex) => {
+                                const isTopCourse = courseIndex === activeChartSeries.length - 1;
+                                return (
+                                  <Bar
+                                    key={course}
+                                    dataKey={selectedCollege === 'All' ? course : 'total'}
+                                    stackId={selectedCollege === 'All' ? 'a' : undefined}
+                                    maxBarSize={45}
+                                    radius={isTopCourse ? [6, 6, 0, 0] : [0, 0, 0, 0]}
+                                  >
+                                    {mainChartData.map((entry, index) => {
+                                      const isHovered = hoveredCollege === entry.name;
+                                      const fillColor = isHovered
+                                        ? `url(#barCourseGrad_${courseIndex % COURSE_COLORS.length})`
+                                        : '#5542f6';
+                                      return <Cell key={`cell-${index}`} fill={fillColor} stroke="none" strokeWidth={0} />;
+                                    })}
+                                  </Bar>
+                                );
+                              })}
+                            </BarChart>
+                          </ResponsiveContainer>
+                        )}
                       </Paper>
 
                       {/* Right: Section Donut Chart + Side Legends (~30% width matching reference card) */}
@@ -1047,7 +1546,19 @@ const LoginDashboard = () => {
                         <TableContainer>
                           <Table size="small">
                             <TableHead>
-                              <TableRow sx={{ backgroundColor: '#1a237e' }}>
+                              <TableRow sx={{
+                                backgroundColor: '#1d0a61',
+                                borderBottom: '3px solid #f57c00',
+                                '& th': {
+                                  color: 'white',
+                                  fontWeight: 700,
+                                  fontFamily: 'Poppins, sans-serif',
+                                  fontSize: 13,
+                                  py: 1.5,
+                                  borderRight: '1px solid rgba(255, 255, 255, 0.25)',
+                                  '&:last-child': { borderRight: 'none' }
+                                }
+                              }}>
                                 <TableCell padding="checkbox">
                                   <Checkbox
                                     size="small"
@@ -1057,14 +1568,14 @@ const LoginDashboard = () => {
                                     sx={{ color: 'white', '&.Mui-checked': { color: 'white' }, '&.MuiCheckbox-indeterminate': { color: 'white' } }}
                                   />
                                 </TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 600, py: 1.5 }}>ID Number</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 600 }}>Name</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 600 }}>Course & Year</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 600 }}>College / Dept</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 600 }}>Section</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 600 }}>Time Logged</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 600 }}>Gender</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 600, textAlign: 'center' }}>Action</TableCell>
+                                <TableCell>ID Number</TableCell>
+                                <TableCell>Name</TableCell>
+                                <TableCell>Course & Year</TableCell>
+                                <TableCell>College / Dept</TableCell>
+                                <TableCell>Section</TableCell>
+                                <TableCell>Time Logged</TableCell>
+                                <TableCell>Gender</TableCell>
+                                <TableCell sx={{ textAlign: 'center' }}>Action</TableCell>
                               </TableRow>
                             </TableHead>
                             <TableBody>
