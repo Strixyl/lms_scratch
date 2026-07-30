@@ -7,7 +7,7 @@ import joblib
 
 ML_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ml")
 sys.path.insert(0, ML_DIR)
-from naive_bayes import CategoryClassifier  # noqa: F401 (needed for unpickling)
+from naive_bayes import CategoryClassifier  
 
 app = Flask(__name__)
 

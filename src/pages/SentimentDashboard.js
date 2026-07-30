@@ -74,15 +74,15 @@ const STOPWORDS = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'is', 'are', 'w
 const RECOMMENDATIONS = {
   Facilities: {
     moderate: 'Consider a facilities walkthrough to address recurring comfort/accessibility complaints (lighting, seating, temperature, cleanliness).',
-    high: 'Facilities feedback is predominantly negative - prioritize an infrastructure audit and budget request for repairs/upgrades this term.',
+    high: 'Facilities feedback is predominantly negative  prioritize an infrastructure audit and budget request for repairs/upgrades this term.',
   },
   Staff: {
     moderate: 'Some patrons report friction with staff interactions - a refresher on frontline service standards may help.',
-    high: 'Staff-related complaints are high - recommend a service-quality review with librarians and targeted retraining.',
+    high: 'Staff-related complaints are high  recommend a service-quality review with librarians and targeted retraining.',
   },
   Collection: {
     moderate: 'Patrons are flagging gaps in available materials - review acquisition requests for undersupplied subject areas.',
-    high: 'Collection dissatisfaction is high - conduct a collection audit and prioritize acquisitions for the most-requested subjects.',
+    high: 'Collection dissatisfaction is high  conduct a collection audit and prioritize acquisitions for the most-requested subjects.',
   },
 };
 
@@ -874,14 +874,14 @@ const SentimentDashboard = () => {
 
                             {c.matchedKeywords.length > 0 && (
                               <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#666', fontStyle: 'italic', ml: 0.5, mb: 1 }}>
-                                🔍 <strong>Frequent Category Issue Signals:</strong> {c.matchedKeywords.join('; ')}
+                                <strong>Frequent Category Issue Signals:</strong> {c.matchedKeywords.join('; ')}
                               </Typography>
                             )}
 
                             {c.topEvidences.length > 0 && (
                               <Box sx={{ mt: 1.5, p: 2, backgroundColor: '#fcfcfc', borderRadius: 2, border: '1px solid #eeeeee' }}>
                                 <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 11, fontWeight: 700, color: '#777', textTransform: 'uppercase', letterSpacing: 0.8, mb: 1 }}>
-                                  💬 Supporting Patron Feedback Evidence ({c.topEvidences.length})
+                                  Supporting Patron Feedback Evidence ({c.topEvidences.length})
                                 </Typography>
                                 {c.topEvidences.map((ev, idx) => (
                                   <Box key={idx} sx={{ py: 0.5, borderBottom: idx < c.topEvidences.length - 1 ? '1px dashed #e0e0e0' : 'none' }}>
@@ -988,7 +988,7 @@ const SentimentDashboard = () => {
                                               display: 'inline-block'
                                             }}>
                                               <Typography component="span" sx={{ fontSize: 10.5, fontWeight: 600, color: '#3730a3', fontFamily: 'Poppins, sans-serif' }}>
-                                                📊 Rating Only
+                                                Rating Only
                                               </Typography>
                                             </Box>
                                           </Box>

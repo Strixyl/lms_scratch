@@ -398,6 +398,40 @@ app.get('/api/logins', async (req, res) => {
   }
 });
 
+app.delete('/api/logins/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const pool = await sql.connect(config);
+    const request = pool.request();
+    request.input('id', sql.Int, id);
+    await request.query(`DELETE FROM LibLogins WHERE LogID = @id`);
+    res.json({ message: 'Record deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting login record:', err);
+    res.status(500).json({ message: 'Failed to delete record' });
+  }
+});
+
+app.post('/api/logins/delete-batch', async (req, res) => {
+  const { ids } = req.body;
+  if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ message: 'No record IDs provided' });
+  }
+  try {
+    const pool = await sql.connect(config);
+    const request = pool.request();
+    const idList = ids.map(id => parseInt(id, 10)).filter(id => !isNaN(id));
+    if (idList.length === 0) {
+      return res.status(400).json({ message: 'Invalid record IDs' });
+    }
+    await request.query(`DELETE FROM LibLogins WHERE LogID IN (${idList.join(',')})`);
+    res.json({ message: `${idList.length} records deleted successfully` });
+  } catch (err) {
+    console.error('Error batch deleting login records:', err);
+    res.status(500).json({ message: 'Failed to delete records' });
+  }
+});
+
 app.get('/api/surveys', async (req, res) => {
   const { startDate, endDate, clientele, college, course } = req.query;
 
