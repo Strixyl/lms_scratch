@@ -1,13 +1,29 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import axios from 'axios';
 import {
-  Box, Typography, Card, CardContent,
+  Box, Typography, Card,
   Table, TableBody, TableCell, TableContainer, TableHead,
   TableRow, Paper, Button, TextField, CircularProgress,
   MenuItem, Select, FormControl, InputLabel,
   Dialog, DialogTitle, DialogContent, DialogActions,
   Avatar, LinearProgress, Checkbox, IconButton, Snackbar, Alert, Tooltip
 } from '@mui/material';
+import {
+  WavingHand as WavingHandIcon,
+  Print as PrintIcon,
+  FileDownload as FileDownloadIcon,
+  FilterAlt as FilterAltIcon,
+  Group as GroupIcon,
+  AccountBalance as AccountBalanceIcon,
+  LocationOn as LocationOnIcon,
+  School as SchoolIcon,
+  Delete as DeleteIcon,
+  Insights as InsightsIcon,
+  Male as MaleIcon,
+  Female as FemaleIcon,
+  WarningAmber as WarningAmberIcon,
+  Logout as LogoutIcon
+} from '@mui/icons-material';
 import {
   PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid
@@ -18,15 +34,33 @@ import Header from '../Components/Header';
 import TopBar from '../Components/TopBar';
 import { COLLEGE_OPTIONS, SECTION_OPTIONS, getCollegeGroup, formatDate } from '../constants/collegeMap';
 
-const CHART_COLORS = ['#1b5e20', '#0288d1', '#7b1fa2', '#ed6c02', '#c62828', '#00796b', '#303f9f', '#5d4037', '#e65100'];
+const CHART_COLORS = ['#1a237e', '#0288d1', '#7b1fa2', '#ed6c02', '#c62828', '#00796b', '#303f9f', '#5d4037', '#e65100'];
+
+const DONUT_GRADIENT_CSS = [
+  'linear-gradient(135deg, #1a237e 0%, #0288d1 100%)',
+  'linear-gradient(135deg, #2e7d32 0%, #81c784 100%)',
+  'linear-gradient(135deg, #ed6c02 0%, #ffb74d 100%)',
+  'linear-gradient(135deg, #7b1fa2 0%, #ba68c8 100%)',
+  'linear-gradient(135deg, #c62828 0%, #ff8a80 100%)',
+  'linear-gradient(135deg, #00796b 0%, #4db6ac 100%)',
+  'linear-gradient(135deg, #303f9f 0%, #7986cb 100%)',
+  'linear-gradient(135deg, #e65100 0%, #ff9800 100%)',
+];
 
 const ALL_COLLEGES = COLLEGE_OPTIONS.filter(c => c !== 'All');
 
 const COURSE_COLORS = [
-  '#0288d1', '#2e7d32', '#ed6c02', '#7b1fa2', '#c62828',
-  '#00796b', '#303f9f', '#e65100', '#00897b', '#5c6bc0',
-  '#26a69a', '#ff7043', '#ab47bc', '#42a5f5', '#66bb6a',
-  '#ffa726', '#8d6e63', '#ec407a', '#78909c', '#0097a7'
+  '#4338ca', '#5542f6', '#6366f1', '#7c66ff', '#818cf8',
+  '#93c5fd', '#a5b4fc', '#c7d2fe', '#3b82f6', '#60a5fa',
+  '#2563eb', '#1d4ed8', '#38bdf8', '#818cf8', '#6366f1',
+  '#4f46e5', '#4338ca', '#3730a3', '#312e81', '#1e1b4b'
+];
+
+const COURSE_LIGHT_COLORS = [
+  '#6366f1', '#7c66ff', '#818cf8', '#a5b4fc', '#c7d2fe',
+  '#bfdbfe', '#cbd5e1', '#e0e7ff', '#60a5fa', '#93c5fd',
+  '#3b82f6', '#2563eb', '#7dd3fc', '#a5b4fc', '#818cf8',
+  '#6366f1', '#4f46e5', '#4338ca', '#3730a3', '#312e81'
 ];
 
 const selectSx = {
@@ -258,7 +292,11 @@ const LoginDashboard = () => {
       }
 
       const response = await axios.get('http://localhost:5000/api/logins', { params });
-      const data = response.data;
+      // Exclude 'Time Out' logout records so entrance foot traffic is not doubled
+      const data = (response.data || []).filter(item => {
+        const type = (item.studLogType || '').toLowerCase();
+        return !type.includes('out');
+      });
       setRawLogins(data);
 
       let filtered = data;
@@ -297,8 +335,12 @@ const LoginDashboard = () => {
     setLoading(true);
     try {
       const response = await axios.get('http://localhost:5000/api/logins');
-      setRawLogins(response.data);
-      setLogins(response.data);
+      const data = (response.data || []).filter(item => {
+        const type = (item.studLogType || '').toLowerCase();
+        return !type.includes('out');
+      });
+      setRawLogins(data);
+      setLogins(data);
       setPage(0);
     } catch (err) {
       console.error('Error clearing filters:', err);
@@ -580,11 +622,11 @@ const LoginDashboard = () => {
                 {/* ── Welcome Header Bar (Reflects modern dashboard banner) ───── */}
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                   <Box>
-                    <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 28, fontWeight: 800, color: '#0f172a' }}>
-                      Welcome! <span style={{ color: '#1a237e' }}>{loggedInUser}</span> 👋
+                    <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 26, fontWeight: 800, color: '#0f172a' }}>
+                      Henry Luce III Library — Log-In Dashboard
                     </Typography>
-                    <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 15, color: '#475569', fontWeight: 500, mt: 0.5 }}>
-                      Henry Luce III Library — Departmental Foot Traffic & Entry Intelligence
+                    <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 14, color: '#475569', fontWeight: 500, mt: 0.5 }}>
+                      Departmental foot traffic, section distribution, and patron entry intelligence analytics
                     </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
@@ -592,6 +634,7 @@ const LoginDashboard = () => {
                       variant="outlined"
                       color="secondary"
                       onClick={handlePrint}
+                      startIcon={<PrintIcon />}
                       sx={{
                         borderRadius: 2.5,
                         height: 48,
@@ -604,12 +647,13 @@ const LoginDashboard = () => {
                         '&:hover': { borderWidth: 2 }
                       }}
                     >
-                      🖨️ Print / Save PDF
+                      Print / Save PDF
                     </Button>
                     <Button
                       variant="contained"
                       color="success"
                       onClick={handleExportExcel}
+                      startIcon={<FileDownloadIcon />}
                       sx={{
                         borderRadius: 2.5,
                         height: 48,
@@ -623,12 +667,13 @@ const LoginDashboard = () => {
                         '&:hover': { bgcolor: '#144617' }
                       }}
                     >
-                      📥 Export to Excel
+                      Export to Excel
                     </Button>
                     <Button
                       variant="outlined"
                       color="error"
                       onClick={handleLogout}
+                      startIcon={<LogoutIcon />}
                       sx={{
                         borderRadius: 2.5,
                         height: 48,
@@ -647,7 +692,7 @@ const LoginDashboard = () => {
                 {/* ── Filter Controls Container (Bold & Larger Typography) ───── */}
                 <Paper elevation={0} sx={{ p: 3, mb: 3, borderRadius: 3.5, border: '1.5px solid #cbd5e1', bgcolor: '#ffffff' }}>
                   <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 17, color: '#1a237e', mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                    🔍 Filter & Analytics Controls
+                    <FilterAltIcon sx={{ fontSize: 22, color: '#1a237e' }} /> Filter & Analytics Controls
                   </Typography>
                   <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
                     <TextField
@@ -727,28 +772,28 @@ const LoginDashboard = () => {
                         title="Total Patron Visits"
                         value={totalEntries}
                         subtitle={selectedCollege !== 'All' ? `Filtered by ${selectedCollege}` : 'All departments included'}
-                        icon="👥"
+                        icon={<GroupIcon sx={{ fontSize: 28 }} />}
                         color="#1a237e"
                       />
                       <SummaryCard
                         title="Top Visiting College"
                         value={topCollege}
                         subtitle={`${topCollegeCount} Total Logged Entries`}
-                        icon="🏛️"
+                        icon={<AccountBalanceIcon sx={{ fontSize: 28 }} />}
                         color="#2e7d32"
                       />
                       <SummaryCard
                         title="Peak Library Section"
                         value={peakSection}
                         subtitle="Highest Foot Traffic Location"
-                        icon="📍"
+                        icon={<LocationOnIcon sx={{ fontSize: 28 }} />}
                         color="#ed6c02"
                       />
                       <SummaryCard
                         title="Active Departments"
                         value={collegeChartData.filter(c => c.total > 0).length}
                         subtitle="Colleges with Recorded Visits"
-                        icon="🎓"
+                        icon={<SchoolIcon sx={{ fontSize: 28 }} />}
                         color="#0288d1"
                       />
                     </Box>
@@ -780,26 +825,45 @@ const LoginDashboard = () => {
                             }}
                             onMouseLeave={() => setHoveredCollege(null)}
                           >
+                            <defs>
+                              {/* Standard Default College Bar Gradient */}
+                              <linearGradient id="barDefaultGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#1a237e" />
+                                <stop offset="100%" stopColor="#0288d1" />
+                              </linearGradient>
+
+                              {/* Course Breakdown Gradients for Hovering */}
+                              {COURSE_COLORS.map((col, idx) => (
+                                <linearGradient key={`barCourseGrad_${idx}`} id={`barCourseGrad_${idx}`} x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="0%" stopColor={col} />
+                                  <stop offset="100%" stopColor={COURSE_LIGHT_COLORS[idx % COURSE_LIGHT_COLORS.length] || col} />
+                                </linearGradient>
+                              ))}
+                            </defs>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                             <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} interval={0} angle={-30} textAnchor="end" height={60} />
                             <YAxis tick={{ fontSize: 12, fill: '#64748b' }} />
                             <RechartsTooltip content={<CustomBarTooltip />} />
-                            {activeCoursesInChart.map((course, courseIndex) => (
-                              <Bar
-                                key={course}
-                                dataKey={course}
-                                stackId="a"
-                                maxBarSize={45}
-                              >
-                                {collegeChartData.map((entry, index) => {
-                                  const isHovered = hoveredCollege === entry.name;
-                                  const fillColor = isHovered
-                                    ? COURSE_COLORS[courseIndex % COURSE_COLORS.length]
-                                    : '#1a237e';
-                                  return <Cell key={`cell-${index}`} fill={fillColor} />;
-                                })}
-                              </Bar>
-                            ))}
+                            {activeCoursesInChart.map((course, courseIndex) => {
+                              const isTopCourse = courseIndex === activeCoursesInChart.length - 1;
+                              return (
+                                <Bar
+                                  key={course}
+                                  dataKey={course}
+                                  stackId="a"
+                                  maxBarSize={45}
+                                  radius={isTopCourse ? [6, 6, 0, 0] : [0, 0, 0, 0]}
+                                >
+                                  {collegeChartData.map((entry, index) => {
+                                    const isHovered = hoveredCollege === entry.name;
+                                    const fillColor = isHovered
+                                      ? `url(#barCourseGrad_${courseIndex % COURSE_COLORS.length})`
+                                      : '#5542f6';
+                                    return <Cell key={`cell-${index}`} fill={fillColor} stroke="none" strokeWidth={0} />;
+                                  })}
+                                </Bar>
+                              );
+                            })}
                           </BarChart>
                         </ResponsiveContainer>
                       </Paper>
@@ -816,6 +880,40 @@ const LoginDashboard = () => {
                             <Box sx={{ position: 'relative', height: 220 }}>
                               <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
+                                  <defs>
+                                    <linearGradient id="donutGrad0" x1="0" y1="0" x2="1" y2="1">
+                                      <stop offset="0%" stopColor="#1a237e" />
+                                      <stop offset="100%" stopColor="#0288d1" />
+                                    </linearGradient>
+                                    <linearGradient id="donutGrad1" x1="0" y1="0" x2="1" y2="1">
+                                      <stop offset="0%" stopColor="#2e7d32" />
+                                      <stop offset="100%" stopColor="#81c784" />
+                                    </linearGradient>
+                                    <linearGradient id="donutGrad2" x1="0" y1="0" x2="1" y2="1">
+                                      <stop offset="0%" stopColor="#ed6c02" />
+                                      <stop offset="100%" stopColor="#ffb74d" />
+                                    </linearGradient>
+                                    <linearGradient id="donutGrad3" x1="0" y1="0" x2="1" y2="1">
+                                      <stop offset="0%" stopColor="#7b1fa2" />
+                                      <stop offset="100%" stopColor="#ba68c8" />
+                                    </linearGradient>
+                                    <linearGradient id="donutGrad4" x1="0" y1="0" x2="1" y2="1">
+                                      <stop offset="0%" stopColor="#c62828" />
+                                      <stop offset="100%" stopColor="#ff8a80" />
+                                    </linearGradient>
+                                    <linearGradient id="donutGrad5" x1="0" y1="0" x2="1" y2="1">
+                                      <stop offset="0%" stopColor="#00796b" />
+                                      <stop offset="100%" stopColor="#4db6ac" />
+                                    </linearGradient>
+                                    <linearGradient id="donutGrad6" x1="0" y1="0" x2="1" y2="1">
+                                      <stop offset="0%" stopColor="#303f9f" />
+                                      <stop offset="100%" stopColor="#7986cb" />
+                                    </linearGradient>
+                                    <linearGradient id="donutGrad7" x1="0" y1="0" x2="1" y2="1">
+                                      <stop offset="0%" stopColor="#e65100" />
+                                      <stop offset="100%" stopColor="#ff9800" />
+                                    </linearGradient>
+                                  </defs>
                                   <Pie
                                     data={sectionChartData}
                                     cx="50%"
@@ -823,10 +921,16 @@ const LoginDashboard = () => {
                                     innerRadius={65}
                                     outerRadius={95}
                                     dataKey="value"
-                                    paddingAngle={3}
+                                    paddingAngle={4}
+                                    cornerRadius={4}
                                   >
                                     {sectionChartData.map((entry, index) => (
-                                      <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                                      <Cell
+                                        key={`cell-${index}`}
+                                        fill={`url(#donutGrad${index % DONUT_GRADIENT_CSS.length})`}
+                                        stroke="#ffffff"
+                                        strokeWidth={2}
+                                      />
                                     ))}
                                   </Pie>
                                   <RechartsTooltip />
@@ -853,7 +957,7 @@ const LoginDashboard = () => {
                                 return (
                                   <Box key={sec.name} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12 }}>
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                      <Box sx={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: CHART_COLORS[idx % CHART_COLORS.length] }} />
+                                      <Box sx={{ width: 10, height: 10, borderRadius: '50%', background: DONUT_GRADIENT_CSS[idx % DONUT_GRADIENT_CSS.length] }} />
                                       <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 500, color: '#334155' }}>
                                         {sec.name}
                                       </Typography>
@@ -884,9 +988,10 @@ const LoginDashboard = () => {
                               color="error"
                               size="small"
                               onClick={openDeleteBatchDialog}
+                              startIcon={<DeleteIcon />}
                               sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 700, fontFamily: 'Poppins, sans-serif' }}
                             >
-                              🗑️ Delete Selected ({selectedLogIds.length})
+                              Delete Selected ({selectedLogIds.length})
                             </Button>
                           )}
                         </Box>
@@ -954,7 +1059,7 @@ const LoginDashboard = () => {
                                       <TableCell align="center">
                                         <Tooltip title="Delete Record">
                                           <IconButton size="small" color="error" onClick={() => openDeleteSingleDialog(row)}>
-                                            🗑️
+                                            <DeleteIcon fontSize="small" />
                                           </IconButton>
                                         </Tooltip>
                                       </TableCell>
@@ -1032,11 +1137,17 @@ const LoginDashboard = () => {
                           </Typography>
                           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1.2, borderRadius: 2, bgcolor: '#f8fafc', border: '1px solid #f1f5f9' }}>
-                              <Typography sx={{ fontSize: 13, fontWeight: 500, color: '#334155' }}> Male Visitors</Typography>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                                <MaleIcon sx={{ fontSize: 18, color: '#0288d1' }} />
+                                <Typography sx={{ fontSize: 13, fontWeight: 500, color: '#334155' }}>Male Visitors</Typography>
+                              </Box>
                               <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#0288d1' }}>{genderCounts.Male}</Typography>
                             </Box>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1.2, borderRadius: 2, bgcolor: '#f8fafc', border: '1px solid #f1f5f9' }}>
-                              <Typography sx={{ fontSize: 13, fontWeight: 500, color: '#334155' }}> Female Visitors</Typography>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                                <FemaleIcon sx={{ fontSize: 18, color: '#7b1fa2' }} />
+                                <Typography sx={{ fontSize: 13, fontWeight: 500, color: '#334155' }}>Female Visitors</Typography>
+                              </Box>
                               <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#7b1fa2' }}>{genderCounts.Female}</Typography>
                             </Box>
                           </Box>
@@ -1051,7 +1162,7 @@ const LoginDashboard = () => {
         )}
       </Header>
 
-      {/* 🗑️ Delete Confirmation Dialog */}
+      {/* Delete Confirmation Dialog */}
       <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, color: '#c62828' }}>
           Confirm Record Deletion
@@ -1064,8 +1175,8 @@ const LoginDashboard = () => {
               <>Are you sure you want to delete <strong>{selectedLogIds.length}</strong> selected login record(s)?</>
             )}
           </Typography>
-          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#dc2626', mt: 1.5, fontWeight: 600 }}>
-            ⚠️ This action cannot be undone.
+          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#dc2626', mt: 1.5, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <WarningAmberIcon sx={{ fontSize: 18 }} /> This action cannot be undone.
           </Typography>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>

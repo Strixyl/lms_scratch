@@ -349,13 +349,24 @@ const COLLEGE_MAP = {
 };
 
 app.get('/api/logins', async (req, res) => {
-  const { startDate, endDate, section, college } = req.query;
+  const { startDate, endDate, section, college, logType } = req.query;
 
   try {
     const pool = await sql.connect(config);
     const request = pool.request();
 
     const conditions = [];
+
+    // Filter by logType or default to entry logins (excluding Time Out records)
+    if (logType === 'All') {
+      // include all
+    } else if (logType) {
+      conditions.push(`studLogType = @logType`);
+      request.input('logType', sql.VarChar, logType);
+    } else {
+      conditions.push(`(studLogType LIKE '%In%' OR studLogType LIKE '%IN%' OR studLogType IS NULL OR studLogType = '')`);
+    }
+
     if (startDate && endDate) {
       conditions.push(`CAST(TimeLogged AS DATE) BETWEEN @startDate AND @endDate`);
       request.input('startDate', sql.Date, new Date(startDate));
