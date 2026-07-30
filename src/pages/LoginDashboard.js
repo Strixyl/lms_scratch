@@ -50,17 +50,49 @@ const DONUT_GRADIENT_CSS = [
 const ALL_COLLEGES = COLLEGE_OPTIONS.filter(c => c !== 'All');
 
 const COURSE_COLORS = [
-  '#4338ca', '#5542f6', '#6366f1', '#7c66ff', '#818cf8',
-  '#93c5fd', '#a5b4fc', '#c7d2fe', '#3b82f6', '#60a5fa',
-  '#2563eb', '#1d4ed8', '#38bdf8', '#818cf8', '#6366f1',
-  '#4f46e5', '#4338ca', '#3730a3', '#312e81', '#1e1b4b'
+  '#0288d1',
+  '#2e7d32',
+  '#ed6c02',
+  '#7b1fa2',
+  '#c62828',
+  '#00796b',
+  '#303f9f',
+  '#d81b60',
+  '#e65100',
+  '#00897b',
+  '#5c6bc0',
+  '#26a69a',
+  '#ff7043',
+  '#ab47bc',
+  '#42a5f5',
+  '#66bb6a',
+  '#ffa726',
+  '#ec407a',
+  '#78909c',
+  '#0097a7'
 ];
 
 const COURSE_LIGHT_COLORS = [
-  '#6366f1', '#7c66ff', '#818cf8', '#a5b4fc', '#c7d2fe',
-  '#bfdbfe', '#cbd5e1', '#e0e7ff', '#60a5fa', '#93c5fd',
-  '#3b82f6', '#2563eb', '#7dd3fc', '#a5b4fc', '#818cf8',
-  '#6366f1', '#4f46e5', '#4338ca', '#3730a3', '#312e81'
+  '#38bdf8',
+  '#4ade80',
+  '#fb923c',
+  '#c084fc',
+  '#f87171',
+  '#2dd4bf',
+  '#818cf8',
+  '#f472b6',
+  '#ffb74d',
+  '#5eead4',
+  '#9fa8da',
+  '#80cbc4',
+  '#ffab91',
+  '#e879f9',
+  '#90caf9',
+  '#a5d6a7',
+  '#fde047',
+  '#f48fb1',
+  '#cbd5e1',
+  '#67e8f9'
 ];
 
 const selectSx = {
@@ -134,27 +166,43 @@ const CustomBarTooltip = ({ active, payload, label }) => {
     const total = activeItems.reduce((acc, curr) => acc + curr.value, 0);
 
     return (
-      <Paper elevation={4} sx={{ p: 2, bgcolor: '#ffffff', border: '1px solid #e0e0e0', borderRadius: 2, maxWidth: 320 }}>
-        <Typography variant="subtitle2" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, color: '#1a237e', mb: 1, borderBottom: '1px solid #eee', pb: 0.5 }}>
-          {label} — {total} Total Visit{total > 1 ? 's' : ''}
+      <Paper elevation={4} sx={{ p: 2, bgcolor: '#ffffff', border: '1.5px solid #cbd5e1', borderRadius: 3, maxWidth: 360, boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }}>
+        <Typography variant="subtitle2" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, color: '#1a237e', mb: 1.5, borderBottom: '1px solid #e2e8f0', pb: 1, fontSize: 14 }}>
+          {label} — {total} Total Patron Visit{total > 1 ? 's' : ''}
         </Typography>
+
+        <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 11, fontWeight: 700, color: '#64748b', mb: 1, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+          Course Breakdown & Color Key:
+        </Typography>
+
         {activeItems.length === 0 ? (
-          <Typography variant="body2" sx={{ fontSize: 12, color: '#888', fontStyle: 'italic' }}>
+          <Typography variant="body2" sx={{ fontSize: 12, color: '#94a3b8', fontStyle: 'italic' }}>
             No visits recorded for this department.
           </Typography>
         ) : (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.6, maxHeight: 220, overflowY: 'auto' }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, maxHeight: 240, overflowY: 'auto' }}>
             {activeItems.map((item, idx) => {
               const percent = total > 0 ? ((item.value / total) * 100).toFixed(1) : 0;
+              const swatchColor = COURSE_COLORS[idx % COURSE_COLORS.length];
+              const lightColor = COURSE_LIGHT_COLORS[idx % COURSE_LIGHT_COLORS.length];
+
               return (
-                <Box key={idx} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Box sx={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: item.fill }} />
-                    <Typography variant="body2" sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 500 }}>
+                <Box key={idx} sx={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  p: 1, borderRadius: 2, bgcolor: '#f8fafc', border: '1px solid #f1f5f9'
+                }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+                    <Box sx={{
+                      width: 14, height: 14, borderRadius: '4px',
+                      background: `linear-gradient(135deg, ${swatchColor} 0%, ${lightColor} 100%)`,
+                      boxShadow: `0 2px 6px ${swatchColor}60`,
+                      flexShrink: 0
+                    }} />
+                    <Typography variant="body2" sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12.5, fontWeight: 700, color: '#1e293b' }}>
                       {item.name}
                     </Typography>
                   </Box>
-                  <Typography variant="body2" sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 600, color: '#444', ml: 2 }}>
+                  <Typography variant="body2" sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 800, color: swatchColor, ml: 2, flexShrink: 0 }}>
                     {item.value} ({percent}%)
                   </Typography>
                 </Box>
