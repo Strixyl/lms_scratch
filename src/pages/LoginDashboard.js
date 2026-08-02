@@ -9,7 +9,6 @@ import {
   Avatar, LinearProgress, Checkbox, IconButton, Snackbar, Alert, Tooltip, Chip
 } from '@mui/material';
 import {
-  WavingHand as WavingHandIcon,
   Print as PrintIcon,
   FileDownload as FileDownloadIcon,
   FilterAlt as FilterAltIcon,
@@ -18,7 +17,6 @@ import {
   LocationOn as LocationOnIcon,
   School as SchoolIcon,
   Delete as DeleteIcon,
-  Insights as InsightsIcon,
   Male as MaleIcon,
   Female as FemaleIcon,
   WarningAmber as WarningAmberIcon,
@@ -33,8 +31,6 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../Components/Header';
 import TopBar from '../Components/TopBar';
 import { COLLEGE_OPTIONS, SECTION_OPTIONS, getCollegeGroup, formatDate } from '../constants/collegeMap';
-
-const CHART_COLORS = ['#1a237e', '#0288d1', '#7b1fa2', '#ed6c02', '#c62828', '#00796b', '#303f9f', '#5d4037', '#e65100'];
 
 const DONUT_GRADIENT_CSS = [
   'linear-gradient(135deg, #1a237e 0%, #0288d1 100%)',
@@ -309,138 +305,6 @@ const LollipopChartView = ({ data = [], selectedCollege = 'All' }) => {
   );
 };
 
-// ── Suggestion 3: Compact Progress Indicator Rows ───────
-const ProgressRowsView = ({ data = [], totalVisits = 0, selectedCollege = 'All' }) => {
-  const maxVal = useMemo(() => Math.max(...data.map(d => d.total || 0), 1), [data]);
-
-  if (!data || data.length === 0) {
-    return (
-      <Box sx={{ p: 4, height: 340, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-        <Typography color="textSecondary" sx={{ fontFamily: 'Poppins, sans-serif' }}>
-          No data available for Progress Rows view.
-        </Typography>
-      </Box>
-    );
-  }
-
-  return (
-    <Box sx={{ py: 1, minHeight: 340, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-        <Chip label="Compact Linear Progress Indicator Rows" size="small" sx={{ fontWeight: 700, fontFamily: 'Poppins, sans-serif', bgcolor: '#0288d1', color: '#ffffff' }} />
-        <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#64748b', fontWeight: 600 }}>
-          Max Threshold: <strong style={{ color: '#0288d1' }}>{maxVal}</strong> visits
-        </Typography>
-      </Box>
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, maxHeight: 290, overflowY: 'auto', pr: 0.5 }}>
-        {data.map((item, idx) => {
-          const itemTotal = item.total || 0;
-          const percentage = totalVisits > 0 ? ((itemTotal / totalVisits) * 100).toFixed(1) : '0.0';
-          const progressVal = maxVal > 0 ? (itemTotal / maxVal) * 100 : 0;
-          const color = COURSE_COLORS[idx % COURSE_COLORS.length];
-          const title = item.fullName || item.name || `Item ${idx + 1}`;
-
-          return (
-            <Paper elevation={0} key={title + idx} sx={{ p: 2, borderRadius: 2.5, border: '1.5px solid #e2e8f0', bgcolor: '#f8fafc' }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 14, color: '#0f172a' }}>
-                  {title}
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                  <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 700, color: '#64748b' }}>
-                    {percentage}%
-                  </Typography>
-                  <Chip label={`${itemTotal} visits`} size="small" sx={{ fontWeight: 800, fontFamily: 'Poppins, sans-serif', bgcolor: `${color}15`, color: color }} />
-                </Box>
-              </Box>
-              <LinearProgress
-                variant="determinate"
-                value={progressVal}
-                sx={{
-                  height: 10,
-                  borderRadius: 5,
-                  bgcolor: '#e2e8f0',
-                  '& .MuiLinearProgress-bar': { borderRadius: 5, bgcolor: color }
-                }}
-              />
-            </Paper>
-          );
-        })}
-      </Box>
-    </Box>
-  );
-};
-
-// ── Suggestion 4: Donut / Radial Breakdown View ───────
-const DonutBreakdownView = ({ data = [], totalVisits = 0, selectedCollege = 'All' }) => {
-  if (!data || data.length === 0) {
-    return (
-      <Box sx={{ p: 4, height: 340, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-        <Typography color="textSecondary" sx={{ fontFamily: 'Poppins, sans-serif' }}>
-          No data available for Donut Breakdown view.
-        </Typography>
-      </Box>
-    );
-  }
-
-  return (
-    <Box sx={{ py: 1, minHeight: 340, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'center', gap: 2 }}>
-      <Box sx={{ flex: 1, height: 290, position: 'relative', width: '100%' }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={data}
-              dataKey="total"
-              nameKey="name"
-              cx="50%"
-              cy="50%"
-              innerRadius={65}
-              outerRadius={100}
-              paddingAngle={4}
-            >
-              {data.map((entry, index) => (
-                <Cell key={`cell-donut-sugg-${index}`} fill={COURSE_COLORS[index % COURSE_COLORS.length]} />
-              ))}
-            </Pie>
-            <RechartsTooltip formatter={(val, name) => [`${val} visits`, name]} />
-          </PieChart>
-        </ResponsiveContainer>
-        <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
-          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 24, color: '#0f172a', lineHeight: 1 }}>
-            {totalVisits}
-          </Typography>
-          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 11, color: '#64748b', fontWeight: 600 }}>
-            Total Visits
-          </Typography>
-        </Box>
-      </Box>
-
-      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1, width: '100%', maxHeight: 290, overflowY: 'auto' }}>
-        <Chip label="Proportional Donut Distribution" size="small" sx={{ fontWeight: 700, fontFamily: 'Poppins, sans-serif', bgcolor: '#7b1fa2', color: '#ffffff', width: 'fit-content', mb: 1 }} />
-        {data.map((item, idx) => {
-          const itemTotal = item.total || 0;
-          const percentage = totalVisits > 0 ? ((itemTotal / totalVisits) * 100).toFixed(1) : '0.0';
-          const color = COURSE_COLORS[idx % COURSE_COLORS.length];
-          const title = item.fullName || item.name || `Item ${idx + 1}`;
-
-          return (
-            <Paper key={title + idx} elevation={0} sx={{ p: 1.5, borderRadius: 2, border: '1.5px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-                <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: color }} />
-                <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 13, color: '#1e293b' }}>
-                  {title}
-                </Typography>
-              </Box>
-              <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 13, color: '#0f172a' }}>
-                {itemTotal} ({percentage}%)
-              </Typography>
-            </Paper>
-          );
-        })}
-      </Box>
-    </Box>
-  );
-};
-
 // ── Dynamic Custom Tooltip for Stacked Bar Chart ──────────────────────────
 const CustomBarTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
@@ -532,6 +396,7 @@ const COURSE_ACRONYMS_MAP = {
 };
 
 const COLLEGE_COURSES_SURVEY_MAP = {
+  'Faculty / Staff': ['Faculty Member', 'Staff Member'],
   CARES: ['BSA', 'BSABE', 'BSEM'],
   CAS: ['BAELS', 'BSBIO', 'BSCHEM', 'BSPSYC', 'BSSW'],
   CBA: ['BSA', 'BSMA', 'BSBA-HRM', 'BSBA-FM', 'BSBA-MM', 'BSENT'],
@@ -587,9 +452,12 @@ const getCoursesForCollege = (collegeCode, loginItems) => {
   const normalizedSet = new Set(surveyCourses);
 
   loginItems.forEach(item => {
-    const colGroup = getCollegeGroup(item.studCollege, item.studCourse);
+    const colGroup = getCollegeGroup(item.studCollege, item.studCourse, item.studLogType);
     if (colGroup === collegeCode && item.studCourse && item.studCourse.trim()) {
       const rawC = item.studCourse.trim();
+      const isFaculty = rawC.toLowerCase().includes('faculty') || rawC.toLowerCase().includes('staff') || ((item.studLogType || '').toLowerCase().includes('faculty'));
+
+      if (collegeCode !== 'Faculty / Staff' && isFaculty) return;
 
       let matchedAcronym = null;
       for (const acronym of surveyCourses) {
@@ -602,8 +470,8 @@ const getCoursesForCollege = (collegeCode, loginItems) => {
       if (matchedAcronym) {
         normalizedSet.add(matchedAcronym);
       } else {
-        const rawGroup = getCollegeGroup('', rawC);
-        if (rawGroup === collegeCode || rawGroup === 'N/A' || rawC.toLowerCase().includes('faculty') || rawC.toLowerCase().includes('staff')) {
+        const rawGroup = getCollegeGroup('', rawC, item.studLogType);
+        if (rawGroup === collegeCode || rawGroup === 'N/A') {
           normalizedSet.add(rawC);
         }
       }
@@ -611,6 +479,28 @@ const getCoursesForCollege = (collegeCode, loginItems) => {
   });
 
   return Array.from(normalizedSet);
+};
+
+// Deduplicates logins so multiple logins by the same patron on the same day count as ONE entrance visit (100% Entrance).
+// Includes all libraries (Senior High, Junior High, Elementary, Kindergarten, and Main Library).
+const deduplicateLogins = (loginList) => {
+  if (!loginList || !Array.isArray(loginList)) return [];
+
+  const seenVisits = new Set();
+  const result = [];
+
+  loginList.forEach(item => {
+    const datePart = item.TimeLogged ? String(item.TimeLogged).split(' ')[0] : 'nodate';
+    const idNum = item.studIDnumber || item.studLname || 'noid';
+    const visitKey = `${idNum}_${datePart}`;
+
+    if (!seenVisits.has(visitKey)) {
+      seenVisits.add(visitKey);
+      result.push(item);
+    }
+  });
+
+  return result;
 };
 
 const LoginDashboard = () => {
@@ -697,7 +587,7 @@ const LoginDashboard = () => {
       let filtered = data;
       if (selectedCollege && selectedCollege !== 'All') {
         filtered = filtered.filter(
-          (item) => getCollegeGroup(item.studCollege, item.studCourse) === selectedCollege
+          (item) => getCollegeGroup(item.studCollege, item.studCourse, item.studLogType) === selectedCollege
         );
       }
       if (selectedSection && selectedSection !== 'All') {
@@ -706,6 +596,9 @@ const LoginDashboard = () => {
       if (selectedCourse && selectedCourse !== 'All') {
         filtered = filtered.filter((item) => isCourseMatch(item.studCourse, selectedCourse));
       }
+
+      // Apply Henry Luce III Main Library entrance & section deduplication
+      filtered = deduplicateLogins(filtered);
 
       setLogins(filtered);
       setPage(0);
@@ -730,7 +623,8 @@ const LoginDashboard = () => {
         return !type.includes('out');
       });
       setRawLogins(data);
-      setLogins(data);
+      const deduplicated = deduplicateLogins(data);
+      setLogins(deduplicated);
       setPage(0);
     } catch (err) {
       console.error('Error clearing filters:', err);
@@ -763,7 +657,7 @@ const LoginDashboard = () => {
   // ── Computations for KPI Cards & Visual Charts ───────────────────────
   const totalEntries = logins.length;
 
-  const { mainChartData, activeChartSeries, isSingleCourseCollege, singleCourseName, collegeChartData } = useMemo(() => {
+  const { mainChartData, activeChartSeries, collegeChartData } = useMemo(() => {
     const collegeMap = {};
     ALL_COLLEGES.forEach(col => {
       collegeMap[col] = { total: 0 };
@@ -771,7 +665,7 @@ const LoginDashboard = () => {
 
     const coursesSet = new Set();
     logins.forEach((item) => {
-      const col = getCollegeGroup(item.studCollege, item.studCourse);
+      const col = getCollegeGroup(item.studCollege, item.studCourse, item.studLogType);
       const crs = item.studCourse && item.studCourse.trim() ? item.studCourse.trim() : 'Unspecified';
       coursesSet.add(crs);
 
@@ -789,36 +683,30 @@ const LoginDashboard = () => {
       return {
         mainChartData: colChartData,
         activeChartSeries: Array.from(coursesSet),
-        isSingleCourseCollege: false,
-        singleCourseName: '',
         collegeChartData: colChartData
       };
     } else {
       // Specific College Selected -> Strictly get courses for this college ONLY!
       const allCourses = getCoursesForCollege(selectedCollege, logins);
 
-      if (allCourses.length <= 1) {
-        return {
-          mainChartData: [],
-          activeChartSeries: ['total'],
-          isSingleCourseCollege: true,
-          singleCourseName: allCourses[0] || selectedCollege,
-          collegeChartData: colChartData
-        };
-      }
-
       const courseCounts = {};
       allCourses.forEach(c => { courseCounts[c] = 0; });
 
       logins.forEach(item => {
-        const itemGroup = getCollegeGroup(item.studCollege, item.studCourse);
+        const itemGroup = getCollegeGroup(item.studCollege, item.studCourse, item.studLogType);
         if (itemGroup === selectedCollege) {
           const crs = item.studCourse ? item.studCourse.trim() : 'Unspecified';
+
+          let matched = false;
           for (const target of allCourses) {
             if (isCourseMatch(crs, target)) {
               courseCounts[target] = (courseCounts[target] || 0) + 1;
+              matched = true;
               break;
             }
+          }
+          if (!matched && allCourses.includes(crs)) {
+            courseCounts[crs] = (courseCounts[crs] || 0) + 1;
           }
         }
       });
@@ -832,8 +720,6 @@ const LoginDashboard = () => {
       return {
         mainChartData: courseChartData,
         activeChartSeries: ['total'],
-        isSingleCourseCollege: false,
-        singleCourseName: '',
         collegeChartData: colChartData
       };
     }
@@ -854,16 +740,46 @@ const LoginDashboard = () => {
   const topCollege = sortedColleges.length > 0 && sortedColleges[0].total > 0 ? sortedColleges[0].name : 'N/A';
   const topCollegeCount = sortedColleges.length > 0 ? sortedColleges[0].total : 0;
 
-  // Section distribution
-  const sectionCounts = {};
-  logins.forEach((item) => {
-    const sec = item.Section ? item.Section.trim() : 'Entrance';
-    sectionCounts[sec] = (sectionCounts[sec] || 0) + 1;
-  });
+  // Section distribution: Entrance baseline (100%), Entrance Only (No Section), and Internal Sections
+  const { sectionChartData, donutSlices } = useMemo(() => {
+    const sectionCounts = {};
 
-  const sectionChartData = Object.keys(sectionCounts)
-    .map(sec => ({ name: sec, value: sectionCounts[sec] }))
-    .sort((a, b) => b.value - a.value);
+    const listToCount = (selectedSection && selectedSection !== 'All')
+      ? logins
+      : (rawLogins.length > 0 ? rawLogins : logins);
+
+    let internalSum = 0;
+    listToCount.forEach((item) => {
+      const sec = item.Section ? item.Section.trim() : 'Entrance';
+      if (sec.toLowerCase() !== 'entrance') {
+        sectionCounts[sec] = (sectionCounts[sec] || 0) + 1;
+        internalSum += 1;
+      }
+    });
+
+    const entranceOnly = Math.max(0, totalEntries - internalSum);
+
+    // Donut Slices (Proportions of where patrons spent time)
+    const slices = [];
+    if (entranceOnly > 0 || Object.keys(sectionCounts).length === 0) {
+      slices.push({ name: 'Entrance Only (No Section)', value: entranceOnly > 0 ? entranceOnly : (totalEntries || 1), isEntranceOnly: true });
+    }
+
+    const internalList = Object.keys(sectionCounts)
+      .map(sec => ({ name: sec, value: sectionCounts[sec] }))
+      .filter(sec => sec.value > 0)
+      .sort((a, b) => b.value - a.value);
+
+    slices.push(...internalList);
+
+    // Full Legend List (Entrance 100% baseline listed FIRST, then slices)
+    const fullList = [
+      { name: 'Entrance ', value: totalEntries, isBaseline: true },
+      ...slices
+    ];
+
+    return { sectionChartData: fullList, donutSlices: slices };
+  }, [logins, rawLogins, selectedSection, totalEntries]);
 
   const peakSection = sectionChartData.length > 0 ? sectionChartData[0].name : 'N/A';
 
@@ -1009,6 +925,7 @@ const LoginDashboard = () => {
 
   // ── Print Handler ────────────────────────────────────────────────────
   const handlePrint = () => {
+    if (!printRef.current) return;
     const printContents = printRef.current.innerHTML;
     const iframe = document.createElement('iframe');
     iframe.style.position = 'fixed';
@@ -1292,50 +1209,16 @@ const LoginDashboard = () => {
                                 📊 Standard Bar Chart
                               </MenuItem>
                               <MenuItem value="chips" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 13 }}>
-                                🏷️ 1. Item Chips View
+                                🏷️ Item Chips View
                               </MenuItem>
                               <MenuItem value="lollipop" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 13 }}>
-                                🍭 2. Lollipop / Dot Plot Chart
-                              </MenuItem>
-                              <MenuItem value="progress" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 13 }}>
-                                📈 3. Linear Progress Rows
-                              </MenuItem>
-                              <MenuItem value="donut" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 13 }}>
-                                🍩 4. Donut Breakdown Chart
+                                🍭 Lollipop View
                               </MenuItem>
                             </Select>
                           </FormControl>
                         </Box>
 
-                        {isSingleCourseCollege ? (
-                          <Box sx={{
-                            p: 4, height: 340, display: 'flex', flexDirection: 'column',
-                            justifyContent: 'center', alignItems: 'center', textAlign: 'center',
-                            bgcolor: '#f8fafc', borderRadius: 3, border: '1.5px dashed #cbd5e1'
-                          }}>
-                            <Chip
-                              label="Single-Course Academic Program"
-                              size="small"
-                              sx={{ fontWeight: 700, fontFamily: 'Poppins, sans-serif', mb: 2, bgcolor: '#1d0a61', color: '#ffffff' }}
-                            />
-                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 22, color: '#0f172a', mb: 1 }}>
-                              {singleCourseName}
-                            </Typography>
-                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 14, color: '#64748b', maxWidth: 480, mb: 3 }}>
-                              This academic department offers <strong>1 dedicated degree program</strong>. 100% of the department's library foot traffic ({totalEntries} visits) belongs to this single course.
-                            </Typography>
-                            <Box sx={{ display: 'flex', gap: 2 }}>
-                              <Paper elevation={0} sx={{ p: 2, px: 3, bgcolor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 2 }}>
-                                <Typography sx={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>Total Program Visits</Typography>
-                                <Typography sx={{ fontSize: 24, fontWeight: 800, color: '#1a237e' }}>{totalEntries} Visits</Typography>
-                              </Paper>
-                              <Paper elevation={0} sx={{ p: 2, px: 3, bgcolor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 2 }}>
-                                <Typography sx={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>Department Share</Typography>
-                                <Typography sx={{ fontSize: 24, fontWeight: 800, color: '#2e7d32' }}>100% Traffic</Typography>
-                              </Paper>
-                            </Box>
-                          </Box>
-                        ) : effectiveMode === 'chips' ? (
+                        {effectiveMode === 'chips' ? (
                           <ItemChipsView
                             data={mainChartData}
                             totalVisits={totalEntries}
@@ -1345,18 +1228,6 @@ const LoginDashboard = () => {
                         ) : effectiveMode === 'lollipop' ? (
                           <LollipopChartView
                             data={mainChartData}
-                            selectedCollege={selectedCollege}
-                          />
-                        ) : effectiveMode === 'progress' ? (
-                          <ProgressRowsView
-                            data={mainChartData}
-                            totalVisits={totalEntries}
-                            selectedCollege={selectedCollege}
-                          />
-                        ) : effectiveMode === 'donut' ? (
-                          <DonutBreakdownView
-                            data={mainChartData}
-                            totalVisits={totalEntries}
                             selectedCollege={selectedCollege}
                           />
                         ) : (
@@ -1462,7 +1333,7 @@ const LoginDashboard = () => {
                                     </linearGradient>
                                   </defs>
                                   <Pie
-                                    data={sectionChartData}
+                                    data={donutSlices}
                                     cx="50%"
                                     cy="50%"
                                     innerRadius={65}
@@ -1471,7 +1342,7 @@ const LoginDashboard = () => {
                                     paddingAngle={4}
                                     cornerRadius={4}
                                   >
-                                    {sectionChartData.map((entry, index) => (
+                                    {donutSlices.map((entry, index) => (
                                       <Cell
                                         key={`cell-${index}`}
                                         fill={`url(#donutGrad${index % DONUT_GRADIENT_CSS.length})`}
@@ -1498,18 +1369,41 @@ const LoginDashboard = () => {
                             </Box>
 
                             {/* Custom Legend Pill List matching reference image */}
-                            <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1, maxHeight: 150, overflowY: 'auto' }}>
-                              {sectionChartData.slice(0, 5).map((sec, idx) => {
-                                const pct = totalEntries > 0 ? ((sec.value / totalEntries) * 100).toFixed(1) : 0;
+                            <Box sx={{
+                              mt: 2, display: 'flex', flexDirection: 'column', gap: 1, maxHeight: 170, overflowY: 'auto', pr: 1.5,
+                              '&::-webkit-scrollbar': { width: '5px' },
+                              '&::-webkit-scrollbar-track': { backgroundColor: '#f1f5f9', borderRadius: '4px' },
+                              '&::-webkit-scrollbar-thumb': { backgroundColor: '#cbd5e1', borderRadius: '4px', '&:hover': { backgroundColor: '#94a3b8' } }
+                            }}>
+                              {sectionChartData.map((sec, idx) => {
+                                const isBaseline = sec.isBaseline;
+                                const isEntranceOnly = sec.isEntranceOnly;
+                                const pct = isBaseline
+                                  ? '100.0'
+                                  : totalEntries > 0
+                                    ? ((sec.value / totalEntries) * 100).toFixed(1)
+                                    : '0.0';
+
                                 return (
-                                  <Box key={sec.name} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12 }}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                      <Box sx={{ width: 10, height: 10, borderRadius: '50%', background: DONUT_GRADIENT_CSS[idx % DONUT_GRADIENT_CSS.length] }} />
-                                      <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 500, color: '#334155' }}>
+                                  <Box key={sec.name} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12, gap: 1 }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+                                      <Box sx={{
+                                        width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
+                                        background: isBaseline ? '#1a237e' : DONUT_GRADIENT_CSS[(idx - 1) % DONUT_GRADIENT_CSS.length]
+                                      }} />
+                                      <Typography noWrap sx={{
+                                        fontFamily: 'Poppins, sans-serif', fontSize: 12,
+                                        fontWeight: isBaseline ? 800 : (isEntranceOnly ? 700 : 500),
+                                        color: isBaseline ? '#1a237e' : (isEntranceOnly ? '#0288d1' : '#334155')
+                                      }}>
                                         {sec.name}
                                       </Typography>
                                     </Box>
-                                    <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 600, color: '#64748b' }}>
+                                    <Typography sx={{
+                                      fontFamily: 'Poppins, sans-serif', fontSize: 12,
+                                      fontWeight: 700, flexShrink: 0,
+                                      color: isBaseline ? '#1a237e' : (isEntranceOnly ? '#0288d1' : '#64748b')
+                                    }}>
                                       {pct}% ({sec.value})
                                     </Typography>
                                   </Box>
@@ -1668,7 +1562,7 @@ const LoginDashboard = () => {
 
                         {/* Top Colleges Progress List */}
                         <Box sx={{ mb: 3 }}>
-                          <Typography sx={{ fontSize: 12, fontWeight: 600, color: '#94a3b8', mb: 1, textTransform: 'uppercase' }}>
+                          <Typography sx={{ fontSize: 20, fontWeight: 600, color: '#94a3b8', mb: 1, textTransform: 'uppercase' }}>
                             Top Department Traffic
                           </Typography>
                           {sortedColleges.slice(0, 4).map((col) => {
@@ -1676,10 +1570,10 @@ const LoginDashboard = () => {
                             return (
                               <Box key={col.name} sx={{ mb: 1.5 }}>
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                                  <Typography sx={{ fontSize: 13, fontWeight: 600, color: '#334155' }}>
+                                  <Typography sx={{ fontSize: 18, fontWeight: 600, color: '#334155' }}>
                                     {col.name}
                                   </Typography>
-                                  <Typography sx={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>
+                                  <Typography sx={{ fontSize: 18, color: '#64748b', fontWeight: 600 }}>
                                     {col.total} visits ({pct.toFixed(0)}%)
                                   </Typography>
                                 </Box>
@@ -1691,23 +1585,23 @@ const LoginDashboard = () => {
 
                         {/* Gender Demographics List */}
                         <Box>
-                          <Typography sx={{ fontSize: 12, fontWeight: 600, color: '#94a3b8', mb: 1, textTransform: 'uppercase' }}>
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 23, fontWeight: 700, color: '#475569', mb: 1.5, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                             Patron Gender Split
                           </Typography>
-                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1.2, borderRadius: 2, bgcolor: '#f8fafc', border: '1px solid #f1f5f9' }}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-                                <MaleIcon sx={{ fontSize: 18, color: '#0288d1' }} />
-                                <Typography sx={{ fontSize: 13, fontWeight: 500, color: '#334155' }}>Male Visitors</Typography>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, borderRadius: 2.5, bgcolor: '#f0f9ff', border: '1.5px solid #bae6fd' }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+                                <MaleIcon sx={{ fontSize: 26, color: '#0288d1' }} />
+                                <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 16, fontWeight: 800, color: '#0f172a' }}>Male Visitors</Typography>
                               </Box>
-                              <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#0288d1' }}>{genderCounts.Male}</Typography>
+                              <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 22, fontWeight: 900, color: '#0288d1' }}>{genderCounts.Male}</Typography>
                             </Box>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1.2, borderRadius: 2, bgcolor: '#f8fafc', border: '1px solid #f1f5f9' }}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-                                <FemaleIcon sx={{ fontSize: 18, color: '#7b1fa2' }} />
-                                <Typography sx={{ fontSize: 13, fontWeight: 500, color: '#334155' }}>Female Visitors</Typography>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, borderRadius: 2.5, bgcolor: '#fdf4ff', border: '1.5px solid #f5d0fe' }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+                                <FemaleIcon sx={{ fontSize: 26, color: '#7b1fa2' }} />
+                                <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 16, fontWeight: 800, color: '#0f172a' }}>Female Visitors</Typography>
                               </Box>
-                              <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#7b1fa2' }}>{genderCounts.Female}</Typography>
+                              <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 22, fontWeight: 900, color: '#7b1fa2' }}>{genderCounts.Female}</Typography>
                             </Box>
                           </Box>
                         </Box>
@@ -1806,6 +1700,60 @@ const LoginDashboard = () => {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* 🖨️ Hidden Printable Section bound to printRef */}
+      <div ref={printRef} style={{ display: 'none' }}>
+        <h1>Henry Luce III Library</h1>
+        <h2>Library Entry Visitor Analytics & Detailed Records Report</h2>
+        <p className="daterange">
+          {startDate && endDate ? `Date Range: ${startDate} to ${endDate}` : 'All Recorded Dates'}
+          {selectedCollege !== 'All' ? ` | College: ${selectedCollege}` : ''}
+          {selectedCourse !== 'All' ? ` | Course: ${selectedCourse}` : ''}
+          {selectedSection !== 'All' ? ` | Section: ${selectedSection}` : ''}
+        </p>
+
+        <div className="summary">
+          <div className="summary-box">
+            <div className="value">{totalEntries}</div>
+            <div className="label">Total Visitor Entries</div>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>ID Number</th>
+              <th>Last Name</th>
+              <th>First Name</th>
+              <th>Course</th>
+              <th>Year</th>
+              <th>College/Dept</th>
+              <th>Section</th>
+              <th>Time Logged</th>
+              <th>Gender</th>
+            </tr>
+          </thead>
+          <tbody>
+            {logins.map((row, i) => (
+              <tr key={i}>
+                <td>{row.studIDnumber || 'N/A'}</td>
+                <td>{row.studLname || ''}</td>
+                <td>{row.studFname || ''}</td>
+                <td>{row.studCourse || 'N/A'}</td>
+                <td>{row.studYear || 'N/A'}</td>
+                <td>{row.studCollege || 'N/A'}</td>
+                <td>{row.Section || 'N/A'}</td>
+                <td>{formatDate(row.TimeLogged)}</td>
+                <td>{row.studGender || ''}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <div className="footer">
+          Generated on {new Date().toLocaleString('en-PH', { timeZone: 'Asia/Manila' })} — Henry Luce III Library Entry Analytics System
+        </div>
+      </div>
     </>
   );
 };

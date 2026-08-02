@@ -7,6 +7,28 @@ import Header from '../Components/Header';
 import TopBar from '../Components/TopBar';
 import { COLLEGE_OPTIONS, SECTION_OPTIONS, getCollegeGroup, formatDate } from '../constants/collegeMap';
 
+// Deduplicates logins so multiple logins by the same patron on the same day count as ONE entrance visit (100% Entrance).
+// Includes all libraries (Senior High, Junior High, Elementary, Kindergarten, and Main Library).
+const deduplicateLogins = (loginList) => {
+  if (!loginList || !Array.isArray(loginList)) return [];
+
+  const seenVisits = new Set();
+  const result = [];
+
+  loginList.forEach(item => {
+    const datePart = item.TimeLogged ? String(item.TimeLogged).split(' ')[0] : 'nodate';
+    const idNum = item.studIDnumber || item.studLname || 'noid';
+    const visitKey = `${idNum}_${datePart}`;
+
+    if (!seenVisits.has(visitKey)) {
+      seenVisits.add(visitKey);
+      result.push(item);
+    }
+  });
+
+  return result;
+};
+
 const LoginData = () => {
   const [logins, setLogins] = useState([]);
   const [startDate, setStartDate] = useState('');
@@ -34,7 +56,7 @@ const LoginData = () => {
       let formatted = response.data.map((row, index) => ({
         id: index + 1,
         ...row,
-        displayCollege: getCollegeGroup(row.studCollege, row.studCourse),
+        displayCollege: getCollegeGroup(row.studCollege, row.studCourse, row.studLogType),
       }));
 
       if (selectedCollege && selectedCollege !== 'All') {
@@ -43,6 +65,8 @@ const LoginData = () => {
       if (selectedSection && selectedSection !== 'All') {
         formatted = formatted.filter((row) => row.Section === selectedSection);
       }
+
+      formatted = deduplicateLogins(formatted);
 
       setLogins(formatted);
     } catch (error) {
@@ -57,11 +81,12 @@ const LoginData = () => {
     setSelectedSection('All');
     try {
       const response = await axios.get('http://localhost:5000/api/logins');
-      const formatted = response.data.map((row, index) => ({
+      let formatted = response.data.map((row, index) => ({
         id: index + 1,
         ...row,
-        displayCollege: getCollegeGroup(row.studCollege, row.studCourse),
+        displayCollege: getCollegeGroup(row.studCollege, row.studCourse, row.studLogType),
       }));
+      formatted = deduplicateLogins(formatted);
       setLogins(formatted);
     } catch (error) {
       console.error('Error clearing filters:', error);

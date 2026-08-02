@@ -1092,7 +1092,7 @@ const BookCatalogue = () => {
 
             <DialogContent sx={{ p: 3, bgcolor: '#f8fafc' }}>
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2.5, pt: 1 }}>
-                
+
                 {/* Library */}
                 <Box>
                   <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a' }}>
