@@ -23,23 +23,20 @@ import {
 import {
   Speed as SpeedIcon,
   ViewCarousel as WizardIcon,
-  RadioButtonChecked as PillIcon,
   NavigateNext as NextIcon,
   NavigateBefore as BackIcon,
   CheckCircle as CheckIcon,
   Send as SendIcon,
-  ThumbDown as ThumbDownIcon,
-  ThumbUp as ThumbUpIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
 
 // ── Rating Options (Clean Number-Based) ──────────────────────────────────────
 const RATING_OPTIONS = [
-  { id: 'very_satisfied', label: 'Very Satisfied', ciscoLabel: '1' },
-  { id: 'satisfied', label: 'Satisfied', ciscoLabel: '2' },
+  { id: 'very_dissatisfied', label: 'Very Dissatisfied', ciscoLabel: '1' },
+  { id: 'dissatisfied', label: 'Dissatisfied', ciscoLabel: '2' },
   { id: 'neutral', label: 'Neutral', ciscoLabel: '3' },
-  { id: 'dissatisfied', label: 'Dissatisfied', ciscoLabel: '4' },
-  { id: 'very_dissatisfied', label: 'Very Dissatisfied', ciscoLabel: '5' },
+  { id: 'satisfied', label: 'Satisfied', ciscoLabel: '4' },
+  { id: 'very_satisfied', label: 'Very Satisfied', ciscoLabel: '5' },
   { id: 'na', label: 'N/A', ciscoLabel: 'N/A' },
 ];
 
@@ -189,134 +186,6 @@ const QuestionItem = ({ qIdx, question, selectedId, onSelect }) => {
   );
 };
 
-// ── Capsule Pill Bar Rating Component (Product Feedback Option) ─────────────
-const PillQuestionItem = ({ qIdx, question, selectedId, onSelect }) => {
-  const [hoveredId, setHoveredId] = useState(null);
-  const activeId = hoveredId || selectedId;
-  const activeOpt = RATING_OPTIONS.find((o) => o.id === activeId);
-
-  return (
-    <Paper
-      elevation={0}
-      sx={{
-        p: 2.5,
-        borderRadius: '16px',
-        bgcolor: '#ffffff',
-        border: selectedId ? '1.5px solid #0066ff' : '1px solid #e2e8f0',
-        boxShadow: selectedId ? '0 4px 14px rgba(0, 102, 255, 0.08)' : '0 1px 3px rgba(0,0,0,0.03)',
-        transition: 'all 0.15s ease-in-out',
-      }}
-    >
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.8, gap: 2 }}>
-        <Typography
-          variant="subtitle1"
-          sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, color: '#1e293b', fontSize: '14.5px', lineHeight: 1.4, flex: 1 }}
-        >
-          {qIdx + 1}. {question}
-        </Typography>
-
-        <Chip
-          label={activeOpt ? `${activeOpt.ciscoLabel} – ${activeOpt.label}` : 'Select rating (1-5)'}
-          size="small"
-          sx={{
-            fontFamily: 'Poppins, sans-serif',
-            fontWeight: 600,
-            fontSize: '11px',
-            bgcolor: activeOpt ? '#0066ff' : '#f1f5f9',
-            color: activeOpt ? '#ffffff' : '#64748b',
-            height: '24px',
-          }}
-        />
-      </Box>
-
-      {/* Capsule Pill Bar */}
-      <Box
-        sx={{
-          display: 'flex',
-          justify: 'space-between',
-          alignItems: 'center',
-          bgcolor: '#f8fafc',
-          borderRadius: '30px',
-          p: 0.8,
-          px: 1.5,
-          border: '1px solid #e2e8f0',
-          mb: 1.2,
-        }}
-      >
-        {RATING_OPTIONS.map((opt) => {
-          const isSelected = selectedId === opt.id;
-          return (
-            <Box
-              key={opt.id}
-              sx={{
-                flex: 1,
-                display: 'flex',
-                alignItems: 'center',
-                justify: 'center',
-              }}
-            >
-              <Button
-                onClick={() => onSelect(qIdx, opt.id)}
-                onMouseEnter={() => setHoveredId(opt.id)}
-                onMouseLeave={() => setHoveredId(null)}
-                sx={{
-                  minWidth: 0,
-                  width: { xs: 36, sm: 42 },
-                  height: { xs: 36, sm: 42 },
-                  borderRadius: '50%',
-                  p: 0,
-                  fontFamily: 'Poppins, sans-serif',
-                  fontWeight: isSelected ? 700 : 600,
-                  fontSize: '14px',
-                  bgcolor: isSelected ? '#0066ff' : 'transparent',
-                  color: isSelected ? '#ffffff' : '#334155',
-                  boxShadow: isSelected ? '0 4px 12px rgba(0, 102, 255, 0.4)' : 'none',
-                  transition: 'all 0.15s ease-in-out',
-                  '&:hover': {
-                    bgcolor: isSelected ? '#0052cc' : 'rgba(0, 102, 255, 0.1)',
-                    color: isSelected ? '#ffffff' : '#0066ff',
-                  },
-                }}
-              >
-                {opt.ciscoLabel}
-              </Button>
-            </Box>
-          );
-        })}
-      </Box>
-
-      {/* Endpoint Icon Labels Below Pill */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', px: 1.5 }}>
-        <Typography
-          sx={{
-            fontFamily: 'Poppins, sans-serif',
-            fontSize: '12px',
-            fontWeight: 600,
-            color: '#64748b',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 0.5,
-          }}
-        >
-          <ThumbDownIcon sx={{ fontSize: 16 }} /> Unsatisfied
-        </Typography>
-        <Typography
-          sx={{
-            fontFamily: 'Poppins, sans-serif',
-            fontSize: '12px',
-            fontWeight: 600,
-            color: '#64748b',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 0.5,
-          }}
-        >
-          Satisfied <ThumbUpIcon sx={{ fontSize: 16 }} />
-        </Typography>
-      </Box>
-    </Paper>
-  );
-};
 
 // ── Main Satisfaction Survey Page ───────────────────────────────────────────
 const SatisfactionSurvey = () => {
@@ -524,20 +393,7 @@ const SatisfactionSurvey = () => {
                           '&:hover': { bgcolor: viewMode === 'cisco' ? '#0096c7' : '#f1f5f9' },
                         }}
                       />
-                      <Chip
-                        icon={<PillIcon sx={{ fontSize: '18px !important' }} />}
-                        label="Capsule Pill Bar Style"
-                        clickable
-                        onClick={() => setViewMode('pill')}
-                        sx={{
-                          fontFamily: 'Poppins, sans-serif',
-                          fontWeight: 600,
-                          bgcolor: viewMode === 'pill' ? '#0066ff' : '#ffffff',
-                          color: viewMode === 'pill' ? '#ffffff' : '#475569',
-                          border: '1px solid #cbd5e1',
-                          '&:hover': { bgcolor: viewMode === 'pill' ? '#0052cc' : '#f1f5f9' },
-                        }}
-                      />
+
                     </Box>
                   </Box>
 
@@ -556,23 +412,11 @@ const SatisfactionSurvey = () => {
                     </Box>
                   )}
 
-                  {viewMode === 'pill' && (
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                      {surveyQuestions.map((qText, idx) => (
-                        <PillQuestionItem
-                          key={idx}
-                          qIdx={idx}
-                          question={qText}
-                          selectedId={responses[idx]}
-                          onSelect={handleRatingSelect}
-                        />
-                      ))}
-                    </Box>
-                  )}
+
 
                   {viewMode === 'wizard' && (
                     <Paper elevation={0} sx={{ p: { xs: 3, md: 5 }, borderRadius: '16px', bgcolor: '#ffffff', border: '1px solid #cbd5e1', boxShadow: '0 8px 24px rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', gap: 3 }}>
-                      <PillQuestionItem
+                      <QuestionItem
                         qIdx={wizardIndex}
                         question={surveyQuestions[wizardIndex]}
                         selectedId={responses[wizardIndex]}
