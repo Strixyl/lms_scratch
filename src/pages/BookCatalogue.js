@@ -168,22 +168,29 @@ const BookCatalogue = () => {
   };
 
   const handleSaveEncoding = async (shouldEncodeAnother = false) => {
-    if (!encodeData.library.trim() || !encodeData.bookTitle.trim() || !encodeData.accessionNumber.trim()) {
+    const lib = (encodeData.library || '').trim();
+    const title = (encodeData.bookTitle || '').trim();
+    const acc = (encodeData.accessionNumber || '').trim();
+
+    if (!lib || !title || !acc) {
       alert('Please fill out Library, Book Title, and Accession Number!');
       return;
     }
     try {
       await axios.post('http://localhost:5000/api/card-and-packet', {
-        selectedLibrary1: encodeData.library,
-        section1: encodeData.section,
-        authorName1: encodeData.authorName,
-        publisherAuthor1: encodeData.publisherAuthor,
-        bookTitle1: encodeData.bookTitle,
-        accessionNumber1: encodeData.accessionNumber,
-        callNumber1: encodeData.callNumber,
-        barcodeValue1: encodeData.barcodeValue,
-        isoCodeValue1: encodeData.isoCodeValue,
-        copyNumber1: encodeData.copyNumber,
+        selectedLibrary1: lib,
+        section1: (encodeData.section || '').trim(),
+        authorName1: (encodeData.authorName || '').trim(),
+        publisherAuthor1: (encodeData.publisherAuthor || '').trim(),
+        bookTitle1: title,
+        accessionNumber1: acc,
+        callNumber1: (encodeData.callNumber || '').trim(),
+        barcodeValue1: (encodeData.barcodeValue || '').trim(),
+        isoCodeValue1: (encodeData.isoCodeValue || '').trim(),
+        copyNumber1: (encodeData.copyNumber || '').trim(),
+        selectedLibrary2: '', section2: '', authorName2: '', publisherAuthor2: '', bookTitle2: '', accessionNumber2: '', callNumber2: '', copyNumber2: '', barcodeValue2: '', isoCodeValue2: '',
+        selectedLibrary3: '', section3: '', authorName3: '', publisherAuthor3: '', bookTitle3: '', accessionNumber3: '', callNumber3: '', copyNumber3: '', barcodeValue3: '', isoCodeValue3: '',
+        selectedLibrary4: '', section4: '', authorName4: '', publisherAuthor4: '', bookTitle4: '', accessionNumber4: '', callNumber4: '', copyNumber4: '', barcodeValue4: '', isoCodeValue4: '',
       });
 
       alert('Book card and packet entry encoded successfully!');

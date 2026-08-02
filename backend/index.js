@@ -587,58 +587,71 @@ app.post('/api/card-and-packet', async (req, res) => {
     isoCodeValue1, isoCodeValue2, isoCodeValue3, isoCodeValue4,
   } = req.body;
 
+  const acc1 = (accessionNumber1 || '').trim();
+  const acc2 = (accessionNumber2 || '').trim();
+  const acc3 = (accessionNumber3 || '').trim();
+  const acc4 = (accessionNumber4 || '').trim();
+
   try {
     const pool = await sql.connect(config);
 
-    const checkDuplicate = await pool.request()
-      .input('accessionNumber1', sql.NVarChar, accessionNumber1 || '')
-      .query(`SELECT COUNT(*) AS count FROM CardAndPacket WHERE accessionNumber1 = @accessionNumber1 AND accessionNumber1 != ''`);
+    if (acc1) {
+      const checkDuplicate = await pool.request()
+        .input('acc1', sql.NVarChar, acc1)
+        .query(`
+          SELECT COUNT(*) AS count FROM CardAndPacket 
+          WHERE LTRIM(RTRIM(accessionNumber1)) = @acc1
+             OR LTRIM(RTRIM(accessionNumber2)) = @acc1
+             OR LTRIM(RTRIM(accessionNumber3)) = @acc1
+             OR LTRIM(RTRIM(accessionNumber4)) = @acc1
+        `);
 
-    if (checkDuplicate.recordset[0].count > 0) {
-      return res.status(400).json({ message: `Accession number "${accessionNumber1}" already exists!` });
+      if (checkDuplicate.recordset[0].count > 0) {
+        return res.status(400).json({ message: `Accession number "${acc1}" already exists!` });
+      }
     }
 
     await pool.request()
-      .input('selectedLibrary1', sql.NVarChar, selectedLibrary1 || '')
-      .input('section1', sql.NVarChar, section1 || '')
-      .input('selectedLibrary2', sql.NVarChar, selectedLibrary2 || '')
-      .input('section2', sql.NVarChar, section2 || '')
-      .input('selectedLibrary3', sql.NVarChar, selectedLibrary3 || '')
-      .input('section3', sql.NVarChar, section3 || '')
-      .input('selectedLibrary4', sql.NVarChar, selectedLibrary4 || '')
-      .input('section4', sql.NVarChar, section4 || '')
-      .input('authorName1', sql.NVarChar, authorName1 || authorLastName1 || '')
-      .input('publisherAuthor1', sql.NVarChar, publisherAuthor1 || '')
-      .input('authorName2', sql.NVarChar, authorName2 || authorLastName2 || '')
-      .input('publisherAuthor2', sql.NVarChar, publisherAuthor2 || '')
-      .input('authorName3', sql.NVarChar, authorName3 || authorLastName3 || '')
-      .input('publisherAuthor3', sql.NVarChar, publisherAuthor3 || '')
-      .input('authorName4', sql.NVarChar, authorName4 || authorLastName4 || '')
-      .input('publisherAuthor4', sql.NVarChar, publisherAuthor4 || '')
-      .input('bookTitle1', sql.NVarChar, bookTitle1 || '')
-      .input('bookTitle2', sql.NVarChar, bookTitle2 || '')
-      .input('bookTitle3', sql.NVarChar, bookTitle3 || '')
-      .input('bookTitle4', sql.NVarChar, bookTitle4 || '')
-      .input('accessionNumber1', sql.NVarChar, accessionNumber1 || '')
-      .input('accessionNumber2', sql.NVarChar, accessionNumber2 || '')
-      .input('accessionNumber3', sql.NVarChar, accessionNumber3 || '')
-      .input('accessionNumber4', sql.NVarChar, accessionNumber4 || '')
-      .input('callNumber1', sql.NVarChar, callNumber1 || '')
-      .input('callNumber2', sql.NVarChar, callNumber2 || '')
-      .input('callNumber3', sql.NVarChar, callNumber3 || '')
-      .input('callNumber4', sql.NVarChar, callNumber4 || '')
-      .input('copyNumber1', sql.NVarChar, copyNumber1 || '')
-      .input('copyNumber2', sql.NVarChar, copyNumber2 || '')
-      .input('copyNumber3', sql.NVarChar, copyNumber3 || '')
-      .input('copyNumber4', sql.NVarChar, copyNumber4 || '')
-      .input('barcodeValue1', sql.NVarChar, barcodeValue1 || '')
-      .input('barcodeValue2', sql.NVarChar, barcodeValue2 || '')
-      .input('barcodeValue3', sql.NVarChar, barcodeValue3 || '')
-      .input('barcodeValue4', sql.NVarChar, barcodeValue4 || '')
-      .input('isoCodeValue1', sql.NVarChar, isoCodeValue1 || '')
-      .input('isoCodeValue2', sql.NVarChar, isoCodeValue2 || '')
-      .input('isoCodeValue3', sql.NVarChar, isoCodeValue3 || '')
-      .input('isoCodeValue4', sql.NVarChar, isoCodeValue4 || '')
+      .input('selectedLibrary1', sql.NVarChar, (selectedLibrary1 || '').trim())
+      .input('section1', sql.NVarChar, (section1 || '').trim())
+      .input('selectedLibrary2', sql.NVarChar, (selectedLibrary2 || '').trim())
+      .input('section2', sql.NVarChar, (section2 || '').trim())
+      .input('selectedLibrary3', sql.NVarChar, (selectedLibrary3 || '').trim())
+      .input('section3', sql.NVarChar, (section3 || '').trim())
+      .input('selectedLibrary4', sql.NVarChar, (selectedLibrary4 || '').trim())
+      .input('section4', sql.NVarChar, (section4 || '').trim())
+      .input('authorName1', sql.NVarChar, (authorName1 || authorLastName1 || '').trim())
+      .input('publisherAuthor1', sql.NVarChar, (publisherAuthor1 || '').trim())
+      .input('authorName2', sql.NVarChar, (authorName2 || authorLastName2 || '').trim())
+      .input('publisherAuthor2', sql.NVarChar, (publisherAuthor2 || '').trim())
+      .input('authorName3', sql.NVarChar, (authorName3 || authorLastName3 || '').trim())
+      .input('publisherAuthor3', sql.NVarChar, (publisherAuthor3 || '').trim())
+      .input('authorName4', sql.NVarChar, (authorName4 || authorLastName4 || '').trim())
+      .input('publisherAuthor4', sql.NVarChar, (publisherAuthor4 || '').trim())
+      .input('bookTitle1', sql.NVarChar, (bookTitle1 || '').trim())
+      .input('bookTitle2', sql.NVarChar, (bookTitle2 || '').trim())
+      .input('bookTitle3', sql.NVarChar, (bookTitle3 || '').trim())
+      .input('bookTitle4', sql.NVarChar, (bookTitle4 || '').trim())
+      .input('accessionNumber1', sql.NVarChar, acc1)
+      .input('accessionNumber2', sql.NVarChar, acc2)
+      .input('accessionNumber3', sql.NVarChar, acc3)
+      .input('accessionNumber4', sql.NVarChar, acc4)
+      .input('callNumber1', sql.NVarChar, (callNumber1 || '').trim())
+      .input('callNumber2', sql.NVarChar, (callNumber2 || '').trim())
+      .input('callNumber3', sql.NVarChar, (callNumber3 || '').trim())
+      .input('callNumber4', sql.NVarChar, (callNumber4 || '').trim())
+      .input('copyNumber1', sql.NVarChar, (copyNumber1 || '').trim())
+      .input('copyNumber2', sql.NVarChar, (copyNumber2 || '').trim())
+      .input('copyNumber3', sql.NVarChar, (copyNumber3 || '').trim())
+      .input('copyNumber4', sql.NVarChar, (copyNumber4 || '').trim())
+      .input('barcodeValue1', sql.NVarChar, (barcodeValue1 || '').trim())
+      .input('barcodeValue2', sql.NVarChar, (barcodeValue2 || '').trim())
+      .input('barcodeValue3', sql.NVarChar, (barcodeValue3 || '').trim())
+      .input('barcodeValue4', sql.NVarChar, (barcodeValue4 || '').trim())
+      .input('isoCodeValue1', sql.NVarChar, (isoCodeValue1 || '').trim())
+      .input('isoCodeValue2', sql.NVarChar, (isoCodeValue2 || '').trim())
+      .input('isoCodeValue3', sql.NVarChar, (isoCodeValue3 || '').trim())
+      .input('isoCodeValue4', sql.NVarChar, (isoCodeValue4 || '').trim())
       .query(`
         INSERT INTO CardAndPacket (
           selectedLibrary1, section1, selectedLibrary2, section2, selectedLibrary3, section3, selectedLibrary4, section4,
@@ -679,14 +692,19 @@ app.get('/api/card-and-packet/search', async (req, res) => {
 
   try {
     const pool = await sql.connect(config);
+    const searchVal = (accessionNumber || '').trim();
     const result = await pool.request()
-      .input('accessionNumber', sql.NVarChar, accessionNumber)
+      .input('accessionNumber', sql.NVarChar, searchVal)
       .query(`
         SELECT * FROM CardAndPacket
-        WHERE accessionNumber1 = @accessionNumber
-           OR accessionNumber2 = @accessionNumber
-           OR accessionNumber3 = @accessionNumber
-           OR accessionNumber4 = @accessionNumber
+        WHERE LTRIM(RTRIM(accessionNumber1)) = @accessionNumber
+           OR LTRIM(RTRIM(accessionNumber2)) = @accessionNumber
+           OR LTRIM(RTRIM(accessionNumber3)) = @accessionNumber
+           OR LTRIM(RTRIM(accessionNumber4)) = @accessionNumber
+           OR LTRIM(RTRIM(barcodeValue1)) = @accessionNumber
+           OR LTRIM(RTRIM(barcodeValue2)) = @accessionNumber
+           OR LTRIM(RTRIM(barcodeValue3)) = @accessionNumber
+           OR LTRIM(RTRIM(barcodeValue4)) = @accessionNumber
       `);
 
     res.json(result.recordset);
