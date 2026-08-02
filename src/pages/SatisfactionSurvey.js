@@ -19,26 +19,28 @@ import {
   Paper,
   Chip,
   LinearProgress,
-  Tooltip,
 } from '@mui/material';
 import {
   Speed as SpeedIcon,
   ViewCarousel as WizardIcon,
+  RadioButtonChecked as PillIcon,
   NavigateNext as NextIcon,
   NavigateBefore as BackIcon,
   CheckCircle as CheckIcon,
   Send as SendIcon,
+  ThumbDown as ThumbDownIcon,
+  ThumbUp as ThumbUpIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
 
-// ── Rating Options (100% Clean Cisco Number-Based, No Emojis) ───────────────
+// ── Rating Options (Clean Number-Based) ──────────────────────────────────────
 const RATING_OPTIONS = [
-  { id: 'very_dissatisfied', label: 'Very Dissatisfied', ciscoLabel: '1' },
-  { id: 'dissatisfied',      label: 'Dissatisfied',      ciscoLabel: '2' },
-  { id: 'neutral',           label: 'Neutral',           ciscoLabel: '3' },
-  { id: 'satisfied',         label: 'Satisfied',         ciscoLabel: '4' },
-  { id: 'very_satisfied',    label: 'Very Satisfied',    ciscoLabel: '5' },
-  { id: 'na',                label: 'N/A',               ciscoLabel: 'N/A' },
+  { id: 'very_satisfied', label: 'Very Satisfied', ciscoLabel: '1' },
+  { id: 'satisfied', label: 'Satisfied', ciscoLabel: '2' },
+  { id: 'neutral', label: 'Neutral', ciscoLabel: '3' },
+  { id: 'dissatisfied', label: 'Dissatisfied', ciscoLabel: '4' },
+  { id: 'very_dissatisfied', label: 'Very Dissatisfied', ciscoLabel: '5' },
+  { id: 'na', label: 'N/A', ciscoLabel: 'N/A' },
 ];
 
 // ── College Courses Lookup ──────────────────────────────────────────────────
@@ -76,7 +78,7 @@ const surveyQuestions = [
   "Your general satisfaction with your experience at the library.",
 ];
 
-// ── Reusable Cisco Rating Item Component ─────────────────────────────────────
+// ── Cisco CSAT Style Rating Component ────────────────────────────────────────
 const QuestionItem = ({ qIdx, question, selectedId, onSelect }) => {
   const [hoveredId, setHoveredId] = useState(null);
   const activeId = hoveredId || selectedId;
@@ -94,7 +96,7 @@ const QuestionItem = ({ qIdx, question, selectedId, onSelect }) => {
         transition: 'all 0.15s ease-in-out',
       }}
     >
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5, gap: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, gap: 2 }}>
         <Typography
           variant="subtitle1"
           sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, color: '#0f172a', fontSize: '14.5px', lineHeight: 1.4, flex: 1 }}
@@ -118,49 +120,199 @@ const QuestionItem = ({ qIdx, question, selectedId, onSelect }) => {
         />
       </Box>
 
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', px: 0.5, mb: 1 }}>
-        <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>
-          Not at all satisfied
-        </Typography>
-        <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>
-          Very Satisfied
-        </Typography>
-      </Box>
-
-      <Box sx={{ display: 'flex', gap: { xs: 1, sm: 1.5 }, width: '100%' }}>
+      {/* Radio Buttons Rating Row */}
+      <Box sx={{ display: 'flex', width: '100%' }}>
         {RATING_OPTIONS.map((opt) => {
           const isSelected = selectedId === opt.id;
           return (
-            <Tooltip key={opt.id} title={`${opt.ciscoLabel} - ${opt.label}`} arrow placement="top">
+            <Box
+              key={opt.id}
+              onClick={() => onSelect(qIdx, opt.id)}
+              onMouseEnter={() => setHoveredId(opt.id)}
+              onMouseLeave={() => setHoveredId(null)}
+              sx={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                cursor: 'pointer',
+                py: 1,
+                borderRadius: '8px',
+                transition: 'all 0.15s ease',
+                '&:hover': { bgcolor: 'rgba(0, 188, 235, 0.06)' },
+              }}
+            >
+              <Typography
+                sx={{
+                  fontFamily: 'Poppins, sans-serif',
+                  fontSize: { xs: '10px', sm: '11.5px' },
+                  fontWeight: isSelected ? 700 : 500,
+                  color: isSelected ? '#0084ad' : '#475569',
+                  lineHeight: 1.2,
+                  mb: 0.5,
+                  textAlign: 'center',
+                  minHeight: '28px',
+                  display: 'flex',
+                  alignItems: 'flex-end',
+                  justifyContent: 'center',
+                }}
+              >
+                {opt.label}
+              </Typography>
+              <Radio
+                checked={isSelected}
+                onChange={() => onSelect(qIdx, opt.id)}
+                value={opt.id}
+                name={`question-${qIdx}`}
+                sx={{
+                  color: '#94a3b8',
+                  '&.Mui-checked': { color: '#00bceb' },
+                  '& .MuiSvgIcon-root': { fontSize: 28 },
+                }}
+              />
+              <Typography
+                sx={{
+                  fontFamily: 'Poppins, sans-serif',
+                  fontSize: '13px',
+                  fontWeight: isSelected ? 700 : 600,
+                  color: isSelected ? '#00bceb' : '#334155',
+                  mt: 0.2,
+                }}
+              >
+                {opt.ciscoLabel}
+              </Typography>
+            </Box>
+          );
+        })}
+      </Box>
+    </Paper>
+  );
+};
+
+// ── Capsule Pill Bar Rating Component (Product Feedback Option) ─────────────
+const PillQuestionItem = ({ qIdx, question, selectedId, onSelect }) => {
+  const [hoveredId, setHoveredId] = useState(null);
+  const activeId = hoveredId || selectedId;
+  const activeOpt = RATING_OPTIONS.find((o) => o.id === activeId);
+
+  return (
+    <Paper
+      elevation={0}
+      sx={{
+        p: 2.5,
+        borderRadius: '16px',
+        bgcolor: '#ffffff',
+        border: selectedId ? '1.5px solid #0066ff' : '1px solid #e2e8f0',
+        boxShadow: selectedId ? '0 4px 14px rgba(0, 102, 255, 0.08)' : '0 1px 3px rgba(0,0,0,0.03)',
+        transition: 'all 0.15s ease-in-out',
+      }}
+    >
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.8, gap: 2 }}>
+        <Typography
+          variant="subtitle1"
+          sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, color: '#1e293b', fontSize: '14.5px', lineHeight: 1.4, flex: 1 }}
+        >
+          {qIdx + 1}. {question}
+        </Typography>
+
+        <Chip
+          label={activeOpt ? `${activeOpt.ciscoLabel} – ${activeOpt.label}` : 'Select rating (1-5)'}
+          size="small"
+          sx={{
+            fontFamily: 'Poppins, sans-serif',
+            fontWeight: 600,
+            fontSize: '11px',
+            bgcolor: activeOpt ? '#0066ff' : '#f1f5f9',
+            color: activeOpt ? '#ffffff' : '#64748b',
+            height: '24px',
+          }}
+        />
+      </Box>
+
+      {/* Capsule Pill Bar */}
+      <Box
+        sx={{
+          display: 'flex',
+          justify: 'space-between',
+          alignItems: 'center',
+          bgcolor: '#f8fafc',
+          borderRadius: '30px',
+          p: 0.8,
+          px: 1.5,
+          border: '1px solid #e2e8f0',
+          mb: 1.2,
+        }}
+      >
+        {RATING_OPTIONS.map((opt) => {
+          const isSelected = selectedId === opt.id;
+          return (
+            <Box
+              key={opt.id}
+              sx={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justify: 'center',
+              }}
+            >
               <Button
                 onClick={() => onSelect(qIdx, opt.id)}
                 onMouseEnter={() => setHoveredId(opt.id)}
                 onMouseLeave={() => setHoveredId(null)}
                 sx={{
-                  flex: 1,
-                  height: '46px',
                   minWidth: 0,
-                  borderRadius: '8px',
-                  textTransform: 'none',
+                  width: { xs: 36, sm: 42 },
+                  height: { xs: 36, sm: 42 },
+                  borderRadius: '50%',
+                  p: 0,
                   fontFamily: 'Poppins, sans-serif',
+                  fontWeight: isSelected ? 700 : 600,
                   fontSize: '14px',
-                  fontWeight: isSelected ? 700 : 500,
-                  bgcolor: isSelected ? '#00bceb' : '#f1f5f9',
+                  bgcolor: isSelected ? '#0066ff' : 'transparent',
                   color: isSelected ? '#ffffff' : '#334155',
-                  border: isSelected ? '2px solid #0096c7' : '1px solid #cbd5e1',
-                  boxShadow: isSelected ? '0 4px 10px rgba(0, 188, 235, 0.35)' : 'none',
+                  boxShadow: isSelected ? '0 4px 12px rgba(0, 102, 255, 0.4)' : 'none',
                   transition: 'all 0.15s ease-in-out',
                   '&:hover': {
-                    bgcolor: isSelected ? '#00a3cc' : '#e2e8f0',
-                    transform: 'translateY(-1px)',
+                    bgcolor: isSelected ? '#0052cc' : 'rgba(0, 102, 255, 0.1)',
+                    color: isSelected ? '#ffffff' : '#0066ff',
                   },
                 }}
               >
                 {opt.ciscoLabel}
               </Button>
-            </Tooltip>
+            </Box>
           );
         })}
+      </Box>
+
+      {/* Endpoint Icon Labels Below Pill */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', px: 1.5 }}>
+        <Typography
+          sx={{
+            fontFamily: 'Poppins, sans-serif',
+            fontSize: '12px',
+            fontWeight: 600,
+            color: '#64748b',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.5,
+          }}
+        >
+          <ThumbDownIcon sx={{ fontSize: 16 }} /> Unsatisfied
+        </Typography>
+        <Typography
+          sx={{
+            fontFamily: 'Poppins, sans-serif',
+            fontSize: '12px',
+            fontWeight: 600,
+            color: '#64748b',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.5,
+          }}
+        >
+          Satisfied <ThumbUpIcon sx={{ fontSize: 16 }} />
+        </Typography>
       </Box>
     </Paper>
   );
@@ -177,7 +329,7 @@ const SatisfactionSurvey = () => {
   const [submitError, setSubmitError] = useState('');
   const [showSuccessSnackbar, setShowSuccessSnackbar] = useState(false);
 
-  const [viewMode, setViewMode] = useState('cisco');
+  const [viewMode, setViewMode] = useState('wizard');
   const [wizardIndex, setWizardIndex] = useState(0);
   const [responses, setResponses] = useState(Array(10).fill(null));
 
@@ -337,27 +489,13 @@ const SatisfactionSurvey = () => {
                     />
                   </Paper>
 
-                  {/* View Mode Controls */}
+                  {/* View Mode Controls Bar */}
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1.5, pb: 0.5 }}>
                     <Typography variant="body2" sx={{ fontFamily: 'Poppins, sans-serif', color: '#64748b', fontWeight: 500 }}>
                       Select Rating View Style:
                     </Typography>
 
                     <Box sx={{ display: 'flex', gap: 1 }}>
-                      <Chip
-                        icon={<SpeedIcon sx={{ fontSize: '18px !important' }} />}
-                        label="Cisco CSAT Style (All Questions)"
-                        clickable
-                        onClick={() => setViewMode('cisco')}
-                        sx={{
-                          fontFamily: 'Poppins, sans-serif',
-                          fontWeight: 600,
-                          bgcolor: viewMode === 'cisco' ? '#00bceb' : '#ffffff',
-                          color: viewMode === 'cisco' ? '#ffffff' : '#475569',
-                          border: '1px solid #cbd5e1',
-                          '&:hover': { bgcolor: viewMode === 'cisco' ? '#0096c7' : '#f1f5f9' },
-                        }}
-                      />
                       <Chip
                         icon={<WizardIcon sx={{ fontSize: '18px !important' }} />}
                         label="Single-Question Focus Wizard"
@@ -372,11 +510,39 @@ const SatisfactionSurvey = () => {
                           '&:hover': { bgcolor: viewMode === 'wizard' ? '#120569' : '#f1f5f9' },
                         }}
                       />
+                      <Chip
+                        icon={<SpeedIcon sx={{ fontSize: '18px !important' }} />}
+                        label="Cisco CSAT Style"
+                        clickable
+                        onClick={() => setViewMode('cisco')}
+                        sx={{
+                          fontFamily: 'Poppins, sans-serif',
+                          fontWeight: 600,
+                          bgcolor: viewMode === 'cisco' ? '#00bceb' : '#ffffff',
+                          color: viewMode === 'cisco' ? '#ffffff' : '#475569',
+                          border: '1px solid #cbd5e1',
+                          '&:hover': { bgcolor: viewMode === 'cisco' ? '#0096c7' : '#f1f5f9' },
+                        }}
+                      />
+                      <Chip
+                        icon={<PillIcon sx={{ fontSize: '18px !important' }} />}
+                        label="Capsule Pill Bar Style"
+                        clickable
+                        onClick={() => setViewMode('pill')}
+                        sx={{
+                          fontFamily: 'Poppins, sans-serif',
+                          fontWeight: 600,
+                          bgcolor: viewMode === 'pill' ? '#0066ff' : '#ffffff',
+                          color: viewMode === 'pill' ? '#ffffff' : '#475569',
+                          border: '1px solid #cbd5e1',
+                          '&:hover': { bgcolor: viewMode === 'pill' ? '#0052cc' : '#f1f5f9' },
+                        }}
+                      />
                     </Box>
                   </Box>
 
                   {/* Active Question View Renderer */}
-                  {viewMode === 'cisco' ? (
+                  {viewMode === 'cisco' && (
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                       {surveyQuestions.map((qText, idx) => (
                         <QuestionItem
@@ -388,9 +554,25 @@ const SatisfactionSurvey = () => {
                         />
                       ))}
                     </Box>
-                  ) : (
+                  )}
+
+                  {viewMode === 'pill' && (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                      {surveyQuestions.map((qText, idx) => (
+                        <PillQuestionItem
+                          key={idx}
+                          qIdx={idx}
+                          question={qText}
+                          selectedId={responses[idx]}
+                          onSelect={handleRatingSelect}
+                        />
+                      ))}
+                    </Box>
+                  )}
+
+                  {viewMode === 'wizard' && (
                     <Paper elevation={0} sx={{ p: { xs: 3, md: 5 }, borderRadius: '16px', bgcolor: '#ffffff', border: '1px solid #cbd5e1', boxShadow: '0 8px 24px rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', gap: 3 }}>
-                      <QuestionItem
+                      <PillQuestionItem
                         qIdx={wizardIndex}
                         question={surveyQuestions[wizardIndex]}
                         selectedId={responses[wizardIndex]}
@@ -420,7 +602,7 @@ const SatisfactionSurvey = () => {
                                 width: idx === wizardIndex ? 24 : 10,
                                 height: 10,
                                 borderRadius: '5px',
-                                bgcolor: idx === wizardIndex ? '#00bceb' : responses[idx] ? '#43a047' : '#cbd5e1',
+                                bgcolor: idx === wizardIndex ? '#0066ff' : responses[idx] ? '#43a047' : '#cbd5e1',
                                 cursor: 'pointer',
                                 transition: 'all 0.3s ease',
                               }}
