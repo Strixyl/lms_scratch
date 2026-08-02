@@ -1157,7 +1157,7 @@ const LoginDashboard = () => {
                         color="#1a237e"
                       />
                       <SummaryCard
-                        title="Top Visiting College"
+                        title="Top Visiting College/Department"
                         value={topCollege}
                         subtitle={`${topCollegeCount} Total Logged Entries`}
                         icon={<AccountBalanceIcon sx={{ fontSize: 28 }} />}
