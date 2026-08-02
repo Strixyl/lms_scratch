@@ -58,6 +58,20 @@ const RATING_SCORES = {
   dissatisfied: -0.5, very_dissatisfied: -1.0, na: 0.0,
 };
 
+// ── Plain 1-5 Satisfaction Scale (matches CSAT survey scale) ─────────────────
+const SATISFACTION_SCALE = {
+  very_satisfied: 5, satisfied: 4, neutral: 3,
+  dissatisfied: 2, very_dissatisfied: 1, na: null,
+};
+
+const getSatisfactionAverage = (s) => {
+  const qList = [
+    s.Question1, s.Question2, s.Question3, s.Question4, s.Question5,
+    s.Question6, s.Question7, s.Question8, s.Question9, s.Question10
+  ].map(q => SATISFACTION_SCALE[q]).filter(v => v != null);
+  return qList.length > 0 ? qList.reduce((a, b) => a + b, 0) / qList.length : 0;
+};
+
 const getSurveyScore = (s) => {
   if (typeof s.SentimentScore === 'number' && !isNaN(s.SentimentScore)) {
     return s.SentimentScore;
@@ -438,8 +452,9 @@ const SentimentDashboard = () => {
 
   const hasActiveFilter = startDate || endDate || filterClientele || filterCollege || filterSentiment || filterCategory;
 
-  const avgScore = filtered.length
-    ? filtered.reduce((sum, s) => sum + getSurveyScore(s), 0) / filtered.length
+  // Overall Satisfaction Average (plain 1-5 scale from survey questions)
+  const avgSatisfaction = filtered.length
+    ? filtered.reduce((sum, s) => sum + getSatisfactionAverage(s), 0) / filtered.length
     : 0;
 
   const monthlyData = (() => {
@@ -613,6 +628,7 @@ const SentimentDashboard = () => {
 
     const summaryKPIs = [
       { 'Metric Indicator': 'Total Analyzed Responses', 'Count': total },
+      { 'Metric Indicator': 'Avg Satisfaction (1-5 Scale)', 'Count': avgSatisfaction.toFixed(2) },
       { 'Metric Indicator': 'Positive Sentiments Count', 'Count': counts.Positive },
       { 'Metric Indicator': 'Neutral Sentiments Count', 'Count': counts.Neutral },
       { 'Metric Indicator': 'Negative Sentiments Count', 'Count': counts.Negative },
@@ -918,8 +934,8 @@ const SentimentDashboard = () => {
                     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)', md: 'repeat(5, 1fr)' }, gap: 2.5, mb: 3 }}>
                       <SummaryCard
                         title="Avg Satisfaction"
-                        value={avgScore.toFixed(2)}
-                        subtitle="Scale: -1.0 to +1.0"
+                        value={avgSatisfaction.toFixed(2)}
+                        subtitle="Scale: 1.0 to 5.0"
                         icon={<StarIcon />}
                         color="#8b5cf6"
                       />
