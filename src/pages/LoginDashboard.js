@@ -740,13 +740,27 @@ const LoginDashboard = () => {
   const topCollege = sortedColleges.length > 0 && sortedColleges[0].total > 0 ? sortedColleges[0].name : 'N/A';
   const topCollegeCount = sortedColleges.length > 0 ? sortedColleges[0].total : 0;
 
+  // Compute logins filtered by College and Course (ignoring Section filter)
+  const collegeAndCourseFilteredLogins = useMemo(() => {
+    let filtered = rawLogins;
+    if (selectedCollege && selectedCollege !== 'All') {
+      filtered = filtered.filter(
+        (item) => getCollegeGroup(item.studCollege, item.studCourse, item.studLogType) === selectedCollege
+      );
+    }
+    if (selectedCourse && selectedCourse !== 'All') {
+      filtered = filtered.filter((item) => isCourseMatch(item.studCourse, selectedCourse));
+    }
+    return filtered;
+  }, [rawLogins, selectedCollege, selectedCourse]);
+
   // Section distribution: Entrance baseline (100%), Entrance Only (No Section), and Internal Sections
   const { sectionChartData, donutSlices } = useMemo(() => {
     const sectionCounts = {};
 
     const listToCount = (selectedSection && selectedSection !== 'All')
       ? logins
-      : (rawLogins.length > 0 ? rawLogins : logins);
+      : collegeAndCourseFilteredLogins;
 
     let internalSum = 0;
     listToCount.forEach((item) => {
@@ -779,7 +793,7 @@ const LoginDashboard = () => {
     ];
 
     return { sectionChartData: fullList, donutSlices: slices };
-  }, [logins, rawLogins, selectedSection, totalEntries]);
+  }, [logins, collegeAndCourseFilteredLogins, selectedSection, totalEntries]);
 
   const peakSection = sectionChartData.length > 0 ? sectionChartData[0].name : 'N/A';
 
