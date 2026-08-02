@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import Header from '../Components/Header';
 import TopBar from '../Components/TopBar';
 import {
@@ -158,13 +158,13 @@ const QuestionItem = ({ qIdx, question, selectedId, onSelect }) => {
               </Typography>
               <Radio
                 checked={isSelected}
-                onChange={() => onSelect(qIdx, opt.id)}
                 value={opt.id}
                 name={`question-${qIdx}`}
                 sx={{
                   color: '#94a3b8',
                   '&.Mui-checked': { color: '#00bceb' },
                   '& .MuiSvgIcon-root': { fontSize: 28 },
+                  pointerEvents: 'none',
                 }}
               />
               <Typography
@@ -202,10 +202,29 @@ const SatisfactionSurvey = () => {
   const [wizardIndex, setWizardIndex] = useState(0);
   const [responses, setResponses] = useState(Array(10).fill(null));
 
+  const autoAdvanceTimerRef = useRef(null);
+
   const handleRatingSelect = (index, optionId) => {
     const updated = [...responses];
     updated[index] = optionId;
     setResponses(updated);
+  };
+
+  const changeWizardIndex = (target) => {
+    if (autoAdvanceTimerRef.current) {
+      clearTimeout(autoAdvanceTimerRef.current);
+    }
+    setWizardIndex(target);
+  };
+
+  const handleWizardSelect = (idx, id) => {
+    handleRatingSelect(idx, id);
+    if (autoAdvanceTimerRef.current) {
+      clearTimeout(autoAdvanceTimerRef.current);
+    }
+    autoAdvanceTimerRef.current = setTimeout(() => {
+      setWizardIndex((prev) => (prev < 9 ? prev + 1 : prev));
+    }, 220);
   };
 
   const completedCount = responses.filter((r) => r !== null).length;
@@ -420,17 +439,14 @@ const SatisfactionSurvey = () => {
                         qIdx={wizardIndex}
                         question={surveyQuestions[wizardIndex]}
                         selectedId={responses[wizardIndex]}
-                        onSelect={(idx, id) => {
-                          handleRatingSelect(idx, id);
-                          if (wizardIndex < 9) setTimeout(() => setWizardIndex((p) => p + 1), 200);
-                        }}
+                        onSelect={handleWizardSelect}
                       />
 
                       {/* Wizard Controls */}
                       <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', justifyContent: 'space-between', mt: 1 }}>
                         <Button
                           disabled={wizardIndex === 0}
-                          onClick={() => setWizardIndex((p) => p - 1)}
+                          onClick={() => changeWizardIndex((p) => p - 1)}
                           startIcon={<BackIcon />}
                           sx={{ textTransform: 'none', fontFamily: 'Poppins, sans-serif', fontWeight: 600 }}
                         >
@@ -441,7 +457,7 @@ const SatisfactionSurvey = () => {
                           {surveyQuestions.map((_, idx) => (
                             <Box
                               key={idx}
-                              onClick={() => setWizardIndex(idx)}
+                              onClick={() => changeWizardIndex(idx)}
                               sx={{
                                 width: idx === wizardIndex ? 24 : 10,
                                 height: 10,
@@ -456,7 +472,7 @@ const SatisfactionSurvey = () => {
 
                         <Button
                           disabled={wizardIndex === 9}
-                          onClick={() => setWizardIndex((p) => p + 1)}
+                          onClick={() => changeWizardIndex((p) => p + 1)}
                           endIcon={<NextIcon />}
                           sx={{ textTransform: 'none', fontFamily: 'Poppins, sans-serif', fontWeight: 600 }}
                         >
