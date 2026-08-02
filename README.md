@@ -7,100 +7,171 @@
 
 ---
 
-## Overview
+## 📌 Overview
 
-This is an enhanced web-based Library Management System developed for the **Henry Luce III Library** of Central Philippine University. The system unifies core library operations — sign-in access monitoring, book card & packet encoding, inventory tracking for supplies and equipment — with an automated feedback analysis module powered by a **Dual-Engine NLP Pipeline** (RoBERTa BERT Sentiment Analysis + Naïve Bayes Category Classification).
-
----
-
-## 📌 Recent Updates (July 2026 Session Updates)
-
-- **SQL Server Database Migrations**:
-  - Executed migration adding `SentimentScore FLOAT NULL` to `dbo.SatisfactionSurveys` to persist combined emoji + BERT sentiment scores (-1.0 to +1.0).
-- **New Frontend Dependencies**:
-  - Installed `react-wordcloud` (via `npm install react-wordcloud --legacy-peer-deps`) for interactive keyword visualization.
-- **6 New Sentiment Dashboard Features (`SentimentDashboard.js`)**:
-  1. **Average Satisfaction Score**: KPI card rendering average sentiment score scaled from `-1.0` to `+1.0` (with dynamic fallback score calculation for historical records created prior to migration).
-  2. **Sentiment Trend by Month**: Stacked bar chart (`BarChart` via Recharts) displaying monthly Positive, Neutral, and Negative response distributions (`YYYY-MM`).
-  3. **Top 5 Positive Comments**: Score-ranked list displaying top 5 positive comments sorted descending (independent of Sentiment dropdown per locked-in design decision).
-  4. **Top 5 Negative Comments**: Score-ranked list displaying top 5 negative comments sorted ascending.
-  5. **Constant & Deterministic Word Cloud**: Displays top 60 frequent comment keywords across all survey responses using `ReactWordcloud` with `deterministic: true` and `randomSeed: 'hll-library-wordcloud'` for stable layout rendering across page visits.
-  6. **Service Improvement Recommendations (Options A & B)**: Rule-based recommendation engine for categories reaching moderate (≥30%) or high (≥50%) negative response ratios. Incorporates:
-     - **Option A (Keyword Signals)**: Detects top trending issue signals within category negative comments (`aircon`, `wifi`, `rude`, `outdated`, etc.).
-     - **Option B (Raw Supporting Evidence)**: Surfaces the top 2-3 most severe patron comments per category alongside sentiment scores as empirical evidence for thesis defense review.
-- **Machine Learning Dataset Expansion & Retraining (`backend/ml/`)**:
-  - Updated preprocessing pipeline (`clean_dataset.py`) to handle `dataset_5k_wnoise.xlsx` (5,000 samples).
-  - Retrained Multinomial Naïve Bayes category model (`train_category_model.py`), expanding vocabulary coverage to include security personnel terms (`guard`, `guards`, `security`) classified as `Staff` with **99.95% confidence**.
-  - Re-classified and updated all existing SQL Server survey database records via automated batch script.
+This is an enterprise-grade, web-based **Library Management System** developed for the **Henry Luce III Library** at Central Philippine University. The system unifies core library operations — patron sign-in access monitoring, book card & packet encoding, unified book cataloging, and office supplies & library equipment inventory tracking — with an automated feedback analytics module powered by a **Dual-Engine NLP Pipeline** (RoBERTa BERT Sentiment Analysis + Naïve Bayes Category Classification).
 
 ---
 
-## System Modules
+## 🏗️ System Architecture & Workflow
 
-| Module | Description | Key Files |
+```
+                        ┌─────────────────────────────────────────┐
+                        │      React 19 Frontend Dashboard        │
+                        │        (Port 3000 / HashRouter)         │
+                        └────────────────────┬────────────────────┘
+                                             │ HTTP REST API
+                                             ▼
+                        ┌─────────────────────────────────────────┐
+                        │     Express Backend Server (index.js)   │
+                        │               (Port 5000)               │
+                        └─────────┬─────────────────────┬─────────┘
+                                  │                     │
+                POST /analyze &   │                     │ ODBC Driver 18
+                /categorize       │                     │ SQL Connection
+                                  ▼                     ▼
+┌──────────────────────────────────────────┐   ┌────────────────────────────────┐
+│   Python Flask NLP Microservice          │   │  Microsoft SQL Server DB       │
+│      (sentiment_service.py :5001)        │   │          (hllSystem)           │
+├──────────────────────────────────────────┤   ├────────────────────────────────┤
+│ 1. RoBERTa BERT Sentiment Engine         │   │ • dbo.SatisfactionSurveys      │
+│    (cardiffnlp/twitter-roberta-base)     │   │ • dbo.LibLogins & studInfo     │
+│ 2. Multinomial Naïve Bayes Classifier    │   │ • dbo.CardAndPacket            │
+│    (category_model.pkl, τ = 0.45)        │   │ • dbo.OfficeSupplies           │
+└──────────────────────────────────────────┘   │ • dbo.LibraryEquipment         │
+                                               │ • dbo.AssetTransactions        │
+                                               │ • dbo.SupplyTransactions       │
+                                               └────────────────────────────────┘
+```
+
+---
+
+## 🚀 Key Modules & Capabilities
+
+### 1. HLL Patron Sign-in Portal & Traffic Analytics (`/login`, `/logindata`, `/login-dashboard`)
+- **Student ID Lookup**: Real-time retrieval of student records (`studInfo`) by ID number, auto-populating student profile and gender details.
+- **Section Traffic Tracking**: Monitors daily entry (`Time In`) and exit (`Time Out`) events across library sections (e.g., Knowledge Center, American Corner, Graduate Studies Section).
+- **Logins Dashboard**: Interactive analytics visualization showing total patron foot traffic, peak usage hours, department/college demographic distributions, and section utilization rates.
+
+### 2. Patron Satisfaction Survey & Sentiment Microservice (`/satisfaction-survey`, `/surveys`, `/sentiment-dashboard`)
+- **10-Question Emoji Likert Survey**: Collects structured patron feedback rated from Very Satisfied to Very Dissatisfied.
+- **Open-Ended Text Feedback**: Accepts open text commentary processed simultaneously by RoBERTa BERT and Naïve Bayes models.
+- **Dual-Engine Sentiment Analysis**:
+  - **BERT Text Sentiment**: Predicts fine-grained text sentiment (`Positive`, `Neutral`, `Negative`).
+  - **Naïve Bayes Category Classification**: Assigns feedback to domain categories (`Facilities`, `Staff`, `Collection`, `Other/Uncategorized`) with confidence gating ($\tau = 0.45$).
+  - **Blended Sentiment Score**: Combines quantitative emoji rating ($50\%$) with text BERT sentiment ($50\%$) into a unified continuous score $\text{SentimentScore} \in [-1.0, +1.0]$.
+- **Analytics & Recommendation Engine (`SentimentDashboard.js`)**:
+  - **KPI Score Cards**: Average satisfaction score scaled from `-1.0` to `+1.0`.
+  - **Monthly Sentiment Trends**: Stacked bar chart showing monthly positive, neutral, and negative response distributions.
+  - **Ranked Top 5 Comments**: Score-ranked lists of top 5 positive and negative patron comments.
+  - **Deterministic Word Cloud**: Top 60 comment keywords rendered via `ReactWordcloud` with fixed seed for stable layout presentation.
+  - **Service Improvement Recommendations**: Rule-based action recommendations triggered when category negative response ratios hit $\ge 30\%$ (Moderate Concern) or $\ge 50\%$ (High Concern). Offers **Option A (Keyword Signals)** and **Option B (Raw Supporting Evidence)**.
+
+### 3. Technical Services: Book Card & Packet Encoding (`/card-and-packet`, `/book-catalogue`)
+- **Multi-Book Packet Encoding**: Encodes up to 4 book records simultaneously within a single physical packet.
+- **Accession & Barcode Dup-Check**: Validates accession number uniqueness across all 4 book slots prior to persistence.
+- **Unified Book Catalog**: Flattened grid view aggregating all individual books across packet records, featuring searching, sorting, and Excel exports (`xlsx`).
+- **Printable Card Packets**: Generates formatted printable catalog card sheets conforming to Henry Luce III Library standards.
+
+### 4. Property & Inventory Management (`/supplies`, `/equipment`, `/supplies-encoding`, `/equipment-encoding`)
+- **Office Supplies Inventory**: Manages stock items, specifications, units of measure, location balances, and low-stock alerts.
+- **Library Equipment Inventory**: Tracks library hardware assets, serial numbers, brands, specifications, and current placement locations.
+- **Stock Adjustment & Restocking**: Dedicated endpoints (`/add-stock`) to update quantity balances at specific locations without creating duplicate entries.
+- **Location Transfers (`/send-supply`, `/send-asset`)**: Atomic SQL transaction endpoints allowing cross-section transfer of stock with quantity validation.
+- **Transaction History Audit Logs (`/supply-transactions`, `/transactions`)**: Comprehensive audit trail capturing action types (`Added`, `Updated`, `Deleted`, `Added Stock`, `LOCATION_TRANSFER`), quantity changes, previous/new balances, timestamp, and user.
+
+---
+
+## 📍 Client Routes Mapping
+
+| Route | Page Component | Purpose / Description |
 |---|---|---|
-| **HLL Sign-in Portal** | Tracks patron logins/logouts using student ID lookup, displaying patron info, and logs activity. | `Login.js`, `LoginData.js` |
-| **Patron Satisfaction Survey** | A 10-question survey featuring emoji-based ratings and an open-ended feedback comments box. | `SatisfactionSurvey.js`, `SatisfactionSurveyData.js` |
-| **Sentiment & Category Dashboard** | Analyzes survey comments using a hybrid dual-engine NLP approach (Emoji Rating + BERT + Naïve Bayes Category Classification). | `SentimentDashboard.js`, `sentiment_service.py` |
-| **Book Card & Book Packet** | Encodes, saves, searches, and prints book card packets (supports up to 4 books per record). | `CardAndPacket.js` |
-| **Book Catalog** | A flat-list catalog viewer aggregating book data from all card-and-packet records with Excel export. | `BookCatalogue.js` |
-| **Supplies Inventory Encoding** | Manages office supplies records (add, update, delete, stock adjustments, section transfers). | `SuppliesEncode.js`, `Supplies.js`, `SendSupply.js` |
-| **Equipment Inventory Encoding** | Manages library equipment records (add, update, delete, stock adjustments, section transfers). | `EquipmentEncode.js`, `Equipment.js`, `Sendasset.js` |
-| **Transaction History** | Audit log for supply and equipment stock adjustments and transfers. | `SupplyTransactionHistory.js`, `Transactionhistory.js` |
+| `/` | [`Home.js`](file:///C:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/src/pages/Home.js) | Main landing page & navigation hub |
+| `/login` | [`Login.js`](file:///C:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/src/pages/Login.js) | Patron Sign-in portal for time-in / time-out lookup |
+| `/logindata` | [`LoginData.js`](file:///C:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/src/pages/LoginData.js) | Raw sign-in logs table with batch delete and filters |
+| `/login-dashboard` | [`LoginDashboard.js`](file:///C:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/src/pages/LoginDashboard.js) | Visual analytics dashboard for patron foot traffic & demographics |
+| `/satisfaction-survey` | [`SatisfactionSurvey.js`](file:///C:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/src/pages/SatisfactionSurvey.js) | 10-question patron feedback survey form |
+| `/surveys` | [`SatisfactionSurveyData.js`](file:///C:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/src/pages/SatisfactionSurveyData.js) | View and delete survey submissions and sentiment labels |
+| `/sentiment-dashboard` | [`SentimentDashboard.js`](file:///C:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/src/pages/SentimentDashboard.js) | Dual-Engine Sentiment & Category Analysis Dashboard |
+| `/card-and-packet` | [`CardAndPacket.js`](file:///C:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/src/pages/CardAndPacket.js) | Book Card and Packet Encoding Form (up to 4 books/record) |
+| `/book-catalogue` | [`BookCatalogue.js`](file:///C:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/src/pages/BookCatalogue.js) | Unified book catalog flattened list view with Excel exports |
+| `/supplies` | [`Supplies.js`](file:///C:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/src/pages/Supplies.js) | View-only Office Supplies Inventory catalog |
+| `/equipment` | [`Equipment.js`](file:///C:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/src/pages/Equipment.js) | View-only Library Equipment Inventory catalog |
+| `/supplies-encoding` | [`SuppliesEncode.js`](file:///C:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/src/pages/SuppliesEncode.js) | Office Supplies Encoding Panel (Add, Edit, Delete, Restock) |
+| `/equipment-encoding` | [`EquipmentEncode.js`](file:///C:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/src/pages/EquipmentEncode.js) | Library Equipment Encoding Panel (Add, Edit, Delete, Restock) |
+| `/send-supply` | [`SendSupply.js`](file:///C:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/src/pages/SendSupply.js) | Office Supplies location transfer form |
+| `/send-asset` | [`Sendasset.js`](file:///C:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/src/pages/Sendasset.js) | Library Equipment location transfer form |
+| `/supply-transactions` | [`SupplyTransactionHistory.js`](file:///C:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/src/pages/SupplyTransactionHistory.js) | Audit log for supply stock adjustments and transfers |
+| `/transactions` | [`Transactionhistory.js`](file:///C:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/src/pages/Transactionhistory.js) | Audit log for equipment stock adjustments and transfers |
 
 ---
 
-## User Roles
+## 👥 User Roles & Access Control Matrix
 
-| Role | Access |
+| System Capability | Admin | Librarian | Standard User |
+|---|:---:|:---:|:---:|
+| HLL Sign-in & Patron Logins | ✅ | ✅ | ✅ |
+| Submit Patron Satisfaction Survey | ✅ | ✅ | ✅ |
+| View Inventory Catalogs (`/supplies`, `/equipment`) | ✅ | ✅ | ✅ |
+| View Unified Book Catalog (`/book-catalogue`) | ✅ | ✅ | ✅ |
+| Encode Book Cards & Packets (`/card-and-packet`) | ✅ | ✅ | ❌ |
+| Encode & Restock Inventory (`/supplies-encoding`, `/equipment-encoding`) | ✅ | ✅ | ❌ |
+| Transfer Inventory Items (`/send-supply`, `/send-asset`) | ✅ | ✅ | ❌ |
+| View Sentiment Analytics Dashboard (`/sentiment-dashboard`) | ✅ | ❌ | ❌ |
+| Delete Logins, Surveys, or Inventory Records | ✅ | ❌ | ❌ |
+
+---
+
+## 🤖 Dual-Engine NLP Pipeline Architecture
+
+```
+Open-Ended Patron Feedback Text
+               │
+               ├──────────────────────────────────────────┐
+               ▼                                          ▼
+   [RoBERTa BERT Model Engine]              [Multinomial Naïve Bayes Engine]
+cardiffnlp/twitter-roberta-base-sentiment   TfidfVectorizer + MultinomialNB
+               │                                          │
+               ▼                                          ▼
+   Predicted Text Sentiment                   Predicted Category Domain
+ (Positive / Neutral / Negative)            (Facilities / Staff / Collection)
+               │                                   (Fallback τ=0.45)
+               └────────────────────┬─────────────────────┘
+                                    ▼
+                Combined Blended Sentiment Score Formula
+   SentimentScore = (Emoji Rating Avg × 0.50) + (BERT Sentiment Score × 0.50)
+```
+
+### Combined Sentiment Score Formula
+1. **Emoji Rating Numerical Mapping**:
+   $$\text{Very Satisfied} = +1.0 \quad \text{Satisfied} = +0.5 \quad \text{Neutral} = 0.0 \quad \text{Dissatisfied} = -0.5 \quad \text{Very Dissatisfied} = -1.0$$
+2. **BERT Sentiment Numerical Mapping**:
+   $$\text{Positive} = +1.0 \quad \text{Neutral} = 0.0 \quad \text{Negative} = -1.0$$
+3. **Blended Equation**:
+   $$\text{SentimentScore} = (\text{Emoji Rating Avg} \times 0.50) + (\text{BERT Score} \times 0.50)$$
+4. **Classification Decision Boundary**:
+   $$\text{SentimentResult} = \begin{cases} \text{Positive} & \text{if } \text{SentimentScore} > +0.15 \\ \text{Negative} & \text{if } \text{SentimentScore} < -0.15 \\ \text{Neutral} & \text{otherwise} \end{cases}$$
+
+---
+
+## 💻 Tech Stack Summary
+
+| Technology | Role & Version |
 |---|---|
-| **Admin** | Full control — all modules including inventory management and analytics dashboard |
-| **Librarian** | Book Card and Packet encoding, inventory editing and viewing, report generation |
-| **Standard User** | HLL Sign-in Portal, Patron Satisfaction Survey, inventory viewing only |
+| **Frontend Framework** | React.js v19, React Router v7 (HashRouter mode) |
+| **UI Component Library** | Material-UI (MUI v7), `@emotion/react`, `@emotion/styled` |
+| **Charts & Visualizations** | Recharts v3, `react-wordcloud` v1.2 |
+| **Backend REST Server** | Node.js v18+, Express.js v5 |
+| **Database Server** | Microsoft SQL Server (SQLEXPRESS / ODBC Driver 18) |
+| **Database Driver** | `mssql`, `msnodesqlv8` |
+| **Python Microservice** | Python 3.9+, Flask, Hugging Face Transformers (`torch`), Scikit-Learn, Pandas, Joblib |
+| **NLP Transformer Model** | `cardiffnlp/twitter-roberta-base-sentiment-latest` |
+| **ML Classifier Model** | TF-IDF Vectorizer + Multinomial Naïve Bayes (`category_model.pkl`) |
+| **Export Utilities** | `xlsx` (Excel Export), `jspdf` (PDF generation) |
 
 ---
 
-## Dual-Engine NLP Analysis Approach
-
-The feedback management module processes open-ended responses using a **Dual-Engine NLP Architecture**:
-
-### 1. Python BERT Microservice (`backend/sentiment_service.py`)
-- **Model**: Pre-trained Hugging Face transformer model `cardiffnlp/twitter-roberta-base-sentiment-latest`.
-- **Process**:
-  1. Accepts open-ended survey text via POST request `/analyze`.
-  2. Truncates input text to a maximum of 512 tokens.
-  3. Classifies text into `Positive`, `Neutral`, or `Negative` sentiment.
-
-### 2. Naïve Bayes Category Classifier (`backend/ml/naive_bayes.py`)
-- **Model**: `TfidfVectorizer` + `MultinomialNB` trained pipeline.
-- **Process**:
-  1. Accepts survey text via POST request `/categorize`.
-  2. Calculates class probability distribution across domains (**Facilities**, **Staff**, **Collection**).
-  3. Applies confidence threshold fallback ($\tau = 0.45$). Inputs below $\tau$ are categorized as `Other/Uncategorized`.
-
-### 3. Emoji Rating & Combined Scoring Formula
-- Structured emoji ratings are mapped: Very Satisfied (+1.0), Satisfied (+0.5), Neutral (0.0), Dissatisfied (-0.5), Very Dissatisfied (-1.0).
-- Combined score formula:  
-  $$\text{SentimentScore} = (\text{Emoji Rating Avg} \times 0.50) + (\text{BERT Sentiment Score} \times 0.50)$$
-- Thresholds: Score $> +0.15 \Rightarrow$ `Positive` | Score $< -0.15 \Rightarrow$ `Negative` | Otherwise $\Rightarrow$ `Neutral`.
-
----
-
-## Tech Stack
-
-| Layer | Technology |
-|---|---|
-| Frontend | React.js v19, Material UI v7 |
-| Express Backend | Node.js, Express.js (Port 5000) |
-| Sentiment & Categorization Microservice | Python 3.9+, Flask, Hugging Face Transformers, Scikit-learn (Port 5001) |
-| Database | Microsoft SQL Server (SQLEXPRESS) |
-| Pre-trained NLP Models | `cardiffnlp/twitter-roberta-base-sentiment-latest`, Naïve Bayes Classifier (`category_model.pkl`) |
-| Charts & Exports | Recharts, `react-wordcloud`, `jspdf`, `xlsx` |
-| DB Driver | `mssql`, `msnodesqlv8` |
-
----
-
-## Database Migration Queries
+## 🗄️ Database Schema & DDL Migration Scripts
 
 Run the following SQL queries in SQL Server Management Studio (SSMS) on database `hllSystem`:
 
@@ -108,102 +179,122 @@ Run the following SQL queries in SQL Server Management Studio (SSMS) on database
 USE hllSystem;
 GO
 
--- 1. Add Category column
-ALTER TABLE SatisfactionSurveys ADD Category NVARCHAR(50) NULL;
+-- 1. Ensure SatisfactionSurveys table has Category and SentimentScore columns
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.SatisfactionSurveys') AND name = 'Category')
+    ALTER TABLE SatisfactionSurveys ADD Category NVARCHAR(50) NULL;
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.SatisfactionSurveys') AND name = 'SentimentScore')
+    ALTER TABLE SatisfactionSurveys ADD SentimentScore FLOAT NULL;
 GO
 
--- 2. Add SentimentScore column
-ALTER TABLE SatisfactionSurveys ADD SentimentScore FLOAT NULL;
+-- 2. Audit Trail Table for Equipment Inventory Transactions
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'AssetTransactions')
+BEGIN
+    CREATE TABLE AssetTransactions (
+        TransactionId INT IDENTITY(1,1) PRIMARY KEY,
+        AssetId INT NULL,
+        ActionType NVARCHAR(50) NOT NULL,
+        QuantityChanged INT NOT NULL,
+        PreviousQuantity INT NOT NULL,
+        NewQuantity INT NOT NULL,
+        DestinationSection NVARCHAR(100) NULL,
+        Remarks NVARCHAR(255) NULL,
+        CreatedBy NVARCHAR(100) NULL,
+        CreatedAt DATETIME DEFAULT GETDATE()
+    );
+END;
+GO
+
+-- 3. Audit Trail Table for Office Supplies Transactions
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'SupplyTransactions')
+BEGIN
+    CREATE TABLE SupplyTransactions (
+        TransactionId INT IDENTITY(1,1) PRIMARY KEY,
+        SupplyId INT NULL,
+        ActionType NVARCHAR(50) NOT NULL,
+        QuantityChanged INT NOT NULL,
+        PreviousQuantity INT NOT NULL,
+        NewQuantity INT NOT NULL,
+        DestinationSection NVARCHAR(100) NULL,
+        Remarks NVARCHAR(255) NULL,
+        CreatedBy NVARCHAR(100) NULL,
+        CreatedAt DATETIME DEFAULT GETDATE()
+    );
+END;
 GO
 ```
 
 ---
 
-## Installation and Setup
+## ⚙️ Installation and Setup Guide
 
 ### Prerequisites
-- Node.js v18+
-- Python 3.9+ (with `pip`)
-- SQL Server Express (`SQLEXPRESS`)
-- ODBC Driver 18 for SQL Server
+- **Node.js**: v18.0.0 or higher
+- **Python**: v3.9 or higher (with `pip`)
+- **SQL Server**: Microsoft SQL Server Express (`SQLEXPRESS`)
+- **ODBC Driver**: ODBC Driver 18 for SQL Server
 
-### Steps
+---
 
-**1. Install frontend dependencies**
+### Step-by-Step Execution Sequence
+
+#### Step 1: Install Frontend Dependencies (Root Folder)
 ```bash
+# Install react-wordcloud with legacy peer dependency flag if required
 npm install react-wordcloud --legacy-peer-deps
 npm install
 ```
 
-**2. Install backend Node.js dependencies**
+#### Step 2: Install Express Backend Dependencies
 ```bash
 cd backend
 npm install
 ```
 
-**3. Install Python microservice dependencies**
+#### Step 3: Install Python Microservice Dependencies
 ```bash
-pip install flask transformers torch scikit-learn pandas joblib
+pip install flask transformers torch scikit-learn pandas joblib matplotlib
 ```
 
-**4. Retrain Category Model (Optional, when updating datasets in `backend/ml`):**
+#### Step 4: Retrain Category Classification Model (Optional)
+If expanding datasets in `backend/ml/`:
 ```bash
 cd backend/ml
 python clean_dataset.py
 python train_category_model.py
 ```
 
-**5. Start the Python ML Microservice (Terminal 1):**
-```bash
-python backend/sentiment_service.py
-```
-*Output:* Running on `http://127.0.0.1:5001`
+#### Step 5: Start All System Services
 
-**6. Start the Express Backend (Terminal 2 — inside `backend` folder):**
-```bash
-cd backend
-npm start
-```
-*Output:* Server running on `http://localhost:5000`
+1. **Terminal 1: Start Python NLP Microservice (Port 5001)**
+   ```bash
+   python backend/sentiment_service.py
+   ```
+   *Output:* `Running on http://127.0.0.1:5001`
 
-**7. Start the React Frontend (Terminal 3 — root folder):**
-```bash
-npm start
-```
-*Output:* React application running on `http://localhost:3000`
+2. **Terminal 2: Start Express Backend API (Port 5000)**
+   ```bash
+   cd backend
+   npm start
+   ```
+   *Output:* `Server running on http://localhost:5000` & `Connected to SQL Server`
 
----
-
-## Available Routes
-
-| Route | Description |
-|---|---|
-| `/` | Home / Main Landing Page |
-| `/login` | HLL Sign-in Portal (Time In & Time Out Lookup) |
-| `/logindata` | Sign-in Records, traffic monitoring logs, and analytics |
-| `/satisfaction-survey` | Patron Satisfaction Survey Form |
-| `/surveys` | Survey Data Records (All survey submissions and sentiment/category labels) |
-| `/sentiment-dashboard` | Dual-Engine Sentiment & Category Analysis Dashboard |
-| `/card-and-packet` | Book Card and Packet Encoding Form |
-| `/book-catalogue` | Unified Book Catalog flattened list view with Excel exports |
-| `/supplies` | View-only Office Supplies Inventory |
-| `/equipment` | View-only Library Equipment Inventory |
-| `/supplies-encoding` | Office Supplies Encoding Panel (Add/Edit/Delete/Restock) |
-| `/equipment-encoding` | Library Equipment Encoding Panel (Add/Edit/Delete/Restock) |
-| `/send-supply` | Transfer/Send Office Supplies to specific library sections |
-| `/send-asset` | Transfer/Send Library Equipment to specific library sections |
-| `/supply-transactions` | Supplies transaction history logs |
-| `/transactions` | Equipment transaction history logs |
+3. **Terminal 3: Start React Application (Port 3000)**
+   ```bash
+   npm start
+   ```
+   *Output:* `Compiled successfully!` running on `http://localhost:3000`
 
 ---
 
-## Thesis Information
+## 🎓 Capstone Thesis Information
 
 | Field | Details |
 |---|---|
-| **Title** | Library Management System with Patron Satisfaction Survey Using Sentiment Analysis and Naïve Bayes Algorithm |
+| **Thesis Title** | Library Management System with Patron Satisfaction Survey Using Sentiment Analysis and Naïve Bayes Algorithm |
 | **Institution** | Central Philippine University |
 | **College** | College of Computer Studies |
-| **Library** | Henry Luce III Library |
-| **Degree** | Bachelor of Science in Computer Science |
+| **Target Organization** | Henry Luce III Library |
+| **Degree Program** | Bachelor of Science in Computer Science |
 | **Year** | 2026 |
+
