@@ -76,7 +76,7 @@ const surveyQuestions = [
 ];
 
 // ── Cisco CSAT Style Rating Component ────────────────────────────────────────
-const QuestionItem = ({ qIdx, question, selectedId, onSelect }) => {
+const QuestionItem = ({ qIdx, question, selectedId, onSelect, isAdvancing, justSelectedId }) => {
   const [hoveredId, setHoveredId] = useState(null);
   const activeId = hoveredId || selectedId;
   const activeOpt = RATING_OPTIONS.find((o) => o.id === activeId);
@@ -85,18 +85,18 @@ const QuestionItem = ({ qIdx, question, selectedId, onSelect }) => {
     <Paper
       elevation={0}
       sx={{
-        p: 2.5,
-        borderRadius: '12px',
+        p: { xs: 2, sm: 3 },
+        borderRadius: '16px',
         bgcolor: selectedId ? '#f8fafc' : '#ffffff',
         border: selectedId ? '1.5px solid #00bceb' : '1px solid #e2e8f0',
-        boxShadow: selectedId ? '0 4px 12px rgba(0, 188, 235, 0.08)' : '0 1px 3px rgba(0,0,0,0.04)',
-        transition: 'all 0.15s ease-in-out',
+        boxShadow: selectedId ? '0 6px 16px rgba(0, 188, 235, 0.12)' : '0 2px 8px rgba(0,0,0,0.04)',
+        transition: 'all 0.25s ease-in-out',
       }}
     >
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, gap: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, gap: 2 }}>
         <Typography
           variant="subtitle1"
-          sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, color: '#0f172a', fontSize: '14.5px', lineHeight: 1.4, flex: 1 }}
+          sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, color: '#0f172a', fontSize: '15px', lineHeight: 1.45, flex: 1 }}
         >
           {qIdx + 1}. {question}
         </Typography>
@@ -112,15 +112,19 @@ const QuestionItem = ({ qIdx, question, selectedId, onSelect }) => {
             color: activeOpt ? '#ffffff' : '#64748b',
             border: '1px solid',
             borderColor: activeOpt ? '#00a3cc' : '#cbd5e1',
-            height: '24px',
+            height: '26px',
+            px: 0.5,
+            transition: 'all 0.2s ease',
           }}
         />
       </Box>
 
       {/* Radio Buttons Rating Row */}
-      <Box sx={{ display: 'flex', width: '100%' }}>
+      <Box sx={{ display: 'flex', width: '100%', gap: 1 }}>
         {RATING_OPTIONS.map((opt) => {
           const isSelected = selectedId === opt.id;
+          const isJustChosen = justSelectedId === opt.id && isAdvancing;
+
           return (
             <Box
               key={opt.id}
@@ -133,10 +137,25 @@ const QuestionItem = ({ qIdx, question, selectedId, onSelect }) => {
                 flexDirection: 'column',
                 alignItems: 'center',
                 cursor: 'pointer',
-                py: 1,
-                borderRadius: '8px',
-                transition: 'all 0.15s ease',
-                '&:hover': { bgcolor: 'rgba(0, 188, 235, 0.06)' },
+                py: 1.2,
+                px: 0.5,
+                borderRadius: '10px',
+                bgcolor: isJustChosen
+                  ? 'rgba(0, 188, 235, 0.15)'
+                  : isSelected
+                  ? 'rgba(0, 188, 235, 0.08)'
+                  : 'transparent',
+                border: isJustChosen
+                  ? '2px solid #00bceb'
+                  : isSelected
+                  ? '1.5px solid rgba(0, 188, 235, 0.4)'
+                  : '1px solid transparent',
+                transform: isJustChosen ? 'scale(1.06)' : isSelected ? 'scale(1.02)' : 'scale(1)',
+                transition: 'all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                '&:hover': {
+                  bgcolor: 'rgba(0, 188, 235, 0.08)',
+                  transform: 'translateY(-2px)',
+                },
               }}
             >
               <Typography
@@ -165,6 +184,8 @@ const QuestionItem = ({ qIdx, question, selectedId, onSelect }) => {
                   '&.Mui-checked': { color: '#00bceb' },
                   '& .MuiSvgIcon-root': { fontSize: 28 },
                   pointerEvents: 'none',
+                  transition: 'transform 0.2s ease',
+                  transform: isJustChosen ? 'scale(1.2)' : 'scale(1)',
                 }}
               />
               <Typography
@@ -201,6 +222,9 @@ const SatisfactionSurvey = () => {
   const [viewMode, setViewMode] = useState('wizard');
   const [wizardIndex, setWizardIndex] = useState(0);
   const [responses, setResponses] = useState(Array(10).fill(null));
+  const [slideDirection, setSlideDirection] = useState('next');
+  const [isAdvancing, setIsAdvancing] = useState(false);
+  const [justSelectedId, setJustSelectedId] = useState(null);
 
   const autoAdvanceTimerRef = useRef(null);
 
@@ -214,6 +238,9 @@ const SatisfactionSurvey = () => {
     if (autoAdvanceTimerRef.current) {
       clearTimeout(autoAdvanceTimerRef.current);
     }
+    setIsAdvancing(false);
+    setJustSelectedId(null);
+    setSlideDirection(target >= wizardIndex ? 'next' : 'prev');
     setWizardIndex(target);
   };
 
@@ -222,9 +249,15 @@ const SatisfactionSurvey = () => {
     if (autoAdvanceTimerRef.current) {
       clearTimeout(autoAdvanceTimerRef.current);
     }
+    setIsAdvancing(true);
+    setJustSelectedId(id);
+
     autoAdvanceTimerRef.current = setTimeout(() => {
+      setSlideDirection('next');
+      setIsAdvancing(false);
+      setJustSelectedId(null);
       setWizardIndex((prev) => (prev < 9 ? prev + 1 : prev));
-    }, 220);
+    }, 420);
   };
 
   const completedCount = responses.filter((r) => r !== null).length;
@@ -434,47 +467,161 @@ const SatisfactionSurvey = () => {
 
 
                   {viewMode === 'wizard' && (
-                    <Paper elevation={0} sx={{ p: { xs: 3, md: 5 }, borderRadius: '16px', bgcolor: '#ffffff', border: '1px solid #cbd5e1', boxShadow: '0 8px 24px rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', gap: 3 }}>
-                      <QuestionItem
-                        qIdx={wizardIndex}
-                        question={surveyQuestions[wizardIndex]}
-                        selectedId={responses[wizardIndex]}
-                        onSelect={handleWizardSelect}
+                    <Paper
+                      elevation={0}
+                      sx={{
+                        p: { xs: 2.5, md: 4 },
+                        borderRadius: '16px',
+                        bgcolor: '#ffffff',
+                        border: '1px solid #cbd5e1',
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.06)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 2.5,
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {/* Wizard Header Bar */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, borderBottom: '1px solid #f1f5f9' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                          <Chip
+                            label={`Question ${wizardIndex + 1} of 10`}
+                            size="small"
+                            color="primary"
+                            sx={{ fontWeight: 700, fontFamily: 'Poppins, sans-serif', bgcolor: '#1b0892', fontSize: '11.5px' }}
+                          />
+                          <Typography variant="body2" sx={{ fontFamily: 'Poppins, sans-serif', color: '#64748b', fontSize: '12px', fontWeight: 500 }}>
+                            Single-Question Focus Mode
+                          </Typography>
+                        </Box>
+
+                        {/* Animated Selection / Progress Feedback Badge */}
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          {isAdvancing ? (
+                            <Chip
+                              icon={<CheckIcon sx={{ fontSize: '16px !important', color: '#ffffff !important' }} />}
+                              label="Saved! Moving to Next Question..."
+                              size="small"
+                              sx={{
+                                fontFamily: 'Poppins, sans-serif',
+                                fontWeight: 600,
+                                fontSize: '11px',
+                                bgcolor: '#16a34a',
+                                color: '#ffffff',
+                                animation: 'pulseBadge 0.4s ease-in-out infinite alternate',
+                                '@keyframes pulseBadge': {
+                                  '0%': { transform: 'scale(0.96)', opacity: 0.85 },
+                                  '100%': { transform: 'scale(1.03)', opacity: 1 },
+                                },
+                              }}
+                            />
+                          ) : (
+                            <Typography variant="caption" sx={{ fontFamily: 'Poppins, sans-serif', color: '#64748b', fontWeight: 600 }}>
+                              {completedCount}/10 Answered
+                            </Typography>
+                          )}
+                        </Box>
+                      </Box>
+
+                      {/* Mini Step Progress Bar */}
+                      <LinearProgress
+                        variant="determinate"
+                        value={((wizardIndex + 1) / 10) * 100}
+                        sx={{
+                          height: 6,
+                          borderRadius: 3,
+                          bgcolor: '#e2e8f0',
+                          '& .MuiLinearProgress-bar': {
+                            borderRadius: 3,
+                            bgcolor: '#0066ff',
+                            transition: 'transform 0.4s ease-out',
+                          },
+                        }}
                       />
 
-                      {/* Wizard Controls */}
-                      <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', justifyContent: 'space-between', mt: 1 }}>
+                      {/* Animated Question Card Container */}
+                      <Box
+                        key={wizardIndex}
+                        sx={{
+                          animation:
+                            slideDirection === 'next'
+                              ? 'wizardSlideNext 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+                              : 'wizardSlidePrev 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                          '@keyframes wizardSlideNext': {
+                            '0%': { opacity: 0, transform: 'translateX(40px) scale(0.98)' },
+                            '100%': { opacity: 1, transform: 'translateX(0) scale(1)' },
+                          },
+                          '@keyframes wizardSlidePrev': {
+                            '0%': { opacity: 0, transform: 'translateX(-40px) scale(0.98)' },
+                            '100%': { opacity: 1, transform: 'translateX(0) scale(1)' },
+                          },
+                        }}
+                      >
+                        <QuestionItem
+                          qIdx={wizardIndex}
+                          question={surveyQuestions[wizardIndex]}
+                          selectedId={responses[wizardIndex]}
+                          onSelect={handleWizardSelect}
+                          isAdvancing={isAdvancing}
+                          justSelectedId={justSelectedId}
+                        />
+                      </Box>
+
+                      {/* Wizard Controls Navigation Footer */}
+                      <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', justifyContent: 'space-between', mt: 0.5 }}>
                         <Button
                           disabled={wizardIndex === 0}
-                          onClick={() => changeWizardIndex((p) => p - 1)}
+                          onClick={() => changeWizardIndex(wizardIndex - 1)}
                           startIcon={<BackIcon />}
-                          sx={{ textTransform: 'none', fontFamily: 'Poppins, sans-serif', fontWeight: 600 }}
+                          sx={{
+                            textTransform: 'none',
+                            fontFamily: 'Poppins, sans-serif',
+                            fontWeight: 600,
+                            transition: 'all 0.2s ease',
+                            '&:hover': { transform: 'translateX(-3px)' },
+                          }}
                         >
                           Previous
                         </Button>
 
-                        <Box sx={{ display: 'flex', gap: 0.8 }}>
-                          {surveyQuestions.map((_, idx) => (
-                            <Box
-                              key={idx}
-                              onClick={() => changeWizardIndex(idx)}
-                              sx={{
-                                width: idx === wizardIndex ? 24 : 10,
-                                height: 10,
-                                borderRadius: '5px',
-                                bgcolor: idx === wizardIndex ? '#0066ff' : responses[idx] ? '#43a047' : '#cbd5e1',
-                                cursor: 'pointer',
-                                transition: 'all 0.3s ease',
-                              }}
-                            />
-                          ))}
+                        <Box sx={{ display: 'flex', gap: 0.8, alignItems: 'center' }}>
+                          {surveyQuestions.map((_, idx) => {
+                            const isCurrent = idx === wizardIndex;
+                            const isAnswered = responses[idx] !== null;
+
+                            return (
+                              <Box
+                                key={idx}
+                                onClick={() => changeWizardIndex(idx)}
+                                sx={{
+                                  width: isCurrent ? 26 : 10,
+                                  height: isCurrent ? 10 : 8,
+                                  borderRadius: '5px',
+                                  bgcolor: isCurrent ? '#0066ff' : isAnswered ? '#43a047' : '#cbd5e1',
+                                  cursor: 'pointer',
+                                  boxShadow: isCurrent ? '0 0 8px rgba(0, 102, 255, 0.4)' : 'none',
+                                  transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                                  '&:hover': {
+                                    transform: 'scale(1.25)',
+                                    bgcolor: isCurrent ? '#0052cc' : isAnswered ? '#2e7d32' : '#94a3b8',
+                                  },
+                                }}
+                              />
+                            );
+                          })}
                         </Box>
 
                         <Button
                           disabled={wizardIndex === 9}
-                          onClick={() => changeWizardIndex((p) => p + 1)}
+                          onClick={() => changeWizardIndex(wizardIndex + 1)}
                           endIcon={<NextIcon />}
-                          sx={{ textTransform: 'none', fontFamily: 'Poppins, sans-serif', fontWeight: 600 }}
+                          sx={{
+                            textTransform: 'none',
+                            fontFamily: 'Poppins, sans-serif',
+                            fontWeight: 600,
+                            transition: 'all 0.2s ease',
+                            '&:hover': { transform: 'translateX(3px)' },
+                          }}
                         >
                           Next
                         </Button>
