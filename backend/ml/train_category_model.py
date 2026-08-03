@@ -9,6 +9,7 @@ from naive_bayes import CategoryClassifier
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 CLEAN_CSV_PATH = os.path.join(THIS_DIR, "data", "clean_category_dataset.csv")
+MANUAL_CSV_PATH = os.path.join(THIS_DIR, "data", "manual_boundary_cases.csv")
 MODEL_OUTPUT_PATH = os.path.join(THIS_DIR, "category_model.pkl")
 
 RANDOM_STATE = 42
@@ -27,6 +28,23 @@ def load_data():
             f"Run clean_dataset.py first."
         )
     df = pd.read_csv(CLEAN_CSV_PATH)
+
+    if os.path.exists(MANUAL_CSV_PATH):
+        manual_df = pd.read_csv(MANUAL_CSV_PATH)
+        # manual_boundary_cases.csv only has comment,category (no sentiment) —
+        # align columns so concat doesn't introduce all-NaN mismatches
+        for col in df.columns:
+            if col not in manual_df.columns:
+                manual_df[col] = "Unassigned"
+        manual_df = manual_df[df.columns]
+        print(f"Merging {len(manual_df)} manual boundary-case rows from {MANUAL_CSV_PATH}")
+        df = pd.concat([df, manual_df], ignore_index=True)
+    else:
+        print(
+            f"WARNING: manual boundary-case file not found at {MANUAL_CSV_PATH} "
+            f"— training WITHOUT the hand-written boundary cases."
+        )
+
     return df["comment"].astype(str).tolist(), df["category"].tolist()
 
 

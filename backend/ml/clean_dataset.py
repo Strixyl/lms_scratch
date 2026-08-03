@@ -1,6 +1,15 @@
+import re
 import sys
 import os
 import pandas as pd
+
+try:
+    from cleantext import clean as ct_clean
+except ImportError as exc:
+    raise ImportError(
+        "clean-text is required for noise normalization. Install it with: "
+        "pip install clean-text --break-system-packages"
+    ) from exc
 
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -11,7 +20,7 @@ OUTPUT_CSV_PATH = os.path.join(OUTPUT_DIR, "clean_category_dataset.csv")
 
 SHEET_NAME = "All_Data"
 
-VALID_CATEGORIES = ["Facilities", "Staff", "Collection"]
+VALID_CATEGORIES = ["Facilities", "Staff", "Collection", "Other/Uncategorized"]
 VALID_SENTIMENTS = ["Positive", "Neutral", "Negative"]
 
 # non informative text./ mkixed with actual comments from real survey dataset
@@ -22,6 +31,40 @@ NON_INFORMATIVE_TEXTS = {
 }
 
 MIN_CHAR_LENGTH = 3
+
+
+def normalize_text(val: str) -> str:
+    """Normalize a raw comment using clean-text, then collapse excessive
+    character repetition (e.g. "GGGreat" -> "GGreat", "bagssss" -> "bagss")
+    that clean-text does not handle on its own.
+    """
+    if val is None:
+        return ""
+    val = str(val)
+
+    val = ct_clean(
+        val,
+        fix_unicode=True,       # fix mojibake / encoding artifacts
+        to_ascii=True,          # transliterate accented/unicode chars
+        lower=False,            # keep case; naive_bayes.preprocess() lowercases later
+        no_line_breaks=True,
+        no_urls=True,
+        no_emails=True,
+        no_phone_numbers=True,
+        no_currency_symbols=True,
+        no_punct=False,         # keep punctuation; helps preserve readability for review
+        no_emoji=True,
+        replace_with_url=" ",
+        replace_with_email=" ",
+        replace_with_phone_number=" ",
+        replace_with_currency_symbol=" ",
+    )
+
+    # Collapse runs of 3+ identical characters down to 2
+    # (keeps legitimate doubles like "book" / "class" intact)
+    val = re.sub(r"(.)\1{2,}", r"\1\1", val)
+    val = re.sub(r"\s+", " ", val).strip()
+    return val
 
 
 def load_raw(path: str, sheet_name: str = "All_Data") -> pd.DataFrame:
@@ -86,7 +129,26 @@ def clean(df: pd.DataFrame) -> pd.DataFrame:
     df = df[df["comment"] != ""]
     df = df[df["comment"].str.lower() != "nan"]
 
+    # normalize with clean-text (unicode/url/email/phone/emoji stripping) +
+    # repeated-character collapse, BEFORE the noise check below, so noise
+    # detection runs against normalized text (real-world typos, repeated
+    # chars, and encoding artifacts no longer slip past the filter)
+    df["comment"] = df["comment"].apply(normalize_text)
+    df = df[df["comment"] != ""]
+
     # tihs part filters the noise less than 3 letters comments, along with non informative text from above
+    def is_gibberish_token(word: str) -> bool:
+        """Flags a single unbroken token (no spaces) as likely keyboard
+        mashing, e.g. "dgasdfasgdgdashgdaswgsdagvsadvgsdagvsadgvadsgdas".
+        Real English words used in casual feedback essentially never
+        exceed ~18-19 characters (e.g. "characteristically" = 18,
+        "disproportionately" = 18), while mashed strings tend to run
+        30+ characters — a length-only cutoff at 20 avoids the false
+        positives that vowel-ratio/consonant-run heuristics produce on
+        legitimate long words (e.g. "straightforward").
+        """
+        return len(word) >= 20
+
     def is_noise(val: str) -> bool:
         lower_val = val.lower()
         if lower_val in NON_INFORMATIVE_TEXTS:
@@ -94,6 +156,12 @@ def clean(df: pd.DataFrame) -> pd.DataFrame:
         if len(val) < MIN_CHAR_LENGTH:
             return True
         if val.isdigit():  
+            return True
+        # long single-token strings with no spaces (no real multi-word
+        # comment structure) and low vowel density are almost always
+        # keyboard mashing, not real feedback
+        tokens = val.split()
+        if len(tokens) == 1 and is_gibberish_token(tokens[0]):
             return True
         return False
 
