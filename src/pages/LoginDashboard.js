@@ -519,7 +519,6 @@ const LoginDashboard = () => {
   const [loggedInUser, setLoggedInUser] = useState('');
 
   const [rawLogins, setRawLogins] = useState([]);
-  const [logins, setLogins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -631,39 +630,7 @@ const LoginDashboard = () => {
         return !type.includes('out');
       });
 
-      if (startDate && endDate) {
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
-
-        data = data.filter((item) => {
-          if (!item.TimeLogged) return false;
-          const [datePart] = String(item.TimeLogged).split(' ');
-          const itemDate = new Date(datePart);
-          return itemDate >= start && itemDate <= end;
-        });
-      }
-
       setRawLogins(data);
-
-      let filtered = data;
-      if (selectedCollege && selectedCollege !== 'All') {
-        filtered = filtered.filter(
-          (item) => getCollegeGroup(item.studCollege, item.studCourse, item.studLogType) === selectedCollege
-        );
-      }
-      if (selectedSection && selectedSection !== 'All') {
-        filtered = filtered.filter((item) => item.Section === selectedSection);
-      }
-      if (selectedCourse && selectedCourse !== 'All') {
-        filtered = filtered.filter((item) => isCourseMatch(item.studCourse, selectedCourse));
-      }
-
-      // Apply Henry Luce III Main Library entrance & section deduplication
-      filtered = deduplicateLogins(filtered);
-
-      setLogins(filtered);
-      setPage(0);
     } catch (err) {
       console.error('Error fetching login analytics:', err);
     } finally {
@@ -678,27 +645,56 @@ const LoginDashboard = () => {
     setSelectedSection('All');
     setSelectedCourse('All');
     setSearchTerm('');
-    setLoading(true);
-    try {
-      const response = await axios.get('http://localhost:5000/api/logins');
-      const data = (response.data || []).filter(item => {
-        const type = (item.studLogType || '').toLowerCase();
-        return !type.includes('out');
-      });
-      setRawLogins(data);
-      const deduplicated = deduplicateLogins(data);
-      setLogins(deduplicated);
-      setPage(0);
-    } catch (err) {
-      console.error('Error clearing filters:', err);
-    } finally {
-      setLoading(false);
-    }
+    fetchLogins();
   };
 
   useEffect(() => {
     fetchLogins();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Reactive Logins List (Dynamically Filtered & Deduplicated) ─────────
+  const logins = useMemo(() => {
+    let filtered = rawLogins;
+
+    // Filter by Date Range
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+
+      filtered = filtered.filter((item) => {
+        if (!item.TimeLogged) return false;
+        const [datePart] = String(item.TimeLogged).split(' ');
+        const itemDate = new Date(datePart);
+        return itemDate >= start && itemDate <= end;
+      });
+    }
+
+    // Filter by College
+    if (selectedCollege && selectedCollege !== 'All') {
+      filtered = filtered.filter(
+        (item) => getCollegeGroup(item.studCollege, item.studCourse, item.studLogType) === selectedCollege
+      );
+    }
+
+    // Filter by Section
+    if (selectedSection && selectedSection !== 'All') {
+      filtered = filtered.filter((item) => item.Section === selectedSection);
+    }
+
+    // Filter by Course
+    if (selectedCourse && selectedCourse !== 'All') {
+      filtered = filtered.filter((item) => isCourseMatch(item.studCourse, selectedCourse));
+    }
+
+    // Apply Henry Luce III Main Library entrance & section deduplication
+    return deduplicateLogins(filtered);
+  }, [rawLogins, startDate, endDate, selectedCollege, selectedSection, selectedCourse]);
+
+  // Reset pagination to Page 1 when any filter or search changes
+  useEffect(() => {
+    setPage(0);
+  }, [startDate, endDate, selectedCollege, selectedSection, selectedCourse, searchTerm]);
 
   // ── Dynamic Available Courses Options (Strict College Isolation) ─────────
   const availableCourses = useMemo(() => {
@@ -788,6 +784,13 @@ const LoginDashboard = () => {
     }
   }, [selectedCollege, logins]);
 
+  const sortedColleges = useMemo(() => {
+    return [...collegeChartData].sort((a, b) => b.total - a.total);
+  }, [collegeChartData]);
+
+  const topCollege = sortedColleges.length > 0 && sortedColleges[0].total > 0 ? sortedColleges[0].name : 'N/A';
+  const topCollegeCount = sortedColleges.length > 0 ? sortedColleges[0].total : 0;
+
   const effectiveMode = useMemo(() => {
     if (visualizerMode !== 'auto') return visualizerMode;
     if (selectedCollege !== 'All' && mainChartData.length >= 2 && mainChartData.length <= 4) {
@@ -796,50 +799,60 @@ const LoginDashboard = () => {
     return 'bar';
   }, [visualizerMode, selectedCollege, mainChartData.length]);
 
-  const sortedColleges = useMemo(() => {
-    return [...collegeChartData].sort((a, b) => b.total - a.total);
-  }, [collegeChartData]);
+  // Section distribution for Section Pie Chart & Donut Visualizer (Filtered strictly by selected College, Course, Date Range)
+  const { sectionChartData, donutSlices, collegeSectionTotal } = useMemo(() => {
+    const sectionCounts = {};
 
-  const topCollege = sortedColleges.length > 0 && sortedColleges[0].total > 0 ? sortedColleges[0].name : 'N/A';
-  const topCollegeCount = sortedColleges.length > 0 ? sortedColleges[0].total : 0;
+    let listToCount = rawLogins;
 
-  // Compute logins filtered by College and Course (ignoring Section filter)
-  const collegeAndCourseFilteredLogins = useMemo(() => {
-    let filtered = rawLogins;
+    // Apply Date Filter
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+
+      listToCount = listToCount.filter((item) => {
+        if (!item.TimeLogged) return false;
+        const [datePart] = String(item.TimeLogged).split(' ');
+        const itemDate = new Date(datePart);
+        return itemDate >= start && itemDate <= end;
+      });
+    }
+
+    // Apply College Filter
     if (selectedCollege && selectedCollege !== 'All') {
-      filtered = filtered.filter(
+      listToCount = listToCount.filter(
         (item) => getCollegeGroup(item.studCollege, item.studCourse, item.studLogType) === selectedCollege
       );
     }
+
+    // Apply Course Filter
     if (selectedCourse && selectedCourse !== 'All') {
-      filtered = filtered.filter((item) => isCourseMatch(item.studCourse, selectedCourse));
+      listToCount = listToCount.filter((item) => isCourseMatch(item.studCourse, selectedCourse));
     }
-    return filtered;
-  }, [rawLogins, selectedCollege, selectedCourse]);
 
-  // Section distribution: Entrance baseline (100%), Entrance Only (No Section), and Internal Sections
-  const { sectionChartData, donutSlices } = useMemo(() => {
-    const sectionCounts = {};
-
-    const listToCount = (selectedSection && selectedSection !== 'All')
-      ? logins
-      : collegeAndCourseFilteredLogins;
+    // Deduplicate logins for entrance & section accuracy
+    const deduplicatedList = deduplicateLogins(listToCount);
+    const collegeTotal = deduplicatedList.length;
 
     let internalSum = 0;
-    listToCount.forEach((item) => {
+    deduplicatedList.forEach((item) => {
       const sec = item.Section ? item.Section.trim() : 'Entrance';
-      if (sec.toLowerCase() !== 'entrance') {
+      if (sec.toLowerCase() !== 'entrance' && sec.toLowerCase() !== 'entrance only') {
         sectionCounts[sec] = (sectionCounts[sec] || 0) + 1;
         internalSum += 1;
       }
     });
 
-    const entranceOnly = Math.max(0, totalEntries - internalSum);
+    const entranceOnly = Math.max(0, collegeTotal - internalSum);
 
-    // Donut Slices (Proportions of where patrons spent time)
     const slices = [];
     if (entranceOnly > 0 || Object.keys(sectionCounts).length === 0) {
-      slices.push({ name: 'Entrance Only (No Section)', value: entranceOnly > 0 ? entranceOnly : (totalEntries || 1), isEntranceOnly: true });
+      slices.push({
+        name: 'Entrance Only (No Section)',
+        value: entranceOnly > 0 ? entranceOnly : (collegeTotal || 1),
+        isEntranceOnly: true
+      });
     }
 
     const internalList = Object.keys(sectionCounts)
@@ -849,14 +862,13 @@ const LoginDashboard = () => {
 
     slices.push(...internalList);
 
-    // Full Legend List (Entrance 100% baseline listed FIRST, then slices)
     const fullList = [
-      { name: 'Entrance ', value: totalEntries, isBaseline: true },
+      { name: 'Entrance ', value: collegeTotal, isBaseline: true },
       ...slices
     ];
 
-    return { sectionChartData: fullList, donutSlices: slices };
-  }, [logins, collegeAndCourseFilteredLogins, selectedSection, totalEntries]);
+    return { sectionChartData: fullList, donutSlices: slices, collegeSectionTotal: collegeTotal };
+  }, [rawLogins, startDate, endDate, selectedCollege, selectedCourse]);
 
   const peakSection = sectionChartData.length > 0 ? sectionChartData[0].name : 'N/A';
 
@@ -967,11 +979,9 @@ const LoginDashboard = () => {
     } catch (err) {
       console.error('Error deleting login record:', err);
       if (recordToDelete) {
-        setLogins(prev => prev.filter(r => r.LogID !== recordToDelete.LogID));
         setRawLogins(prev => prev.filter(r => r.LogID !== recordToDelete.LogID));
         setSnackbarMsg('Record removed locally.');
       } else if (selectedLogIds.length > 0) {
-        setLogins(prev => prev.filter(r => !selectedLogIds.includes(r.LogID)));
         setRawLogins(prev => prev.filter(r => !selectedLogIds.includes(r.LogID)));
         setSelectedLogIds([]);
         setSnackbarMsg('Selected records removed locally.');
@@ -1480,7 +1490,7 @@ const LoginDashboard = () => {
                       {/* Right: Section Donut Chart + Side Legends (~30% width matching reference card) */}
                       <Paper elevation={0} sx={{ p: 3, borderRadius: 3.5, border: '1px solid #e2e8f0', bgcolor: '#ffffff', flex: 1.4, minWidth: 280, display: 'flex', flexDirection: 'column' }}>
                         <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 17, mb: 1, color: '#1e293b' }}>
-                          Traffic by Library Section
+                          Traffic by Library Section {selectedCollege !== 'All' ? `(${selectedCollege})` : ''}
                         </Typography>
                         {sectionChartData.length === 0 ? (
                           <Typography color="textSecondary" sx={{ py: 6, textAlign: 'center' }}>No section data available.</Typography>
@@ -1551,10 +1561,10 @@ const LoginDashboard = () => {
                                 transform: 'translate(-50%, -50%)', textAlign: 'center'
                               }}>
                                 <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 22, color: '#1e293b', lineHeight: 1 }}>
-                                  {totalEntries}
+                                  {collegeSectionTotal}
                                 </Typography>
                                 <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>
-                                  Total Visits
+                                  {selectedCollege !== 'All' ? `${selectedCollege} Visits` : 'Total Visits'}
                                 </Typography>
                               </Box>
                             </Box>
@@ -1571,8 +1581,8 @@ const LoginDashboard = () => {
                                 const isEntranceOnly = sec.isEntranceOnly;
                                 const pct = isBaseline
                                   ? '100.0'
-                                  : totalEntries > 0
-                                    ? ((sec.value / totalEntries) * 100).toFixed(1)
+                                  : collegeSectionTotal > 0
+                                    ? ((sec.value / collegeSectionTotal) * 100).toFixed(1)
                                     : '0.0';
 
                                 return (
