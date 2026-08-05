@@ -46,7 +46,7 @@ const DONUT_GRADIENT_CSS = [
   'linear-gradient(135deg, #7b1fa2 0%, #ba68c8 100%)',
   'linear-gradient(135deg, #c62828 0%, #ff8a80 100%)',
   'linear-gradient(135deg, #00796b 0%, #4db6ac 100%)',
-  'linear-gradient(135deg, #303f9f 0%, #7986cb 100%)',
+  'linear-gradient(135deg, #192a96ff 0%, #7986cb 100%)',
   'linear-gradient(135deg, #e65100 0%, #ff9800 100%)',
 ];
 
@@ -126,19 +126,119 @@ const selectSx = {
   }
 };
 
-// ── Summary KPI Card (Styled matching reference dashboard design) ───────
-const SummaryCard = ({ title, value, subtitle, icon, color = '#1a237e' }) => {
+// ── Hover Tooltip Component listing all departments by library activity ─────────
+const DepartmentsHoverList = ({ sortedColleges = [], totalEntries = 0 }) => {
+  const activeColleges = sortedColleges.filter(c => c.total > 0);
+  const inactiveColleges = sortedColleges.filter(c => c.total === 0);
+
   return (
+    <Paper
+      elevation={8}
+      sx={{
+        p: 2.2,
+        bgcolor: '#ffffff',
+        color: '#0f172a',
+        borderRadius: 3.5,
+        maxWidth: 340,
+        width: 320,
+        boxShadow: '0 20px 40px -10px rgba(26, 35, 126, 0.25)',
+        border: '2px solid #1a237e'
+      }}
+    >
+      <Box sx={{ pb: 1.2, mb: 1.5, borderBottom: '2px solid #e8eaf6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 13.5, color: '#1a237e' }}>
+          🏛️ Department Library Activity
+        </Typography>
+        <Chip
+          label={`${activeColleges.length} Active`}
+          size="small"
+          sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 11, bgcolor: '#1a237e15', color: '#1a237e', height: 22 }}
+        />
+      </Box>
+
+      <Box sx={{ maxHeight: 280, overflowY: 'auto', pr: 0.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
+        {activeColleges.length === 0 ? (
+          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#64748b' }}>
+            No recorded department visits yet.
+          </Typography>
+        ) : (
+          activeColleges.map((col, idx) => {
+            const pct = totalEntries > 0 ? ((col.total / totalEntries) * 100).toFixed(1) : '0.0';
+            return (
+              <Box
+                key={col.name}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justify: 'space-between',
+                  p: 1.2,
+                  borderRadius: 2.5,
+                  bgcolor: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    bgcolor: '#e8eaf6',
+                    borderColor: '#1a237e'
+                  }
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+                  <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 11, fontWeight: 900, color: '#1a237e', width: 22 }}>
+                    #{idx + 1}
+                  </Typography>
+                  <Typography noWrap sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12.5, fontWeight: 700, color: '#0f172a' }}>
+                    {col.name}
+                  </Typography>
+                </Box>
+                <Chip
+                  label={`${col.total} (${pct}%)`}
+                  size="small"
+                  sx={{
+                    fontFamily: 'Poppins, sans-serif',
+                    fontSize: 11,
+                    fontWeight: 800,
+                    bgcolor: '#1a237e',
+                    color: '#ffffff',
+                    height: 20,
+                    flexShrink: 0,
+                    ml: 1
+                  }}
+                />
+              </Box>
+            );
+          })
+        )}
+
+        {inactiveColleges.length > 0 && (
+          <Box sx={{ mt: 1, pt: 1.2, borderTop: '1.5px dashed #cbd5e1' }}>
+            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 11, color: '#64748b', fontWeight: 700, mb: 0.5 }}>
+              Inactive Departments (0 Visits):
+            </Typography>
+            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 11, color: '#94a3b8', lineHeight: 1.4, fontWeight: 500 }}>
+              {inactiveColleges.map(c => c.name).join(', ')}
+            </Typography>
+          </Box>
+        )}
+      </Box>
+    </Paper>
+  );
+};
+
+// ── Summary KPI Card (Styled matching reference dashboard design) ───────
+const SummaryCard = ({ title, value, subtitle, icon, color = '#1a237e', tooltipContent = null }) => {
+  const cardContent = (
     <Card elevation={0} sx={{
       borderRadius: 3.5,
       backgroundColor: '#ffffff',
       border: '1.5px solid #e2e8f0',
       flex: 1, minWidth: 180,
       p: 2.5,
+      cursor: tooltipContent ? 'pointer' : 'default',
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       '&:hover': {
         transform: 'translateY(-4px)',
         boxShadow: '0 12px 24px -10px rgba(0, 0, 0, 0.1)',
+        ...(tooltipContent && { borderColor: color })
       }
     }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -159,6 +259,18 @@ const SummaryCard = ({ title, value, subtitle, icon, color = '#1a237e' }) => {
       )}
     </Card>
   );
+
+  if (tooltipContent) {
+    return (
+      <Tooltip title={tooltipContent} arrow placement="top">
+        <Box sx={{ flex: 1, minWidth: 180, display: 'flex' }}>
+          {cardContent}
+        </Box>
+      </Tooltip>
+    );
+  }
+
+  return cardContent;
 };
 
 // ── Item Chips Breakdown Component (UX alternative for low-density / 2-4 course filtering) ───────
@@ -1360,9 +1472,10 @@ const LoginDashboard = () => {
                       <SummaryCard
                         title="Active Departments"
                         value={collegeChartData.filter(c => c.total > 0).length}
-                        subtitle="Colleges with Recorded Visits"
+                        subtitle="Hover to view all department activity"
                         icon={<SchoolIcon sx={{ fontSize: 28 }} />}
                         color="#0288d1"
+                        tooltipContent={<DepartmentsHoverList sortedColleges={sortedColleges} totalEntries={totalEntries} />}
                       />
                     </Box>
 
@@ -1903,18 +2016,28 @@ const LoginDashboard = () => {
 
                         {/* Top Colleges Progress List */}
                         <Box sx={{ mb: 3 }}>
-                          <Typography sx={{ fontSize: 20, fontWeight: 600, color: '#94a3b8', mb: 1, textTransform: 'uppercase' }}>
-                            Top Department Traffic
-                          </Typography>
-                          {sortedColleges.slice(0, 4).map((col) => {
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                              Top Department Traffic (Top 5)
+                            </Typography>
+                            <Tooltip title={<DepartmentsHoverList sortedColleges={sortedColleges} totalEntries={totalEntries} />} arrow placement="left">
+                              <Chip
+                                label="View All Activity"
+                                size="small"
+                                sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 10, bgcolor: '#e0f2fe', color: '#0369a1', cursor: 'pointer', height: 20 }}
+                              />
+                            </Tooltip>
+                          </Box>
+
+                          {sortedColleges.slice(0, 5).map((col, idx) => {
                             const pct = totalEntries > 0 ? (col.total / totalEntries) * 100 : 0;
                             return (
                               <Box key={col.name} sx={{ mb: 1.5 }}>
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                                  <Typography sx={{ fontSize: 18, fontWeight: 600, color: '#334155' }}>
-                                    {col.name}
+                                  <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 700, color: '#1e293b' }}>
+                                    #{idx + 1} {col.name}
                                   </Typography>
-                                  <Typography sx={{ fontSize: 18, color: '#64748b', fontWeight: 600 }}>
+                                  <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#64748b', fontWeight: 700 }}>
                                     {col.total} visits ({pct.toFixed(0)}%)
                                   </Typography>
                                 </Box>
@@ -1922,27 +2045,45 @@ const LoginDashboard = () => {
                               </Box>
                             );
                           })}
+
+                          {/* Others Hover Trigger Badge */}
+                          {sortedColleges.length > 5 && (
+                            <Tooltip title={<DepartmentsHoverList sortedColleges={sortedColleges} totalEntries={totalEntries} />} arrow placement="top">
+                              <Box sx={{
+                                mt: 1.5, p: 1.2, borderRadius: 2.5, bgcolor: '#f8fafc', border: '1.5px dashed #cbd5e1',
+                                display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer',
+                                transition: 'all 0.2s ease', '&:hover': { bgcolor: '#e0f2fe', borderColor: '#0288d1' }
+                              }}>
+                                <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 700, color: '#1a237e' }}>
+                                  + {sortedColleges.length - 5} Other Departments
+                                </Typography>
+                                <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 11, fontWeight: 600, color: '#64748b' }}>
+                                  Hover for full list ➔
+                                </Typography>
+                              </Box>
+                            </Tooltip>
+                          )}
                         </Box>
 
                         {/* Gender Demographics List */}
                         <Box>
-                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 23, fontWeight: 700, color: '#475569', mb: 1.5, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 700, color: '#64748b', mb: 1.5, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                             Patron Gender Split
                           </Typography>
                           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, borderRadius: 2.5, bgcolor: '#f0f9ff', border: '1.5px solid #bae6fd' }}>
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-                                <MaleIcon sx={{ fontSize: 26, color: '#0288d1' }} />
-                                <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 16, fontWeight: 800, color: '#0f172a' }}>Male Visitors</Typography>
+                                <MaleIcon sx={{ fontSize: 24, color: '#0288d1' }} />
+                                <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 14, fontWeight: 800, color: '#0f172a' }}>Male Visitors</Typography>
                               </Box>
-                              <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 22, fontWeight: 900, color: '#0288d1' }}>{genderCounts.Male}</Typography>
+                              <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 20, fontWeight: 900, color: '#0288d1' }}>{genderCounts.Male}</Typography>
                             </Box>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, borderRadius: 2.5, bgcolor: '#fdf4ff', border: '1.5px solid #f5d0fe' }}>
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-                                <FemaleIcon sx={{ fontSize: 26, color: '#7b1fa2' }} />
-                                <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 16, fontWeight: 800, color: '#0f172a' }}>Female Visitors</Typography>
+                                <FemaleIcon sx={{ fontSize: 24, color: '#7b1fa2' }} />
+                                <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 14, fontWeight: 800, color: '#0f172a' }}>Female Visitors</Typography>
                               </Box>
-                              <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 22, fontWeight: 900, color: '#7b1fa2' }}>{genderCounts.Female}</Typography>
+                              <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 20, fontWeight: 900, color: '#7b1fa2' }}>{genderCounts.Female}</Typography>
                             </Box>
                           </Box>
                         </Box>
