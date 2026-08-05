@@ -4,7 +4,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import Pipeline
 
-DEFAULT_CATEGORIES = ["Facilities", "Staff", "Collection"]
+DEFAULT_CATEGORIES = ["Facilities", "Staff", "Collection", "Other/Uncategorized"]
 DEFAULT_CONFIDENCE_THRESHOLD = 0.45
 FALLBACK_LABEL = "Other/Uncategorized"
 
