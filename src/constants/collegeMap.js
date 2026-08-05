@@ -1,5 +1,5 @@
 export const COLLEGE_OPTIONS = [
-  'All', 'CARES', 'CAS', 'CBA', 'CCS', 'COED', 'COE', 'CHM',
+  'All', 'Faculty / Staff', 'CARES', 'CAS', 'CBA', 'CCS', 'COED', 'COE', 'CHM',
   'CMLS', 'CON', 'COP', 'COL', 'COM', 'COT', 'SGS',
   'SHS', 'JHS', 'ELEM', 'KINDER'
 ];
@@ -11,6 +11,7 @@ export const SECTION_OPTIONS = [
 ];
 
 export const COLLEGE_MAP_GROUPS = {
+  'Faculty / Staff': ['FACULTY', 'STAFF'],
   CARES: ['CARES', 'AGRICULTURE', 'ENVIRONMENTAL', 'BSA', 'BSABE', 'BSEM'],
   CAS: ['CAS', 'ARTS', 'SCIENCES', 'BACOMM', 'BAELS', 'BAPOLSCI', 'BSBIO', 'BSCHEM', 'BSPSYC', 'BSSW', 'ABPSPA'],
   CBA: ['CBA', 'BUSINESS', 'ACCOUNTANCY', 'BSACTY', 'BSAD', 'BSBABM', 'BSBAFM', 'BSBAMM', 'BSENT', 'BSBAMA'],
@@ -31,9 +32,12 @@ export const COLLEGE_MAP_GROUPS = {
   SHS: ['SHS', 'SENIOR HIGH SCHOOL', 'SHSTEM', 'SHGAS', 'SHHUMSS', 'SHABM']
 };
 
-export const getCollegeGroup = (collegeStr, courseStr) => {
-  const text = `${collegeStr || ''} ${courseStr || ''}`.trim().toUpperCase();
+export const getCollegeGroup = (collegeStr, courseStr, logTypeStr) => {
+  const text = `${collegeStr || ''} ${courseStr || ''} ${logTypeStr || ''}`.trim().toUpperCase();
   if (!text) return 'N/A';
+  if (text.includes('FACULTY') || text.includes('STAFF')) {
+    return 'Faculty / Staff';
+  }
   for (const [colCode, terms] of Object.entries(COLLEGE_MAP_GROUPS)) {
     for (const term of terms) {
       if (text.includes(term.toUpperCase())) return colCode;

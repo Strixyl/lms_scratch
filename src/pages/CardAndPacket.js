@@ -1,5 +1,5 @@
 import {
-  Grid, Box, Typography, TextField, Button, Dialog, DialogTitle, DialogContent, DialogActions, Modal,
+  Grid, Box, Typography, TextField, Button, Dialog, DialogTitle, DialogContent, DialogActions, Modal, Chip, Divider,
 } from "@mui/material";
 import React, { useState, useEffect, useRef } from "react";
 import Header from '../Components/Header';
@@ -9,6 +9,14 @@ import SearchIcon from '@mui/icons-material/Search';
 import InputAdornment from '@mui/material/InputAdornment';
 import IconButton from '@mui/material/IconButton';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
+import LocalOfferIcon from '@mui/icons-material/LocalOffer';
+import QrCode2Icon from '@mui/icons-material/QrCode2';
+import SaveIcon from '@mui/icons-material/Save';
+import UpdateIcon from '@mui/icons-material/Update';
+import ClearAllIcon from '@mui/icons-material/ClearAll';
+import PrintIcon from '@mui/icons-material/Print';
 import axios from 'axios';
 
 const libraries = ["Elementary School Library", "Henry Luce III Library", "Kindergarten Library", "Junior High School Library", "Law Library", "Senior High School Library", "Theology Library"];
@@ -81,8 +89,12 @@ export default function CardAndPacket() {
         params: { accessionNumber: searchQuery.trim() }
       });
       if (response.data.length === 0) { alert('No entries found.'); return; }
-      setSearchResults(response.data);
-      setOpenModal(true);
+      if (response.data.length === 1) {
+        loadSelectedEntry(response.data[0]);
+      } else {
+        setSearchResults(response.data);
+        setOpenModal(true);
+      }
     } catch (error) {
       console.error('Error searching:', error);
       alert('An error occurred during search.');
@@ -133,6 +145,7 @@ export default function CardAndPacket() {
   };
 
   const handleClear = () => {
+    setSelectedDocId(null);
     setSelectedLibrary1(''); setSelectedLibrary2(''); setSelectedLibrary3(''); setSelectedLibrary4('');
     setSection1(''); setSection2(''); setSection3(''); setSection4('');
     setAuthorLastName(''); setAuthorLastName2(''); setAuthorLastName3(''); setAuthorLastName4('');
@@ -508,76 +521,340 @@ export default function CardAndPacket() {
       <Box sx={{ width: '100%', px: { xs: 2, sm: 3, md: 4 }, py: 3, boxSizing: 'border-box' }}>
         <Box sx={{ display: 'flex', gap: { xs: 2, md: 3 }, width: '100%', boxSizing: 'border-box', flexWrap: { xs: 'wrap', md: 'nowrap' } }}>
           {columns.map((col, i) => (
-            <Box key={i} sx={{ flex: { xs: '1 1 100%', md: '1 1 0px' }, minWidth: 0 }}>
-              <Typography sx={{ fontWeight: 'light', fontStyle: 'italic', pb: 2 }}>{col.label}</Typography>
+            <Box
+              key={i}
+              sx={{
+                flex: { xs: '1 1 100%', md: '1 1 0px' },
+                minWidth: 0,
+                border: '1.5px solid #cbd5e1',
+                borderRadius: '16px',
+                bgcolor: '#ffffff',
+                boxShadow: '0 4px 20px rgba(15, 23, 42, 0.06)',
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                '&:hover': {
+                  borderColor: '#94a3b8',
+                  boxShadow: '0 12px 28px rgba(27, 54, 93, 0.12)',
+                  transform: 'translateY(-3px)',
+                },
+              }}
+            >
+              {/* Form Column Banner Header */}
+              <Box
+                sx={{
+                  bgcolor: '#1b365d',
+                  color: '#ffffff',
+                  px: 2.5,
+                  py: 1.8,
+                  borderBottom: '3.5px solid #d49f1e',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+                  <Box
+                    sx={{
+                      bgcolor: '#d49f1e',
+                      color: '#1b365d',
+                      fontWeight: 800,
+                      fontSize: '0.85rem',
+                      borderRadius: '50%',
+                      width: 28,
+                      height: 28,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+                    }}
+                  >
+                    {i + 1}
+                  </Box>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#ffffff', fontSize: '1rem', letterSpacing: '0.2px' }}>
+                    Form {i + 1} &ndash; {col.label}
+                  </Typography>
+                </Box>
+              </Box>
 
-              <Typography fontWeight="bold">
-                Library <Typography component="span" sx={{ color: '#ef4444', fontWeight: 'bold' }}>*</Typography>
-              </Typography>
-              <Autocomplete options={libraries} freeSolo value={col.library} onChange={col.setLibrary}
-                renderInput={(params) => <TextField {...params} label="Choose library *" margin="dense" variant="outlined" fullWidth sx={{ mb: 3 }} />} />
+              {/* Form Body - Visual Separation for every inputting part */}
+              <Box sx={{ p: { xs: 2, sm: 2.25 }, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                
+                {/* Part 1: Location & Department */}
+                <Box
+                  sx={{
+                    p: 2,
+                    borderRadius: '10px',
+                    bgcolor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderLeft: '4px solid #2563eb',
+                    transition: 'all 0.2s ease',
+                    '&:hover': { bgcolor: '#f1f5f9', borderColor: '#cbd5e1' },
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 1.5 }}>
+                    <LocationOnIcon sx={{ color: '#2563eb', fontSize: 18 }} />
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontWeight: 700,
+                        color: '#1e40af',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.6px',
+                        fontSize: '0.75rem',
+                      }}
+                    >
+                      Location & Department
+                    </Typography>
+                  </Box>
 
-              <Typography fontWeight="bold">
-                Section <Typography component="span" sx={{ color: '#ef4444', fontWeight: 'bold' }}>*</Typography>
-              </Typography>
-              <Autocomplete options={sections} freeSolo value={col.section} onChange={col.setSection}
-                renderInput={(params) => <TextField {...params} label="Choose section *" margin="dense" variant="outlined" fullWidth sx={{ mb: 3 }} />} />
+                  <Typography fontWeight="600" fontSize="0.82rem" sx={{ color: '#0f172a', mb: 0.5 }}>
+                    Library <Typography component="span" sx={{ color: '#ef4444', fontWeight: 'bold' }}>*</Typography>
+                  </Typography>
+                  <Autocomplete
+                    options={libraries}
+                    freeSolo
+                    value={col.library}
+                    onChange={col.setLibrary}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        placeholder="Choose library *"
+                        size="small"
+                        margin="dense"
+                        variant="outlined"
+                        fullWidth
+                        sx={{ mb: 1.8, bgcolor: '#ffffff' }}
+                      />
+                    )}
+                  />
 
-              <Typography fontWeight="bold">
-                Author (Full Name)
-              </Typography>
-              <TextField
-                value={col.authorName}
-                onChange={col.setAuthorName}
-                fullWidth
-                label="Author Full Name"
-                placeholder="e.g. Last Name, First Name M.I."
-                margin="dense"
-                variant="outlined"
-              />
+                  <Typography fontWeight="600" fontSize="0.82rem" sx={{ color: '#0f172a', mb: 0.5 }}>
+                    Section <Typography component="span" sx={{ color: '#ef4444', fontWeight: 'bold' }}>*</Typography>
+                  </Typography>
+                  <Autocomplete
+                    options={sections}
+                    freeSolo
+                    value={col.section}
+                    onChange={col.setSection}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        placeholder="Choose section *"
+                        size="small"
+                        margin="dense"
+                        variant="outlined"
+                        fullWidth
+                        sx={{ bgcolor: '#ffffff' }}
+                      />
+                    )}
+                  />
+                </Box>
 
-              <Typography fontWeight="bold" sx={{ mt: 1.5, color: '#334155' }}>
-                Publisher (Corporate / Institutional Author)
-              </Typography>
-              <TextField
-                value={col.publisher}
-                onChange={col.setPublisher}
-                fullWidth
-                label="Publisher Name"
-                placeholder="Enter Publisher Name"
-                margin="dense"
-                variant="outlined"
-                sx={{ mb: 3 }}
-              />
+                {/* Part 2: Bibliographic Information */}
+                <Box
+                  sx={{
+                    p: 2,
+                    borderRadius: '10px',
+                    bgcolor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderLeft: '4px solid #059669',
+                    transition: 'all 0.2s ease',
+                    '&:hover': { bgcolor: '#f1f5f9', borderColor: '#cbd5e1' },
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 1.5 }}>
+                    <MenuBookIcon sx={{ color: '#059669', fontSize: 18 }} />
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontWeight: 700,
+                        color: '#065f46',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.6px',
+                        fontSize: '0.75rem',
+                      }}
+                    >
+                      Bibliographic Details
+                    </Typography>
+                  </Box>
 
-              <Typography fontWeight="bold">
-                Title <Typography component="span" sx={{ color: '#ef4444', fontWeight: 'bold' }}>*</Typography>
-              </Typography>
-              <TextField value={col.title} onChange={col.setTitle} fullWidth multiline minRows={3} label="Book Title *" margin="dense" variant="outlined" sx={{ mb: 3 }} />
+                  <Typography fontWeight="600" fontSize="0.82rem" sx={{ color: '#0f172a', mb: 0.5 }}>
+                    Author (Full Name)
+                  </Typography>
+                  <TextField
+                    value={col.authorName}
+                    onChange={col.setAuthorName}
+                    fullWidth
+                    size="small"
+                    placeholder="e.g. Last Name, First Name M.I."
+                    margin="dense"
+                    variant="outlined"
+                    sx={{ mb: 1.8, bgcolor: '#ffffff' }}
+                  />
 
-              <Typography fontWeight="bold">
-                Accession Number <Typography component="span" sx={{ color: '#ef4444', fontWeight: 'bold' }}>*</Typography>
-              </Typography>
-              <TextField fullWidth margin="dense" variant="outlined" label="Accession Number *" sx={{ mb: 3 }} value={col.accession} onChange={col.setAccession} />
+                  <Typography fontWeight="600" fontSize="0.82rem" sx={{ color: '#0f172a', mb: 0.5 }}>
+                    Publisher (Corporate / Institutional)
+                  </Typography>
+                  <TextField
+                    value={col.publisher}
+                    onChange={col.setPublisher}
+                    fullWidth
+                    size="small"
+                    placeholder="Enter Publisher Name"
+                    margin="dense"
+                    variant="outlined"
+                    sx={{ mb: 1.8, bgcolor: '#ffffff' }}
+                  />
 
-              <Typography fontWeight="bold">Call Number</Typography>
-              <TextField value={col.callNum} onChange={col.setCallNum} fullWidth multiline minRows={6} label="Call Number" margin="dense" variant="outlined" sx={{ mb: 3 }} />
+                  <Typography fontWeight="600" fontSize="0.82rem" sx={{ color: '#0f172a', mb: 0.5 }}>
+                    Title <Typography component="span" sx={{ color: '#ef4444', fontWeight: 'bold' }}>*</Typography>
+                  </Typography>
+                  <TextField
+                    value={col.title}
+                    onChange={col.setTitle}
+                    fullWidth
+                    size="small"
+                    multiline
+                    minRows={3}
+                    placeholder="Book Title *"
+                    margin="dense"
+                    variant="outlined"
+                    sx={{ bgcolor: '#ffffff' }}
+                  />
+                </Box>
 
-              <Typography fontWeight="bold">Barcode</Typography>
-              <TextField fullWidth margin="dense" variant="outlined" sx={{ mb: 3 }} value={col.barcode} label="Auto-generated Barcode" onChange={col.setBarcode} />
+                {/* Part 3: Accession & Classification */}
+                <Box
+                  sx={{
+                    p: 2,
+                    borderRadius: '10px',
+                    bgcolor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderLeft: '4px solid #d97706',
+                    transition: 'all 0.2s ease',
+                    '&:hover': { bgcolor: '#f1f5f9', borderColor: '#cbd5e1' },
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 1.5 }}>
+                    <LocalOfferIcon sx={{ color: '#d97706', fontSize: 18 }} />
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontWeight: 700,
+                        color: '#92400e',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.6px',
+                        fontSize: '0.75rem',
+                      }}
+                    >
+                      Accession & Call Number
+                    </Typography>
+                  </Box>
 
-              <Typography fontWeight="bold">ISO Code</Typography>
-              <TextField fullWidth margin="dense" variant="outlined" sx={{ mb: 3 }} value={col.isoCode} label="Auto-generated ISO Code" onChange={col.setIsoCode} />
+                  <Typography fontWeight="600" fontSize="0.82rem" sx={{ color: '#0f172a', mb: 0.5 }}>
+                    Accession Number <Typography component="span" sx={{ color: '#ef4444', fontWeight: 'bold' }}>*</Typography>
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    margin="dense"
+                    variant="outlined"
+                    placeholder="Accession Number *"
+                    sx={{ mb: 1.8, bgcolor: '#ffffff' }}
+                    value={col.accession}
+                    onChange={col.setAccession}
+                  />
+
+                  <Typography fontWeight="600" fontSize="0.82rem" sx={{ color: '#0f172a', mb: 0.5 }}>
+                    Call Number
+                  </Typography>
+                  <TextField
+                    value={col.callNum}
+                    onChange={col.setCallNum}
+                    fullWidth
+                    size="small"
+                    multiline
+                    minRows={4}
+                    placeholder="Call Number"
+                    margin="dense"
+                    variant="outlined"
+                    sx={{ bgcolor: '#ffffff' }}
+                  />
+                </Box>
+
+                {/* Part 4: Barcode & System Codes */}
+                <Box
+                  sx={{
+                    p: 2,
+                    borderRadius: '10px',
+                    bgcolor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderLeft: '4px solid #7c3aed',
+                    transition: 'all 0.2s ease',
+                    '&:hover': { bgcolor: '#f1f5f9', borderColor: '#cbd5e1' },
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 1.5 }}>
+                    <QrCode2Icon sx={{ color: '#7c3aed', fontSize: 18 }} />
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontWeight: 700,
+                        color: '#5b21b6',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.6px',
+                        fontSize: '0.75rem',
+                      }}
+                    >
+                      System Barcode & ISO Code
+                    </Typography>
+                  </Box>
+
+                  <Typography fontWeight="600" fontSize="0.82rem" sx={{ color: '#0f172a', mb: 0.5 }}>
+                    Barcode
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    margin="dense"
+                    variant="outlined"
+                    sx={{ mb: 1.8, bgcolor: '#ffffff' }}
+                    value={col.barcode}
+                    placeholder="Auto-generated Barcode"
+                    onChange={col.setBarcode}
+                  />
+
+                  <Typography fontWeight="600" fontSize="0.82rem" sx={{ color: '#0f172a', mb: 0.5 }}>
+                    ISO Code
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    margin="dense"
+                    variant="outlined"
+                    sx={{ bgcolor: '#ffffff' }}
+                    value={col.isoCode}
+                    placeholder="Auto-generated ISO Code"
+                    onChange={col.setIsoCode}
+                  />
+                </Box>
+
+              </Box>
             </Box>
           ))}
         </Box>
       </Box>
 
       <Grid container spacing={2} sx={{ px: { xs: 2, sm: 4, md: 8, lg: 10 }, pb: { xs: 4, sm: 6, md: 10, lg: 20 }, pt: { xs: 2, sm: 3 } }} justifyContent="center" alignItems="center">
-        <Button variant="contained" color="primary" onClick={handleSave} sx={{ mr: 1 }}>Save Entry</Button>
-        <Button variant="contained" color="primary" onClick={handleUpdate} sx={{ mr: 1 }}>Update Entry</Button>
-        <Button variant="contained" color="primary" onClick={handleClear} sx={{ mr: 1 }}>Clear Entry</Button>
-        <Button variant="contained" color="primary" onClick={handleOpenPrint}>Print Entry</Button>
+        {!selectedDocId ? (
+          <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSave} sx={{ mr: 1.5, bgcolor: '#1b365d', '&:hover': { bgcolor: '#0f2444' }, borderRadius: 2.5, px: 3.5, py: 1.2, fontWeight: 700, boxShadow: '0 4px 12px rgba(27, 54, 93, 0.25)' }}>Save Entry</Button>
+        ) : (
+          <Button variant="contained" startIcon={<UpdateIcon />} onClick={handleUpdate} sx={{ mr: 1.5, bgcolor: '#0288d1', '&:hover': { bgcolor: '#01579b' }, borderRadius: 2.5, px: 3.5, py: 1.2, fontWeight: 700, boxShadow: '0 4px 12px rgba(2, 136, 209, 0.25)' }}>Update Entry</Button>
+        )}
+        <Button variant="contained" startIcon={<ClearAllIcon />} onClick={handleClear} sx={{ mr: 1.5, bgcolor: '#64748b', '&:hover': { bgcolor: '#475569' }, borderRadius: 2.5, px: 3.5, py: 1.2, fontWeight: 700, boxShadow: '0 4px 12px rgba(100, 116, 139, 0.2)' }}>Clear Entry</Button>
+        <Button variant="contained" startIcon={<PrintIcon />} onClick={handleOpenPrint} sx={{ bgcolor: '#2e7d32', '&:hover': { bgcolor: '#1b5e20' }, borderRadius: 2.5, px: 3.5, py: 1.2, fontWeight: 700, boxShadow: '0 4px 12px rgba(46, 125, 50, 0.25)' }}>Print Entry</Button>
       </Grid>
 
       {showBackToTop && (

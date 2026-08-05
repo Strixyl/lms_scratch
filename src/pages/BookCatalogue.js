@@ -27,7 +27,10 @@ import {
   Checkbox,
   Divider,
   Stack,
-  Tooltip
+  Tooltip,
+  Autocomplete,
+  Tabs,
+  Tab
 } from '@mui/material';
 import {
   Refresh as RefreshIcon,
@@ -38,11 +41,59 @@ import {
   Clear as ClearIcon,
   TableChart as TableChartIcon,
   GridView as GridViewIcon,
-  Visibility as VisibilityIcon
+  Visibility as VisibilityIcon,
+  PostAdd as PostAddIcon,
+  Add as AddIcon
 } from '@mui/icons-material';
 import * as XLSX from 'xlsx';
 import Header from '../Components/Header';
 import TopBar from '../Components/TopBar';
+
+const initialEncodeState = {
+  library: '',
+  section: '',
+  authorName: '',
+  publisherAuthor: '',
+  bookTitle: '',
+  accessionNumber: '',
+  callNumber: '',
+  barcodeValue: '',
+  isoCodeValue: '',
+  copyNumber: '',
+};
+
+const librariesList = [
+  "Elementary School Library",
+  "Henry Luce III Library",
+  "Kindergarten Library",
+  "Junior High School Library",
+  "Law Library",
+  "Senior High School Library",
+  "Theology Library"
+];
+
+const sectionsList = [
+  "American Corner",
+  "Archives",
+  "Circulation",
+  "Elementary",
+  "Filipiniana",
+  "General Library",
+  "Graduate Studies Library",
+  "Junior High School",
+  "Kindergarten",
+  "Medicine",
+  "Meyer Asian Collection",
+  "Law",
+  "Library Science Collection",
+  "Periodicals",
+  "Rare Filipiniana",
+  "Reference",
+  "Senior High School",
+  "Serials",
+  "Theology Library",
+  "Thesis Collection"
+];
 
 const BookCatalogue = () => {
   const [cardPackets, setCardPackets] = useState([]);
@@ -56,11 +107,116 @@ const BookCatalogue = () => {
   const [previewBook, setPreviewBook] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
+  // Staff Encoding Modal states
+  const [encodeModalOpen, setEncodeModalOpen] = useState(false);
+  const [encodeData, setEncodeData] = useState(initialEncodeState);
+
+  const getBarcodePrefix = (lib) => {
+    const map = {
+      'Henry Luce III Library': 'HL00',
+      'Elementary School Library': 'ESL00',
+      'Kindergarten Library': 'KL00',
+      'Junior High School Library': 'JHSL00',
+      'Law Library': 'HL00',
+      'Senior High School Library': 'SHSL00',
+      'Theology Library': 'TL00',
+    };
+    return map[lib] || '';
+  };
+
+  const getIsoCode = (lib) => {
+    const map = {
+      'Henry Luce III Library': 'CPULRS-06 REV. 02 April 13,2023',
+      'Elementary School Library': 'CPULRS-06 REV. 02 April 13,2023',
+      'Kindergarten Library': 'CPULRS-06 REV. 02 April 13,2023',
+      'Junior High School Library': 'CPUJHSL-2023',
+      'Law Library': 'CPULRS-06 REV. 02 April 13,2023',
+      'Senior High School Library': 'CPUSHSL-2023',
+      'Theology Library': 'CPUTL-2023',
+    };
+    return map[lib] || '';
+  };
+
+  const handleEncodeFieldChange = (field, val) => {
+    setEncodeData((prev) => ({ ...prev, [field]: val }));
+  };
+
+  const handleEncodeLibChange = (val) => {
+    const lib = val || '';
+    const prefix = getBarcodePrefix(lib);
+    const iso = getIsoCode(lib);
+    const acc = encodeData.accessionNumber || '';
+    setEncodeData((prev) => ({
+      ...prev,
+      library: lib,
+      isoCodeValue: iso,
+      barcodeValue: acc ? `${prefix}${acc}` : prev.barcodeValue,
+    }));
+  };
+
+  const handleEncodeAccChange = (val) => {
+    const prefix = getBarcodePrefix(encodeData.library);
+    setEncodeData((prev) => ({
+      ...prev,
+      accessionNumber: val,
+      barcodeValue: `${prefix}${val}`,
+    }));
+  };
+
+  const resetEncodeForm = () => {
+    setEncodeData(initialEncodeState);
+  };
+
+  const handleSaveEncoding = async (shouldEncodeAnother = false) => {
+    const lib = (encodeData.library || '').trim();
+    const title = (encodeData.bookTitle || '').trim();
+    const acc = (encodeData.accessionNumber || '').trim();
+
+    if (!lib || !title || !acc) {
+      alert('Please fill out Library, Book Title, and Accession Number!');
+      return;
+    }
+    try {
+      await axios.post('http://localhost:5000/api/card-and-packet', {
+        selectedLibrary1: lib,
+        section1: (encodeData.section || '').trim(),
+        authorName1: (encodeData.authorName || '').trim(),
+        publisherAuthor1: (encodeData.publisherAuthor || '').trim(),
+        bookTitle1: title,
+        accessionNumber1: acc,
+        callNumber1: (encodeData.callNumber || '').trim(),
+        barcodeValue1: (encodeData.barcodeValue || '').trim(),
+        isoCodeValue1: (encodeData.isoCodeValue || '').trim(),
+        copyNumber1: (encodeData.copyNumber || '').trim(),
+        selectedLibrary2: '', section2: '', authorName2: '', publisherAuthor2: '', bookTitle2: '', accessionNumber2: '', callNumber2: '', copyNumber2: '', barcodeValue2: '', isoCodeValue2: '',
+        selectedLibrary3: '', section3: '', authorName3: '', publisherAuthor3: '', bookTitle3: '', accessionNumber3: '', callNumber3: '', copyNumber3: '', barcodeValue3: '', isoCodeValue3: '',
+        selectedLibrary4: '', section4: '', authorName4: '', publisherAuthor4: '', bookTitle4: '', accessionNumber4: '', callNumber4: '', copyNumber4: '', barcodeValue4: '', isoCodeValue4: '',
+      });
+
+      alert('Book card and packet entry encoded successfully!');
+      fetchCardPackets();
+
+      if (shouldEncodeAnother) {
+        resetEncodeForm();
+      } else {
+        setEncodeModalOpen(false);
+        resetEncodeForm();
+      }
+    } catch (error) {
+      if (error.response?.status === 400) {
+        alert(error.response.data.message);
+      } else {
+        console.error('Error encoding book:', error);
+        alert('Failed to encode book entry.');
+      }
+    }
+  };
+
   const fetchCardPackets = async () => {
     try {
       const res = await axios.get('http://localhost:5000/api/card-and-packet');
-      const formatted = res.data.map((row) => ({
-        id: row.CardID,
+      const formatted = res.data.map((row, index) => ({
+        id: row.CardID || row.id || `card-${index}`,
         ...row,
       }));
       setCardPackets(formatted);
@@ -88,12 +244,13 @@ const BookCatalogue = () => {
   // Flatten book entries (1-4)
   const flatBookData = useMemo(() => {
     const list = [];
-    cardPackets.forEach((record) => {
+    cardPackets.forEach((record, recordIndex) => {
+      const recId = record.CardID || record.id || record.CardId || `rec-${recordIndex}`;
       for (let i = 1; i <= 4; i++) {
         if (record[`selectedLibrary${i}`] || record[`bookTitle${i}`]) {
           list.push({
-            id: `${record.id}-${i}`,
-            recordId: record.id,
+            id: `${recId}-${i}`,
+            recordId: recId,
             bookNum: i,
             library: record[`selectedLibrary${i}`] || 'N/A',
             section: record[`section${i}`] || 'General',
@@ -112,20 +269,72 @@ const BookCatalogue = () => {
     return list;
   }, [cardPackets]);
 
-  // Unique Library and Section values
+  // Unique Library and Section values matching CardAndPacket
   const availableLibraries = useMemo(() => {
-    const libs = new Set(flatBookData.map((b) => b.library).filter(Boolean));
-    return ['ALL', ...Array.from(libs)];
+    const libs = new Set([...librariesList, ...flatBookData.map((b) => b.library).filter((l) => l && l !== 'N/A')]);
+    return ['ALL', ...Array.from(libs).sort()];
   }, [flatBookData]);
 
   const availableSections = useMemo(() => {
-    const secs = new Set(flatBookData.map((b) => b.section).filter(Boolean));
-    return ['ALL', ...Array.from(secs)];
+    const secs = new Set([...sectionsList, ...flatBookData.map((b) => b.section).filter(Boolean)]);
+    return ['ALL', ...Array.from(secs).sort()];
   }, [flatBookData]);
 
-  // Filtered book records
+  const modalLibrariesOptions = useMemo(() => {
+    const libs = new Set([...librariesList, ...flatBookData.map((b) => b.library).filter((l) => l && l !== 'N/A')]);
+    return Array.from(libs).sort();
+  }, [flatBookData]);
+
+  const modalSectionsOptions = useMemo(() => {
+    const secs = new Set([...sectionsList, ...flatBookData.map((b) => b.section).filter(Boolean)]);
+    return Array.from(secs).sort();
+  }, [flatBookData]);
+
+  // Selection set helper (Handles both 'include' and 'exclude' DataGrid v8 models)
+  const selectedSet = useMemo(() => {
+    if (!rowSelectionModel) return new Set();
+
+    let rawIds = new Set();
+    let isExclude = false;
+
+    if (rowSelectionModel && typeof rowSelectionModel === 'object' && !Array.isArray(rowSelectionModel) && !(rowSelectionModel instanceof Set)) {
+      isExclude = rowSelectionModel.type === 'exclude';
+      if (rowSelectionModel.ids instanceof Set) {
+        rawIds = rowSelectionModel.ids;
+      } else if (Array.isArray(rowSelectionModel.ids)) {
+        rawIds = new Set(rowSelectionModel.ids);
+      }
+    } else if (rowSelectionModel instanceof Set) {
+      rawIds = rowSelectionModel;
+    } else if (Array.isArray(rowSelectionModel)) {
+      rawIds = new Set(rowSelectionModel);
+    }
+
+    if (isExclude) {
+      const selected = new Set();
+      flatBookData.forEach((b) => {
+        if (!rawIds.has(b.id)) {
+          selected.add(b.id);
+        }
+      });
+      return selected;
+    }
+
+    return rawIds;
+  }, [rowSelectionModel, flatBookData]);
+
+  // Always guaranteed object with valid .ids Set for DataGrid v8
+  const normalizedSelectionModel = useMemo(() => {
+    if (rowSelectionModel && rowSelectionModel.ids instanceof Set) return rowSelectionModel;
+    return { type: 'include', ids: selectedSet };
+  }, [rowSelectionModel, selectedSet]);
+
+  // Filtered book records (Always keeps checked/selected books visible)
   const filteredBookData = useMemo(() => {
     return flatBookData.filter((book) => {
+      // Always include checked/selected books so searching does NOT filter them out
+      if (selectedSet.has(book.id)) return true;
+
       const matchesLib = selectedLibraryFilter === 'ALL' || book.library === selectedLibraryFilter;
       const matchesSec = selectedSectionFilter === 'ALL' || book.section === selectedSectionFilter;
 
@@ -143,26 +352,46 @@ const BookCatalogue = () => {
 
       return matchesLib && matchesSec && matchesSearch;
     });
-  }, [flatBookData, searchTerm, selectedLibraryFilter, selectedSectionFilter]);
-
-  // Selection set helper
-  const selectedSet = useMemo(() => {
-    if (!rowSelectionModel) return new Set();
-    if (rowSelectionModel.ids instanceof Set) return rowSelectionModel.ids;
-    if (Array.isArray(rowSelectionModel)) return new Set(rowSelectionModel);
-    if (Array.isArray(rowSelectionModel.ids)) return new Set(rowSelectionModel.ids);
-    return new Set();
-  }, [rowSelectionModel]);
+  }, [flatBookData, searchTerm, selectedLibraryFilter, selectedSectionFilter, selectedSet]);
 
   const selectedRows = useMemo(() => {
     return flatBookData.filter((row) => selectedSet.has(row.id));
   }, [flatBookData, selectedSet]);
+
+  const isAllSelected = useMemo(() => {
+    return filteredBookData.length > 0 && filteredBookData.every((b) => selectedSet.has(b.id));
+  }, [filteredBookData, selectedSet]);
+
+  const handleRowSelectionModelChange = (newModel) => {
+    if (newModel && typeof newModel === 'object' && !Array.isArray(newModel)) {
+      setRowSelectionModel({
+        type: newModel.type || 'include',
+        ids: newModel.ids instanceof Set ? newModel.ids : new Set(newModel.ids || [])
+      });
+    } else if (newModel instanceof Set) {
+      setRowSelectionModel({ type: 'include', ids: newModel });
+    } else if (Array.isArray(newModel)) {
+      setRowSelectionModel({ type: 'include', ids: new Set(newModel) });
+    } else {
+      setRowSelectionModel({ type: 'include', ids: new Set() });
+    }
+  };
 
   const handleToggleSelectRow = (id) => {
     const next = new Set(selectedSet);
     if (next.has(id)) next.delete(id);
     else next.add(id);
     setRowSelectionModel({ type: 'include', ids: next });
+  };
+
+  const handleToggleSelectAll = () => {
+    if (isAllSelected) {
+      setRowSelectionModel({ type: 'include', ids: new Set() });
+    } else {
+      const next = new Set(selectedSet);
+      filteredBookData.forEach((b) => next.add(b.id));
+      setRowSelectionModel({ type: 'include', ids: next });
+    }
   };
 
   // Export Excel
@@ -531,6 +760,23 @@ const BookCatalogue = () => {
               {/* Action Buttons */}
               <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
                 <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={<PostAddIcon fontSize="small" />}
+                  onClick={() => setEncodeModalOpen(true)}
+                  sx={{
+                    borderRadius: 1.5,
+                    textTransform: 'none',
+                    bgcolor: '#1b365d',
+                    color: '#ffffff',
+                    fontWeight: 700,
+                    '&:hover': { bgcolor: '#0f2744' },
+                  }}
+                >
+                  + Encode Book
+                </Button>
+
+                <Button
                   variant="outlined"
                   size="small"
                   startIcon={<RefreshIcon fontSize="small" />}
@@ -538,6 +784,15 @@ const BookCatalogue = () => {
                   sx={{ borderRadius: 1.5, textTransform: 'none', borderColor: '#d49f1e', color: '#b45309' }}
                 >
                   Refresh
+                </Button>
+
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={handleToggleSelectAll}
+                  sx={{ borderRadius: 1.5, textTransform: 'none', borderColor: '#1b365d', color: '#1b365d', fontWeight: 600 }}
+                >
+                  {isAllSelected ? 'Deselect All' : `Select All (${filteredBookData.length})`}
                 </Button>
 
                 <Button
@@ -598,8 +853,8 @@ const BookCatalogue = () => {
                   disableColumnFilter={false}
                   disableColumnMenu={false}
                   getRowId={(row) => row.id}
-                  onRowSelectionModelChange={(newModel) => setRowSelectionModel(newModel)}
-                  rowSelectionModel={rowSelectionModel}
+                  onRowSelectionModelChange={handleRowSelectionModelChange}
+                  rowSelectionModel={normalizedSelectionModel}
                   initialState={{
                     pagination: { paginationModel: { pageSize: 10 } },
                   }}
@@ -825,6 +1080,225 @@ const BookCatalogue = () => {
               <Button size="small" onClick={handleExecuteDelete} color="error" variant="contained">
                 Delete
               </Button>
+            </DialogActions>
+          </Dialog>
+
+          {/* Staff Single Book Encoding Modal */}
+          <Dialog open={encodeModalOpen} onClose={() => setEncodeModalOpen(false)} maxWidth="md" fullWidth>
+            <DialogTitle sx={{ bgcolor: '#1b365d', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 3, py: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <PostAddIcon sx={{ color: '#d49f1e', fontSize: 26 }} />
+                <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1.15rem' }}>
+                  Encode Book Card & Packet Entry
+                </Typography>
+              </Box>
+              <IconButton size="small" onClick={() => setEncodeModalOpen(false)} sx={{ color: '#ffffff', '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' } }}>
+                <ClearIcon />
+              </IconButton>
+            </DialogTitle>
+
+            <DialogContent sx={{ p: 3, bgcolor: '#f8fafc' }}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2.5, pt: 1 }}>
+
+                {/* Library */}
+                <Box>
+                  <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a' }}>
+                    Library <span style={{ color: '#ef4444' }}>*</span>
+                  </Typography>
+                  <Autocomplete
+                    options={modalLibrariesOptions}
+                    freeSolo
+                    value={encodeData.library}
+                    onChange={(e, val) => handleEncodeLibChange(val)}
+                    renderInput={(params) => <TextField {...params} size="small" placeholder="Choose or type library..." fullWidth sx={{ bgcolor: '#ffffff' }} />}
+                  />
+                </Box>
+
+                {/* Section */}
+                <Box>
+                  <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a' }}>
+                    Section
+                  </Typography>
+                  <Autocomplete
+                    options={modalSectionsOptions}
+                    freeSolo
+                    value={encodeData.section}
+                    onChange={(e, val) => handleEncodeFieldChange('section', val || '')}
+                    renderInput={(params) => <TextField {...params} size="small" placeholder="Choose or type section..." fullWidth sx={{ bgcolor: '#ffffff' }} />}
+                  />
+                </Box>
+
+                {/* Author */}
+                <Box>
+                  <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a' }}>
+                    Author (Full Name)
+                  </Typography>
+                  <TextField
+                    size="small"
+                    fullWidth
+                    placeholder="e.g. Last Name, First Name M.I."
+                    value={encodeData.authorName}
+                    onChange={(e) => handleEncodeFieldChange('authorName', e.target.value)}
+                    sx={{ bgcolor: '#ffffff' }}
+                  />
+                </Box>
+
+                {/* Publisher */}
+                <Box>
+                  <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a' }}>
+                    Publisher / Corporate Author
+                  </Typography>
+                  <TextField
+                    size="small"
+                    fullWidth
+                    placeholder="Enter publisher or institution name"
+                    value={encodeData.publisherAuthor}
+                    onChange={(e) => handleEncodeFieldChange('publisherAuthor', e.target.value)}
+                    sx={{ bgcolor: '#ffffff' }}
+                  />
+                </Box>
+
+                {/* Book Title - Full Width */}
+                <Box sx={{ gridColumn: { xs: 'span 1', sm: 'span 2' } }}>
+                  <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a' }}>
+                    Book Title <span style={{ color: '#ef4444' }}>*</span>
+                  </Typography>
+                  <TextField
+                    size="small"
+                    fullWidth
+                    multiline
+                    minRows={2}
+                    placeholder="Enter complete book title..."
+                    value={encodeData.bookTitle}
+                    onChange={(e) => handleEncodeFieldChange('bookTitle', e.target.value)}
+                    sx={{ bgcolor: '#ffffff' }}
+                  />
+                </Box>
+
+                {/* Accession Number */}
+                <Box>
+                  <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a' }}>
+                    Accession Number <span style={{ color: '#ef4444' }}>*</span>
+                  </Typography>
+                  <TextField
+                    size="small"
+                    fullWidth
+                    placeholder="Enter accession number..."
+                    value={encodeData.accessionNumber}
+                    onChange={(e) => handleEncodeAccChange(e.target.value)}
+                    sx={{ bgcolor: '#ffffff' }}
+                  />
+                </Box>
+
+                {/* Barcode */}
+                <Box>
+                  <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a' }}>
+                    Barcode (Auto-generated)
+                  </Typography>
+                  <TextField
+                    size="small"
+                    fullWidth
+                    value={encodeData.barcodeValue}
+                    onChange={(e) => handleEncodeFieldChange('barcodeValue', e.target.value)}
+                    sx={{ bgcolor: '#ffffff' }}
+                  />
+                </Box>
+
+                {/* Copy Number */}
+                <Box>
+                  <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a' }}>
+                    Copy Number (Optional)
+                  </Typography>
+                  <TextField
+                    size="small"
+                    fullWidth
+                    placeholder="e.g. c.1, c.2"
+                    value={encodeData.copyNumber}
+                    onChange={(e) => handleEncodeFieldChange('copyNumber', e.target.value)}
+                    sx={{ bgcolor: '#ffffff' }}
+                  />
+                </Box>
+
+                {/* ISO Code */}
+                <Box>
+                  <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a' }}>
+                    ISO Code (Auto-generated)
+                  </Typography>
+                  <TextField
+                    size="small"
+                    fullWidth
+                    value={encodeData.isoCodeValue}
+                    onChange={(e) => handleEncodeFieldChange('isoCodeValue', e.target.value)}
+                    sx={{ bgcolor: '#ffffff' }}
+                  />
+                </Box>
+
+                {/* Call Number - Full Width */}
+                <Box sx={{ gridColumn: { xs: 'span 1', sm: 'span 2' } }}>
+                  <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a' }}>
+                    Call Number
+                  </Typography>
+                  <TextField
+                    size="small"
+                    fullWidth
+                    multiline
+                    minRows={3}
+                    placeholder="Enter call number..."
+                    value={encodeData.callNumber}
+                    onChange={(e) => handleEncodeFieldChange('callNumber', e.target.value)}
+                    sx={{ bgcolor: '#ffffff' }}
+                  />
+                </Box>
+
+              </Box>
+            </DialogContent>
+
+            <DialogActions sx={{ px: 3, py: 2, bgcolor: '#f1f5f9', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', gap: 1 }}>
+              <Button onClick={resetEncodeForm} variant="outlined" color="error" size="medium" sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}>
+                Clear Form
+              </Button>
+
+              <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+                <Button onClick={() => setEncodeModalOpen(false)} variant="outlined" size="medium" sx={{ borderRadius: 2, textTransform: 'none', borderColor: '#cbd5e1', color: '#475569', fontWeight: 600 }}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => handleSaveEncoding(true)}
+                  variant="contained"
+                  size="medium"
+                  sx={{
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    bgcolor: '#d49f1e',
+                    color: '#1b365d',
+                    fontWeight: 700,
+                    px: 2.5,
+                    py: 1,
+                    '&:hover': { bgcolor: '#b8860b' },
+                    boxShadow: 'none',
+                  }}
+                >
+                  Save & Encode Another
+                </Button>
+                <Button
+                  onClick={() => handleSaveEncoding(false)}
+                  variant="contained"
+                  size="medium"
+                  sx={{
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    bgcolor: '#1b365d',
+                    color: '#ffffff',
+                    fontWeight: 700,
+                    px: 2.5,
+                    py: 1,
+                    '&:hover': { bgcolor: '#0f2744' },
+                    boxShadow: 'none',
+                  }}
+                >
+                  Save Entry
+                </Button>
+              </Box>
             </DialogActions>
           </Dialog>
 

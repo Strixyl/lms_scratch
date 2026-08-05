@@ -6,141 +6,182 @@ Capstone Thesis Project — Henry Luce III Library
 
 ---
 
-## Overview
+## 📌 Backend Overview
 
-This directory contains the backend infrastructure for the **Henry Luce III Library Management System**, comprising:
-1. **Node.js Express Server (`index.js`)**: Main REST API server running on port `5000` connected to Microsoft SQL Server (`hllSystem`).
-2. **Python Dual-Engine NLP Microservice (`sentiment_service.py`)**: Flask API microservice on port `5001` providing RoBERTa BERT Sentiment Analysis & Naïve Bayes Category Classification.
-3. **Machine Learning Pipeline (`ml/`)**: Preprocessing, model training, and artifact generation scripts for survey comment categorization.
+This directory houses the backend ecosystem supporting the **Henry Luce III Library Management System**. The architecture comprises two complementary microservices working alongside Microsoft SQL Server:
+
+1. **Express REST API Backend (`index.js`)**: Node.js/Express server (Port `5000`) handling core database transactions, patron login tracking, survey persistence, inventory stock management, cross-location transfers, and transaction audit trails.
+2. **Python Dual-Engine NLP Microservice (`sentiment_service.py`)**: Flask API (Port `5001`) delivering high-performance transformer sentiment predictions and probabilistic Naïve Bayes category classifications.
+3. **Machine Learning Pipeline (`ml/`)**: End-to-end data cleaning (`clean_dataset.py`), model implementation (`naive_bayes.py`), and grid-search model training (`train_category_model.py`) scripts.
 
 ---
 
-## Dual-Engine NLP Architecture (`sentiment_service.py`)
+## 🏗️ Architecture & Component Integration
 
-The system utilizes a hybrid dual-engine NLP classification pipeline combining transformer deep learning with scikit-learn probabilistic classification:
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                   React 19 Frontend App (:3000)                        │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+                            HTTP REST Requests
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                 Express REST API Server (:5000)                        │
+│                           (backend/index.js)                           │
+└──────────────┬──────────────────────────────────────────┬──────────────┘
+               │                                          │
+    Promise.all Concurrent HTTP                           │ msnodesqlv8
+        /analyze & /categorize                            │ ODBC Driver 18
+               │                                          │
+               ▼                                          ▼
+┌───────────────────────────────┐     ┌──────────────────────────────────┐
+│  Python Flask NLP Microservice│     │  Microsoft SQL Server (SQLEXPRESS)│
+│     (sentiment_service.py)    │     │       Database: hllSystem        │
+│          Port 5001            │     ├──────────────────────────────────┤
+├───────────────────────────────┤     │ • dbo.SatisfactionSurveys        │
+│ 1. RoBERTa BERT Sentiment     │     │ • dbo.LibLogins                  │
+│    (cardiffnlp/twitter-roberta)     │ • dbo.studInfo                   │
+│ 2. Multinomial Naïve Bayes    │     │ • dbo.CardAndPacket              │
+│    (category_model.pkl,       │     │ • dbo.OfficeSupplies             │
+│     fallback τ = 0.45)        │     │ • dbo.LibraryEquipment           │
+└───────────────────────────────┘     │ • dbo.AssetTransactions          │
+                                      │ • dbo.SupplyTransactions         │
+                                      └──────────────────────────────────┘
+```
 
-### 1. Sentiment Analysis Engine (`POST /analyze`)
-- **Model**: `cardiffnlp/twitter-roberta-base-sentiment-latest` (Pre-trained BERT / RoBERTa Model)
-- **Port**: `5001`
-- **Endpoint**: `POST /analyze`
-- **Payload**: `{ "text": "Library staff are very accommodating" }`
-- **Response**: `{ "sentiment": "Positive", "score": 0.982 }`
+---
 
-### 2. Category Classification Engine (`POST /categorize`)
-- **Model**: Scikit-Learn `TfidfVectorizer` + `MultinomialNB` pipeline with confidence threshold fallback ($\tau = 0.45$).
-- **Port**: `5001`
-- **Endpoint**: `POST /categorize`
-- **Payload**: `{ "text": "The aircon in the 2nd floor is warm" }`
-- **Response**: `{ "category": "Facilities", "confidence": 0.894 }`
-- **Categories**: `Facilities`, `Staff`, `Collection`, `Other/Uncategorized` (Fallback).
+## 📡 REST API Endpoint Reference (`index.js` & `sentiment_service.py`)
 
-### Node.js Express Concurrent Integration (`index.js`)
-- Express invokes both microservice endpoints concurrently via `Promise.all` (`http://localhost:5001/analyze` and `http://localhost:5001/categorize`).
-- Overall sentiment combines Emoji survey scores ($50\%$) and BERT text sentiment ($50\%$).
-- Persists sentiment ratings and category domains into `dbo.SatisfactionSurveys`.
-- Includes graceful fallback: defaults to `Neutral` sentiment and `Other/Uncategorized` category if the Python microservice is unavailable.
+### 1. Python NLP Microservice Endpoints (Port 5001)
+
+#### `POST /analyze`
+- **Description**: Evaluates open-ended feedback text using RoBERTa BERT transformer model (`cardiffnlp/twitter-roberta-base-sentiment-latest`).
+- **Request Body**: `{ "text": "The library staff are extremely helpful and friendly." }`
+- **Response**: `{ "sentiment": "Positive", "score": 0.985 }`
+
+#### `POST /categorize`
+- **Description**: Categorizes text into domain categories using TF-IDF + Multinomial Naïve Bayes with confidence threshold fallback ($\tau = 0.45$).
+- **Request Body**: `{ "text": "The air conditioning system on the 3rd floor is cold." }`
+- **Response**: `{ "category": "Facilities", "confidence": 0.924 }`
+- **Supported Categories**: `Facilities`, `Staff`, `Collection`, `Other/Uncategorized`
+
+---
+
+### 2. Express Backend API Endpoints (Port 5000)
+
+#### 📝 Patron Survey & Sentiment Analysis
+- **`POST /api/survey`**: Accepts 10 Likert responses + open comment message. Triggers parallel BERT + Naïve Bayes microservice calls, computes blended `SentimentScore`, and inserts into `dbo.SatisfactionSurveys`.
+- **`GET /api/surveys`**: Retrieves survey records with optional filtering by date range, clientele type, college, and course.
+- **`DELETE /api/surveys/:id`**: Deletes a specific survey response entry.
+
+#### 🪪 Patron Sign-In & Foot Traffic
+- **`POST /api/student-lookup`**: Queries `studInfo` by ID number, calculates `Time In` / `Time Out` log type for section, and inserts log into `dbo.LibLogins`.
+- **`GET /api/logins`**: Fetches patron sign-in logs with filtering by section, college mapping (`COLLEGE_MAP`), date range, and log type.
+- **`DELETE /api/logins/:id`**: Deletes a specific sign-in log entry.
+- **`POST /api/logins/delete-batch`**: Batch deletes multiple sign-in log entries.
+
+#### 📚 Technical Services — Book Cards & Packets
+- **`POST /api/card-and-packet`**: Encodes up to 4 books per record with accession number duplicate validation across all 4 slots.
+- **`GET /api/card-and-packet`**: Returns all card and packet catalog entries ordered descending.
+- **`GET /api/card-and-packet/search`**: Searches catalog records by accession number or barcode value.
+- **`PUT /api/card-and-packet/:id`**: Updates an existing book card and packet record.
+- **`DELETE /api/card-and-packet/:id/book/:bookNum`**: Clears a specific book entry slot (1 to 4) within a packet.
+
+#### 📦 Inventory & Property Management (Supplies & Equipment)
+- **`GET /api/supplies` / `GET /api/equipment`**: Lists raw supply or equipment records.
+- **`GET /api/supplies/grouped` / `GET /api/equipment/grouped`**: Returns items grouped by item name, brand, and specifications, consolidating location balances.
+- **`POST /api/supplies` / `POST /api/equipment`**: Adds new supply or equipment items with automatic brand upsert into `dbo.Brands`.
+- **`PUT /api/supplies/:id`**: Updates item specifications, brand, location, or quantity.
+- **`DELETE /api/supplies/:id`**: Removes inventory item and records a `Deleted` transaction log.
+- **`POST /api/supplies/add-stock` / `POST /api/equipment/add-stock`**: Safely increments stock quantity at a specific location, logging an `Added Stock` audit entry.
+- **`POST /api/supplies/:id/transfer` / `POST /api/equipment/:id/transfer`**: Executes cross-location stock transfer with atomic SQL transaction locking, logging a `LOCATION_TRANSFER` audit entry.
+- **`GET /api/supply-transactions` / `GET /api/transactions`**: Fetches transaction audit logs from `SupplyTransactions` or `AssetTransactions`.
+- **`GET /api/supplies/dashboard/summary`**: Returns total inventory items, total stock counts, out-of-stock count, and daily transfers.
 
 ---
 
 ## 🧠 Machine Learning & Category Classification Pipeline (`ml/`)
 
-Designed and implemented in accordance with [`CATEGORY_CLASSIFICATION_FILE_PLAN.md`](file:///c:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/CATEGORY_CLASSIFICATION_FILE_PLAN.md):
+The machine learning subsystem is located in `backend/ml/`:
 
 ```
 backend/
-├── index.js                     # Node.js Express server & DB controller
+├── index.js                     # Node.js Express API & DB controller
 ├── sentiment_service.py          # Dual-Engine Flask microservice (Port 5001)
 └── ml/                           # Machine learning pipeline directory
     ├── data/
-    │   └── clean_category_dataset.csv  # Preprocessed training dataset
-    ├── clean_dataset.py         # Step 1: Data cleaning & noise filtering script
-    ├── naive_bayes.py           # Step 2: CategoryClassifier pipeline class
-    ├── train_category_model.py  # Step 3: Stratified split & hyperparameter grid search
-    ├── category_model.pkl       # Serialized Naïve Bayes model artifact
-    └── alpha_search_category.png# Accuracy-vs-Alpha hyperparameter plot
+    │   └── clean_category_dataset.csv  # Standardized 3-column CSV training data
+    ├── clean_dataset.py         # Step 1: Automated dataset cleaner & noise filter
+    ├── naive_bayes.py           # Step 2: CategoryClassifier pipeline wrapper class
+    ├── train_category_model.py  # Step 3: Stratified split, grid search & model exporter
+    ├── category_model.pkl       # Serialized Naïve Bayes model binary artifact
+    └── alpha_search_category.png# Log-scale validation accuracy hyperparameter plot
 ```
 
-### Python ML File Responsibilities
+### Python ML Module Details
 
-| Step | File / Artifact | Type | Function & Description |
-|---|---|---|---|
-| **Step 1** | [`clean_dataset.py`](file:///c:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/ml/clean_dataset.py) | Python Script | Loads raw XLSX/CSV datasets (`3000withnoise.xlsx`, `category_training_dataset.xlsx`, or `sat-survey.xlsx`), maps column candidates dynamically, strips non-informative noise (`"none"`, `"n/a"`, `"ok"`, `"asdf"`, `"wala"`), numeric strings, and short texts $<3$ chars, normalizes label casing, deduplicates, and saves `data/clean_category_dataset.csv`. |
-| **Output** | `data/clean_category_dataset.csv` | Clean CSV | Standardized 3-column CSV (`comment, category, sentiment`) for model training. |
-| **Step 2** | [`naive_bayes.py`](file:///c:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/ml/naive_bayes.py) | Python Class | Defines `CategoryClassifier` wrapping `Pipeline([TfidfVectorizer, MultinomialNB])`. Implements lightweight text normalization (`preprocess`: lowercasing, URL/mention/hashtag stripping, regex `[^a-z\s]`) and confidence-gated predictions (`predict_with_fallback()`, $\tau = 0.45$). |
-| **Step 3** | [`train_category_model.py`](file:///c:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/ml/train_category_model.py) | Python Script | Loads cleaned CSV, performs an 80/20 stratified split (`random_state=42`), grid searches hyperparameter space (`alpha` $[0.01..5.0]$, `ngram_range` $(1,1)$ vs $(1,2)$, `min_df` $1$ vs $2$), outputs classification reports and confusion matrices, and dumps `category_model.pkl`. |
-| **Output** | [`category_model.pkl`](file:///c:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/ml/category_model.pkl) | Model Artifact | Binary joblib model artifact loaded by `sentiment_service.py` at service initialization. |
-| **Output** | [`alpha_search_category.png`](file:///c:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/ml/alpha_search_category.png) | Plot | Accuracy vs alpha hyperparameter sweep plot generated during training. |
-
-#### 🔬 Key Python Functions & Implementation Details
-
-##### 1. `naive_bayes.py` ([CategoryClassifier](file:///c:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/ml/naive_bayes.py))
-- **`preprocess(text: str) -> str`**: Standalone preprocessor applied before TF-IDF vectorization. Lowercases input, removes URLs (`http...`/`www...`), `@mentions`, `#hashtags`, keeps letters only (`[^a-z\s]`), and collapses whitespace.
-- **`CategoryClassifier.__init__(alpha=1.0, ngram_range=(1,1), min_df=1)`**: Instantiates the scikit-learn `Pipeline` (`TfidfVectorizer(preprocessor=preprocess)` → `MultinomialNB(alpha)`).
-- **`CategoryClassifier.fit(X, y)`**: Trains TF-IDF vectorizer and Multinomial Naïve Bayes on training comment corpus; saves class labels (`Facilities`, `Staff`, `Collection`).
-- **`CategoryClassifier.predict(texts)`**: Returns class prediction(s) for a single comment string or list of comments.
-- **`CategoryClassifier.predict_proba(texts)`**: Returns raw probability distribution array across trained classes.
-- **`CategoryClassifier.predict_with_fallback(text, threshold=0.45) -> str`**: Calculates `predict_proba(text)`; if maximum class confidence level is below $\tau = 0.45$, it defaults prediction to `"Other/Uncategorized"`.
-- **`CategoryClassifier.score(X, y) -> float`**: Evaluates mean accuracy score on validation datasets.
-
-##### 2. `train_category_model.py` ([Training Script](file:///c:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/ml/train_category_model.py))
-- **`load_data()`**: Reads `data/clean_category_dataset.csv`, returning comment list $X$ and category label list $y$.
-- **`grid_search(X_train, y_train, X_val, y_val)`**: Sweeps hyperparameter combinations (`alpha` $[0.01, 0.1, 0.5, 1.0, 1.5, 2.0, 5.0]$, `ngram_range` $[(1,1), (1,2)]$, `min_df` $[1, 2]$) to select the model with highest validation accuracy.
-- **`maybe_plot(all_results)`**: Generates a log-scale validation accuracy plot vs `alpha` curve (`alpha_search_category.png`) for thesis methodology documentation.
-- **`main()`**: Executes dataset loading, 80/20 stratified split (`test_size=0.2`, `random_state=42`), baseline model evaluation, grid search execution, confusion matrix logging, and serializes best model to `category_model.pkl` via `joblib.dump()`.
-
-##### 3. `clean_dataset.py` ([Data Cleaner](file:///c:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/ml/clean_dataset.py))
-- **`load_raw(path, sheet_name="All_Data")`**: Loads raw survey/training datasets from `.xlsx` or `.csv`.
-- **`clean(df)`**: Performs dynamic candidate matching for text/category/sentiment columns, filters out non-informative noise strings (`"none"`, `"n/a"`, `"ok"`, `"asdf"`, `"wala"`), numeric values, and text $<3$ characters, normalizes label casing, deduplicates, and resets index.
-- **`main()`**: Controls dataset loading, cleaning pipeline invocation, and writes clean CSV to `data/clean_category_dataset.csv`.
+| Step | Script / Artifact | Key Functionality |
+|---|---|---|
+| **Step 1** | [`clean_dataset.py`](file:///C:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/ml/clean_dataset.py) | Dynamic candidate column mapping for raw `.xlsx` datasets (`dataset_5k_wnoise.xlsx`), noise string removal (`"none"`, `"n/a"`, `"ok"`, `"asdf"`, `"wala"`), numeric filtering, text length filtering ($\ge 3$ chars), deduplication, and export to `clean_category_dataset.csv`. |
+| **Step 2** | [`naive_bayes.py`](file:///C:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/ml/naive_bayes.py) | Implements `CategoryClassifier` class wrapping `TfidfVectorizer` + `MultinomialNB`. Includes regex text preprocessor (`preprocess`) and confidence threshold fallback method (`predict_with_fallback`, $\tau = 0.45$). |
+| **Step 3** | [`train_category_model.py`](file:///C:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/ml/train_category_model.py) | Executes 80/20 stratified train/validation split, grid searches hyperparameters ($\alpha \in [0.01..5.0]$, unigrams/bigrams, $\text{min\_df} \in [1, 2]$), logs classification metrics, plots `alpha_search_category.png`, and serializes best model to `category_model.pkl`. |
+| **Artifact** | [`category_model.pkl`](file:///C:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/ml/category_model.pkl) | Binary model artifact unpickled by `sentiment_service.py` at microservice initialization. |
 
 ---
 
-## Prerequisites & Installation
+## ⚙️ Environment Setup & Running Instructions
 
-### 1. Python Environment Setup
-Install Python 3.9+ and required machine learning dependencies:
+### 1. Database Connection Configuration
+In `backend/index.js`, update the connection string to match your local SQL Server instance:
+
+```javascript
+const config = {
+  connectionString: "Driver={ODBC Driver 18 for SQL Server};Server=YOUR_SERVER_NAME\\SQLEXPRESS;Database=hllSystem;Trusted_Connection=Yes;Encrypt=no;"
+};
+```
+
+### 2. Microservice Launch Sequence
+
+#### Terminal 1: Launch Python Dual-Engine Microservice
 ```bash
+# Navigate to backend folder
+cd backend
+
+# Install Python requirements
 pip install flask transformers torch scikit-learn pandas joblib matplotlib
-```
 
-### 2. Node.js Dependencies
-Install backend Node packages:
+# Start service
+python sentiment_service.py
+```
+*Port:* `http://127.0.0.1:5001`
+
+#### Terminal 2: Launch Express API Server
 ```bash
-npm install
-```
+# Navigate to backend folder
+cd backend
 
-### 3. Database Connection
-Ensure Microsoft SQL Server (`SQLEXPRESS`) is running and update connection settings in `index.js`:
-```js
-connectionString: "Driver={ODBC Driver 18 for SQL Server};Server=YOUR_PC\\SQLEXPRESS;Database=hllSystem;Trusted_Connection=Yes;Encrypt=no;"
+# Install Node dependencies
+npm install
+
+# Start Express API server
+npm start
 ```
+*Port:* `http://localhost:5000`
 
 ---
 
-## Running Backend & Retraining ML Model
+## 🧪 Retraining the Machine Learning Category Model
 
-### Retraining the Category Classification Model (`backend/ml`)
+To retrain the Naïve Bayes category classifier using updated survey datasets:
+
 ```bash
-# 1. Open terminal in backend/ml directory
-cd "hllsystem - Oct10-2025/backend/ml"
+cd backend/ml
 
-# 2. Clean raw dataset
+# 1. Clean raw dataset (dataset_5k_wnoise.xlsx or custom dataset)
 python clean_dataset.py
 
-# 3. Train Naïve Bayes model & export category_model.pkl
+# 2. Train model & generate updated category_model.pkl
 python train_category_model.py
 ```
-
-### Launching Backend Microservices
-1. **Start Python Dual-Engine Microservice**:
-   ```bash
-   python sentiment_service.py
-   ```
-   *Runs on `http://localhost:5001`*
-
-2. **Start Express Node Backend**:
-   ```bash
-   npm start
-   ```
-   *Runs on `http://localhost:5000`*
 
