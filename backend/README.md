@@ -141,37 +141,46 @@ const config = {
 };
 ```
 
-### 2. Required Dependencies & Microservice Launch Sequence
+### 2. Complete Terminal Installation Commands
 
-#### Required Backend Dependencies:
-- **Node.js Express Backend (`backend/package.json`)**: `express`, `cors`, `multer`, `mssql`, `msnodesqlv8`, `tedious`, `axios`, `moment-timezone`, `natural`, `vader-sentiment`, `afinn-165`
-- **Python Microservice & ML Pipeline (`sentiment_service.py` & `ml/`)**: `flask`, `transformers`, `torch`, `scikit-learn`, `pandas`, `joblib`, `openpyxl`, `matplotlib`
+#### A. Install Node.js Express API Dependencies (Terminal)
+```bash
+# Navigate to backend directory
+cd backend
 
-#### Terminal 1: Launch Python Dual-Engine Microservice
+# Install Express server and SQL Server connection packages via npm
+npm install express cors mssql msnodesqlv8 tedious multer axios moment-timezone natural vader-sentiment afinn-165
+```
+
+#### B. Install Python NLP Microservice & ML Dependencies (Terminal)
+```bash
+# Install Python microservice requirements via pip
+pip install flask transformers torch scikit-learn pandas joblib openpyxl matplotlib
+```
+
+---
+
+### 🚀 Backend Microservice Launch Sequence (2 Terminal Windows)
+
+#### Terminal 1: Launch Python Dual-Engine NLP Microservice (Port 5001)
 ```bash
 # Navigate to backend folder
 cd backend
 
-# Install Python requirements
-pip install flask transformers torch scikit-learn pandas joblib openpyxl matplotlib
-
-# Start service
+# Start Python Flask service
 python sentiment_service.py
 ```
-*Port:* `http://127.0.0.1:5001`
+*Expected Output:* `Running on http://127.0.0.1:5001`
 
-#### Terminal 2: Launch Express API Server
+#### Terminal 2: Launch Express REST API Server (Port 5000)
 ```bash
 # Navigate to backend folder
 cd backend
 
-# Install Node dependencies
-npm install
-
-# Start Express API server
+# Start Express Node API server
 npm start
 ```
-*Port:* `http://localhost:5000`
+*Expected Output:* `Server running on http://localhost:5000` & `Connected to SQL Server`
 
 ---
 

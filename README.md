@@ -259,64 +259,122 @@ GO
 
 ---
 
-## ⚙️ Installation and Setup Guide
+## ⚙️ Complete Terminal Installation & Setup Guide
 
 ### Prerequisites
-- **Node.js**: v18.0.0 or higher
-- **Python**: v3.9 or higher (with `pip`)
+- **Node.js**: v18.0.0 or higher (`node -v`)
+- **Python**: v3.9 or higher with `pip` (`python --version`)
 - **SQL Server**: Microsoft SQL Server Express (`SQLEXPRESS`)
 - **ODBC Driver**: ODBC Driver 18 for SQL Server
 
 ---
 
-### Step-by-Step Installation Sequence
+### Step-by-Step Terminal Commands
 
-#### Step 1: Install Frontend Dependencies (Root Folder)
+#### Step 1: Clone Repository & Navigate to Project Root
 ```bash
+git clone https://github.com/Strixyl/lms_scratch.git
+cd hllsystem
+```
+
+#### Step 2: Install All Frontend React Dependencies (Terminal)
+Run the following terminal commands in the root directory to install React 19, Material UI, Recharts, and utility packages:
+```bash
+# Install core frontend packages
+npm install react react-dom react-router-dom @mui/material @mui/icons-material @emotion/react @emotion/styled @mui/x-data-grid @fontsource/poppins recharts axios moment-timezone xlsx vader-sentiment natural afinn-165 ajv web-vitals firebase
+
 # Install react-wordcloud with legacy peer dependency flag for React 19 compatibility
 npm install react-wordcloud --legacy-peer-deps
+
+# Verify installation or install all packages from package.json
 npm install
 ```
 
-#### Step 2: Install Express Backend Dependencies
+#### Step 3: Install All Express REST API Backend Dependencies (Terminal)
+Open your terminal, navigate to the `backend` folder, and run:
 ```bash
+# Navigate to backend directory
 cd backend
-npm install
+
+# Install Express API & SQL Server driver dependencies
+npm install express cors mssql msnodesqlv8 tedious multer axios moment-timezone natural vader-sentiment afinn-165
+
+# Return to root directory
+cd ..
 ```
 
-#### Step 3: Install Python NLP Microservice & ML Dependencies
+#### Step 4: Install All Python NLP Microservice & ML Dependencies (Terminal)
+Install all Python libraries for Flask microservice, RoBERTa BERT sentiment analysis, and Naïve Bayes model training:
 ```bash
+# (Optional) Create and activate Python virtual environment
+python -m venv venv
+
+# Windows (PowerShell / Command Prompt):
+.\venv\Scripts\activate
+
+# macOS / Linux:
+source venv/bin/activate
+
+# Install required Python packages via pip
 pip install flask transformers torch scikit-learn pandas joblib openpyxl matplotlib
 ```
 
-#### Step 4: Retrain Category Classification Model (Optional)
-To clean raw survey datasets and train the Naïve Bayes classifier:
+#### Step 5: (Optional) Retrain ML Category Classifier via Terminal
+If expanding survey datasets or manual boundary cases:
 ```bash
+# Navigate to ML pipeline folder
 cd backend/ml
+
+# Step 5a: Clean raw Excel dataset (5kwithnoise.xlsx -> clean_category_dataset.csv)
 python clean_dataset.py
+
+# Step 5b: Execute hyperparameter grid search and export serialized category_model.pkl
 python train_category_model.py
+
+# Return to project root directory
+cd ../..
 ```
 
-#### Step 5: Start All System Services
+---
 
-1. **Terminal 1: Start Python NLP Microservice (Port 5001)**
-   ```bash
-   python backend/sentiment_service.py
-   ```
-   *Output:* `Running on http://127.0.0.1:5001`
+### 🚀 Complete Service Launch Sequence (3 Terminal Windows)
 
-2. **Terminal 2: Start Express Backend API (Port 5000)**
-   ```bash
-   cd backend
-   npm start
-   ```
-   *Output:* `Server running on http://localhost:5000` & `Connected to SQL Server`
+To run the full multi-service application, launch 3 separate terminal sessions:
 
-3. **Terminal 3: Start React Application (Port 3000)**
-   ```bash
-   npm start
-   ```
-   *Output:* `Compiled successfully!` running on `http://localhost:3000`
+#### **Terminal 1: Start Python NLP Microservice (Port 5001)**
+```bash
+# Terminal 1: From project root folder
+python backend/sentiment_service.py
+```
+*Expected Output:*
+```text
+ * Serving Flask app 'sentiment_service'
+ * Running on http://127.0.0.1:5001
+```
+
+#### **Terminal 2: Start Express Backend REST API (Port 5000)**
+```bash
+# Terminal 2: Navigate to backend folder and start server
+cd backend
+npm start
+```
+*Expected Output:*
+```text
+Server running on http://localhost:5000
+Connected to SQL Server database hllSystem
+```
+
+#### **Terminal 3: Start React Frontend Application (Port 3000)**
+```bash
+# Terminal 3: From project root folder
+npm start
+```
+*Expected Output:*
+```text
+Compiled successfully!
+You can now view hllsystem in the browser.
+Local: http://localhost:3000
+```
 
 ---
 
