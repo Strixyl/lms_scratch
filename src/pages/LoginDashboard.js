@@ -6,7 +6,8 @@ import {
   TableRow, Paper, Button, TextField, CircularProgress,
   MenuItem, Select, FormControl, InputLabel,
   Dialog, DialogTitle, DialogContent, DialogActions,
-  Avatar, LinearProgress, Checkbox, IconButton, Snackbar, Alert, Tooltip, Chip
+  Avatar, LinearProgress, Checkbox, IconButton, Snackbar, Alert, Tooltip, Chip,
+  InputAdornment, TableSortLabel
 } from '@mui/material';
 import {
   Print as PrintIcon,
@@ -20,7 +21,13 @@ import {
   Male as MaleIcon,
   Female as FemaleIcon,
   WarningAmber as WarningAmberIcon,
-  Logout as LogoutIcon
+  Logout as LogoutIcon,
+  Search as SearchIcon,
+  Clear as ClearIcon,
+  Lock as LockIcon,
+  CalendarToday as CalendarTodayIcon,
+  RestartAlt as RestartAltIcon,
+  Inbox as InboxIcon
 } from '@mui/icons-material';
 import {
   PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer,
@@ -528,6 +535,11 @@ const LoginDashboard = () => {
   const [snackbarMsg, setSnackbarMsg] = useState('');
   const [visualizerMode, setVisualizerMode] = useState('auto');
 
+  // Live Search & Sort states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortField, setSortField] = useState('TimeLogged');
+  const [sortOrder, setSortOrder] = useState('desc');
+
   const printRef = useRef();
 
   useEffect(() => {
@@ -556,6 +568,56 @@ const LoginDashboard = () => {
     setShowLoginModal(true);
     setUsername('');
     setPassword('');
+  };
+
+  const handleDatePreset = (presetKey) => {
+    const today = new Date();
+    const formatISO = (d) => {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    };
+
+    if (presetKey === 'today') {
+      const dateStr = formatISO(today);
+      setStartDate(dateStr);
+      setEndDate(dateStr);
+    } else if (presetKey === 'week') {
+      const day = today.getDay();
+      const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+      const startOfWeek = new Date(today.setDate(diff));
+      setStartDate(formatISO(startOfWeek));
+      setEndDate(formatISO(new Date()));
+    } else if (presetKey === 'month') {
+      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      setStartDate(formatISO(startOfMonth));
+      setEndDate(formatISO(new Date()));
+    } else if (presetKey === 'all') {
+      setStartDate('');
+      setEndDate('');
+    }
+  };
+
+  const handleRemoveFilter = (key) => {
+    if (key === 'date') {
+      setStartDate('');
+      setEndDate('');
+    } else if (key === 'college') {
+      setSelectedCollege('All');
+    } else if (key === 'course') {
+      setSelectedCourse('All');
+    } else if (key === 'section') {
+      setSelectedSection('All');
+    } else if (key === 'search') {
+      setSearchTerm('');
+    }
+  };
+
+  const handleRequestSort = (field) => {
+    const isAsc = sortField === field && sortOrder === 'asc';
+    setSortOrder(isAsc ? 'desc' : 'asc');
+    setSortField(field);
   };
 
   const fetchLogins = async () => {
@@ -615,6 +677,7 @@ const LoginDashboard = () => {
     setSelectedCollege('All');
     setSelectedSection('All');
     setSelectedCourse('All');
+    setSearchTerm('');
     setLoading(true);
     try {
       const response = await axios.get('http://localhost:5000/api/logins');
@@ -809,9 +872,52 @@ const LoginDashboard = () => {
     return counts;
   }, [logins]);
 
+  // Live Search & Table Column Sorting
+  const processedLogins = useMemo(() => {
+    let result = [...logins];
+
+    // Live Search Filter
+    if (searchTerm.trim()) {
+      const q = searchTerm.trim().toLowerCase();
+      result = result.filter(item => {
+        const id = String(item.studIDnumber || '').toLowerCase();
+        const fname = String(item.studFname || '').toLowerCase();
+        const lname = String(item.studLname || '').toLowerCase();
+        const fullname = `${lname}, ${fname}`.toLowerCase();
+        const course = String(item.studCourse || '').toLowerCase();
+        const college = String(item.studCollege || '').toLowerCase();
+        const section = String(item.Section || '').toLowerCase();
+        return id.includes(q) || fname.includes(q) || lname.includes(q) || fullname.includes(q) || course.includes(q) || college.includes(q) || section.includes(q);
+      });
+    }
+
+    // Column Sorting
+    result.sort((a, b) => {
+      let valA = a[sortField] || '';
+      let valB = b[sortField] || '';
+
+      if (sortField === 'TimeLogged') {
+        valA = a.TimeLogged ? new Date(a.TimeLogged).getTime() : 0;
+        valB = b.TimeLogged ? new Date(b.TimeLogged).getTime() : 0;
+      } else if (sortField === 'name') {
+        valA = `${a.studLname || ''}, ${a.studFname || ''}`.toLowerCase();
+        valB = `${b.studLname || ''}, ${b.studFname || ''}`.toLowerCase();
+      } else if (typeof valA === 'string') {
+        valA = valA.toLowerCase();
+        valB = valB.toLowerCase();
+      }
+
+      if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+      if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return result;
+  }, [logins, searchTerm, sortField, sortOrder]);
+
   // Pagination
-  const totalPages = Math.ceil(logins.length / ROWS_PER_PAGE);
-  const pageRows = logins.slice(page * ROWS_PER_PAGE, (page + 1) * ROWS_PER_PAGE);
+  const totalPages = Math.ceil(processedLogins.length / ROWS_PER_PAGE);
+  const pageRows = processedLogins.slice(page * ROWS_PER_PAGE, (page + 1) * ROWS_PER_PAGE);
 
   // ── Record Selection & Delete Handlers ─────────────────────────────
   const pageIds = useMemo(() => pageRows.map(row => row.LogID).filter(Boolean), [pageRows]);
@@ -1135,10 +1241,81 @@ const LoginDashboard = () => {
                     <Button variant="contained" onClick={fetchLogins} sx={{ bgcolor: '#1a237e', px: 3.5, height: 46, borderRadius: 2.5, textTransform: 'none', fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 15 }}>
                       Apply Filters
                     </Button>
-                    <Button variant="outlined" color="inherit" onClick={handleClearFilters} sx={{ height: 46, px: 3, borderRadius: 2.5, textTransform: 'none', fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 15, borderColor: '#cbd5e1' }}>
+                    <Button variant="outlined" color="inherit" onClick={handleClearFilters} startIcon={<RestartAltIcon />} sx={{ height: 46, px: 3, borderRadius: 2.5, textTransform: 'none', fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 15, borderColor: '#cbd5e1' }}>
                       Reset
                     </Button>
                   </Box>
+
+                  {/* ── Quick Date Range Presets Bar ───── */}
+                  <Box sx={{ px: 3, pb: 2, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                    <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 700, color: '#64748b', mr: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <CalendarTodayIcon sx={{ fontSize: 16, color: '#1a237e' }} /> Quick Date Presets:
+                    </Typography>
+                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('today')} sx={{ borderRadius: 2, textTransform: 'none', fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 12, borderColor: '#cbd5e1', color: '#1e293b' }}>
+                      Today
+                    </Button>
+                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('week')} sx={{ borderRadius: 2, textTransform: 'none', fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 12, borderColor: '#cbd5e1', color: '#1e293b' }}>
+                      This Week
+                    </Button>
+                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('month')} sx={{ borderRadius: 2, textTransform: 'none', fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 12, borderColor: '#cbd5e1', color: '#1e293b' }}>
+                      This Month
+                    </Button>
+                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('all')} sx={{ borderRadius: 2, textTransform: 'none', fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 12, borderColor: '#cbd5e1', color: '#1e293b' }}>
+                      All Dates
+                    </Button>
+                  </Box>
+
+                  {/* ── Active Filter Badges Bar (Removable Tags) ───── */}
+                  {(startDate || endDate || selectedCollege !== 'All' || selectedCourse !== 'All' || selectedSection !== 'All' || searchTerm) && (
+                    <Box sx={{ px: 3, py: 1.5, bgcolor: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                      <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 700, color: '#475569' }}>
+                        Active Filters:
+                      </Typography>
+                      {(startDate || endDate) && (
+                        <Chip
+                          label={`Date: ${startDate || 'Start'} to ${endDate || 'Now'}`}
+                          onDelete={() => handleRemoveFilter('date')}
+                          size="small"
+                          sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, bgcolor: '#e0e7ff', color: '#3730a3', fontSize: 12 }}
+                        />
+                      )}
+                      {selectedCollege !== 'All' && (
+                        <Chip
+                          label={`College: ${selectedCollege}`}
+                          onDelete={() => handleRemoveFilter('college')}
+                          size="small"
+                          sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, bgcolor: '#dcfce7', color: '#166534', fontSize: 12 }}
+                        />
+                      )}
+                      {selectedCourse !== 'All' && (
+                        <Chip
+                          label={`Course: ${selectedCourse}`}
+                          onDelete={() => handleRemoveFilter('course')}
+                          size="small"
+                          sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, bgcolor: '#fef3c7', color: '#92400e', fontSize: 12 }}
+                        />
+                      )}
+                      {selectedSection !== 'All' && (
+                        <Chip
+                          label={`Section: ${selectedSection}`}
+                          onDelete={() => handleRemoveFilter('section')}
+                          size="small"
+                          sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, bgcolor: '#f3e8ff', color: '#6b21a8', fontSize: 12 }}
+                        />
+                      )}
+                      {searchTerm && (
+                        <Chip
+                          label={`Search: "${searchTerm}"`}
+                          onDelete={() => handleRemoveFilter('search')}
+                          size="small"
+                          sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, bgcolor: '#e0f2fe', color: '#075985', fontSize: 12 }}
+                        />
+                      )}
+                      <Button size="small" onClick={handleClearFilters} sx={{ textTransform: 'none', fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 700, color: '#dc2626', ml: 'auto' }}>
+                        Clear All
+                      </Button>
+                    </Box>
+                  )}
                 </Paper>
 
                 {loading ? (
@@ -1433,22 +1610,59 @@ const LoginDashboard = () => {
                     <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
                       {/* Left: Detailed Visitor Entry Records Table (~70% width) */}
                       <Paper elevation={0} sx={{ p: 3, borderRadius: 3.5, border: '1px solid #e2e8f0', bgcolor: '#ffffff', flex: 3, minWidth: 480 }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1.5 }}>
                           <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 17, color: '#1e293b' }}>
-                            Detailed Visitor Entry Records ({logins.length} Matches)
+                            Detailed Visitor Entry Records ({processedLogins.length} Matches)
                           </Typography>
-                          {selectedLogIds.length > 0 && (
-                            <Button
-                              variant="contained"
-                              color="error"
+                          <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
+                            {/* 🔍 Live Search Input */}
+                            <TextField
                               size="small"
-                              onClick={openDeleteBatchDialog}
-                              startIcon={<DeleteIcon />}
-                              sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 700, fontFamily: 'Poppins, sans-serif' }}
-                            >
-                              Delete Selected ({selectedLogIds.length})
-                            </Button>
-                          )}
+                              placeholder="Search name, ID, course, section..."
+                              value={searchTerm}
+                              onChange={(e) => {
+                                setSearchTerm(e.target.value);
+                                setPage(0);
+                              }}
+                              InputProps={{
+                                startAdornment: (
+                                  <InputAdornment position="start">
+                                    <SearchIcon sx={{ color: '#64748b', fontSize: 20 }} />
+                                  </InputAdornment>
+                                ),
+                                endAdornment: searchTerm ? (
+                                  <InputAdornment position="end">
+                                    <IconButton size="small" onClick={() => setSearchTerm('')}>
+                                      <ClearIcon sx={{ fontSize: 16 }} />
+                                    </IconButton>
+                                  </InputAdornment>
+                                ) : null,
+                              }}
+                              sx={{
+                                minWidth: 260,
+                                bgcolor: '#f8fafc',
+                                borderRadius: 2.5,
+                                '& .MuiOutlinedInput-root': {
+                                  height: 40,
+                                  fontFamily: 'Poppins, sans-serif',
+                                  fontSize: 13,
+                                  borderRadius: 2.5,
+                                }
+                              }}
+                            />
+                            {selectedLogIds.length > 0 && (
+                              <Button
+                                variant="contained"
+                                color="error"
+                                size="small"
+                                onClick={openDeleteBatchDialog}
+                                startIcon={<DeleteIcon />}
+                                sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 700, fontFamily: 'Poppins, sans-serif', height: 40 }}
+                              >
+                                Delete Selected ({selectedLogIds.length})
+                              </Button>
+                            )}
+                          </Box>
                         </Box>
 
                         <TableContainer>
@@ -1476,26 +1690,96 @@ const LoginDashboard = () => {
                                     sx={{ color: 'white', '&.Mui-checked': { color: 'white' }, '&.MuiCheckbox-indeterminate': { color: 'white' } }}
                                   />
                                 </TableCell>
-                                <TableCell>ID Number</TableCell>
-                                <TableCell>Name</TableCell>
-                                <TableCell>Course & Year</TableCell>
-                                <TableCell>College / Dept</TableCell>
-                                <TableCell>Section</TableCell>
-                                <TableCell>Time Logged</TableCell>
-                                <TableCell>Gender</TableCell>
-                                <TableCell sx={{ textAlign: 'center' }}>Action</TableCell>
+                                <TableCell sx={{ color: 'white' }}>
+                                  <TableSortLabel
+                                    active={sortField === 'studIDnumber'}
+                                    direction={sortField === 'studIDnumber' ? sortOrder : 'asc'}
+                                    onClick={() => handleRequestSort('studIDnumber')}
+                                    sx={{ color: 'white !important', '& .MuiTableSortLabel-icon': { color: 'white !important' } }}
+                                  >
+                                    ID Number
+                                  </TableSortLabel>
+                                </TableCell>
+                                <TableCell sx={{ color: 'white' }}>
+                                  <TableSortLabel
+                                    active={sortField === 'name'}
+                                    direction={sortField === 'name' ? sortOrder : 'asc'}
+                                    onClick={() => handleRequestSort('name')}
+                                    sx={{ color: 'white !important', '& .MuiTableSortLabel-icon': { color: 'white !important' } }}
+                                  >
+                                    Name
+                                  </TableSortLabel>
+                                </TableCell>
+                                <TableCell sx={{ color: 'white' }}>
+                                  <TableSortLabel
+                                    active={sortField === 'studCourse'}
+                                    direction={sortField === 'studCourse' ? sortOrder : 'asc'}
+                                    onClick={() => handleRequestSort('studCourse')}
+                                    sx={{ color: 'white !important', '& .MuiTableSortLabel-icon': { color: 'white !important' } }}
+                                  >
+                                    Course & Year
+                                  </TableSortLabel>
+                                </TableCell>
+                                <TableCell sx={{ color: 'white' }}>
+                                  <TableSortLabel
+                                    active={sortField === 'studCollege'}
+                                    direction={sortField === 'studCollege' ? sortOrder : 'asc'}
+                                    onClick={() => handleRequestSort('studCollege')}
+                                    sx={{ color: 'white !important', '& .MuiTableSortLabel-icon': { color: 'white !important' } }}
+                                  >
+                                    College / Dept
+                                  </TableSortLabel>
+                                </TableCell>
+                                <TableCell sx={{ color: 'white' }}>Section</TableCell>
+                                <TableCell sx={{ color: 'white' }}>
+                                  <TableSortLabel
+                                    active={sortField === 'TimeLogged'}
+                                    direction={sortField === 'TimeLogged' ? sortOrder : 'asc'}
+                                    onClick={() => handleRequestSort('TimeLogged')}
+                                    sx={{ color: 'white !important', '& .MuiTableSortLabel-icon': { color: 'white !important' } }}
+                                  >
+                                    Time Logged
+                                  </TableSortLabel>
+                                </TableCell>
+                                <TableCell sx={{ color: 'white' }}>Gender</TableCell>
+                                <TableCell sx={{ textAlign: 'center', color: 'white' }}>Action</TableCell>
                               </TableRow>
                             </TableHead>
                             <TableBody>
                               {pageRows.length === 0 ? (
                                 <TableRow>
-                                  <TableCell colSpan={9} align="center" sx={{ py: 4, color: '#94a3b8' }}>
-                                    No entrance login records found matching your filters.
+                                  <TableCell colSpan={9} align="center" sx={{ py: 6 }}>
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                                      <Avatar sx={{ bgcolor: '#f1f5f9', color: '#94a3b8', width: 54, height: 54 }}>
+                                        <InboxIcon sx={{ fontSize: 32 }} />
+                                      </Avatar>
+                                      <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 16, color: '#334155', mt: 1 }}>
+                                        No entrance login records found
+                                      </Typography>
+                                      <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#64748b', maxWidth: 360 }}>
+                                        {searchTerm
+                                          ? `No patron records matching search "${searchTerm}".`
+                                          : 'Try adjusting your date range or filter selections to view visitor entry data.'}
+                                      </Typography>
+                                      <Button
+                                        size="small"
+                                        variant="outlined"
+                                        onClick={handleClearFilters}
+                                        startIcon={<RestartAltIcon />}
+                                        sx={{ mt: 1, borderRadius: 2, textTransform: 'none', fontFamily: 'Poppins, sans-serif', fontWeight: 600 }}
+                                      >
+                                        Clear All Filters
+                                      </Button>
+                                    </Box>
                                   </TableCell>
                                 </TableRow>
                               ) : (
                                 pageRows.map((row, i) => {
                                   const isSelected = selectedLogIds.includes(row.LogID);
+                                  const genderStr = (row.studGender || '').toLowerCase();
+                                  const isMale = genderStr.includes('m') && !genderStr.includes('fe');
+                                  const isFemale = genderStr.includes('f');
+
                                   return (
                                     <TableRow
                                       key={row.LogID || i}
@@ -1510,19 +1794,52 @@ const LoginDashboard = () => {
                                           onChange={() => handleToggleSelectRow(row.LogID)}
                                         />
                                       </TableCell>
-                                      <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#334155' }}>{row.studIDnumber || 'N/A'}</TableCell>
-                                      <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 600, color: '#1e293b' }}>
+                                      <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#334155', fontWeight: 600 }}>{row.studIDnumber || 'N/A'}</TableCell>
+                                      <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 700, color: '#1e293b' }}>
                                         {`${row.studLname || ''}, ${row.studFname || ''}`}
                                       </TableCell>
                                       <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#475569' }}>
                                         {`${row.studCourse || 'N/A'} - ${row.studYear || ''}`}
                                       </TableCell>
-                                      <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 600, color: '#1a237e' }}>
+                                      <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 700, color: '#1a237e' }}>
                                         {row.studCollege || 'N/A'}
                                       </TableCell>
-                                      <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#475569' }}>{row.Section || 'N/A'}</TableCell>
+                                      <TableCell>
+                                        <Chip
+                                          label={row.Section || 'Entrance'}
+                                          size="small"
+                                          sx={{
+                                            fontFamily: 'Poppins, sans-serif',
+                                            fontWeight: 700,
+                                            fontSize: 11,
+                                            bgcolor: '#e0f2fe',
+                                            color: '#0369a1',
+                                            height: 22
+                                          }}
+                                        />
+                                      </TableCell>
                                       <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#64748b' }}>{formatDate(row.TimeLogged)}</TableCell>
-                                      <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#64748b' }}>{row.studGender || ''}</TableCell>
+                                      <TableCell>
+                                        {isMale ? (
+                                          <Chip
+                                            icon={<MaleIcon sx={{ fontSize: '16px !important', color: '#0288d1 !important' }} />}
+                                            label="Male"
+                                            size="small"
+                                            sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, bgcolor: '#e0f2fe', color: '#0288d1', height: 22 }}
+                                          />
+                                        ) : isFemale ? (
+                                          <Chip
+                                            icon={<FemaleIcon sx={{ fontSize: '16px !important', color: '#7b1fa2 !important' }} />}
+                                            label="Female"
+                                            size="small"
+                                            sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, bgcolor: '#fdf4ff', color: '#7b1fa2', height: 22 }}
+                                          />
+                                        ) : (
+                                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#94a3b8' }}>
+                                            {row.studGender || 'N/A'}
+                                          </Typography>
+                                        )}
+                                      </TableCell>
                                       <TableCell align="center">
                                         <Tooltip title="Delete Record">
                                           <IconButton size="small" color="error" onClick={() => openDeleteSingleDialog(row)}>
@@ -1542,7 +1859,7 @@ const LoginDashboard = () => {
                         {totalPages > 1 && (
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2.5 }}>
                             <Typography sx={{ fontSize: 13, color: '#64748b', fontWeight: 500 }}>
-                              Showing Page {page + 1} of {totalPages}
+                              Showing Page {page + 1} of {totalPages} ({processedLogins.length} Total Records)
                             </Typography>
                             <Box sx={{ display: 'flex', gap: 1 }}>
                               <Button
@@ -1668,11 +1985,42 @@ const LoginDashboard = () => {
         </Alert>
       </Snackbar>
 
-      {/* 👇 Admin Login Dialog */}
+      {/* 👇 Admin Login Dialog (Polished Glassmorphism & Branding) */}
       {showLoginModal && (
-        <Dialog open={true}>
-          <DialogTitle>You need to login as an Admin to view this page</DialogTitle>
-          <DialogContent>
+        <Dialog
+          open={true}
+          PaperProps={{
+            sx: {
+              borderRadius: 4,
+              p: 1,
+              maxWidth: 420,
+              width: '100%',
+              boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.35)',
+              border: '1.5px solid #cbd5e1',
+              bgcolor: '#ffffff'
+            }
+          }}
+          slotProps={{
+            backdrop: {
+              sx: {
+                backdropFilter: 'blur(8px)',
+                backgroundColor: 'rgba(15, 23, 42, 0.65)'
+              }
+            }
+          }}
+        >
+          <Box sx={{ textAlign: 'center', pt: 3, px: 3 }}>
+            <Avatar sx={{ bgcolor: '#1d0a61', color: '#f57c00', width: 56, height: 56, mx: 'auto', mb: 1.5, boxShadow: '0 8px 20px rgba(29, 10, 97, 0.3)' }}>
+              <LockIcon sx={{ fontSize: 30 }} />
+            </Avatar>
+            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 20, color: '#0f172a' }}>
+              Admin Verification
+            </Typography>
+            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#64748b', mt: 0.5 }}>
+              Please enter your administrator credentials to access the Henry Luce III Library Analytics Dashboard.
+            </Typography>
+          </Box>
+          <DialogContent sx={{ p: 3 }}>
             <form onSubmit={handleLogin}>
               <TextField
                 fullWidth
@@ -1680,6 +2028,11 @@ const LoginDashboard = () => {
                 label="Username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                sx={{
+                  mb: 1.5,
+                  '& .MuiOutlinedInput-root': { borderRadius: 2.5, fontFamily: 'Poppins, sans-serif' },
+                  '& .MuiInputLabel-root': { fontFamily: 'Poppins, sans-serif' }
+                }}
               />
               <TextField
                 fullWidth
@@ -1688,9 +2041,14 @@ const LoginDashboard = () => {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                sx={{
+                  mb: 1,
+                  '& .MuiOutlinedInput-root': { borderRadius: 2.5, fontFamily: 'Poppins, sans-serif' },
+                  '& .MuiInputLabel-root': { fontFamily: 'Poppins, sans-serif' }
+                }}
               />
               {loginError && (
-                <Typography color="error" fontSize={14} mt={1}>
+                <Typography color="error" fontSize={13} fontWeight={600} mt={1} textAlign="center" sx={{ fontFamily: 'Poppins, sans-serif' }}>
                   {loginError}
                 </Typography>
               )}
@@ -1698,17 +2056,38 @@ const LoginDashboard = () => {
                 variant="contained"
                 fullWidth
                 type="submit"
-                sx={{ mt: 2 }}
+                sx={{
+                  mt: 2.5,
+                  height: 46,
+                  borderRadius: 2.5,
+                  bgcolor: '#1d0a61',
+                  fontFamily: 'Poppins, sans-serif',
+                  fontWeight: 700,
+                  fontSize: 15,
+                  textTransform: 'none',
+                  boxShadow: '0 4px 14px rgba(29, 10, 97, 0.3)',
+                  '&:hover': { bgcolor: '#140647' }
+                }}
               >
-                Login
+                Login to Dashboard
               </Button>
               <Button
                 variant="outlined"
                 fullWidth
-                sx={{ mt: 1 }}
+                sx={{
+                  mt: 1.5,
+                  height: 44,
+                  borderRadius: 2.5,
+                  color: '#475569',
+                  borderColor: '#cbd5e1',
+                  fontFamily: 'Poppins, sans-serif',
+                  fontWeight: 700,
+                  fontSize: 14,
+                  textTransform: 'none'
+                }}
                 onClick={() => navigate('/')}
               >
-                Home
+                Back to Home
               </Button>
             </form>
           </DialogContent>
