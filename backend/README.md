@@ -141,7 +141,11 @@ const config = {
 };
 ```
 
-### 2. Microservice Launch Sequence
+### 2. Required Dependencies & Microservice Launch Sequence
+
+#### Required Backend Dependencies:
+- **Node.js Express Backend (`backend/package.json`)**: `express`, `cors`, `multer`, `mssql`, `msnodesqlv8`, `tedious`, `axios`, `moment-timezone`, `natural`, `vader-sentiment`, `afinn-165`
+- **Python Microservice & ML Pipeline (`sentiment_service.py` & `ml/`)**: `flask`, `transformers`, `torch`, `scikit-learn`, `pandas`, `joblib`, `openpyxl`, `matplotlib`
 
 #### Terminal 1: Launch Python Dual-Engine Microservice
 ```bash
@@ -149,7 +153,7 @@ const config = {
 cd backend
 
 # Install Python requirements
-pip install flask transformers torch scikit-learn pandas joblib matplotlib
+pip install flask transformers torch scikit-learn pandas joblib openpyxl matplotlib
 
 # Start service
 python sentiment_service.py
@@ -173,15 +177,16 @@ npm start
 
 ## 🧪 Retraining the Machine Learning Category Model
 
-To retrain the Naïve Bayes category classifier using updated survey datasets:
+To retrain the Naïve Bayes category classifier using updated survey datasets (`5kwithnoise.xlsx` & `manual_boundary_cases.csv`):
 
 ```bash
 cd backend/ml
 
-# 1. Clean raw dataset (dataset_5k_wnoise.xlsx or custom dataset)
+# 1. Clean raw dataset (5kwithnoise.xlsx -> data/clean_category_dataset.csv)
 python clean_dataset.py
 
-# 2. Train model & generate updated category_model.pkl
+# 2. Train model, merge manual boundary cases & generate updated category_model.pkl
 python train_category_model.py
 ```
+
 

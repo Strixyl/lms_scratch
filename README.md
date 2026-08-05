@@ -154,20 +154,53 @@ cardiffnlp/twitter-roberta-base-sentiment   TfidfVectorizer + MultinomialNB
 
 ---
 
-## 💻 Tech Stack Summary
+## ⚡ Recent System Updates & Enhancements
 
-| Technology | Role & Version |
-|---|---|
-| **Frontend Framework** | React.js v19, React Router v7 (HashRouter mode) |
-| **UI Component Library** | Material-UI (MUI v7), `@emotion/react`, `@emotion/styled` |
-| **Charts & Visualizations** | Recharts v3, `react-wordcloud` v1.2 |
-| **Backend REST Server** | Node.js v18+, Express.js v5 |
-| **Database Server** | Microsoft SQL Server (SQLEXPRESS / ODBC Driver 18) |
-| **Database Driver** | `mssql`, `msnodesqlv8` |
-| **Python Microservice** | Python 3.9+, Flask, Hugging Face Transformers (`torch`), Scikit-Learn, Pandas, Joblib |
-| **NLP Transformer Model** | `cardiffnlp/twitter-roberta-base-sentiment-latest` |
-| **ML Classifier Model** | TF-IDF Vectorizer + Multinomial Naïve Bayes (`category_model.pkl`) |
-| **Export Utilities** | `xlsx` (Excel Export), `jspdf` (PDF generation) |
+Below is a summary of major updates implemented in the system:
+
+1. **Machine Learning Pipeline & Model Retraining (`backend/ml/`)**:
+   - **Dataset Expansion & Cleaning**: Updated `clean_dataset.py` to ingest and sanitize 5,000+ raw survey feedback entries (`5kwithnoise.xlsx`), filtering noise tokens (`"none"`, `"n/a"`, `"ok"`, `"asdf"`, `"wala"`), duplicates, and short text fragments.
+   - **Manual Boundary Case Integration**: Merged `manual_boundary_cases.csv` (117 hand-curated edge cases) directly into the Naïve Bayes dataset to resolve misclassifications on domain boundaries.
+   - **Hyperparameter Grid Search**: Executed stratified 80/20 train-validation splits across $\alpha \in [0.01..5.0]$, unigrams/bigrams, and minimum document frequencies to yield an optimized `category_model.pkl`.
+   - **Microservice Gating**: Enhanced `sentiment_service.py` with fallback confidence threshold gating ($\tau = 0.45$).
+
+2. **Patron Satisfaction Survey UI/UX Redesign (`SatisfactionSurvey.js`)**:
+   - **Radio Button Rating Controls**: Transformed CSAT rating interface from pill buttons into accessible interactive radio button components per panelist recommendations.
+   - **Single-Question Animated View**: Added single-item view mode with step-by-step progress bars and smooth CSS animations.
+
+3. **Sentiment & Recommendation Analytics Dashboard (`SentimentDashboard.js`)**:
+   - **Continuous Sentiment Score Blending**: Refined sentiment score calculation combining quantitative emoji rating ($50\%$) and RoBERTa text sentiment ($50\%$) into $\text{SentimentScore} \in [-1.0, +1.0]$.
+   - **Dual-Option Recommendation Engine**: Implemented **Option A (Keyword Signals)** and **Option B (Raw Supporting Evidence)** triggered when category negative feedback reaches $\ge 30\%$ (Moderate Concern) or $\ge 50\%$ (High Concern).
+   - **Stable Word Cloud**: Integrated deterministic `ReactWordcloud` rendering with a fixed random seed for layout consistency across re-renders.
+
+4. **Patron Sign-in & Traffic Analytics (`LoginDashboard.js` & `LoginData.js`)**:
+   - **College Mapping & Demographic Filtering**: Integrated department mapping (`COLLEGE_MAP`) for real-time demographic breakdowns.
+   - **Chart Visualization Upgrades**: Dynamic section utilization bar charts, peak hourly entry graphs, and optimized batch log deletion.
+
+5. **Technical Services & Catalog Encoding (`BookCatalogue.js` & `CardAndPacket.js`)**:
+   - **Multi-Book Encoding**: Up to 4 book records encoded within a single packet form.
+   - **Encoding & Duplicate Validation**: UTF-8 catalog encoding fixes and accession number uniqueness validation across all 4 packet slots.
+
+---
+
+## 💻 Dependencies & Required Packages
+
+### 1. Frontend Dependencies (React 19 Client)
+- **Core Framework**: `react` (v19.1+), `react-dom` (v19.1+), `react-router-dom` (v7.5+)
+- **UI Components & Icons**: `@mui/material` (v7.0+), `@mui/icons-material` (v7.0+), `@mui/x-data-grid` (v8.11+), `@emotion/react`, `@emotion/styled`, `@fontsource/poppins`
+- **Data Visualization**: `recharts` (v3.8+), `react-wordcloud` (v1.2+)
+- **HTTP & Utilities**: `axios`, `moment-timezone`, `xlsx`, `web-vitals`
+- **Client Sentiment Libraries**: `vader-sentiment`, `natural`, `afinn-165`, `ajv`
+
+### 2. Express REST API Backend Dependencies (`backend/package.json`)
+- **Web Framework & Middleware**: `express` (v4/v5), `cors`, `multer` (v2.2+)
+- **SQL Server Database Drivers**: `mssql` (v11.0+), `msnodesqlv8` (v4.5+), `tedious` (v19.2+)
+- **HTTP & NLP Utilities**: `axios`, `moment-timezone`, `natural` (v8.1+), `vader-sentiment`, `afinn-165`
+
+### 3. Python NLP Microservice & ML Dependencies (`backend/sentiment_service.py` & `backend/ml/`)
+- **Flask Framework**: `flask`
+- **Transformers & Deep Learning**: `transformers`, `torch` (PyTorch for `cardiffnlp/twitter-roberta-base-sentiment-latest`)
+- **Machine Learning & Data Processing**: `scikit-learn`, `pandas`, `joblib`, `openpyxl` (for reading `.xlsx` datasets), `matplotlib`
 
 ---
 
@@ -236,11 +269,11 @@ GO
 
 ---
 
-### Step-by-Step Execution Sequence
+### Step-by-Step Installation Sequence
 
 #### Step 1: Install Frontend Dependencies (Root Folder)
 ```bash
-# Install react-wordcloud with legacy peer dependency flag if required
+# Install react-wordcloud with legacy peer dependency flag for React 19 compatibility
 npm install react-wordcloud --legacy-peer-deps
 npm install
 ```
@@ -251,13 +284,13 @@ cd backend
 npm install
 ```
 
-#### Step 3: Install Python Microservice Dependencies
+#### Step 3: Install Python NLP Microservice & ML Dependencies
 ```bash
-pip install flask transformers torch scikit-learn pandas joblib matplotlib
+pip install flask transformers torch scikit-learn pandas joblib openpyxl matplotlib
 ```
 
 #### Step 4: Retrain Category Classification Model (Optional)
-If expanding datasets in `backend/ml/`:
+To clean raw survey datasets and train the Naïve Bayes classifier:
 ```bash
 cd backend/ml
 python clean_dataset.py
