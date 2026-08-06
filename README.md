@@ -61,9 +61,11 @@ This is an enterprise-grade, web-based **Library Management System** developed f
   - **Naïve Bayes Category Classification**: Assigns feedback to domain categories (`Facilities`, `Staff`, `Collection`, `Other/Uncategorized`) with confidence gating ($\tau = 0.45$).
   - **Blended Sentiment Score**: Combines quantitative emoji rating ($50\%$) with text BERT sentiment ($50\%$) into a unified continuous score $\text{SentimentScore} \in [-1.0, +1.0]$.
 - **Analytics & Recommendation Engine (`SentimentDashboard.js`)**:
-  - **KPI Score Cards**: Average satisfaction score scaled from `-1.0` to `+1.0`.
-  - **Monthly Sentiment Trends**: Stacked bar chart showing monthly positive, neutral, and negative response distributions.
-  - **Ranked Top 5 Comments**: Score-ranked lists of top 5 positive and negative patron comments.
+  - **KPI Score Cards**: Average satisfaction score scaled from `-1.0` to `+1.0` and 1-5 CSAT scale averages.
+  - **12-Month Sentiment Trends**: Side-by-side bar chart showing monthly positive, neutral, and negative response distributions.
+  - **Controlled Domain Lexicon Keyword Ranking**: Ranks top 5 positive and negative comments by matching feedback against a canonical **Controlled Domain Lexicon** across Facilities (`Restroom & Hygiene`, `Air Conditioning`, `Tables, Seating & Space`, `Wi-Fi & Power Outlets`, `Noise Level & Ambience`, `Lighting & Cleanliness`), Staff (`Librarians & Staffs`, `Security`, `Service Quality & Attitude`), and Collection (`Books & Reference Materials`, `Catalogue, OPAC & Search`, `Borrowing & Circulation`, `Computers`).
+  - **Blended Score Ranking & Topic Diversity**: Ranks comments by blending pool topic relevance ($70\%$) with sentiment magnitude ($30\%$), enforcing a 2-comment cap per topic for balanced feedback diversity.
+  - **Small-Pool Fallback Guard**: Bypasses frequency scoring when a sentiment pool has $< 5$ comments, sorting directly by sentiment score magnitude.
   - **Deterministic Word Cloud**: Top 60 comment keywords rendered via `ReactWordcloud` with fixed seed for stable layout presentation.
   - **Service Improvement Recommendations**: Rule-based action recommendations triggered when category negative response ratios hit $\ge 30\%$ (Moderate Concern) or $\ge 50\%$ (High Concern). Offers **Option A (Keyword Signals)** and **Option B (Raw Supporting Evidence)**.
 
@@ -162,6 +164,19 @@ Below is a summary of major updates implemented in the system:
    - **Dataset Expansion & Cleaning**: Updated `clean_dataset.py` to ingest and sanitize 5,000+ raw survey feedback entries (`5kwithnoise.xlsx`), filtering noise tokens (`"none"`, `"n/a"`, `"ok"`, `"asdf"`, `"wala"`), duplicates, and short text fragments.
    - **Manual Boundary Case Integration**: Merged `manual_boundary_cases.csv` (117 hand-curated edge cases) directly into the Naïve Bayes dataset to resolve misclassifications on domain boundaries.
    - **Hyperparameter Grid Search**: Executed stratified 80/20 train-validation splits across $\alpha \in [0.01..5.0]$, unigrams/bigrams, and minimum document frequencies to yield an optimized `category_model.pkl`.
+   - **Microservice Gating**: Enhanced `sentiment_service.py` with fallback confidence threshold gating ($\tau = 0.45$).
+
+2. **Patron Satisfaction Survey UI/UX Redesign (`SatisfactionSurvey.js`)**:
+   - **Radio Button Rating Controls**: Transformed CSAT rating interface from pill buttons into accessible interactive radio button components per panelist recommendations.
+   - **Single-Question Animated View**: Added single-item view mode with step-by-step progress bars and smooth CSS animations.
+
+3. **Sentiment Analytics & Controlled Lexicon Engine (`SentimentDashboard.js`)**:
+   - **Controlled Domain Lexicon Keyword Ranking**: Restructured top comment keyword detection using `CONTROLLED_LEXICON`, categorizing entities across Facilities (`Restroom & Hygiene`, `Air Conditioning`, `Tables, Seating & Space`, `Wi-Fi & Power Outlets`, `Noise Level & Ambience`, `Lighting & Cleanliness`), Staff (`Librarians & Staffs`, `Security`, `Service Quality & Attitude`), and Collection (`Books & Reference Materials`, `Catalogue, OPAC & Search`, `Borrowing & Circulation`, `Computers`).
+   - **Pool-Relative Topic Mentions**: Counts canonical topic occurrences separately in Positive vs. Negative comment pools to prevent cross-pool term inflation.
+   - **Blended Score Ranking ($70/30$)**: Blends pool topic relevance ($70\%$) with sentiment magnitude ($30\%$) to rank top comments.
+   - **Topic Diversity Filter & Small-Pool Guard**: Limits selection to 2 comments per topic to ensure feedback variety, with a magnitude fallback guard for pools with $< 5$ entries.
+   - **English NLP Sentiment Scope**: Scoped preprocessing and stopword filtering strictly to English patron feedback text.
+   - **Streamlined Parametric Filters**: Cleaned up dashboard filter controls to focus on structured date ranges, clientele, college, sentiment, category, and academic year.an optimized `category_model.pkl`.
    - **Microservice Gating**: Enhanced `sentiment_service.py` with fallback confidence threshold gating ($\tau = 0.45$).
 
 2. **Patron Satisfaction Survey UI/UX Redesign (`SatisfactionSurvey.js`)**:
