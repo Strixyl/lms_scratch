@@ -110,10 +110,27 @@ const STOPWORDS = new Set([
   'would', 'could', 'should', 'about', 'out', 'up', 'been', 'when', 'what', 'which', 'than',
   // Quantifiers, degree words & generic English fillers (prevents terms like "lot" or "quality" from overriding subject nouns)
   'lot', 'lots', 'many', 'much', 'few', 'some', 'several', 'every', 'each', 'huge', 'lack',
-  'lacks', 'less', 'enough', 'overall', 'always', 'never', 'sometimes', 'often', 'usually',
   'bad', 'good', 'nice', 'great', 'better', 'best', 'worst', 'poor', 'quality', 'high', 'low',
   'one', 'two', 'new', 'old', 'big', 'small', 'thing', 'things', 'way', 'ways', 'kind', 'kinds'
 ]);
+
+const CONTROLLED_LEXICON = {
+  Facilities: {
+    'Comfort Room': ['cr', 'comfort room', 'restroom', 'toilet', 'washroom', 'dirty cr', 'smelly cr'],
+    'Air Conditioning': ['ac', 'aircon', 'temperature', 'hot', 'warm', 'cold', 'cooling', 'fan'],
+    'Tables & Seating': ['table', 'tables', 'chair', 'chairs', 'seat', 'seating', 'bench', 'desk'],
+    'Wi-Fi & Outlets': ['wifi', 'wi-fi', 'internet', 'connection', 'outlet', 'plug', 'socket']
+  },
+  Staff: {
+    'Librarians & Assistants': ['librarian', 'librarians', 'staff', 'staffs', 'assistant', 'counter', 'personnel'],
+    'Security Guards': ['guard', 'guards', 'security'],
+    'Staff Attitude': ['attitude', 'polite', 'rude', 'helpful', 'approachable', 'accommodating', 'unhelpful']
+  },
+  Collection: {
+    'Books & References': ['book', 'books', 'reference', 'textbook', 'journal', 'reading material'],
+    'Catalogue & OPAC': ['catalogue', 'catalog', 'opac', 'system', 'search', 'index', 'accession']
+  }
+};
 
 const stemWord = (word) => {
   if (!word || word.length <= 3) return word;
@@ -692,101 +709,70 @@ const SentimentDashboard = () => {
     return buildTermFrequencies(surveys);
   }, [surveys]);
 
-  // ── TF-IDF Keyword Scoring Engine (Approach B) ──────────────────────────────
-  const calculateTFIDFRelevance = (commentsPool) => {
-    const N = commentsPool.length;
-    if (N === 0) return { scoredPool: [], displayMap: {}, idf: {} };
+  // ── Controlled Domain Lexicon Keyword Ranking Engine ────────────────────────
+  const scoreCommentsWithLexicon = (commentsPool) => {
+    if (!commentsPool || commentsPool.length === 0) return [];
 
-    const docFreq = {};
-    const origCounts = {};
-    const commentTermFreqs = [];
+    const topicPoolCounts = {};
+    const commentTopicMatches = commentsPool.map(s => {
+      if (!s.Message || !s.Message.trim()) return { matchedTopics: [] };
+      const msgLower = s.Message.toLowerCase();
+      const matchedTopics = new Set();
 
-    commentsPool.forEach(s => {
-      if (!s.Message) {
-        commentTermFreqs.push({ stemFreq: {} });
-        return;
-      }
-
-      const cleanText = s.Message.toLowerCase().replace(/https?:\/\/\S+|[^\w\s']/g, ' ');
-      const rawWords = cleanText.match(/[a-z']+/g) || [];
-      const validWords = rawWords.filter(w => w.length >= 3 && !STOPWORDS.has(w));
-
-      const stemFreq = {};
-      const uniqueStemsInComment = new Set();
-
-      validWords.forEach(rawW => {
-        const stem = stemWord(rawW);
-        stemFreq[stem] = (stemFreq[stem] || 0) + 1;
-        uniqueStemsInComment.add(stem);
-
-        if (!origCounts[stem]) origCounts[stem] = {};
-        origCounts[stem][rawW] = (origCounts[stem][rawW] || 0) + 1;
+      Object.values(CONTROLLED_LEXICON).forEach(categoryTopics => {
+        Object.entries(categoryTopics).forEach(([topic, synonyms]) => {
+          for (const syn of synonyms) {
+            const regex = new RegExp(`\\b${syn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+            if (regex.test(msgLower) || msgLower.includes(syn)) {
+              matchedTopics.add(topic);
+              break;
+            }
+          }
+        });
       });
 
-      uniqueStemsInComment.forEach(stem => {
-        docFreq[stem] = (docFreq[stem] || 0) + 1;
+      matchedTopics.forEach(topic => {
+        topicPoolCounts[topic] = (topicPoolCounts[topic] || 0) + 1;
       });
 
-      commentTermFreqs.push({ stemFreq });
+      return { matchedTopics: Array.from(matchedTopics) };
     });
 
-    // Formula: IDF(t) = ln( N / (|{d in D : t in d}| + 1) ) + 1
-    const idf = {};
-    Object.keys(docFreq).forEach(stem => {
-      const dCount = docFreq[stem] || 0;
-      idf[stem] = Math.log(N / (dCount + 1)) + 1;
-    });
-
-    const displayMap = {};
-    Object.keys(origCounts).forEach(stem => {
-      displayMap[stem] = Object.entries(origCounts[stem]).sort((a, b) => b[1] - a[1])[0][0];
-    });
-
-    const scoredPool = commentsPool.map((commentObj, idx) => {
+    return commentsPool.map((commentObj, idx) => {
       if (!commentObj || !commentObj.Message) {
         return { ...commentObj, tfidfScore: 0, termScore: 0, blendedScore: 0, topTerm: '', maxTermFreq: 0 };
       }
 
-      const { stemFreq } = commentTermFreqs[idx];
-      const stems = Object.keys(stemFreq);
+      const { matchedTopics } = commentTopicMatches[idx];
+      let maxTopic = '';
+      let maxTopicFreq = 0;
+      let totalTopicScore = 0;
 
-      let totalTFIDF = 0;
-      let maxStem = '';
-      let maxStemTFIDF = 0;
-      let maxStemDocCount = 0;
-
-      stems.forEach(stem => {
-        const tf = stemFreq[stem];
-        const stemIDF = idf[stem] || 1;
-        const tfidfWeight = tf * stemIDF;
-        totalTFIDF += tfidfWeight;
-
-        if (tfidfWeight > maxStemTFIDF) {
-          maxStemTFIDF = tfidfWeight;
-          maxStemDocCount = docFreq[stem] || tf;
-          maxStem = stem;
+      matchedTopics.forEach(topic => {
+        const count = topicPoolCounts[topic] || 0;
+        totalTopicScore += count;
+        if (count > maxTopicFreq) {
+          maxTopicFreq = count;
+          maxTopic = topic;
         }
       });
 
-      const normalizedTFIDF = stems.length > 0
-        ? Number((totalTFIDF / Math.sqrt(stems.length)).toFixed(2))
+      const normalizedTopicScore = matchedTopics.length > 0
+        ? Number((totalTopicScore / Math.sqrt(matchedTopics.length)).toFixed(2))
         : 0;
 
-      const displayTerm = displayMap[maxStem] || maxStem;
       const magnitude = Math.abs(getSurveyScore(commentObj));
-      const blendedScore = Number(((0.7 * normalizedTFIDF) + (0.3 * magnitude * 10)).toFixed(2));
+      const blendedScore = Number(((0.7 * normalizedTopicScore) + (0.3 * magnitude * 10)).toFixed(2));
 
       return {
         ...commentObj,
-        tfidfScore: normalizedTFIDF,
-        termScore: normalizedTFIDF,
+        tfidfScore: normalizedTopicScore,
+        termScore: normalizedTopicScore,
         blendedScore,
-        topTerm: displayTerm,
-        maxTermFreq: maxStemDocCount
+        topTerm: maxTopic || 'General Feedback',
+        maxTermFreq: maxTopicFreq
       };
     });
-
-    return { scoredPool, displayMap, idf };
   };
 
   const selectDiverseTopComments = (scoredList, limit = 5) => {
@@ -828,16 +814,16 @@ const SentimentDashboard = () => {
   });
 
   const topPositive = useMemo(() => {
-    // Small pool guard: frequency/TF-IDF scoring is unreliable under 5 comments.
+    // Small pool guard: lexicon/frequency scoring is unreliable under 5 comments.
     if (positivePool.length < 5) {
       return [...positivePool]
         .sort((a, b) => Math.abs(getSurveyScore(b)) - Math.abs(getSurveyScore(a)))
         .slice(0, 5);
     }
-    const { scoredPool } = calculateTFIDFRelevance(positivePool);
+    const scoredPool = scoreCommentsWithLexicon(positivePool);
     scoredPool.sort((a, b) => {
-      if (b.tfidfScore !== a.tfidfScore) {
-        return b.tfidfScore - a.tfidfScore;
+      if (b.blendedScore !== a.blendedScore) {
+        return b.blendedScore - a.blendedScore;
       }
       return Math.abs(getSurveyScore(b)) - Math.abs(getSurveyScore(a));
     });
@@ -845,16 +831,16 @@ const SentimentDashboard = () => {
   }, [positivePool]);
 
   const topNegative = useMemo(() => {
-    // Small pool guard: frequency/TF-IDF scoring is unreliable under 5 comments.
+    // Small pool guard: lexicon/frequency scoring is unreliable under 5 comments.
     if (negativePool.length < 5) {
       return [...negativePool]
         .sort((a, b) => Math.abs(getSurveyScore(b)) - Math.abs(getSurveyScore(a)))
         .slice(0, 5);
     }
-    const { scoredPool } = calculateTFIDFRelevance(negativePool);
+    const scoredPool = scoreCommentsWithLexicon(negativePool);
     scoredPool.sort((a, b) => {
-      if (b.tfidfScore !== a.tfidfScore) {
-        return b.tfidfScore - a.tfidfScore;
+      if (b.blendedScore !== a.blendedScore) {
+        return b.blendedScore - a.blendedScore;
       }
       return Math.abs(getSurveyScore(b)) - Math.abs(getSurveyScore(a));
     });
@@ -932,9 +918,9 @@ const SentimentDashboard = () => {
         matchingEvidences = [...matchingEvidences, ...remaining];
       }
 
-      const { scoredPool: scoredEvidences } = calculateTFIDFRelevance(matchingEvidences);
+      const scoredEvidences = scoreCommentsWithLexicon(matchingEvidences);
       const topEvidences = scoredEvidences
-        .sort((a, b) => b.tfidfScore - a.tfidfScore)
+        .sort((a, b) => b.blendedScore - a.blendedScore)
         .slice(0, 3);
 
       return { category, total, negative, pct, severity, matchedKeywords, primaryKw, topEvidences };

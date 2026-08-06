@@ -83,31 +83,28 @@ $$\text{Avg Satisfaction} = \frac{\sum_{i=1}^{10} \text{Scale}(Q_i)}{N_{\text{va
 
 ---
 
-### B. English Text Preprocessing & Stemming (`stemWord`)
-1. **Scope Limitation**: The NLP sentiment pipeline is strictly scoped and optimized for **English patron comments**.
-2. **Punctuation & URL Stripping**: Converts text to lowercase and removes web URLs and special characters.
-3. **English Stopwords & Filler Filtering**: Filters generic English grammar words, quantifiers, and filler degree words (*the, a, and, is, to, in, lot, lots, many, much, quality, bad, good, great, poor*, etc.) so that core subject nouns (*tables, chairs, aircon, wifi, staff, books*) are prioritized as top terms.
-4. **Word Stemming (`stemWord`)**: Normalizes plurals and common suffixes (`staffs` $\rightarrow$ `staff`, `books` $\rightarrow$ `book`, `tables` $\rightarrow$ `table`).
-5. **Display Mapping**: Maps stemmed roots back to their most frequent natural word variant.
+### B. Controlled Domain Lexicon Engine (`CONTROLLED_LEXICON`)
+To eliminate noisy tokens and standardize keyword labels across patron comments, detection is restricted to a structured **Controlled Domain Lexicon**:
+* **Facilities Topics**: `Comfort Room`, `Air Conditioning`, `Tables & Seating`, `Wi-Fi & Outlets`.
+* **Staff Topics**: `Librarians & Assistants`, `Security Guards`, `Staff Attitude`.
+* **Collection Topics**: `Books & References`, `Catalogue & OPAC`.
 
 ---
 
-### C. TF-IDF Keyword Scoring Engine (`calculateTFIDFRelevance`)
-Ranks written English comments by informative keyword relevance within their sentiment pools:
-
-1. **Preprocessing & English Stopwords**: Converts text to lowercase, strips URLs/punctuation, and removes English stop-words.
-2. **Inverse Document Frequency (IDF)**: Measures term rarity across pool $D$ ($N = |D|$):
-   $$\text{IDF}(t) = \ln\left(\frac{N}{|\{d \in D : t \in d\}| + 1}\right) + 1$$
-3. **Normalized TF-IDF Score**: Sums TF-IDF weights and normalizes by square root of unique key terms:
-   $$\text{tfidfScore} = \frac{\sum_{t \in d} \text{TF}(t,d) \times \text{IDF}(t)}{\sqrt{\text{Count}(\text{unique stems in } d)}}$$
-4. **Blended Score**: Combines TF-IDF relevance ($70\%$) with sentiment magnitude ($30\%$):
-   $$\text{blendedScore} = (0.7 \times \text{tfidfScore}) + (0.3 \times |\text{SurveyScore}| \times 10)$$
+### C. Controlled Lexicon Scoring Engine (`scoreCommentsWithLexicon`)
+Ranks written English comments by matching domain entities within sentiment pools:
+1. **Synonym Matching**: Scans comments against canonical synonym lists (e.g. `'cr'`, `'restroom'`, `'toilet'` $\rightarrow$ `Comfort Room`; `'catalog'`, `'opac'` $\rightarrow$ `Catalogue & OPAC`).
+2. **Pool-Wide Topic Frequency**: Counts how often each canonical topic appears across the sentiment pool.
+3. **Topic Relevance Score**:
+   $$\text{normalizedTopicScore} = \frac{\sum_{\text{topic} \in d} \text{poolCount}(\text{topic})}{\sqrt{\text{Count}(\text{unique matched topics in } d)}}$$
+4. **Blended Score**: Combines topic relevance ($70\%$) with sentiment magnitude ($30\%$):
+   $$\text{blendedScore} = (0.7 \times \text{normalizedTopicScore}) + (0.3 \times |\text{SurveyScore}| \times 10)$$
 
 ---
 
 ### D. Sorting, Tie-Breakers & Small Pool Guard
-1. **Primary Sort**: Comments in `topPositive` and `topNegative` are sorted descending by `tfidfScore`.
-2. **Tie-Breaker**: Identical TF-IDF scores are broken using sentiment magnitude `Math.abs(getSurveyScore(comment))`.
+1. **Primary Sort**: Comments in `topPositive` and `topNegative` are sorted descending by `blendedScore`.
+2. **Tie-Breaker**: Identical topic scores are broken using sentiment magnitude `Math.abs(getSurveyScore(comment))`.
 3. **Small Pool Guard**: If a pool has $< 5$ comments (where IDF values become near-uniform), TF-IDF is bypassed and comments are sorted directly by $|\text{getSurveyScore}|$.
 
 ---
