@@ -114,21 +114,68 @@ const STOPWORDS = new Set([
   'one', 'two', 'new', 'old', 'big', 'small', 'thing', 'things', 'way', 'ways', 'kind', 'kinds'
 ]);
 
-const CONTROLLED_LEXICON = {
+export const CONTROLLED_LEXICON = {
   Facilities: {
-    'Comfort Room': ['cr', 'comfort room', 'restroom', 'toilet', 'washroom', 'dirty cr', 'smelly cr'],
-    'Air Conditioning': ['ac', 'aircon', 'temperature', 'hot', 'warm', 'cold', 'cooling', 'fan'],
-    'Tables & Seating': ['table', 'tables', 'chair', 'chairs', 'seat', 'seating', 'bench', 'desk'],
-    'Wi-Fi & Outlets': ['wifi', 'wi-fi', 'internet', 'connection', 'outlet', 'plug', 'socket']
+    'Restroom & Hygiene': [
+      'restroom', 'comfort room', 'toilet', 'washroom', 'lavatory',
+      'dirty restroom', 'smelly restroom', 'unclean', 'foul odor',
+      'soap', 'tissue', 'paper towel', 'water', 'faucet', 'flush', 'sink'
+    ],
+    'Air Conditioning': [
+      'aircon', 'air conditioning', 'ac', 'temperature', 'hot', 'warm', 'cold',
+      'cooling', 'fan', 'humid', 'ventilation', 'climate control'
+    ],
+    'Tables, Seating & Space': [
+      'table', 'tables', 'chair', 'chairs', 'seat', 'seating', 'bench', 'desk',
+      'space', 'crowded', 'full', 'overcrowded', 'cubicle', 'study hall', 'carrel'
+    ],
+    'Wi-Fi & Power Outlets': [
+      'wifi', 'wi-fi', 'internet', 'connection', 'network', 'signal', 'disconnecting',
+      'slow internet', 'fast internet', 'outlet', 'outlets', 'plug', 'socket',
+      'charging', 'extension cord'
+    ],
+    'Noise Level & Ambience': [
+      'noise', 'noisy', 'loud', 'quiet', 'silent', 'talking', 'chitchat',
+      'distracting', 'peaceful', 'concentration', 'study zone', 'chaotic'
+    ],
+    'Lighting & Cleanliness': [
+      'light', 'lighting', 'dark', 'dim', 'bright', 'clean', 'cleanliness',
+      'dust', 'dusty', 'trash', 'garbage', 'litter', 'maintenance'
+    ]
   },
   Staff: {
-    'Librarians & Assistants': ['librarian', 'librarians', 'staff', 'staffs', 'assistant', 'counter', 'personnel'],
-    'Security Guards': ['guard', 'guards', 'security'],
-    'Staff Attitude': ['attitude', 'polite', 'rude', 'helpful', 'approachable', 'accommodating', 'unhelpful']
+    'Librarians & Staffs': [
+      'librarian', 'librarians', 'staff', 'assistant', 'assistants',
+      'student assistant', 'desk staff', 'counter', 'personnel'
+    ],
+    'Security': [
+      'guard', 'guards', 'security', 'entrance guard', 'bag check', 'sign in'
+    ],
+    'Service Quality & Attitude': [
+      'attitude', 'polite', 'rude', 'helpful', 'unhelpful', 'approachable',
+      'unapproachable', 'accommodating', 'kind', 'attentive', 'ignoring',
+      'slow service', 'fast service', 'snobbish', 'friendly', 'courteous'
+    ]
   },
   Collection: {
-    'Books & References': ['book', 'books', 'reference', 'textbook', 'journal', 'reading material'],
-    'Catalogue & OPAC': ['catalogue', 'catalog', 'opac', 'system', 'search', 'index', 'accession']
+    'Books & Reference Materials': [
+      'book', 'books', 'reference', 'textbook', 'journal', 'reading material',
+      'thesis', 'manuscript', 'periodical', 'magazine', 'dictionary', 'encyclopedia',
+      'outdated', 'old books', 'updated', 'edition'
+    ],
+    'Catalogue, OPAC & Search': [
+      'catalogue', 'catalog', 'opac', 'online catalog', 'system', 'search',
+      'index', 'accession number', 'call number', 'location', 'shelf', 'shelving'
+    ],
+    'Borrowing & Circulation': [
+      'borrow', 'borrowing', 'return', 'returning', 'due date', 'fine', 'fines',
+      'penalty', 'renewal', 'renew', 'library card', 'checkout', 'check out'
+    ],
+    'Computers': [
+      'pc', 'computer', 'computers', 'desktop', 'computer lab', 'mouse',
+      'keyboard', 'monitor', 'screen', 'printer', 'printing', 'print',
+      'photocopy', 'photocopier', 'scanner', 'scanning'
+    ]
   }
 };
 
