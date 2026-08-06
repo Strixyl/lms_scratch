@@ -49,6 +49,21 @@ const CATEGORY_COLORS = {
 
 const CHART_COLORS = ['#34d399', '#fbbf24', '#f87171'];
 
+const VIBRANT_WORD_COLORS = [
+  '#2563eb', // Sapphire Blue
+  '#10b981', // Rich Emerald Green
+  '#8b5cf6', // Electric Purple
+  '#f59e0b', // Amber Gold
+  '#ef4444', // Coral Red
+  '#06b6d4', // Vivid Cyan
+  '#ec4899', // Hot Pink
+  '#6366f1', // Deep Indigo
+  '#f97316', // Bright Orange
+  '#14b8a6', // Dark Teal
+  '#d946ef', // Fuchsia Magenta
+  '#0288d1', // Sky Blue
+];
+
 const CLIENTELE_OPTIONS = ['Student', 'Faculty', 'Staff', 'Researcher', 'CPU Admin', 'Alumnus/Alumni'];
 
 const COLLEGE_OPTIONS = [
@@ -463,6 +478,13 @@ const SentimentDashboard = () => {
   const [filterYear, setFilterYear] = useState('2026');
   const [page, setPage] = useState(0);
 
+  // Word Cloud interactive states & filters
+  const [wcSearch, setWcSearch] = useState('');
+  const [wcSentimentFilter, setWcSentimentFilter] = useState('All');
+  const [wcMaxWords, setWcMaxWords] = useState(60);
+  const [wcRotation, setWcRotation] = useState('horizontal');
+  const [selectedWordFilter, setSelectedWordFilter] = useState('');
+
   // Live Search & Sort states
   const [sortField, setSortField] = useState('DateSubmitted');
   const [sortOrder, setSortOrder] = useState('desc');
@@ -585,6 +607,9 @@ const SentimentDashboard = () => {
     setFilterCollege('');
     setFilterSentiment('');
     setFilterCategory('');
+    setSelectedWordFilter('');
+    setWcSearch('');
+    setWcSentimentFilter('All');
     setSortField('DateSubmitted');
     setSortOrder('desc');
     setTimeout(fetchSurveys, 0);
@@ -634,7 +659,18 @@ const SentimentDashboard = () => {
     { name: 'Other/Uncategorized', value: categoryCounts['Other/Uncategorized'], color: CATEGORY_COLORS['Other/Uncategorized'].dot },
   ].filter(d => d.value > 0);
 
-  const reviewRows = [...filtered]
+  const filteredWithWord = useMemo(() => {
+    if (!selectedWordFilter) return filtered;
+    const wordLower = selectedWordFilter.toLowerCase();
+    const stem = stemWord(wordLower);
+    return filtered.filter(s => {
+      if (!s.Message) return false;
+      const msgLower = s.Message.toLowerCase();
+      return msgLower.includes(wordLower) || msgLower.includes(stem);
+    });
+  }, [filtered, selectedWordFilter]);
+
+  const reviewRows = [...filteredWithWord]
     .sort((a, b) => {
       let valA = a[sortField];
       let valB = b[sortField];
@@ -733,8 +769,11 @@ const SentimentDashboard = () => {
   const buildTermFrequencies = (pool) => {
     const freq = {};
     const origCounts = {};
+    const sentimentCounts = {};
+
     pool.forEach(s => {
       if (!s.Message) return;
+      const sent = s.SentimentResult || 'Neutral';
       const words = s.Message.toLowerCase().match(/[a-z']+/g) || [];
       words.forEach(rawW => {
         if (rawW.length < 3 || STOPWORDS.has(rawW)) return;
@@ -742,19 +781,24 @@ const SentimentDashboard = () => {
         freq[stem] = (freq[stem] || 0) + 1;
         if (!origCounts[stem]) origCounts[stem] = {};
         origCounts[stem][rawW] = (origCounts[stem][rawW] || 0) + 1;
+
+        if (!sentimentCounts[stem]) sentimentCounts[stem] = { Positive: 0, Negative: 0, Neutral: 0 };
+        if (sentimentCounts[stem][sent] !== undefined) {
+          sentimentCounts[stem][sent]++;
+        }
       });
     });
     const displayMap = {};
     Object.keys(origCounts).forEach(stem => {
       displayMap[stem] = Object.entries(origCounts[stem]).sort((a, b) => b[1] - a[1])[0][0];
     });
-    return { freq, displayMap };
+    return { freq, displayMap, sentimentCounts };
   };
 
-  // Global term frequencies for word cloud visualization
-  const { freq: termFrequencies = {}, displayMap: stemToOriginalMap = {} } = useMemo(() => {
-    return buildTermFrequencies(surveys);
-  }, [surveys]);
+  // Dynamic term frequencies for word cloud visualization based on active filters
+  const { freq: termFrequencies = {}, displayMap: stemToOriginalMap = {}, sentimentCounts: wordSentimentCounts = {} } = useMemo(() => {
+    return buildTermFrequencies(filtered.length > 0 ? filtered : surveys);
+  }, [filtered, surveys]);
 
   // ── Controlled Domain Lexicon Keyword Ranking Engine ────────────────────────
   const scoreCommentsWithLexicon = (commentsPool) => {
@@ -894,23 +938,50 @@ const SentimentDashboard = () => {
     return selectDiverseTopComments(scoredPool, 5);
   }, [negativePool]);
 
-  const wordCloudWords = (() => {
+  const wordCloudWords = useMemo(() => {
     return Object.entries(termFrequencies || {})
-      .map(([stem, value]) => ({ text: (stemToOriginalMap && stemToOriginalMap[stem]) || stem, value }))
+      .map(([stem, value]) => ({
+        text: (stemToOriginalMap && stemToOriginalMap[stem]) || stem,
+        value,
+        stem,
+      }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 60);
-  })();
+  }, [termFrequencies, stemToOriginalMap]);
 
-  const wordCloudOptions = {
+  const wordCloudOptions = useMemo(() => ({
     deterministic: true,
-    randomSeed: 'hll-library-wordcloud',
+    randomSeed: 'hll-library-wordcloud-v3',
     rotations: 1,
     rotationAngles: [0, 0],
     fontFamily: 'Poppins, sans-serif',
-    fontSizes: [16, 44],
-    padding: 3,
-    colors: ['#3b82f6', '#10b981', '#f59e0b', '#f43f5e', '#8b5cf6'],
-  };
+    fontSizes: [16, 48],
+    fontStyle: 'normal',
+    fontWeight: '700',
+    padding: 4,
+    enableTooltip: true,
+    transitionDuration: 0,
+    scale: 'sqrt',
+    spiral: 'archimedean',
+  }), []);
+
+  const wordCloudCallbacks = useMemo(() => ({
+    getWordColor: (word) => {
+      if (selectedWordFilter && word.text.toLowerCase() === selectedWordFilter.toLowerCase()) {
+        return '#f57c00';
+      }
+      const charCodeSum = (word.text || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      return VIBRANT_WORD_COLORS[charCodeSum % VIBRANT_WORD_COLORS.length];
+    },
+    getWordTooltip: (word) => `"${word.text}" — ${word.value} ${word.value === 1 ? 'mention' : 'mentions'}`,
+    onWordClick: (word) => {
+      if (selectedWordFilter && selectedWordFilter.toLowerCase() === word.text.toLowerCase()) {
+        setSelectedWordFilter('');
+      } else {
+        setSelectedWordFilter(word.text);
+      }
+    },
+  }), [selectedWordFilter]);
 
   const categoryStats = (() => {
     const cats = {};
@@ -1601,24 +1672,71 @@ const SentimentDashboard = () => {
                     </Card>
 
                     {/* ── Frequently Used Words (Word Cloud) ───── */}
-                    <Card elevation={0} sx={{ border: '1.5px solid #e2e8f0', borderRadius: 3.5, mb: 3, backgroundColor: 'white' }}>
+                    <Card elevation={0} sx={{ border: '1.5px solid #e2e8f0', borderRadius: 3.5, mb: 3, backgroundColor: 'white', overflow: 'hidden' }}>
                       <CardContent sx={{ p: 3 }}>
-                        <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 14, color: '#1e293b', letterSpacing: 0.5, textTransform: 'uppercase', mb: 2 }}>
-                          Frequently Used Words
-                        </Typography>
+                        {/* Header Title & Badges */}
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1.5 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                            <Box sx={{ p: 1, borderRadius: 2, bgcolor: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <AssessmentIcon sx={{ color: '#4338ca', fontSize: 22 }} />
+                            </Box>
+                            <Box>
+                              <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 14, color: '#1e293b', letterSpacing: 0.5, textTransform: 'uppercase' }}>
+                                Frequently Used Words
+                              </Typography>
+                              <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#64748b', mt: 0.2 }}>
+                                Frequently mentioned terms across patron feedback
+                              </Typography>
+                            </Box>
+                          </Box>
+
+                          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                            <Chip
+                              label={`${wordCloudWords.length} Words`}
+                              size="small"
+                              sx={{ fontWeight: 700, fontFamily: 'Poppins, sans-serif', bgcolor: '#f1f5f9', color: '#475569', borderRadius: 1.5 }}
+                            />
+                            {selectedWordFilter && (
+                              <Chip
+                                label={`Filter: "${selectedWordFilter}"`}
+                                color="warning"
+                                size="small"
+                                onDelete={() => setSelectedWordFilter('')}
+                                sx={{ fontWeight: 700, fontFamily: 'Poppins, sans-serif', borderRadius: 1.5, bgcolor: '#f57c00', color: 'white' }}
+                              />
+                            )}
+                          </Box>
+                        </Box>
+
+                        {/* Word Cloud Canvas */}
                         {wordCloudWords.length === 0 ? (
                           <Typography sx={{ fontFamily: 'Poppins, sans-serif', color: '#94a3b8', textAlign: 'center', py: 6 }}>
                             No comment text available for the selected filters.
                           </Typography>
                         ) : (
-                          <Box sx={{ height: 300 }}>
+                          <Box
+                            sx={{
+                              height: 350,
+                              borderRadius: 3,
+                              p: 2,
+                              bgcolor: '#fafafa',
+                              border: '1px solid #e2e8f0',
+                              position: 'relative',
+                              '& svg text': {
+                                cursor: 'pointer',
+                                fontFamily: 'Poppins, sans-serif !important',
+                                transition: 'none !important',
+                              },
+                              '& svg text:hover': {
+                                opacity: '0.8 !important',
+                              }
+                            }}
+                          >
                             <ReactWordcloud
                               words={wordCloudWords}
                               options={wordCloudOptions}
                               minSize={[300, 300]}
-                              callbacks={{
-                                getWordTooltip: (word) => `${word.text} (${word.value})`,
-                              }}
+                              callbacks={wordCloudCallbacks}
                             />
                           </Box>
                         )}
@@ -1628,9 +1746,20 @@ const SentimentDashboard = () => {
                     {/* ── Survey Response Review Table (Identical Theme Design to LoginDashboard) ───── */}
                     <Paper elevation={0} sx={{ p: 3, borderRadius: 3.5, border: '1px solid #e2e8f0', bgcolor: '#ffffff' }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1.5 }}>
-                        <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 17, color: '#1e293b' }}>
-                          Survey Response Review ({reviewRows.length} Matches)
-                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 17, color: '#1e293b' }}>
+                            Survey Response Review ({reviewRows.length} Matches)
+                          </Typography>
+                          {selectedWordFilter && (
+                            <Chip
+                              label={`Word Filter: "${selectedWordFilter}"`}
+                              color="warning"
+                              size="small"
+                              onDelete={() => setSelectedWordFilter('')}
+                              sx={{ fontWeight: 700, fontFamily: 'Poppins, sans-serif', borderRadius: 1.5, bgcolor: '#f57c00', color: 'white' }}
+                            />
+                          )}
+                        </Box>
                         <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
                           {selectedRowIds.length > 0 && (
                             <Button
