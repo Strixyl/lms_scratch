@@ -176,15 +176,7 @@ Below is a summary of major updates implemented in the system:
    - **Blended Score Ranking ($70/30$)**: Blends pool topic relevance ($70\%$) with sentiment magnitude ($30\%$) to rank top comments.
    - **Topic Diversity Filter & Small-Pool Guard**: Limits selection to 2 comments per topic to ensure feedback variety, with a magnitude fallback guard for pools with $< 5$ entries.
    - **English NLP Sentiment Scope**: Scoped preprocessing and stopword filtering strictly to English patron feedback text.
-   - **Streamlined Parametric Filters**: Cleaned up dashboard filter controls to focus on structured date ranges, clientele, college, sentiment, category, and academic year.an optimized `category_model.pkl`.
-   - **Microservice Gating**: Enhanced `sentiment_service.py` with fallback confidence threshold gating ($\tau = 0.45$).
-
-2. **Patron Satisfaction Survey UI/UX Redesign (`SatisfactionSurvey.js`)**:
-   - **Radio Button Rating Controls**: Transformed CSAT rating interface from pill buttons into accessible interactive radio button components per panelist recommendations.
-   - **Single-Question Animated View**: Added single-item view mode with step-by-step progress bars and smooth CSS animations.
-
-3. **Sentiment & Recommendation Analytics Dashboard (`SentimentDashboard.js`)**:
-   - **Continuous Sentiment Score Blending**: Refined sentiment score calculation combining quantitative emoji rating ($50\%$) and RoBERTa text sentiment ($50\%$) into $\text{SentimentScore} \in [-1.0, +1.0]$.
+   - **Streamlined Parametric Filters**: Cleaned up dashboard filter controls to focus on structured date ranges, clientele, college, sentiment, category, and academic year.
    - **Dual-Option Recommendation Engine**: Implemented **Option A (Keyword Signals)** and **Option B (Raw Supporting Evidence)** triggered when category negative feedback reaches $\ge 30\%$ (Moderate Concern) or $\ge 50\%$ (High Concern).
    - **Stable Word Cloud**: Integrated deterministic `ReactWordcloud` rendering with a fixed random seed for layout consistency across re-renders.
 
