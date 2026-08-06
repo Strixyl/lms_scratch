@@ -1,11 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import axios from 'axios';
 import {
   Box, Typography, Card, CardContent,
   Table, TableBody, TableCell, TableContainer, TableHead,
   TableRow, Paper, Button, TextField, CircularProgress,
   MenuItem, Select, FormControl, InputLabel,
-  Dialog, DialogTitle, DialogContent, Avatar, Chip
+  Dialog, DialogTitle, DialogContent, DialogActions, Avatar, Chip,
+  InputAdornment, TableSortLabel, Tooltip, Snackbar, Alert,
+  Checkbox, IconButton
 } from '@mui/material';
 import {
   Print as PrintIcon,
@@ -18,9 +20,13 @@ import {
   ThumbDown as ThumbDownIcon,
   SentimentSatisfied as SentimentSatisfiedIcon,
   Assessment as AssessmentIcon,
-  AdminPanelSettings as AdminIcon
+  AdminPanelSettings as AdminIcon,
+  Clear as ClearIcon,
+  CalendarToday as CalendarTodayIcon,
+  RestartAlt as RestartAltIcon,
+  Inbox as InboxIcon
 } from '@mui/icons-material';
-import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend as BarLegend } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import ReactWordcloud from 'react-wordcloud';
 import * as XLSX from 'xlsx';
 import { useNavigate } from 'react-router-dom';
@@ -58,6 +64,8 @@ const RATING_SCORES = {
   dissatisfied: -0.5, very_dissatisfied: -1.0, na: 0.0,
 };
 
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
 // ── Plain 1-5 Satisfaction Scale (matches CSAT survey scale) ─────────────────
 const SATISFACTION_SCALE = {
   very_satisfied: 5, satisfied: 4, neutral: 3,
@@ -94,8 +102,90 @@ const getSurveyScore = (s) => {
   return ratingAvg * 0.5 + bertScore * 0.5;
 };
 
-const STOPWORDS = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'is', 'are', 'was', 'were', 'to', 'of', 'in', 'on',
-  'for', 'it', 'this', 'that', 'i', 'we', 'you', 'my', 'our', 'with', 'be', 'have', 'has', 'very', 'so', 'too']);
+const STOPWORDS = new Set([
+  'the', 'a', 'an', 'and', 'or', 'but', 'is', 'are', 'was', 'were', 'to', 'of', 'in', 'on',
+  'for', 'it', 'this', 'that', 'i', 'we', 'you', 'my', 'our', 'with', 'be', 'have', 'has',
+  'very', 'so', 'too', 'library', 'cpu', 'student', 'students', 'just', 'also', 'can', 'will',
+  'more', 'get', 'make', 'please', 'really', 'there', 'they', 'their', 'them', 'from', 'all',
+  'would', 'could', 'should', 'about', 'out', 'up', 'been', 'when', 'what', 'which', 'than',
+  // Quantifiers, degree words & generic English fillers (prevents terms like "lot" or "quality" from overriding subject nouns)
+  'lot', 'lots', 'many', 'much', 'few', 'some', 'several', 'every', 'each', 'huge', 'lack',
+  'bad', 'good', 'nice', 'great', 'better', 'best', 'worst', 'poor', 'quality', 'high', 'low',
+  'one', 'two', 'new', 'old', 'big', 'small', 'thing', 'things', 'way', 'ways', 'kind', 'kinds'
+]);
+
+export const CONTROLLED_LEXICON = {
+  Facilities: {
+    'Restroom & Hygiene': [
+      'restroom', 'comfort room', 'toilet', 'washroom', 'lavatory',
+      'dirty restroom', 'smelly restroom', 'unclean', 'foul odor',
+      'soap', 'tissue', 'paper towel', 'water', 'faucet', 'flush', 'sink'
+    ],
+    'Air Conditioning': [
+      'aircon', 'air conditioning', 'ac', 'temperature', 'hot', 'warm', 'cold',
+      'cooling', 'fan', 'humid', 'ventilation', 'climate control'
+    ],
+    'Tables, Seating & Space': [
+      'table', 'tables', 'chair', 'chairs', 'seat', 'seating', 'bench', 'desk',
+      'space', 'crowded', 'full', 'overcrowded', 'cubicle', 'study hall', 'carrel'
+    ],
+    'Wi-Fi & Power Outlets': [
+      'wifi', 'wi-fi', 'internet', 'connection', 'network', 'signal', 'disconnecting',
+      'slow internet', 'fast internet', 'outlet', 'outlets', 'plug', 'socket',
+      'charging', 'extension cord'
+    ],
+    'Noise Level & Ambience': [
+      'noise', 'noisy', 'loud', 'quiet', 'silent', 'talking', 'chitchat',
+      'distracting', 'peaceful', 'concentration', 'study zone', 'chaotic'
+    ],
+    'Lighting & Cleanliness': [
+      'light', 'lighting', 'dark', 'dim', 'bright', 'clean', 'cleanliness',
+      'dust', 'dusty', 'trash', 'garbage', 'litter', 'maintenance'
+    ]
+  },
+  Staff: {
+    'Librarians & Staffs': [
+      'librarian', 'librarians', 'staff', 'assistant', 'assistants',
+      'student assistant', 'desk staff', 'counter', 'personnel'
+    ],
+    'Security': [
+      'guard', 'guards', 'security', 'entrance guard', 'bag check', 'sign in'
+    ],
+    'Service Quality & Attitude': [
+      'attitude', 'polite', 'rude', 'helpful', 'unhelpful', 'approachable',
+      'unapproachable', 'accommodating', 'kind', 'attentive', 'ignoring',
+      'slow service', 'fast service', 'snobbish', 'friendly', 'courteous'
+    ]
+  },
+  Collection: {
+    'Books & Reference Materials': [
+      'book', 'books', 'reference', 'textbook', 'journal', 'reading material',
+      'thesis', 'manuscript', 'periodical', 'magazine', 'dictionary', 'encyclopedia',
+      'outdated', 'old books', 'updated', 'edition'
+    ],
+    'Catalogue, OPAC & Search': [
+      'catalogue', 'catalog', 'opac', 'online catalog', 'system', 'search',
+      'index', 'accession number', 'call number', 'location', 'shelf', 'shelving'
+    ],
+    'Borrowing & Circulation': [
+      'borrow', 'borrowing', 'return', 'returning', 'due date', 'fine', 'fines',
+      'penalty', 'renewal', 'renew', 'library card', 'checkout', 'check out'
+    ],
+    'Computers': [
+      'pc', 'computer', 'computers', 'desktop', 'computer lab', 'mouse',
+      'keyboard', 'monitor', 'screen', 'printer', 'printing', 'print',
+      'photocopy', 'photocopier', 'scanner', 'scanning'
+    ]
+  }
+};
+
+const stemWord = (word) => {
+  if (!word || word.length <= 3) return word;
+  return word
+    .replace(/(?:ies)$/i, 'y')
+    .replace(/(?:s|es|ing|ed)$/i, '')
+    .toLowerCase();
+};
 
 const RECOMMENDATIONS = {
   Facilities: {
@@ -187,7 +277,7 @@ const TopCommentsCard = ({ title, rows, accent, icon, lightBorder }) => (
               {row.Clientele} • {row.College}
             </Typography>
             <Chip
-              label={row.topTerm ? `Word Freq: ${row.termScore} (${row.topTerm})` : `Word Freq: ${row.termScore || 0}`}
+              label={row.topTerm ? `Keyword: "${row.topTerm}" (${row.maxTermFreq || row.termScore}×)` : `Freq Score: ${row.termScore || 0}`}
               size="small"
               sx={{
                 height: 22, fontSize: 11, fontWeight: 700, fontFamily: 'Poppins, sans-serif',
@@ -276,18 +366,20 @@ const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent
   );
 };
 
-const SummaryCard = ({ title, value, subtitle, icon, color = '#3b82f6' }) => {
-  return (
+const SummaryCard = ({ title, value, subtitle, icon, color = '#3b82f6', tooltipContent = null }) => {
+  const cardContent = (
     <Card elevation={0} sx={{
       borderRadius: 3.5,
       backgroundColor: '#ffffff',
       border: '1.5px solid #e2e8f0',
       flex: 1, minWidth: 180,
       p: 2.5,
+      cursor: tooltipContent ? 'pointer' : 'default',
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       '&:hover': {
-        transform: 'translateY(-3px)',
-        boxShadow: '0 10px 22px -8px rgba(0, 0, 0, 0.08)',
+        transform: 'translateY(-4px)',
+        boxShadow: '0 12px 24px -10px rgba(0, 0, 0, 0.1)',
+        ...(tooltipContent && { borderColor: color })
       }
     }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
@@ -308,6 +400,18 @@ const SummaryCard = ({ title, value, subtitle, icon, color = '#3b82f6' }) => {
       )}
     </Card>
   );
+
+  if (tooltipContent) {
+    return (
+      <Tooltip title={tooltipContent} arrow placement="top">
+        <Box sx={{ flex: 1, minWidth: 180, display: 'flex' }}>
+          {cardContent}
+        </Box>
+      </Tooltip>
+    );
+  }
+
+  return cardContent;
 };
 
 const ROWS_PER_PAGE = 8;
@@ -356,8 +460,20 @@ const SentimentDashboard = () => {
   const [filterCollege, setFilterCollege] = useState('');
   const [filterSentiment, setFilterSentiment] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
+  const [filterYear, setFilterYear] = useState('2026');
   const [page, setPage] = useState(0);
-  const [sortOrder, setSortOrder] = useState('latest');
+
+  // Live Search & Sort states
+  const [sortField, setSortField] = useState('DateSubmitted');
+  const [sortOrder, setSortOrder] = useState('desc');
+
+  // Batch Selection & Deletion states
+  const [selectedRowIds, setSelectedRowIds] = useState([]);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [recordToDelete, setRecordToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [snackbarMsg, setSnackbarMsg] = useState('');
+
   const printRef = useRef();
 
   const fetchSurveys = async () => {
@@ -368,6 +484,7 @@ const SentimentDashboard = () => {
       });
       setSurveys(response.data);
       setPage(0);
+      setSelectedRowIds([]);
     } catch (err) {
       console.error('Error fetching surveys:', err);
     } finally {
@@ -377,21 +494,88 @@ const SentimentDashboard = () => {
 
   useEffect(() => { fetchSurveys(); }, []); // eslint-disable-line
 
-  const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this review from the dashboard? This action cannot be undone.")) {
-      try {
-        const response = await axios.delete(`http://localhost:5000/api/surveys/${id}`);
-        if (response.data.success) {
-          setSurveys(prev => prev.filter(survey => survey.Id !== id));
-          if (pageRows.length === 1 && page > 0) {
-            setPage(p => p - 1);
-          }
-        }
-      } catch (err) {
-        console.error('Error deleting survey:', err);
-        alert('An error occurred while attempting to delete this entry.');
-      }
+  const handleDatePreset = (presetKey) => {
+    const today = new Date();
+    const formatISO = (d) => {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    };
+
+    if (presetKey === 'today') {
+      const dateStr = formatISO(today);
+      setStartDate(dateStr);
+      setEndDate(dateStr);
+    } else if (presetKey === 'week') {
+      const day = today.getDay();
+      const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+      const startOfWeek = new Date(today.setDate(diff));
+      setStartDate(formatISO(startOfWeek));
+      setEndDate(formatISO(new Date()));
+    } else if (presetKey === 'month') {
+      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      setStartDate(formatISO(startOfMonth));
+      setEndDate(formatISO(new Date()));
+    } else if (presetKey === 'all') {
+      setStartDate('');
+      setEndDate('');
     }
+    setPage(0);
+  };
+
+  const handleToggleSelectRow = (id) => {
+    setSelectedRowIds(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const openDeleteModal = (survey = null) => {
+    setRecordToDelete(survey);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDeleteRecord = async () => {
+    setDeleting(true);
+    try {
+      if (recordToDelete) {
+        const response = await axios.delete(`http://localhost:5000/api/surveys/${recordToDelete.Id}`);
+        if (response.data.success) {
+          setSurveys(prev => prev.filter(s => s.Id !== recordToDelete.Id));
+          setSelectedRowIds(prev => prev.filter(id => id !== recordToDelete.Id));
+          setSnackbarMsg('Review entry deleted successfully.');
+        }
+      } else if (selectedRowIds.length > 0) {
+        const deletePromises = selectedRowIds.map(id => axios.delete(`http://localhost:5000/api/surveys/${id}`));
+        await Promise.all(deletePromises);
+        setSurveys(prev => prev.filter(s => !selectedRowIds.includes(s.Id)));
+        setSnackbarMsg(`${selectedRowIds.length} review entries deleted successfully.`);
+        setSelectedRowIds([]);
+      }
+    } catch (err) {
+      console.error('Error deleting survey:', err);
+      setSnackbarMsg('An error occurred while attempting to delete entry.');
+    } finally {
+      setDeleting(false);
+      setDeleteConfirmOpen(false);
+      setRecordToDelete(null);
+    }
+  };
+
+  const handleRemoveFilter = (key) => {
+    if (key === 'date') {
+      setStartDate('');
+      setEndDate('');
+    } else if (key === 'clientele') {
+      setFilterClientele('');
+    } else if (key === 'college') {
+      setFilterCollege('');
+    } else if (key === 'sentiment') {
+      setFilterSentiment('');
+    } else if (key === 'category') {
+      setFilterCategory('');
+    }
+    setPage(0);
   };
 
   const handleClear = () => {
@@ -401,8 +585,16 @@ const SentimentDashboard = () => {
     setFilterCollege('');
     setFilterSentiment('');
     setFilterCategory('');
-    setSortOrder('latest');
+    setSortField('DateSubmitted');
+    setSortOrder('desc');
     setTimeout(fetchSurveys, 0);
+  };
+
+  const handleRequestSort = (field) => {
+    const isAsc = sortField === field && sortOrder === 'asc';
+    setSortOrder(isAsc ? 'desc' : 'asc');
+    setSortField(field);
+    setPage(0);
   };
 
   const filtered = surveys.filter(s => {
@@ -411,6 +603,7 @@ const SentimentDashboard = () => {
     if (filterCollege && s.College !== filterCollege) return false;
     if (filterSentiment && s.SentimentResult !== filterSentiment) return false;
     if (filterCategory && (s.Category || 'Other/Uncategorized') !== filterCategory) return false;
+
     return true;
   });
 
@@ -443,72 +636,215 @@ const SentimentDashboard = () => {
 
   const reviewRows = [...filtered]
     .sort((a, b) => {
-      const dateA = new Date(a.DateSubmitted);
-      const dateB = new Date(b.DateSubmitted);
-      return sortOrder === 'latest' ? dateB - dateA : dateA - dateB;
+      let valA = a[sortField];
+      let valB = b[sortField];
+
+      if (sortField === 'DateSubmitted') {
+        valA = a.DateSubmitted ? new Date(a.DateSubmitted).getTime() : 0;
+        valB = b.DateSubmitted ? new Date(b.DateSubmitted).getTime() : 0;
+      } else if (typeof valA === 'string') {
+        valA = (valA || '').toLowerCase();
+        valB = (valB || '').toLowerCase();
+      } else if (valA == null) {
+        valA = '';
+        valB = valB || '';
+      }
+
+      if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+      if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
     });
   const totalPages = Math.ceil(reviewRows.length / ROWS_PER_PAGE);
   const pageRows = reviewRows.slice(page * ROWS_PER_PAGE, (page + 1) * ROWS_PER_PAGE);
 
-  const hasActiveFilter = startDate || endDate || filterClientele || filterCollege || filterSentiment || filterCategory;
+  const isAllPageSelected = pageRows.length > 0 && pageRows.every(r => selectedRowIds.includes(r.Id));
+  const isSomePageSelected = pageRows.some(r => selectedRowIds.includes(r.Id)) && !isAllPageSelected;
+
+  const handleSelectAllOnPage = (e) => {
+    if (e.target.checked) {
+      const pageIds = pageRows.map(r => r.Id);
+      setSelectedRowIds(prev => Array.from(new Set([...prev, ...pageIds])));
+    } else {
+      const pageIds = new Set(pageRows.map(r => r.Id));
+      setSelectedRowIds(prev => prev.filter(id => !pageIds.has(id)));
+    }
+  };
+
+  const hasActiveFilter = Boolean(startDate || endDate || filterClientele || filterCollege || filterSentiment || filterCategory);
 
   // Overall Satisfaction Average (plain 1-5 scale from survey questions)
   const avgSatisfaction = filtered.length
     ? filtered.reduce((sum, s) => sum + getSatisfactionAverage(s), 0) / filtered.length
     : 0;
 
-  const monthlyData = (() => {
-    const buckets = {};
+  const availableYears = useMemo(() => {
+    const yearsSet = new Set();
+    surveys.forEach(s => {
+      if (s.DateSubmitted) {
+        const d = new Date(s.DateSubmitted.replace ? s.DateSubmitted.replace(' ', 'T') : s.DateSubmitted);
+        if (!isNaN(d.getFullYear())) yearsSet.add(d.getFullYear().toString());
+      }
+    });
+    const arr = Array.from(yearsSet).sort((a, b) => b - a);
+    if (arr.length === 0) arr.push('2026');
+    return arr;
+  }, [surveys]);
+
+  const monthly12MonthData = useMemo(() => {
+    const targetYear = filterYear === 'All' ? null : (filterYear || '2026');
+
+    const monthsMap = {};
+    MONTH_NAMES.forEach((m, idx) => {
+      monthsMap[idx] = {
+        month: m,
+        Positive: 0,
+        Neutral: 0,
+        Negative: 0,
+        Total: 0,
+        scoresSum: 0
+      };
+    });
+
     filtered.forEach(s => {
       if (!s.DateSubmitted) return;
       const d = new Date(s.DateSubmitted.replace ? s.DateSubmitted.replace(' ', 'T') : s.DateSubmitted);
       if (isNaN(d.getTime())) return;
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      if (!buckets[key]) buckets[key] = { month: key, Positive: 0, Neutral: 0, Negative: 0 };
-      if (buckets[key][s.SentimentResult] !== undefined) buckets[key][s.SentimentResult]++;
-    });
-    return Object.values(buckets).sort((a, b) => a.month.localeCompare(b.month));
-  })();
+      const yr = d.getFullYear().toString();
+      if (targetYear && yr !== targetYear) return;
 
-  // ── Word/Term Frequency Ranking for Top Comments (Panelist Suggestion) ─────
-  const termFrequencies = (() => {
-    const freq = {};
-    surveys.forEach(s => {
-      if (!s.Message) return;
-      const words = s.Message.toLowerCase().match(/[a-z']+/g) || [];
-      words.forEach(w => {
-        if (w.length < 3 || STOPWORDS.has(w)) return;
-        freq[w] = (freq[w] || 0) + 1;
-      });
-    });
-    return freq;
-  })();
-
-  const scoreCommentByWordFrequency = (commentObj) => {
-    if (!commentObj || !commentObj.Message) return { ...commentObj, termScore: 0, topTerm: '' };
-    const words = commentObj.Message.toLowerCase().match(/[a-z']+/g) || [];
-    const validWords = words.filter(w => w.length >= 3 && !STOPWORDS.has(w));
-    const uniqueWords = Array.from(new Set(validWords));
-
-    let totalScore = 0;
-    let maxTerm = '';
-    let maxTermFreq = 0;
-
-    uniqueWords.forEach(w => {
-      const f = termFrequencies[w] || 0;
-      totalScore += f;
-      if (f > maxTermFreq) {
-        maxTermFreq = f;
-        maxTerm = w;
+      const mIdx = d.getMonth();
+      if (monthsMap[mIdx]) {
+        if (s.SentimentResult === 'Positive') monthsMap[mIdx].Positive++;
+        else if (s.SentimentResult === 'Neutral') monthsMap[mIdx].Neutral++;
+        else if (s.SentimentResult === 'Negative') monthsMap[mIdx].Negative++;
+        monthsMap[mIdx].Total++;
+        monthsMap[mIdx].scoresSum += getSatisfactionAverage(s);
       }
     });
 
-    return {
-      ...commentObj,
-      termScore: totalScore,
-      topTerm: maxTerm,
-      maxTermFreq
-    };
+    return MONTH_NAMES.map((m, idx) => {
+      const item = monthsMap[idx];
+      const avg = item.Total > 0 ? (item.scoresSum / item.Total).toFixed(1) : '0.0';
+      return { ...item, avgSatisfaction: parseFloat(avg) };
+    });
+  }, [filtered, filterYear]);
+
+  // ── Word/Term Frequency & TF-IDF Ranking for Top Comments (Approach B) ──────
+  const buildTermFrequencies = (pool) => {
+    const freq = {};
+    const origCounts = {};
+    pool.forEach(s => {
+      if (!s.Message) return;
+      const words = s.Message.toLowerCase().match(/[a-z']+/g) || [];
+      words.forEach(rawW => {
+        if (rawW.length < 3 || STOPWORDS.has(rawW)) return;
+        const stem = stemWord(rawW);
+        freq[stem] = (freq[stem] || 0) + 1;
+        if (!origCounts[stem]) origCounts[stem] = {};
+        origCounts[stem][rawW] = (origCounts[stem][rawW] || 0) + 1;
+      });
+    });
+    const displayMap = {};
+    Object.keys(origCounts).forEach(stem => {
+      displayMap[stem] = Object.entries(origCounts[stem]).sort((a, b) => b[1] - a[1])[0][0];
+    });
+    return { freq, displayMap };
+  };
+
+  // Global term frequencies for word cloud visualization
+  const { freq: termFrequencies = {}, displayMap: stemToOriginalMap = {} } = useMemo(() => {
+    return buildTermFrequencies(surveys);
+  }, [surveys]);
+
+  // ── Controlled Domain Lexicon Keyword Ranking Engine ────────────────────────
+  const scoreCommentsWithLexicon = (commentsPool) => {
+    if (!commentsPool || commentsPool.length === 0) return [];
+
+    const topicPoolCounts = {};
+    const commentTopicMatches = commentsPool.map(s => {
+      if (!s.Message || !s.Message.trim()) return { matchedTopics: [] };
+      const msgLower = s.Message.toLowerCase();
+      const matchedTopics = new Set();
+
+      Object.values(CONTROLLED_LEXICON).forEach(categoryTopics => {
+        Object.entries(categoryTopics).forEach(([topic, synonyms]) => {
+          for (const syn of synonyms) {
+            const regex = new RegExp(`\\b${syn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+            if (regex.test(msgLower) || msgLower.includes(syn)) {
+              matchedTopics.add(topic);
+              break;
+            }
+          }
+        });
+      });
+
+      matchedTopics.forEach(topic => {
+        topicPoolCounts[topic] = (topicPoolCounts[topic] || 0) + 1;
+      });
+
+      return { matchedTopics: Array.from(matchedTopics) };
+    });
+
+    return commentsPool.map((commentObj, idx) => {
+      if (!commentObj || !commentObj.Message) {
+        return { ...commentObj, tfidfScore: 0, termScore: 0, blendedScore: 0, topTerm: '', maxTermFreq: 0 };
+      }
+
+      const { matchedTopics } = commentTopicMatches[idx];
+      let maxTopic = '';
+      let maxTopicFreq = 0;
+      let totalTopicScore = 0;
+
+      matchedTopics.forEach(topic => {
+        const count = topicPoolCounts[topic] || 0;
+        totalTopicScore += count;
+        if (count > maxTopicFreq) {
+          maxTopicFreq = count;
+          maxTopic = topic;
+        }
+      });
+
+      const normalizedTopicScore = matchedTopics.length > 0
+        ? Number((totalTopicScore / Math.sqrt(matchedTopics.length)).toFixed(2))
+        : 0;
+
+      const magnitude = Math.abs(getSurveyScore(commentObj));
+      const blendedScore = Number(((0.7 * normalizedTopicScore) + (0.3 * magnitude * 10)).toFixed(2));
+
+      return {
+        ...commentObj,
+        tfidfScore: normalizedTopicScore,
+        termScore: normalizedTopicScore,
+        blendedScore,
+        topTerm: maxTopic || 'General Feedback',
+        maxTermFreq: maxTopicFreq
+      };
+    });
+  };
+
+  const selectDiverseTopComments = (scoredList, limit = 5) => {
+    const selected = [];
+    const keywordCounts = {};
+
+    for (const comment of scoredList) {
+      const kw = (comment.topTerm || 'general').toLowerCase();
+      if ((keywordCounts[kw] || 0) < 2) {
+        selected.push(comment);
+        keywordCounts[kw] = (keywordCounts[kw] || 0) + 1;
+      }
+      if (selected.length === limit) break;
+    }
+
+    if (selected.length < limit) {
+      for (const comment of scoredList) {
+        if (!selected.includes(comment)) {
+          selected.push(comment);
+          if (selected.length === limit) break;
+        }
+      }
+    }
+
+    return selected;
   };
 
   const positivePool = surveys.filter(s => {
@@ -524,27 +860,45 @@ const SentimentDashboard = () => {
     return true;
   });
 
-  const topPositive = positivePool
-    .map(scoreCommentByWordFrequency)
-    .sort((a, b) => b.termScore - a.termScore)
-    .slice(0, 5);
+  const topPositive = useMemo(() => {
+    // Small pool guard: lexicon/frequency scoring is unreliable under 5 comments.
+    if (positivePool.length < 5) {
+      return [...positivePool]
+        .sort((a, b) => Math.abs(getSurveyScore(b)) - Math.abs(getSurveyScore(a)))
+        .slice(0, 5);
+    }
+    const scoredPool = scoreCommentsWithLexicon(positivePool);
+    scoredPool.sort((a, b) => {
+      if (b.blendedScore !== a.blendedScore) {
+        return b.blendedScore - a.blendedScore;
+      }
+      return Math.abs(getSurveyScore(b)) - Math.abs(getSurveyScore(a));
+    });
+    return selectDiverseTopComments(scoredPool, 5);
+  }, [positivePool]);
 
-  const topNegative = negativePool
-    .map(scoreCommentByWordFrequency)
-    .sort((a, b) => b.termScore - a.termScore)
-    .slice(0, 5);
+  const topNegative = useMemo(() => {
+    // Small pool guard: lexicon/frequency scoring is unreliable under 5 comments.
+    if (negativePool.length < 5) {
+      return [...negativePool]
+        .sort((a, b) => Math.abs(getSurveyScore(b)) - Math.abs(getSurveyScore(a)))
+        .slice(0, 5);
+    }
+    const scoredPool = scoreCommentsWithLexicon(negativePool);
+    scoredPool.sort((a, b) => {
+      if (b.blendedScore !== a.blendedScore) {
+        return b.blendedScore - a.blendedScore;
+      }
+      return Math.abs(getSurveyScore(b)) - Math.abs(getSurveyScore(a));
+    });
+    return selectDiverseTopComments(scoredPool, 5);
+  }, [negativePool]);
 
   const wordCloudWords = (() => {
-    const freq = {};
-    surveys.forEach(s => {
-      if (!s.Message) return;
-      s.Message.toLowerCase().match(/[a-z']+/g)?.forEach(w => {
-        if (w.length < 3 || STOPWORDS.has(w)) return;
-        freq[w] = (freq[w] || 0) + 1;
-      });
-    });
-    return Object.entries(freq).map(([text, value]) => ({ text, value }))
-      .sort((a, b) => b.value - a.value).slice(0, 60);
+    return Object.entries(termFrequencies || {})
+      .map(([stem, value]) => ({ text: (stemToOriginalMap && stemToOriginalMap[stem]) || stem, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 60);
   })();
 
   const wordCloudOptions = {
@@ -611,9 +965,9 @@ const SentimentDashboard = () => {
         matchingEvidences = [...matchingEvidences, ...remaining];
       }
 
-      const topEvidences = matchingEvidences
-        .map(scoreCommentByWordFrequency)
-        .sort((a, b) => b.termScore - a.termScore)
+      const scoredEvidences = scoreCommentsWithLexicon(matchingEvidences);
+      const topEvidences = scoredEvidences
+        .sort((a, b) => b.blendedScore - a.blendedScore)
         .slice(0, 3);
 
       return { category, total, negative, pct, severity, matchedKeywords, primaryKw, topEvidences };
@@ -813,16 +1167,41 @@ const SentimentDashboard = () => {
                 {/* ── Filter Controls Container ───── */}
                 <Paper elevation={0} sx={{ mb: 3, borderRadius: 3.5, border: '1.5px solid #e2e8f0', bgcolor: '#ffffff', overflow: 'hidden' }}>
                   <Box sx={{
-                    bgcolor: '#334155',
+                    bgcolor: '#1a237e',
                     px: 3, py: 1.8,
-                    borderBottom: '3px solid #38bdf8',
-                    display: 'flex', alignItems: 'center', gap: 1.2
+                    borderBottom: '3px solid #0288d1',
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between'
                   }}>
-                    <FilterAltIcon sx={{ fontSize: 22, color: '#38bdf8' }} />
-                    <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 16, color: '#ffffff', letterSpacing: 0.3 }}>
-                      Filter & Analytics Controls
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+                      <FilterAltIcon sx={{ fontSize: 22, color: '#38bdf8' }} />
+                      <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 16, color: '#ffffff', letterSpacing: 0.3 }}>
+                        Filter & Analytics Controls
+                      </Typography>
+                    </Box>
+                    <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#90caf9', fontWeight: 600 }}>
+                      {filtered.length} matching response{filtered.length === 1 ? '' : 's'}
                     </Typography>
                   </Box>
+
+                  {/* ── Quick Date Presets Row ───── */}
+                  <Box sx={{ px: 3, pt: 2, pb: 1, borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                    <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 700, color: '#475569', mr: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <CalendarTodayIcon sx={{ fontSize: 16, color: '#1a237e' }} /> Quick Date Range:
+                    </Typography>
+                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('today')} sx={{ borderRadius: 2, textTransform: 'none', fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 12, borderColor: '#cbd5e1', color: '#334155' }}>
+                      Today
+                    </Button>
+                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('week')} sx={{ borderRadius: 2, textTransform: 'none', fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 12, borderColor: '#cbd5e1', color: '#334155' }}>
+                      This Week
+                    </Button>
+                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('month')} sx={{ borderRadius: 2, textTransform: 'none', fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 12, borderColor: '#cbd5e1', color: '#334155' }}>
+                      This Month
+                    </Button>
+                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('all')} sx={{ borderRadius: 2, textTransform: 'none', fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 12, borderColor: '#cbd5e1', color: '#334155' }}>
+                      All Time
+                    </Button>
+                  </Box>
+
                   <Box sx={{ p: 3, display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
                     <TextField
                       type="date"
@@ -893,21 +1272,23 @@ const SentimentDashboard = () => {
                       </Select>
                     </FormControl>
                     <FormControl sx={selectSx}>
-                      <InputLabel>Sort By</InputLabel>
+                      <InputLabel>Year</InputLabel>
                       <Select
-                        value={sortOrder}
-                        label="Sort By"
-                        onChange={(e) => { setSortOrder(e.target.value); setPage(0); }}
+                        value={filterYear}
+                        label="Year"
+                        onChange={(e) => { setFilterYear(e.target.value); setPage(0); }}
                       >
-                        <MenuItem value="latest" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 14 }}>Latest to Oldest</MenuItem>
-                        <MenuItem value="oldest" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 14 }}>Oldest to Latest</MenuItem>
+                        <MenuItem value="All" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 14 }}>All Years</MenuItem>
+                        {availableYears.map(yr => (
+                          <MenuItem key={yr} value={yr} sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 14 }}>{yr}</MenuItem>
+                        ))}
                       </Select>
                     </FormControl>
 
                     <Button
                       variant="contained"
                       onClick={fetchSurveys}
-                      sx={{ bgcolor: '#2563eb', px: 3.5, height: 46, borderRadius: 2.5, textTransform: 'none', fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 15, '&:hover': { bgcolor: '#1d4ed8' } }}
+                      sx={{ bgcolor: '#1a237e', px: 3.5, height: 46, borderRadius: 2.5, textTransform: 'none', fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 15, '&:hover': { bgcolor: '#0d47a1' } }}
                     >
                       Apply Filters
                     </Button>
@@ -922,6 +1303,63 @@ const SentimentDashboard = () => {
                       </Button>
                     )}
                   </Box>
+
+                  {/* ── Active Filter Chips Row ───── */}
+                  {hasActiveFilter && (
+                    <Box sx={{ px: 3, pb: 2, pt: 1, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', borderTop: '1px solid #f1f5f9' }}>
+                      <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12.5, fontWeight: 700, color: '#64748b' }}>
+                        Active Filters:
+                      </Typography>
+                      {(startDate || endDate) && (
+                        <Chip
+                          label={`Date: ${startDate || 'Start'} to ${endDate || 'End'}`}
+                          onDelete={() => handleRemoveFilter('date')}
+                          size="small"
+                          sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 12, bgcolor: '#f1f5f9', color: '#334155' }}
+                        />
+                      )}
+                      {filterClientele && (
+                        <Chip
+                          label={`Clientele: ${filterClientele}`}
+                          onDelete={() => handleRemoveFilter('clientele')}
+                          size="small"
+                          sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 12, bgcolor: '#f3e8ff', color: '#6b21a8' }}
+                        />
+                      )}
+                      {filterCollege && (
+                        <Chip
+                          label={`College: ${filterCollege}`}
+                          onDelete={() => handleRemoveFilter('college')}
+                          size="small"
+                          sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 12, bgcolor: '#e0f2fe', color: '#0369a1' }}
+                        />
+                      )}
+                      {filterSentiment && (
+                        <Chip
+                          label={`Sentiment: ${filterSentiment}`}
+                          onDelete={() => handleRemoveFilter('sentiment')}
+                          size="small"
+                          sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 12, bgcolor: '#ecfdf5', color: '#047857' }}
+                        />
+                      )}
+                      {filterCategory && (
+                        <Chip
+                          label={`Category: ${filterCategory}`}
+                          onDelete={() => handleRemoveFilter('category')}
+                          size="small"
+                          sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 12, bgcolor: '#fffbeb', color: '#b45309' }}
+                        />
+                      )}
+                      <Button
+                        size="small"
+                        onClick={handleClear}
+                        startIcon={<RestartAltIcon sx={{ fontSize: 16 }} />}
+                        sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', fontWeight: 700, fontSize: 12, color: '#ef4444', ml: 'auto' }}
+                      >
+                        Clear All
+                      </Button>
+                    </Box>
+                  )}
                 </Paper>
 
                 {loading ? (
@@ -930,7 +1368,7 @@ const SentimentDashboard = () => {
                   </Box>
                 ) : (
                   <>
-                    {/* ── Top Metric KPI Cards Grid (Soft pastel avatars & clean cards) ───── */}
+                    {/* ── Top Metric KPI Cards Grid (Clean 5 Summary Cards) ───── */}
                     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)', md: 'repeat(5, 1fr)' }, gap: 2.5, mb: 3 }}>
                       <SummaryCard
                         title="Avg Satisfaction"
@@ -938,6 +1376,7 @@ const SentimentDashboard = () => {
                         subtitle="Scale: 1.0 to 5.0"
                         icon={<StarIcon />}
                         color="#8b5cf6"
+                        tooltipContent="Average patron score across satisfaction survey questions (1.0 to 5.0 scale)"
                       />
                       <SummaryCard
                         title="Positive"
@@ -945,6 +1384,7 @@ const SentimentDashboard = () => {
                         subtitle={`${total > 0 ? Math.round((counts.Positive / total) * 100) : 0}% of responses`}
                         icon={<ThumbUpIcon />}
                         color="#10b981"
+                        tooltipContent={`Positive Sentiments: ${counts.Positive} responses (${total > 0 ? Math.round((counts.Positive / total) * 100) : 0}% of total)`}
                       />
                       <SummaryCard
                         title="Neutral"
@@ -952,6 +1392,7 @@ const SentimentDashboard = () => {
                         subtitle={`${total > 0 ? Math.round((counts.Neutral / total) * 100) : 0}% of responses`}
                         icon={<SentimentSatisfiedIcon />}
                         color="#f59e0b"
+                        tooltipContent={`Neutral Sentiments: ${counts.Neutral} responses (${total > 0 ? Math.round((counts.Neutral / total) * 100) : 0}% of total)`}
                       />
                       <SummaryCard
                         title="Negative"
@@ -959,15 +1400,79 @@ const SentimentDashboard = () => {
                         subtitle={`${total > 0 ? Math.round((counts.Negative / total) * 100) : 0}% of responses`}
                         icon={<ThumbDownIcon />}
                         color="#f43f5e"
+                        tooltipContent={`Negative Sentiments: ${counts.Negative} responses (${total > 0 ? Math.round((counts.Negative / total) * 100) : 0}% of total)`}
                       />
                       <SummaryCard
                         title="Total Analyzed"
                         value={total}
                         subtitle="Survey responses"
                         icon={<AssessmentIcon />}
-                        color="#3b82f6"
+                        color="#1a237e"
+                        tooltipContent={`Total Filtered Surveys: ${total} responses matching current filters`}
                       />
                     </Box>
+
+                    {/* ── 12-Month Calendar View Bar Graph (Strictly Side-by-Side Grouped) ───── */}
+                    <Card elevation={0} sx={{ border: '1.5px solid #e2e8f0', borderRadius: 3.5, mb: 3, backgroundColor: 'white' }}>
+                      <CardContent sx={{ p: 3 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1.5 }}>
+                          <Box>
+                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 15, color: '#1e293b', letterSpacing: 0.5, textTransform: 'uppercase' }}>
+                              Sentiment Trend (12-Month Side-by-Side View) — {filterYear === 'All' ? 'All Batched Years' : `Year ${filterYear}`}
+                            </Typography>
+                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#64748b', fontWeight: 500, mt: 0.2 }}>
+                              Side-by-Side comparison of Positive, Neutral, and Negative responses per month
+                            </Typography>
+                          </Box>
+
+                          {/* Year Selector */}
+                          <FormControl size="small" sx={{ minWidth: 120 }}>
+                            <InputLabel sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 700, color: '#1a237e' }}>Year</InputLabel>
+                            <Select
+                              value={filterYear}
+                              label="Year"
+                              onChange={(e) => setFilterYear(e.target.value)}
+                              sx={{ height: 38, borderRadius: 2.5, fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 13 }}
+                            >
+                              <MenuItem value="All" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 13 }}>All Years</MenuItem>
+                              {availableYears.map(yr => (
+                                <MenuItem key={yr} value={yr} sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 13 }}>{yr}</MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        </Box>
+
+                        <ResponsiveContainer width="100%" height={320}>
+                          <BarChart data={monthly12MonthData} margin={{ top: 15, right: 30, left: 0, bottom: 5 }}>
+                            <defs>
+                              <linearGradient id="posGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#34d399" />
+                                <stop offset="100%" stopColor="#059669" />
+                              </linearGradient>
+                              <linearGradient id="neuGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#fbbf24" />
+                                <stop offset="100%" stopColor="#d97706" />
+                              </linearGradient>
+                              <linearGradient id="negGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#f87171" />
+                                <stop offset="100%" stopColor="#dc2626" />
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                            <XAxis dataKey="month" tick={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fill: '#64748b', fontWeight: 600 }} />
+                            <YAxis allowDecimals={false} tick={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fill: '#64748b' }} />
+                            <RechartsTooltip
+                              contentStyle={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, borderRadius: 12, border: '1.5px solid #cbd5e1', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }}
+                              formatter={(val, name) => [`${val} responses`, `${name} Sentiment`]}
+                            />
+                            <Legend wrapperStyle={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, paddingTop: 12 }} />
+                            <Bar dataKey="Positive" fill="url(#posGrad)" radius={[6, 6, 0, 0]} maxBarSize={28} />
+                            <Bar dataKey="Neutral" fill="url(#neuGrad)" radius={[6, 6, 0, 0]} maxBarSize={28} />
+                            <Bar dataKey="Negative" fill="url(#negGrad)" radius={[6, 6, 0, 0]} maxBarSize={28} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </CardContent>
+                    </Card>
 
                     {/* ── Top Positive & Negative Comments Grid ───── */}
                     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2.5, mb: 3 }}>
@@ -1039,33 +1544,6 @@ const SentimentDashboard = () => {
                         </CardContent>
                       </Card>
                     </Box>
-
-                    {/* ── Sentiment Trend by Month (Soft pastel stacked bars) ───── */}
-                    <Card elevation={0} sx={{ border: '1.5px solid #e2e8f0', borderRadius: 3.5, mb: 3, backgroundColor: 'white' }}>
-                      <CardContent sx={{ p: 3 }}>
-                        <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 14, color: '#1e293b', letterSpacing: 0.5, textTransform: 'uppercase', mb: 2 }}>
-                          Sentiment Trend by Month
-                        </Typography>
-                        {monthlyData.length === 0 ? (
-                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', color: '#94a3b8', textAlign: 'center', py: 6 }}>
-                            No dated responses available for the selected filters.
-                          </Typography>
-                        ) : (
-                          <ResponsiveContainer width="100%" height={280}>
-                            <BarChart data={monthlyData} barSize={32} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                              <XAxis dataKey="month" tick={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fill: '#64748b' }} />
-                              <YAxis allowDecimals={false} tick={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fill: '#64748b' }} />
-                              <RechartsTooltip contentStyle={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, borderRadius: 10, border: '1px solid #cbd5e1', boxShadow: '0 8px 20px -4px rgba(0,0,0,0.08)' }} />
-                              <BarLegend wrapperStyle={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, paddingTop: 10 }} />
-                              <Bar dataKey="Positive" stackId="a" fill="#34d399" radius={[0, 0, 0, 0]} />
-                              <Bar dataKey="Neutral" stackId="a" fill="#fbbf24" radius={[0, 0, 0, 0]} />
-                              <Bar dataKey="Negative" stackId="a" fill="#f87171" radius={[6, 6, 0, 0]} />
-                            </BarChart>
-                          </ResponsiveContainer>
-                        )}
-                      </CardContent>
-                    </Card>
 
                     {/* ── Service Improvement Recommendations ───── */}
                     <Card elevation={0} sx={{ border: '1.5px solid #e2e8f0', borderRadius: 3.5, mb: 3, backgroundColor: 'white' }}>
@@ -1147,147 +1625,295 @@ const SentimentDashboard = () => {
                       </CardContent>
                     </Card>
 
-                    {/* ── Survey Response Review Table (Easy on the eyes light table header) ───── */}
-                    <Paper elevation={0} sx={{ border: '1.5px solid #e2e8f0', borderRadius: 3.5, bgcolor: '#ffffff', overflow: 'hidden' }}>
-                      <Box sx={{
-                        bgcolor: '#334155',
-                        px: 3, py: 2,
-                        borderBottom: '3px solid #38bdf8',
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between'
-                      }}>
-                        <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 16, color: '#ffffff', letterSpacing: 0.3 }}>
-                          Survey Response Review
+                    {/* ── Survey Response Review Table (Identical Theme Design to LoginDashboard) ───── */}
+                    <Paper elevation={0} sx={{ p: 3, borderRadius: 3.5, border: '1px solid #e2e8f0', bgcolor: '#ffffff' }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1.5 }}>
+                        <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 17, color: '#1e293b' }}>
+                          Survey Response Review ({reviewRows.length} Matches)
                         </Typography>
-                        <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#cbd5e1', fontWeight: 600 }}>
-                          {reviewRows.length} responses · Page {page + 1} of {totalPages || 1}
-                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
+                          {selectedRowIds.length > 0 && (
+                            <Button
+                              variant="contained"
+                              color="error"
+                              size="small"
+                              onClick={() => openDeleteModal(null)}
+                              startIcon={<DeleteIcon />}
+                              sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 700, fontFamily: 'Poppins, sans-serif', height: 40 }}
+                            >
+                              Delete Selected ({selectedRowIds.length})
+                            </Button>
+                          )}
+                        </Box>
                       </Box>
 
-                      <Box sx={{ p: 3 }}>
-                        {reviewRows.length === 0 ? (
-                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', color: '#94a3b8', py: 6, textAlign: 'center' }}>
-                            No text responses found for the selected filters.
-                          </Typography>
-                        ) : (
-                          <>
-                            <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #e2e8f0', borderRadius: 2.5, overflow: 'hidden' }}>
-                              <Table size="medium">
-                                <TableHead>
-                                  <TableRow sx={{ bgcolor: '#f1f5f9' }}>
-                                    <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 12, color: '#334155', letterSpacing: 0.5, textTransform: 'uppercase', width: '18%' }}>
-                                      Clientele
+                      <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #e2e8f0', borderRadius: 2.5, overflow: 'hidden' }}>
+                        <Table size="small">
+                          <TableHead>
+                            <TableRow sx={{
+                              backgroundColor: '#1d0a61',
+                              borderBottom: '3px solid #f57c00',
+                              '& th': {
+                                color: 'white',
+                                fontWeight: 700,
+                                fontFamily: 'Poppins, sans-serif',
+                                fontSize: 13,
+                                py: 1.5,
+                                borderRight: '1px solid rgba(255, 255, 255, 0.25)',
+                                '&:last-child': { borderRight: 'none' }
+                              }
+                            }}>
+                              <TableCell padding="checkbox">
+                                <Checkbox
+                                  size="small"
+                                  checked={isAllPageSelected}
+                                  indeterminate={isSomePageSelected}
+                                  onChange={handleSelectAllOnPage}
+                                  sx={{ color: 'white', '&.Mui-checked': { color: 'white' }, '&.MuiCheckbox-indeterminate': { color: 'white' } }}
+                                />
+                              </TableCell>
+                              <TableCell sx={{ color: 'white' }}>
+                                <TableSortLabel
+                                  active={sortField === 'Clientele'}
+                                  direction={sortField === 'Clientele' ? sortOrder : 'asc'}
+                                  onClick={() => handleRequestSort('Clientele')}
+                                  sx={{ color: 'white !important', '& .MuiTableSortLabel-icon': { color: 'white !important' } }}
+                                >
+                                  Clientele
+                                </TableSortLabel>
+                              </TableCell>
+                              <TableCell sx={{ color: 'white' }}>
+                                <TableSortLabel
+                                  active={sortField === 'College'}
+                                  direction={sortField === 'College' ? sortOrder : 'asc'}
+                                  onClick={() => handleRequestSort('College')}
+                                  sx={{ color: 'white !important', '& .MuiTableSortLabel-icon': { color: 'white !important' } }}
+                                >
+                                  College / Dept
+                                </TableSortLabel>
+                              </TableCell>
+                              <TableCell sx={{ color: 'white' }}>
+                                <TableSortLabel
+                                  active={sortField === 'Message'}
+                                  direction={sortField === 'Message' ? sortOrder : 'asc'}
+                                  onClick={() => handleRequestSort('Message')}
+                                  sx={{ color: 'white !important', '& .MuiTableSortLabel-icon': { color: 'white !important' } }}
+                                >
+                                  Patron Feedback Response
+                                </TableSortLabel>
+                              </TableCell>
+                              <TableCell sx={{ color: 'white' }}>
+                                <TableSortLabel
+                                  active={sortField === 'SentimentResult'}
+                                  direction={sortField === 'SentimentResult' ? sortOrder : 'asc'}
+                                  onClick={() => handleRequestSort('SentimentResult')}
+                                  sx={{ color: 'white !important', '& .MuiTableSortLabel-icon': { color: 'white !important' } }}
+                                >
+                                  Sentiment
+                                </TableSortLabel>
+                              </TableCell>
+                              <TableCell sx={{ color: 'white' }}>
+                                <TableSortLabel
+                                  active={sortField === 'Category'}
+                                  direction={sortField === 'Category' ? sortOrder : 'asc'}
+                                  onClick={() => handleRequestSort('Category')}
+                                  sx={{ color: 'white !important', '& .MuiTableSortLabel-icon': { color: 'white !important' } }}
+                                >
+                                  Category
+                                </TableSortLabel>
+                              </TableCell>
+                              <TableCell sx={{ color: 'white' }}>
+                                <TableSortLabel
+                                  active={sortField === 'DateSubmitted'}
+                                  direction={sortField === 'DateSubmitted' ? sortOrder : 'asc'}
+                                  onClick={() => handleRequestSort('DateSubmitted')}
+                                  sx={{ color: 'white !important', '& .MuiTableSortLabel-icon': { color: 'white !important' } }}
+                                >
+                                  Date Submitted
+                                </TableSortLabel>
+                              </TableCell>
+                              <TableCell align="center" sx={{ color: 'white' }}>Actions</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {pageRows.length === 0 ? (
+                              <TableRow>
+                                <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
+                                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                                    <Avatar sx={{ bgcolor: '#f1f5f9', color: '#94a3b8', width: 54, height: 54 }}>
+                                      <InboxIcon sx={{ fontSize: 32 }} />
+                                    </Avatar>
+                                    <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 16, color: '#334155', mt: 1 }}>
+                                      No survey responses found
+                                    </Typography>
+                                    <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#64748b', maxWidth: 360 }}>
+                                      Try adjusting your date range or filter selections to view sentiment feedback.
+                                    </Typography>
+                                    <Button
+                                      size="small"
+                                      variant="outlined"
+                                      onClick={handleClear}
+                                      startIcon={<RestartAltIcon />}
+                                      sx={{ mt: 1, borderRadius: 2, textTransform: 'none', fontFamily: 'Poppins, sans-serif', fontWeight: 600 }}
+                                    >
+                                      Clear All Filters
+                                    </Button>
+                                  </Box>
+                                </TableCell>
+                              </TableRow>
+                            ) : (
+                              pageRows.map((row, i) => {
+                                const isSelected = selectedRowIds.includes(row.Id);
+                                const submittedDateStr = row.DateSubmitted
+                                  ? new Date(row.DateSubmitted.replace ? row.DateSubmitted.replace(' ', 'T') : row.DateSubmitted).toLocaleDateString()
+                                  : 'N/A';
+
+                                return (
+                                  <TableRow
+                                    key={row.Id || i}
+                                    hover
+                                    selected={isSelected}
+                                    sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                                  >
+                                    <TableCell padding="checkbox">
+                                      <Checkbox
+                                        size="small"
+                                        checked={isSelected}
+                                        onChange={() => handleToggleSelectRow(row.Id)}
+                                      />
                                     </TableCell>
-                                    <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 12, color: '#334155', letterSpacing: 0.5, textTransform: 'uppercase', width: '12%' }}>
-                                      College
+                                    <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#334155', fontWeight: 600, textTransform: 'capitalize' }}>
+                                      {row.Clientele || 'N/A'}
                                     </TableCell>
-                                    <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 12, color: '#334155', letterSpacing: 0.5, textTransform: 'uppercase', width: '32%' }}>
-                                      Response
+                                    <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 700, color: '#1a237e' }}>
+                                      {row.College || 'N/A'}
                                     </TableCell>
-                                    <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 12, color: '#334155', letterSpacing: 0.5, textTransform: 'uppercase', width: '15%' }}>
-                                      Sentiment
+                                    <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 600, color: '#1e293b', py: 1.5, pr: 3, lineHeight: 1.4 }}>
+                                      {row.Message && row.Message.trim().length > 0 ? (
+                                        row.Message
+                                      ) : (
+                                        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+                                          <Typography component="span" sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12.5, color: '#94a3b8', fontStyle: 'italic' }}>
+                                            (No written comment)
+                                          </Typography>
+                                          <Box sx={{
+                                            px: 1, py: 0.2, borderRadius: '12px',
+                                            backgroundColor: '#e0e7ff', border: '1px solid #c7d2fe',
+                                            display: 'inline-block'
+                                          }}>
+                                            <Typography component="span" sx={{ fontSize: 10.5, fontWeight: 700, color: '#3730a3', fontFamily: 'Poppins, sans-serif' }}>
+                                              Rating Only
+                                            </Typography>
+                                          </Box>
+                                        </Box>
+                                      )}
                                     </TableCell>
-                                    <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 12, color: '#334155', letterSpacing: 0.5, textTransform: 'uppercase', width: '15%' }}>
-                                      Category
+                                    <TableCell sx={{ py: 1.5 }}>
+                                      <SentimentChip label={row.SentimentResult} />
                                     </TableCell>
-                                    <TableCell align="center" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 12, color: '#334155', letterSpacing: 0.5, textTransform: 'uppercase', width: '8%' }}>
-                                      Actions
+                                    <TableCell sx={{ py: 1.5 }}>
+                                      <CategoryChip label={row.Category} />
+                                    </TableCell>
+                                    <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12.5, color: '#64748b', fontWeight: 500, py: 1.5 }}>
+                                      {submittedDateStr}
+                                    </TableCell>
+                                    <TableCell align="center" sx={{ py: 1.5 }}>
+                                      <Button
+                                        variant="contained"
+                                        size="small"
+                                        onClick={() => openDeleteModal(row)}
+                                        startIcon={<DeleteIcon sx={{ fontSize: 16 }} />}
+                                        sx={{
+                                          borderRadius: 2,
+                                          fontFamily: 'Poppins, sans-serif',
+                                          fontSize: '11px',
+                                          fontWeight: 700,
+                                          textTransform: 'none',
+                                          px: 1.5, py: 0.5,
+                                          bgcolor: '#f43f5e',
+                                          '&:hover': { bgcolor: '#e11d48' }
+                                        }}
+                                      >
+                                        Delete
+                                      </Button>
                                     </TableCell>
                                   </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                  {pageRows.map((row) => (
-                                    <TableRow key={row.Id} sx={{ '&:hover': { bgcolor: '#f8fafc' }, borderBottom: '1px solid #f1f5f9' }}>
-                                      <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#1e293b', fontWeight: 600, py: 1.8, textTransform: 'capitalize' }}>
-                                        {row.Clientele}
-                                      </TableCell>
-                                      <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#475569', fontWeight: 600, py: 1.8 }}>
-                                        {row.College}
-                                      </TableCell>
-                                      <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#1e293b', py: 1.8, pr: 3, lineHeight: 1.4 }}>
-                                        {row.Message && row.Message.trim().length > 0 ? (
-                                          row.Message
-                                        ) : (
-                                          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
-                                            <Typography component="span" sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12.5, color: '#94a3b8', fontStyle: 'italic' }}>
-                                              (No written comment)
-                                            </Typography>
-                                            <Box sx={{
-                                              px: 1, py: 0.2, borderRadius: '12px',
-                                              backgroundColor: '#e0e7ff', border: '1px solid #c7d2fe',
-                                              display: 'inline-block'
-                                            }}>
-                                              <Typography component="span" sx={{ fontSize: 10.5, fontWeight: 700, color: '#3730a3', fontFamily: 'Poppins, sans-serif' }}>
-                                                Rating Only
-                                              </Typography>
-                                            </Box>
-                                          </Box>
-                                        )}
-                                      </TableCell>
-                                      <TableCell sx={{ py: 1.8 }}>
-                                        <SentimentChip label={row.SentimentResult} />
-                                      </TableCell>
-                                      <TableCell sx={{ py: 1.8 }}>
-                                        <CategoryChip label={row.Category} />
-                                      </TableCell>
-                                      <TableCell align="center" sx={{ py: 1.8 }}>
-                                        <Button
-                                          variant="contained"
-                                          size="small"
-                                          onClick={() => handleDelete(row.Id)}
-                                          startIcon={<DeleteIcon sx={{ fontSize: 16 }} />}
-                                          sx={{
-                                            borderRadius: 2,
-                                            fontFamily: 'Poppins, sans-serif',
-                                            fontSize: '11px',
-                                            fontWeight: 700,
-                                            textTransform: 'none',
-                                            px: 1.5, py: 0.5,
-                                            bgcolor: '#f43f5e',
-                                            '&:hover': { bgcolor: '#e11d48' }
-                                          }}
-                                        >
-                                          Delete
-                                        </Button>
-                                      </TableCell>
-                                    </TableRow>
-                                  ))}
-                                </TableBody>
-                              </Table>
-                            </TableContainer>
+                                );
+                              })
+                            )}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
 
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2.5 }}>
-                              <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#64748b', fontWeight: 600 }}>
-                                Showing {page * ROWS_PER_PAGE + 1}–{Math.min((page + 1) * ROWS_PER_PAGE, reviewRows.length)} of {reviewRows.length} responses
-                              </Typography>
-                              <Box sx={{ display: 'flex', gap: 1 }}>
-                                <Button
-                                  size="small"
-                                  variant="outlined"
-                                  disabled={page === 0}
-                                  onClick={() => setPage(p => p - 1)}
-                                  sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', fontWeight: 700, borderRadius: 2, borderColor: '#cbd5e1', color: '#475569' }}
-                                >
-                                  &larr; Previous
-                                </Button>
-                                <Button
-                                  size="small"
-                                  variant="outlined"
-                                  disabled={page >= totalPages - 1}
-                                  onClick={() => setPage(p => p + 1)}
-                                  sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', fontWeight: 700, borderRadius: 2, borderColor: '#cbd5e1', color: '#475569' }}
-                                >
-                                  Next &rarr;
-                                </Button>
-                              </Box>
-                            </Box>
-                          </>
-                        )}
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2.5 }}>
+                        <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#64748b', fontWeight: 600 }}>
+                          Showing {page * ROWS_PER_PAGE + 1}–{Math.min((page + 1) * ROWS_PER_PAGE, reviewRows.length)} of {reviewRows.length} responses
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            disabled={page === 0}
+                            onClick={() => setPage(p => p - 1)}
+                            sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', fontWeight: 700, borderRadius: 2, borderColor: '#cbd5e1', color: '#475569' }}
+                          >
+                            &larr; Previous
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            disabled={page >= totalPages - 1}
+                            onClick={() => setPage(p => p + 1)}
+                            sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', fontWeight: 700, borderRadius: 2, borderColor: '#cbd5e1', color: '#475569' }}
+                          >
+                            Next &rarr;
+                          </Button>
+                        </Box>
                       </Box>
                     </Paper>
                   </>
                 )}
               </Box>
             )}
+
+            {/* ── Custom Deletion Confirmation Dialog ───── */}
+            <Dialog open={deleteConfirmOpen} onClose={() => !deleting && setDeleteConfirmOpen(false)} PaperProps={{ sx: { borderRadius: 3.5, p: 1, maxWidth: 440 } }}>
+              <DialogTitle sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 18, color: '#0f172a' }}>
+                {recordToDelete ? 'Confirm Review Deletion' : `Confirm Batch Deletion (${selectedRowIds.length} Records)`}
+              </DialogTitle>
+              <DialogContent>
+                <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 14, color: '#475569', lineHeight: 1.5 }}>
+                  {recordToDelete
+                    ? 'Are you sure you want to delete this sentiment review from the dashboard? This action cannot be undone.'
+                    : `Are you sure you want to delete ${selectedRowIds.length} selected review entries? This action cannot be undone.`}
+                </Typography>
+                {recordToDelete && recordToDelete.Message && (
+                  <Box sx={{ mt: 2, p: 1.8, bgcolor: '#f8fafc', borderRadius: 2.5, border: '1px solid #e2e8f0' }}>
+                    <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12.5, fontStyle: 'italic', color: '#1e293b' }}>
+                      "{recordToDelete.Message}"
+                    </Typography>
+                    <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 11, color: '#64748b', mt: 0.5, fontWeight: 600 }}>
+                      {recordToDelete.Clientele} • {recordToDelete.College}
+                    </Typography>
+                  </Box>
+                )}
+              </DialogContent>
+              <DialogActions sx={{ px: 3, pb: 2 }}>
+                <Button onClick={() => setDeleteConfirmOpen(false)} disabled={deleting} sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', fontWeight: 700, color: '#64748b' }}>
+                  Cancel
+                </Button>
+                <Button onClick={confirmDeleteRecord} disabled={deleting} variant="contained" color="error" sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', fontWeight: 700, borderRadius: 2 }}>
+                  {deleting ? <CircularProgress size={20} color="inherit" /> : 'Delete Review'}
+                </Button>
+              </DialogActions>
+            </Dialog>
+
+            {/* ── Snackbar Alert Toasts ───── */}
+            <Snackbar open={Boolean(snackbarMsg)} autoHideDuration={4000} onClose={() => setSnackbarMsg('')} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
+              <Alert onClose={() => setSnackbarMsg('')} severity="info" sx={{ width: '100%', fontFamily: 'Poppins, sans-serif', fontWeight: 600, borderRadius: 3 }}>
+                {snackbarMsg}
+              </Alert>
+            </Snackbar>
 
             <div ref={printRef} style={{ display: 'none' }}>
               <h1>Henry Luce III Library</h1>

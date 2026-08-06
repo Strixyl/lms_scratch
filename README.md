@@ -61,9 +61,11 @@ This is an enterprise-grade, web-based **Library Management System** developed f
   - **Naïve Bayes Category Classification**: Assigns feedback to domain categories (`Facilities`, `Staff`, `Collection`, `Other/Uncategorized`) with confidence gating ($\tau = 0.45$).
   - **Blended Sentiment Score**: Combines quantitative emoji rating ($50\%$) with text BERT sentiment ($50\%$) into a unified continuous score $\text{SentimentScore} \in [-1.0, +1.0]$.
 - **Analytics & Recommendation Engine (`SentimentDashboard.js`)**:
-  - **KPI Score Cards**: Average satisfaction score scaled from `-1.0` to `+1.0`.
-  - **Monthly Sentiment Trends**: Stacked bar chart showing monthly positive, neutral, and negative response distributions.
-  - **Ranked Top 5 Comments**: Score-ranked lists of top 5 positive and negative patron comments.
+  - **KPI Score Cards**: Average satisfaction score scaled from `-1.0` to `+1.0` and 1-5 CSAT scale averages.
+  - **12-Month Sentiment Trends**: Side-by-side bar chart showing monthly positive, neutral, and negative response distributions.
+  - **Controlled Domain Lexicon Keyword Ranking**: Ranks top 5 positive and negative comments by matching feedback against a canonical **Controlled Domain Lexicon** across Facilities (`Restroom & Hygiene`, `Air Conditioning`, `Tables, Seating & Space`, `Wi-Fi & Power Outlets`, `Noise Level & Ambience`, `Lighting & Cleanliness`), Staff (`Librarians & Staffs`, `Security`, `Service Quality & Attitude`), and Collection (`Books & Reference Materials`, `Catalogue, OPAC & Search`, `Borrowing & Circulation`, `Computers`).
+  - **Blended Score Ranking & Topic Diversity**: Ranks comments by blending pool topic relevance ($70\%$) with sentiment magnitude ($30\%$), enforcing a 2-comment cap per topic for balanced feedback diversity.
+  - **Small-Pool Fallback Guard**: Bypasses frequency scoring when a sentiment pool has $< 5$ comments, sorting directly by sentiment score magnitude.
   - **Deterministic Word Cloud**: Top 60 comment keywords rendered via `ReactWordcloud` with fixed seed for stable layout presentation.
   - **Service Improvement Recommendations**: Rule-based action recommendations triggered when category negative response ratios hit $\ge 30\%$ (Moderate Concern) or $\ge 50\%$ (High Concern). Offers **Option A (Keyword Signals)** and **Option B (Raw Supporting Evidence)**.
 
@@ -154,20 +156,58 @@ cardiffnlp/twitter-roberta-base-sentiment   TfidfVectorizer + MultinomialNB
 
 ---
 
-## 💻 Tech Stack Summary
+## ⚡ Recent System Updates & Enhancements
 
-| Technology | Role & Version |
-|---|---|
-| **Frontend Framework** | React.js v19, React Router v7 (HashRouter mode) |
-| **UI Component Library** | Material-UI (MUI v7), `@emotion/react`, `@emotion/styled` |
-| **Charts & Visualizations** | Recharts v3, `react-wordcloud` v1.2 |
-| **Backend REST Server** | Node.js v18+, Express.js v5 |
-| **Database Server** | Microsoft SQL Server (SQLEXPRESS / ODBC Driver 18) |
-| **Database Driver** | `mssql`, `msnodesqlv8` |
-| **Python Microservice** | Python 3.9+, Flask, Hugging Face Transformers (`torch`), Scikit-Learn, Pandas, Joblib |
-| **NLP Transformer Model** | `cardiffnlp/twitter-roberta-base-sentiment-latest` |
-| **ML Classifier Model** | TF-IDF Vectorizer + Multinomial Naïve Bayes (`category_model.pkl`) |
-| **Export Utilities** | `xlsx` (Excel Export), `jspdf` (PDF generation) |
+Below is a summary of major updates implemented in the system:
+
+1. **Machine Learning Pipeline & Model Retraining (`backend/ml/`)**:
+   - **Dataset Expansion & Cleaning**: Updated `clean_dataset.py` to ingest and sanitize 5,000+ raw survey feedback entries (`5kwithnoise.xlsx`), filtering noise tokens (`"none"`, `"n/a"`, `"ok"`, `"asdf"`, `"wala"`), duplicates, and short text fragments.
+   - **Manual Boundary Case Integration**: Merged `manual_boundary_cases.csv` (117 hand-curated edge cases) directly into the Naïve Bayes dataset to resolve misclassifications on domain boundaries.
+   - **Hyperparameter Grid Search**: Executed stratified 80/20 train-validation splits across $\alpha \in [0.01..5.0]$, unigrams/bigrams, and minimum document frequencies to yield an optimized `category_model.pkl`.
+   - **Microservice Gating**: Enhanced `sentiment_service.py` with fallback confidence threshold gating ($\tau = 0.45$).
+
+2. **Patron Satisfaction Survey UI/UX Redesign (`SatisfactionSurvey.js`)**:
+   - **Radio Button Rating Controls**: Transformed CSAT rating interface from pill buttons into accessible interactive radio button components per panelist recommendations.
+   - **Single-Question Animated View**: Added single-item view mode with step-by-step progress bars and smooth CSS animations.
+
+3. **Sentiment Analytics & Controlled Lexicon Engine (`SentimentDashboard.js`)**:
+   - **Controlled Domain Lexicon Keyword Ranking**: Restructured top comment keyword detection using `CONTROLLED_LEXICON`, categorizing entities across Facilities (`Restroom & Hygiene`, `Air Conditioning`, `Tables, Seating & Space`, `Wi-Fi & Power Outlets`, `Noise Level & Ambience`, `Lighting & Cleanliness`), Staff (`Librarians & Staffs`, `Security`, `Service Quality & Attitude`), and Collection (`Books & Reference Materials`, `Catalogue, OPAC & Search`, `Borrowing & Circulation`, `Computers`).
+   - **Pool-Relative Topic Mentions**: Counts canonical topic occurrences separately in Positive vs. Negative comment pools to prevent cross-pool term inflation.
+   - **Blended Score Ranking ($70/30$)**: Blends pool topic relevance ($70\%$) with sentiment magnitude ($30\%$) to rank top comments.
+   - **Topic Diversity Filter & Small-Pool Guard**: Limits selection to 2 comments per topic to ensure feedback variety, with a magnitude fallback guard for pools with $< 5$ entries.
+   - **English NLP Sentiment Scope**: Scoped preprocessing and stopword filtering strictly to English patron feedback text.
+   - **Streamlined Parametric Filters**: Cleaned up dashboard filter controls to focus on structured date ranges, clientele, college, sentiment, category, and academic year.
+   - **Dual-Option Recommendation Engine**: Implemented **Option A (Keyword Signals)** and **Option B (Raw Supporting Evidence)** triggered when category negative feedback reaches $\ge 30\%$ (Moderate Concern) or $\ge 50\%$ (High Concern).
+   - **Stable Word Cloud**: Integrated deterministic `ReactWordcloud` rendering with a fixed random seed for layout consistency across re-renders.
+
+4. **Patron Sign-in & Traffic Analytics (`LoginDashboard.js` & `LoginData.js`)**:
+   - **College Mapping & Demographic Filtering**: Integrated department mapping (`COLLEGE_MAP`) for real-time demographic breakdowns.
+   - **Chart Visualization Upgrades**: Dynamic section utilization bar charts, peak hourly entry graphs, and optimized batch log deletion.
+
+5. **Technical Services & Catalog Encoding (`BookCatalogue.js` & `CardAndPacket.js`)**:
+   - **Multi-Book Encoding**: Up to 4 book records encoded within a single packet form.
+   - **Encoding & Duplicate Validation**: UTF-8 catalog encoding fixes and accession number uniqueness validation across all 4 packet slots.
+
+---
+
+## 💻 Dependencies & Required Packages
+
+### 1. Frontend Dependencies (React 19 Client)
+- **Core Framework**: `react` (v19.1+), `react-dom` (v19.1+), `react-router-dom` (v7.5+)
+- **UI Components & Icons**: `@mui/material` (v7.0+), `@mui/icons-material` (v7.0+), `@mui/x-data-grid` (v8.11+), `@emotion/react`, `@emotion/styled`, `@fontsource/poppins`
+- **Data Visualization**: `recharts` (v3.8+), `react-wordcloud` (v1.2+)
+- **HTTP & Utilities**: `axios`, `moment-timezone`, `xlsx`, `web-vitals`
+- **Client Sentiment Libraries**: `vader-sentiment`, `natural`, `afinn-165`, `ajv`
+
+### 2. Express REST API Backend Dependencies (`backend/package.json`)
+- **Web Framework & Middleware**: `express` (v4/v5), `cors`, `multer` (v2.2+)
+- **SQL Server Database Drivers**: `mssql` (v11.0+), `msnodesqlv8` (v4.5+), `tedious` (v19.2+)
+- **HTTP & NLP Utilities**: `axios`, `moment-timezone`, `natural` (v8.1+), `vader-sentiment`, `afinn-165`
+
+### 3. Python NLP Microservice & ML Dependencies (`backend/sentiment_service.py` & `backend/ml/`)
+- **Flask Framework**: `flask`
+- **Transformers & Deep Learning**: `transformers`, `torch` (PyTorch for `cardiffnlp/twitter-roberta-base-sentiment-latest`)
+- **Machine Learning & Data Processing**: `scikit-learn`, `pandas`, `joblib`, `openpyxl` (for reading `.xlsx` datasets), `matplotlib`
 
 ---
 
@@ -226,64 +266,122 @@ GO
 
 ---
 
-## ⚙️ Installation and Setup Guide
+## ⚙️ Complete Terminal Installation & Setup Guide
 
 ### Prerequisites
-- **Node.js**: v18.0.0 or higher
-- **Python**: v3.9 or higher (with `pip`)
+- **Node.js**: v18.0.0 or higher (`node -v`)
+- **Python**: v3.9 or higher with `pip` (`python --version`)
 - **SQL Server**: Microsoft SQL Server Express (`SQLEXPRESS`)
 - **ODBC Driver**: ODBC Driver 18 for SQL Server
 
 ---
 
-### Step-by-Step Execution Sequence
+### Step-by-Step Terminal Commands
 
-#### Step 1: Install Frontend Dependencies (Root Folder)
+#### Step 1: Clone Repository & Navigate to Project Root
 ```bash
-# Install react-wordcloud with legacy peer dependency flag if required
+git clone https://github.com/Strixyl/lms_scratch.git
+cd hllsystem
+```
+
+#### Step 2: Install All Frontend React Dependencies (Terminal)
+Run the following terminal commands in the root directory to install React 19, Material UI, Recharts, and utility packages:
+```bash
+# Install core frontend packages
+npm install react react-dom react-router-dom @mui/material @mui/icons-material @emotion/react @emotion/styled @mui/x-data-grid @fontsource/poppins recharts axios moment-timezone xlsx vader-sentiment natural afinn-165 ajv web-vitals firebase
+
+# Install react-wordcloud with legacy peer dependency flag for React 19 compatibility
 npm install react-wordcloud --legacy-peer-deps
+
+# Verify installation or install all packages from package.json
 npm install
 ```
 
-#### Step 2: Install Express Backend Dependencies
+#### Step 3: Install All Express REST API Backend Dependencies (Terminal)
+Open your terminal, navigate to the `backend` folder, and run:
 ```bash
+# Navigate to backend directory
 cd backend
-npm install
+
+# Install Express API & SQL Server driver dependencies
+npm install express cors mssql msnodesqlv8 tedious multer axios moment-timezone natural vader-sentiment afinn-165
+
+# Return to root directory
+cd ..
 ```
 
-#### Step 3: Install Python Microservice Dependencies
+#### Step 4: Install All Python NLP Microservice & ML Dependencies (Terminal)
+Install all Python libraries for Flask microservice, RoBERTa BERT sentiment analysis, and Naïve Bayes model training:
 ```bash
-pip install flask transformers torch scikit-learn pandas joblib matplotlib
+# (Optional) Create and activate Python virtual environment
+python -m venv venv
+
+# Windows (PowerShell / Command Prompt):
+.\venv\Scripts\activate
+
+# macOS / Linux:
+source venv/bin/activate
+
+# Install required Python packages via pip
+pip install flask transformers torch scikit-learn pandas joblib openpyxl matplotlib
 ```
 
-#### Step 4: Retrain Category Classification Model (Optional)
-If expanding datasets in `backend/ml/`:
+#### Step 5: (Optional) Retrain ML Category Classifier via Terminal
+If expanding survey datasets or manual boundary cases:
 ```bash
+# Navigate to ML pipeline folder
 cd backend/ml
+
+# Step 5a: Clean raw Excel dataset (5kwithnoise.xlsx -> clean_category_dataset.csv)
 python clean_dataset.py
+
+# Step 5b: Execute hyperparameter grid search and export serialized category_model.pkl
 python train_category_model.py
+
+# Return to project root directory
+cd ../..
 ```
 
-#### Step 5: Start All System Services
+---
 
-1. **Terminal 1: Start Python NLP Microservice (Port 5001)**
-   ```bash
-   python backend/sentiment_service.py
-   ```
-   *Output:* `Running on http://127.0.0.1:5001`
+### 🚀 Complete Service Launch Sequence (3 Terminal Windows)
 
-2. **Terminal 2: Start Express Backend API (Port 5000)**
-   ```bash
-   cd backend
-   npm start
-   ```
-   *Output:* `Server running on http://localhost:5000` & `Connected to SQL Server`
+To run the full multi-service application, launch 3 separate terminal sessions:
 
-3. **Terminal 3: Start React Application (Port 3000)**
-   ```bash
-   npm start
-   ```
-   *Output:* `Compiled successfully!` running on `http://localhost:3000`
+#### **Terminal 1: Start Python NLP Microservice (Port 5001)**
+```bash
+# Terminal 1: From project root folder
+python backend/sentiment_service.py
+```
+*Expected Output:*
+```text
+ * Serving Flask app 'sentiment_service'
+ * Running on http://127.0.0.1:5001
+```
+
+#### **Terminal 2: Start Express Backend REST API (Port 5000)**
+```bash
+# Terminal 2: Navigate to backend folder and start server
+cd backend
+npm start
+```
+*Expected Output:*
+```text
+Server running on http://localhost:5000
+Connected to SQL Server database hllSystem
+```
+
+#### **Terminal 3: Start React Frontend Application (Port 3000)**
+```bash
+# Terminal 3: From project root folder
+npm start
+```
+*Expected Output:*
+```text
+Compiled successfully!
+You can now view hllsystem in the browser.
+Local: http://localhost:3000
+```
 
 ---
 

@@ -141,47 +141,61 @@ const config = {
 };
 ```
 
-### 2. Microservice Launch Sequence
+### 2. Complete Terminal Installation Commands
 
-#### Terminal 1: Launch Python Dual-Engine Microservice
+#### A. Install Node.js Express API Dependencies (Terminal)
+```bash
+# Navigate to backend directory
+cd backend
+
+# Install Express server and SQL Server connection packages via npm
+npm install express cors mssql msnodesqlv8 tedious multer axios moment-timezone natural vader-sentiment afinn-165
+```
+
+#### B. Install Python NLP Microservice & ML Dependencies (Terminal)
+```bash
+# Install Python microservice requirements via pip
+pip install flask transformers torch scikit-learn pandas joblib openpyxl matplotlib
+```
+
+---
+
+### 🚀 Backend Microservice Launch Sequence (2 Terminal Windows)
+
+#### Terminal 1: Launch Python Dual-Engine NLP Microservice (Port 5001)
 ```bash
 # Navigate to backend folder
 cd backend
 
-# Install Python requirements
-pip install flask transformers torch scikit-learn pandas joblib matplotlib
-
-# Start service
+# Start Python Flask service
 python sentiment_service.py
 ```
-*Port:* `http://127.0.0.1:5001`
+*Expected Output:* `Running on http://127.0.0.1:5001`
 
-#### Terminal 2: Launch Express API Server
+#### Terminal 2: Launch Express REST API Server (Port 5000)
 ```bash
 # Navigate to backend folder
 cd backend
 
-# Install Node dependencies
-npm install
-
-# Start Express API server
+# Start Express Node API server
 npm start
 ```
-*Port:* `http://localhost:5000`
+*Expected Output:* `Server running on http://localhost:5000` & `Connected to SQL Server`
 
 ---
 
 ## 🧪 Retraining the Machine Learning Category Model
 
-To retrain the Naïve Bayes category classifier using updated survey datasets:
+To retrain the Naïve Bayes category classifier using updated survey datasets (`5kwithnoise.xlsx` & `manual_boundary_cases.csv`):
 
 ```bash
 cd backend/ml
 
-# 1. Clean raw dataset (dataset_5k_wnoise.xlsx or custom dataset)
+# 1. Clean raw dataset (5kwithnoise.xlsx -> data/clean_category_dataset.csv)
 python clean_dataset.py
 
-# 2. Train model & generate updated category_model.pkl
+# 2. Train model, merge manual boundary cases & generate updated category_model.pkl
 python train_category_model.py
 ```
+
 
