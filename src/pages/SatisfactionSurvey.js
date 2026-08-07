@@ -75,8 +75,161 @@ const surveyQuestions = [
   "Your general satisfaction with your experience at the library.",
 ];
 
-// ── Cisco CSAT Style Rating Component ────────────────────────────────────────
-const QuestionItem = ({ qIdx, question, selectedId, onSelect, isAdvancing, justSelectedId }) => {
+// ── Cisco CSAT Style Rating Component (100% Equal Box Grid Layout) ───────────
+const CiscoQuestionItem = ({ qIdx, question, selectedId, onSelect }) => {
+  const [hoveredId, setHoveredId] = useState(null);
+  const activeId = hoveredId || selectedId;
+  const activeOpt = RATING_OPTIONS.find((o) => o.id === activeId);
+
+  return (
+    <Paper
+      elevation={0}
+      sx={{
+        p: 2.2,
+        borderRadius: '16px',
+        bgcolor: selectedId ? '#f0f9ff' : '#ffffff',
+        border: selectedId ? '1.5px solid #00bceb' : '1px solid #cbd5e1',
+        boxShadow: selectedId ? '0 4px 16px rgba(0, 188, 235, 0.12)' : '0 2px 8px rgba(0,0,0,0.03)',
+        width: '100%',
+        minWidth: 0,
+        height: '205px',
+        minHeight: '205px',
+        maxHeight: '205px',
+        boxSizing: 'border-box',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Fixed 68px Height Question Header Box (Accommodates larger 15px-16px font size across all equal boxes) */}
+      <Box sx={{ height: '68px', minHeight: '68px', maxHeight: '68px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1, overflow: 'hidden' }}>
+        <Typography
+          variant="subtitle1"
+          sx={{
+            fontFamily: 'Poppins, sans-serif',
+            fontWeight: 600,
+            color: '#0f172a',
+            fontSize: { xs: '15px', sm: '16px' },
+            lineHeight: 1.35,
+            flex: 1,
+            minWidth: 0,
+          }}
+        >
+          {qIdx + 1}. {question}
+        </Typography>
+
+        {/* Always present Chip badge for uniform header structure */}
+        <Chip
+          label={activeOpt ? `${activeOpt.ciscoLabel} – ${activeOpt.label}` : 'Select rating'}
+          size="small"
+          sx={{
+            fontFamily: 'Poppins, sans-serif',
+            fontWeight: 600,
+            fontSize: '10px',
+            bgcolor: activeOpt ? (hoveredId ? '#0284c7' : '#00bceb') : '#f1f5f9',
+            color: activeOpt ? '#ffffff' : '#64748b',
+            border: '1px solid',
+            borderColor: activeOpt ? '#00a3cc' : '#cbd5e1',
+            height: '20px',
+            px: 0.3,
+            flexShrink: 0,
+          }}
+        />
+      </Box>
+
+      {/* Radio Buttons Rating Row (100% Equal Baseline Position across all Equal Boxes) */}
+      <Box sx={{ display: 'flex', width: '100%', gap: 0.3, mt: 'auto' }}>
+        {RATING_OPTIONS.map((opt) => {
+          const isSelected = selectedId === opt.id;
+          const isHovered = hoveredId === opt.id;
+
+          return (
+            <Box
+              key={opt.id}
+              onClick={() => onSelect(qIdx, opt.id)}
+              onMouseEnter={() => setHoveredId(opt.id)}
+              onMouseLeave={() => setHoveredId(null)}
+              sx={{
+                flex: 1,
+                minWidth: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                cursor: 'pointer',
+                py: 0.5,
+                px: 0.1,
+                borderRadius: '8px',
+                bgcolor: isSelected
+                  ? 'rgba(0, 188, 235, 0.12)'
+                  : isHovered
+                  ? 'rgba(0, 188, 235, 0.06)'
+                  : 'transparent',
+                border: '1px solid',
+                borderColor: isSelected
+                  ? '#00bceb'
+                  : isHovered
+                  ? '#00bceb'
+                  : 'transparent',
+                boxSizing: 'border-box',
+              }}
+            >
+              {/* Fixed 28px Height Text Label Box */}
+              <Typography
+                sx={{
+                  fontFamily: 'Poppins, sans-serif',
+                  fontSize: { xs: '8.5px', sm: '9.5px' },
+                  fontWeight: isSelected ? 700 : 500,
+                  color: isSelected ? '#0084ad' : '#475569',
+                  lineHeight: 1.1,
+                  textAlign: 'center',
+                  height: '28px',
+                  minHeight: '28px',
+                  maxHeight: '28px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  wordBreak: 'break-word',
+                  hyphens: 'auto',
+                }}
+              >
+                {opt.label}
+              </Typography>
+              <Radio
+                checked={isSelected}
+                value={opt.id}
+                name={`cisco-question-${qIdx}`}
+                sx={{
+                  color: '#94a3b8',
+                  p: 0.2,
+                  '&.Mui-checked': { color: '#00bceb' },
+                  '& .MuiSvgIcon-root': { fontSize: 22 },
+                  pointerEvents: 'none',
+                }}
+              />
+              <Typography
+                sx={{
+                  fontFamily: 'Poppins, sans-serif',
+                  fontSize: '12px',
+                  fontWeight: isSelected ? 700 : 600,
+                  color: isSelected ? '#00bceb' : '#334155',
+                  lineHeight: 1,
+                  mt: 0.2,
+                }}
+              >
+                {opt.ciscoLabel}
+              </Typography>
+            </Box>
+          );
+        })}
+      </Box>
+    </Paper>
+  );
+};
+
+
+// ── Single-Question Focus Wizard Rating Component (Original Wizard Design) ───
+const WizardQuestionItem = ({ qIdx, question, selectedId, onSelect, isAdvancing, justSelectedId }) => {
   const [hoveredId, setHoveredId] = useState(null);
   const activeId = hoveredId || selectedId;
   const activeOpt = RATING_OPTIONS.find((o) => o.id === activeId);
@@ -178,7 +331,7 @@ const QuestionItem = ({ qIdx, question, selectedId, onSelect, isAdvancing, justS
               <Radio
                 checked={isSelected}
                 value={opt.id}
-                name={`question-${qIdx}`}
+                name={`wizard-question-${qIdx}`}
                 sx={{
                   color: '#94a3b8',
                   '&.Mui-checked': { color: '#00bceb' },
@@ -206,6 +359,9 @@ const QuestionItem = ({ qIdx, question, selectedId, onSelect, isAdvancing, justS
     </Paper>
   );
 };
+
+
+
 
 
 // ── Main Satisfaction Survey Page ───────────────────────────────────────────
@@ -319,23 +475,23 @@ const SatisfactionSurvey = () => {
           <Box sx={{ flex: '1 1 auto', overflow: 'hidden', display: 'flex', bgcolor: '#1b0892', fontFamily: 'Poppins, sans-serif' }}>
             <Grid container spacing={0} sx={{ height: '100%', width: '100%', m: 0 }}>
 
-              {/* Left Sidebar */}
-              <Grid item xs={12} md={3} sx={{ bgcolor: '#000d3a', color: 'white', p: { xs: 2, sm: 3, md: 4 }, height: '100%', overflowY: 'auto', width: '30%', display: 'flex', flexDirection: 'column' }}>
-                <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ fontFamily: 'Poppins, sans-serif' }}>
+              {/* Left Sidebar (Compact Container Width) */}
+              <Grid item xs={12} md={2.5} sx={{ bgcolor: '#000d3a', color: 'white', p: { xs: 2, sm: 2.5 }, height: '100%', overflowY: 'auto', width: { xs: '100%', md: '22%' }, display: 'flex', flexDirection: 'column' }}>
+                <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '1.1rem' }}>
                   Clientele Profile:
                 </Typography>
                 <FormControl component="fieldset">
                   <RadioGroup name="clientele" value={clientele} onChange={(e) => setClientele(e.target.value)}>
-                    <FormControlLabel value="student" control={<Radio sx={{ color: 'white' }} />} label="Student" />
-                    <FormControlLabel value="faculty" control={<Radio sx={{ color: 'white' }} />} label="Faculty" />
-                    <FormControlLabel value="staff" control={<Radio sx={{ color: 'white' }} />} label="Staff" />
-                    <FormControlLabel value="researcher" control={<Radio sx={{ color: 'white' }} />} label="Researcher" />
-                    <FormControlLabel value="admin" control={<Radio sx={{ color: 'white' }} />} label="CPU Admin" />
-                    <FormControlLabel value="alumni" control={<Radio sx={{ color: 'white' }} />} label="Alumnus/Alumni" />
+                    <FormControlLabel value="student" control={<Radio size="small" sx={{ color: 'white' }} />} label="Student" />
+                    <FormControlLabel value="faculty" control={<Radio size="small" sx={{ color: 'white' }} />} label="Faculty" />
+                    <FormControlLabel value="staff" control={<Radio size="small" sx={{ color: 'white' }} />} label="Staff" />
+                    <FormControlLabel value="researcher" control={<Radio size="small" sx={{ color: 'white' }} />} label="Researcher" />
+                    <FormControlLabel value="admin" control={<Radio size="small" sx={{ color: 'white' }} />} label="CPU Admin" />
+                    <FormControlLabel value="alumni" control={<Radio size="small" sx={{ color: 'white' }} />} label="Alumnus/Alumni" />
                   </RadioGroup>
                 </FormControl>
 
-                <FormControl fullWidth sx={{ mt: 3 }}>
+                <FormControl fullWidth size="small" sx={{ mt: 2.5 }}>
                   <InputLabel sx={{ color: 'white' }}>College</InputLabel>
                   <Select
                     label="College"
@@ -350,7 +506,7 @@ const SatisfactionSurvey = () => {
                   </Select>
                 </FormControl>
 
-                <FormControl fullWidth sx={{ mt: 3 }}>
+                <FormControl fullWidth size="small" sx={{ mt: 2.5 }}>
                   <InputLabel sx={{ color: 'white' }}>Course</InputLabel>
                   <Select
                     label="Course"
@@ -364,25 +520,25 @@ const SatisfactionSurvey = () => {
                       <MenuItem key={i} value={crs}>{crs}</MenuItem>
                     ))}
                   </Select>
-                  <Typography variant="caption" sx={{ mt: 1, display: 'block', color: 'rgba(255,255,255,0.7)' }}>
+                  <Typography variant="caption" sx={{ mt: 1, display: 'block', color: 'rgba(255,255,255,0.7)', fontSize: '11px' }}>
                     *Required for Student and Faculty only.
                   </Typography>
                 </FormControl>
 
-                <Box sx={{ mt: 'auto', pt: 4 }}>
-                  <Typography variant="caption" display="block" sx={{ color: 'rgba(255,255,255,0.6)' }}>
+                <Box sx={{ mt: 'auto', pt: 3 }}>
+                  <Typography variant="caption" display="block" sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '11px' }}>
                     {currentTime.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} –{' '}
                     {currentTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })}
                   </Typography>
                 </Box>
               </Grid>
 
-              {/* Right Content Panel */}
-              <Grid sx={{ bgcolor: '#f8fafc', p: { xs: 2.5, md: 4 }, height: '100%', overflowY: 'auto', width: '70%', display: 'flex', flexDirection: 'column' }}>
-                <Box sx={{ maxWidth: '1100px', width: '100%', mx: 'auto', display: 'flex', flexDirection: 'column', gap: 3 }}>
+              {/* Right Content Panel (Expanded Horizontal Area) */}
+              <Grid item xs={12} md={9.5} sx={{ bgcolor: '#f8fafc', p: { xs: 2, md: 3 }, height: '100%', overflowY: 'auto', width: { xs: '100%', md: '78%' }, display: 'flex', flexDirection: 'column' }}>
+                <Box sx={{ maxWidth: '1400px', width: '100%', mx: 'auto', display: 'flex', flexDirection: 'column', gap: 2.5 }}>
 
                   {/* Header Progress Banner */}
-                  <Paper elevation={0} sx={{ p: 2.5, borderRadius: '14px', border: '1px solid #e2e8f0', bgcolor: '#ffffff' }}>
+                  <Paper elevation={0} sx={{ p: 2, borderRadius: '14px', border: '1px solid #e2e8f0', bgcolor: '#ffffff' }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                       <Typography variant="subtitle1" fontWeight="bold" sx={{ color: '#0f172a', fontFamily: 'Poppins, sans-serif' }}>
                         Library Experience Rating ({completedCount}/10 Answered)
@@ -449,11 +605,18 @@ const SatisfactionSurvey = () => {
                     </Box>
                   </Box>
 
-                  {/* Active Question View Renderer */}
+                  {/* Cisco CSAT Style Renderer (100% Guaranteed 2 Equal Columns Per Row CSS Grid Layout) */}
                   {viewMode === 'cisco' && (
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    <Box
+                      sx={{
+                        display: 'grid',
+                        gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+                        gap: 2.5,
+                        width: '100%',
+                      }}
+                    >
                       {surveyQuestions.map((qText, idx) => (
-                        <QuestionItem
+                        <CiscoQuestionItem
                           key={idx}
                           qIdx={idx}
                           question={qText}
@@ -557,7 +720,7 @@ const SatisfactionSurvey = () => {
                           },
                         }}
                       >
-                        <QuestionItem
+                        <WizardQuestionItem
                           qIdx={wizardIndex}
                           question={surveyQuestions[wizardIndex]}
                           selectedId={responses[wizardIndex]}
