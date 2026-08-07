@@ -1,15 +1,31 @@
 import re
-
+from nltk.stem import PorterStemmer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import Pipeline
 
 DEFAULT_CATEGORIES = ["Facilities", "Staff", "Collection", "Other/Uncategorized"]
-DEFAULT_CONFIDENCE_THRESHOLD = 0.45
+DEFAULT_CONFIDENCE_THRESHOLD = 0.40
 FALLBACK_LABEL = "Other/Uncategorized"
 
-def preprocess(text: str) -> str:
+_stemmer = PorterStemmer()
 
+DOMAIN_KEYWORDS = {
+    "Staff": {
+        "librarian", "librarians", "staff", "personnel", "guard", "guards", 
+        "assistant", "assistants", "attendant", "attendants", "cashier", "admin"
+    },
+    "Facilities": {
+        "wifi", "aircon", "ac", "restroom", "restrooms", "toilet", "toilets", 
+        "elevator", "socket", "sockets", "outlet", "outlets", "lighting", "ventilation"
+    },
+    "Collection": {
+        "book", "books", "textbook", "textbooks", "journal", "journals", 
+        "thesis", "catalog", "ebook", "ebooks", "periodical", "periodicals"
+    }
+}
+
+def preprocess(text: str) -> str:
     if text is None:
         return ""
     text = str(text).lower()
@@ -17,8 +33,9 @@ def preprocess(text: str) -> str:
     text = re.sub(r"@\w+", " ", text)               
     text = re.sub(r"#\w+", " ", text)               
     text = re.sub(r"[^a-z\s]", " ", text)                
-    text = re.sub(r"\s+", " ", text).strip()          
-    return text
+    tokens = text.split()
+    stemmed = [_stemmer.stem(w) for w in tokens]
+    return " ".join(stemmed)
 
 class CategoryClassifier:
     def __init__(self, alpha: float = 1.0, ngram_range=(1, 1), min_df: int = 1):
@@ -26,7 +43,7 @@ class CategoryClassifier:
         self.ngram_range = ngram_range
         self.min_df = min_df
         self.pipeline = Pipeline([
-            ("tfidf", TfidfVectorizer(         # conmverts words to score for conf lvl
+            ("tfidf", TfidfVectorizer(
                 preprocessor=preprocess,
                 ngram_range=self.ngram_range,
                 min_df=self.min_df,
@@ -41,7 +58,6 @@ class CategoryClassifier:
         return self
 
     def predict(self, texts):
-
         single_input = isinstance(texts, str)
         X = [texts] if single_input else list(texts)
         preds = self.pipeline.predict(X)
@@ -54,7 +70,6 @@ class CategoryClassifier:
         return probs[0] if single_input else probs
 
     def predict_with_fallback(self, text: str, threshold: float = DEFAULT_CONFIDENCE_THRESHOLD) -> str:
-   
         if not text or not str(text).strip():
             return FALLBACK_LABEL
 
@@ -64,8 +79,14 @@ class CategoryClassifier:
         top_confidence = probs[top_idx]
 
         if top_confidence < threshold:
+            # Check domain keywords before defaulting to Other/Uncategorized
+            text_words = set(re.findall(r"\b\w+\b", str(text).lower()))
+            for category, keywords in DOMAIN_KEYWORDS.items():
+                if text_words.intersection(keywords):
+                    return category
             return FALLBACK_LABEL
+
         return top_label
 
     def score(self, X, y) -> float:
-        return self.pipeline.score(X, y)
+        return self.pipeline.score(X, y)
