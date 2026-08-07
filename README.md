@@ -210,7 +210,6 @@ Below is a summary of major updates implemented in the system:
 - **Machine Learning & Data Processing**: `scikit-learn`, `pandas`, `joblib`, `openpyxl` (for reading `.xlsx` datasets), `matplotlib`
 
 ---
-
 ## 🗄️ Database Schema & DDL Migration Scripts
 
 Run the following SQL queries in SQL Server Management Studio (SSMS) on database `hllSystem`:
