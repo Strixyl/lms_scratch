@@ -7,7 +7,7 @@ import {
   MenuItem, Select, FormControl, InputLabel,
   Dialog, DialogTitle, DialogContent, DialogActions, Avatar, Chip,
   InputAdornment, TableSortLabel, Tooltip, Snackbar, Alert,
-  Checkbox, IconButton
+  Checkbox, IconButton, ToggleButton, ToggleButtonGroup
 } from '@mui/material';
 import {
   Print as PrintIcon,
@@ -429,6 +429,41 @@ const SummaryCard = ({ title, value, subtitle, icon, color = '#3b82f6', tooltipC
   return cardContent;
 };
 
+// ── Dynamic Custom Tooltip for Sentiment Stacked Bar Chart ─────────────────────
+const CustomSentimentStackedTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    const total = payload.reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
+    return (
+      <Paper elevation={4} sx={{ p: 2, bgcolor: '#ffffff', border: '1.5px solid #cbd5e1', borderRadius: 3, maxWidth: 320, boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }}>
+        <Typography variant="subtitle2" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, color: '#1e293b', mb: 1, borderBottom: '1px solid #e2e8f0', pb: 0.8, fontSize: 13.5 }}>
+          {label} — {total} Total Response{total !== 1 ? 's' : ''}
+        </Typography>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.8 }}>
+          {payload.map((item, idx) => {
+            const val = Number(item.value) || 0;
+            const pct = total > 0 ? ((val / total) * 100).toFixed(1) : '0.0';
+            const colorObj = SENTIMENT_COLORS[item.name] || { bg: item.color || '#64748b', text: '#1e293b', light: '#f8fafc', dot: item.color || '#64748b' };
+            return (
+              <Box key={idx} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 0.8, px: 1.2, borderRadius: 2, bgcolor: colorObj.light || '#f8fafc', border: `1px solid ${colorObj.dot}40` }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ width: 10, height: 10, borderRadius: '3px', bgcolor: colorObj.bg, flexShrink: 0 }} />
+                  <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 700, color: colorObj.text || '#1e293b' }}>
+                    {item.name}
+                  </Typography>
+                </Box>
+                <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 800, color: colorObj.text || '#1e293b' }}>
+                  {val} ({pct}%)
+                </Typography>
+              </Box>
+            );
+          })}
+        </Box>
+      </Paper>
+    );
+  }
+  return null;
+};
+
 const ROWS_PER_PAGE = 8;
 
 const SentimentDashboard = () => {
@@ -495,6 +530,12 @@ const SentimentDashboard = () => {
   const [recordToDelete, setRecordToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [snackbarMsg, setSnackbarMsg] = useState('');
+
+  // Stacked Bar Chart states
+  const [barChartMode, setBarChartMode] = useState('stacked'); // 'stacked' | 'grouped'
+  const [stackedBreakdownDimension, setStackedBreakdownDimension] = useState('Category'); // 'Category' | 'Clientele' | 'College'
+  const [stackedLayoutMode, setStackedLayoutMode] = useState('stacked'); // 'stacked' | 'grouped'
+  const [stackedValueScale, setStackedValueScale] = useState('count'); // 'count' | 'percentage'
 
   const printRef = useRef();
 
@@ -764,6 +805,46 @@ const SentimentDashboard = () => {
       return { ...item, avgSatisfaction: parseFloat(avg) };
     });
   }, [filtered, filterYear]);
+
+  // Dynamic Stacked Bar Breakdown Data (Category, Clientele, or College)
+  const stackedBreakdownData = useMemo(() => {
+    const map = {};
+
+    filtered.forEach(s => {
+      let key = 'Other/Uncategorized';
+      if (stackedBreakdownDimension === 'Category') {
+        key = s.Category || 'Other/Uncategorized';
+      } else if (stackedBreakdownDimension === 'Clientele') {
+        key = s.Clientele || 'Unspecified';
+      } else if (stackedBreakdownDimension === 'College') {
+        key = s.College || 'N/A';
+      }
+
+      if (!map[key]) {
+        map[key] = { name: key, Positive: 0, Neutral: 0, Negative: 0, total: 0 };
+      }
+      if (s.SentimentResult === 'Positive') map[key].Positive++;
+      else if (s.SentimentResult === 'Neutral') map[key].Neutral++;
+      else if (s.SentimentResult === 'Negative') map[key].Negative++;
+      map[key].total++;
+    });
+
+    const keys = Object.keys(map).sort((a, b) => map[b].total - map[a].total);
+
+    return keys.map(k => {
+      const item = map[k];
+      if (stackedValueScale === 'percentage' && item.total > 0) {
+        return {
+          name: item.name,
+          Positive: parseFloat(((item.Positive / item.total) * 100).toFixed(1)),
+          Neutral: parseFloat(((item.Neutral / item.total) * 100).toFixed(1)),
+          Negative: parseFloat(((item.Negative / item.total) * 100).toFixed(1)),
+          total: item.total
+        };
+      }
+      return item;
+    });
+  }, [filtered, stackedBreakdownDimension, stackedValueScale]);
 
   // ── Word/Term Frequency & TF-IDF Ranking for Top Comments (Approach B) ──────
   const buildTermFrequencies = (pool) => {
@@ -1483,34 +1564,54 @@ const SentimentDashboard = () => {
                       />
                     </Box>
 
-                    {/* ── 12-Month Calendar View Bar Graph (Strictly Side-by-Side Grouped) ───── */}
+                    {/* ── 12-Month Calendar View Bar Graph (Stacked Bar / Side-by-Side Toggle) ───── */}
                     <Card elevation={0} sx={{ border: '1.5px solid #e2e8f0', borderRadius: 3.5, mb: 3, backgroundColor: 'white' }}>
                       <CardContent sx={{ p: 3 }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1.5 }}>
                           <Box>
                             <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 15, color: '#1e293b', letterSpacing: 0.5, textTransform: 'uppercase' }}>
-                              Sentiment Trend (12-Month Side-by-Side View) — {filterYear === 'All' ? 'All Batched Years' : `Year ${filterYear}`}
+                              Sentiment Trend (12-Month {barChartMode === 'stacked' ? 'Stacked Bar' : 'Side-by-Side'} View) — {filterYear === 'All' ? 'All Batched Years' : `Year ${filterYear}`}
                             </Typography>
                             <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#64748b', fontWeight: 500, mt: 0.2 }}>
-                              Side-by-Side comparison of Positive, Neutral, and Negative responses per month
+                              {barChartMode === 'stacked'
+                                ? 'Stacked breakdown of Positive, Neutral, and Negative responses per month'
+                                : 'Side-by-Side comparison of Positive, Neutral, and Negative responses per month'}
                             </Typography>
                           </Box>
 
-                          {/* Year Selector */}
-                          <FormControl size="small" sx={{ minWidth: 120 }}>
-                            <InputLabel sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 700, color: '#1a237e' }}>Year</InputLabel>
-                            <Select
-                              value={filterYear}
-                              label="Year"
-                              onChange={(e) => setFilterYear(e.target.value)}
-                              sx={{ height: 38, borderRadius: 2.5, fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 13 }}
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                            {/* Bar Layout Mode Switch (Stacked vs Grouped) */}
+                            <ToggleButtonGroup
+                              value={barChartMode}
+                              exclusive
+                              onChange={(e, newMode) => { if (newMode) setBarChartMode(newMode); }}
+                              size="small"
+                              sx={{ height: 38, borderRadius: 2.5, bgcolor: '#f8fafc', border: '1px solid #cbd5e1' }}
                             >
-                              <MenuItem value="All" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 13 }}>All Years</MenuItem>
-                              {availableYears.map(yr => (
-                                <MenuItem key={yr} value={yr} sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 13 }}>{yr}</MenuItem>
-                              ))}
-                            </Select>
-                          </FormControl>
+                              <ToggleButton value="stacked" sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 700, textTransform: 'none', px: 1.5 }}>
+                                Stacked Bar
+                              </ToggleButton>
+                              <ToggleButton value="grouped" sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 700, textTransform: 'none', px: 1.5 }}>
+                                Side-by-Side
+                              </ToggleButton>
+                            </ToggleButtonGroup>
+
+                            {/* Year Selector */}
+                            <FormControl size="small" sx={{ minWidth: 120 }}>
+                              <InputLabel sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 700, color: '#1a237e' }}>Year</InputLabel>
+                              <Select
+                                value={filterYear}
+                                label="Year"
+                                onChange={(e) => setFilterYear(e.target.value)}
+                                sx={{ height: 38, borderRadius: 2.5, fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 13 }}
+                              >
+                                <MenuItem value="All" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 13 }}>All Years</MenuItem>
+                                {availableYears.map(yr => (
+                                  <MenuItem key={yr} value={yr} sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 13 }}>{yr}</MenuItem>
+                                ))}
+                              </Select>
+                            </FormControl>
+                          </Box>
                         </Box>
 
                         <ResponsiveContainer width="100%" height={320}>
@@ -1532,16 +1633,145 @@ const SentimentDashboard = () => {
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                             <XAxis dataKey="month" tick={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fill: '#64748b', fontWeight: 600 }} />
                             <YAxis allowDecimals={false} tick={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fill: '#64748b' }} />
-                            <RechartsTooltip
-                              contentStyle={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, borderRadius: 12, border: '1.5px solid #cbd5e1', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }}
-                              formatter={(val, name) => [`${val} responses`, `${name} Sentiment`]}
-                            />
+                            <RechartsTooltip content={<CustomSentimentStackedTooltip />} />
                             <Legend wrapperStyle={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, paddingTop: 12 }} />
-                            <Bar dataKey="Positive" fill="url(#posGrad)" radius={[6, 6, 0, 0]} maxBarSize={28} />
-                            <Bar dataKey="Neutral" fill="url(#neuGrad)" radius={[6, 6, 0, 0]} maxBarSize={28} />
-                            <Bar dataKey="Negative" fill="url(#negGrad)" radius={[6, 6, 0, 0]} maxBarSize={28} />
+                            <Bar
+                              dataKey="Positive"
+                              stackId={barChartMode === 'stacked' ? 'monthlyStack' : undefined}
+                              fill="url(#posGrad)"
+                              radius={barChartMode === 'stacked' ? [0, 0, 0, 0] : [6, 6, 0, 0]}
+                              maxBarSize={barChartMode === 'stacked' ? 36 : 28}
+                            />
+                            <Bar
+                              dataKey="Neutral"
+                              stackId={barChartMode === 'stacked' ? 'monthlyStack' : undefined}
+                              fill="url(#neuGrad)"
+                              radius={barChartMode === 'stacked' ? [0, 0, 0, 0] : [6, 6, 0, 0]}
+                              maxBarSize={barChartMode === 'stacked' ? 36 : 28}
+                            />
+                            <Bar
+                              dataKey="Negative"
+                              stackId={barChartMode === 'stacked' ? 'monthlyStack' : undefined}
+                              fill="url(#negGrad)"
+                              radius={[6, 6, 0, 0]}
+                              maxBarSize={barChartMode === 'stacked' ? 36 : 28}
+                            />
                           </BarChart>
                         </ResponsiveContainer>
+                      </CardContent>
+                    </Card>
+
+                    {/* ── Dedicated Stacked Bar Chart: Sentiment Breakdown across Dimensions ───── */}
+                    <Card elevation={0} sx={{ border: '1.5px solid #e2e8f0', borderRadius: 3.5, mb: 3, backgroundColor: 'white' }}>
+                      <CardContent sx={{ p: 3 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexWrap: 'wrap', gap: 1.5 }}>
+                          <Box>
+                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 15, color: '#1e293b', letterSpacing: 0.5, textTransform: 'uppercase' }}>
+                              Sentiment Distribution Breakdown (Stacked Bar Chart)
+                            </Typography>
+                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#64748b', fontWeight: 500, mt: 0.2 }}>
+                              Stacked comparison of Positive, Neutral, and Negative sentiment volumes across {stackedBreakdownDimension}
+                            </Typography>
+                          </Box>
+
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                            {/* Dimension Dropdown */}
+                            <FormControl size="small" sx={{ minWidth: 140 }}>
+                              <InputLabel sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 700, color: '#1a237e' }}>Breakdown By</InputLabel>
+                              <Select
+                                value={stackedBreakdownDimension}
+                                label="Breakdown By"
+                                onChange={(e) => setStackedBreakdownDimension(e.target.value)}
+                                sx={{ height: 38, borderRadius: 2.5, fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 13 }}
+                              >
+                                <MenuItem value="Category" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 13 }}>Category</MenuItem>
+                                <MenuItem value="Clientele" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 13 }}>Clientele Group</MenuItem>
+                                <MenuItem value="College" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 13 }}>College / Unit</MenuItem>
+                              </Select>
+                            </FormControl>
+
+                            {/* Stacked vs Grouped Toggle */}
+                            <ToggleButtonGroup
+                              value={stackedLayoutMode}
+                              exclusive
+                              onChange={(e, mode) => { if (mode) setStackedLayoutMode(mode); }}
+                              size="small"
+                              sx={{ height: 38, borderRadius: 2.5, bgcolor: '#f8fafc', border: '1px solid #cbd5e1' }}
+                            >
+                              <ToggleButton value="stacked" sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 700, textTransform: 'none', px: 1.5 }}>
+                                Stacked
+                              </ToggleButton>
+                              <ToggleButton value="grouped" sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 700, textTransform: 'none', px: 1.5 }}>
+                                Side-by-Side
+                              </ToggleButton>
+                            </ToggleButtonGroup>
+
+                            {/* Count vs Percentage Toggle */}
+                            <ToggleButtonGroup
+                              value={stackedValueScale}
+                              exclusive
+                              onChange={(e, scale) => { if (scale) setStackedValueScale(scale); }}
+                              size="small"
+                              sx={{ height: 38, borderRadius: 2.5, bgcolor: '#f8fafc', border: '1px solid #cbd5e1' }}
+                            >
+                              <ToggleButton value="count" sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 700, textTransform: 'none', px: 1.5 }}>
+                                Counts
+                              </ToggleButton>
+                              <ToggleButton value="percentage" sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 700, textTransform: 'none', px: 1.5 }}>
+                                100% %
+                              </ToggleButton>
+                            </ToggleButtonGroup>
+                          </Box>
+                        </Box>
+
+                        {stackedBreakdownData.length === 0 ? (
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', color: '#94a3b8', textAlign: 'center', py: 6 }}>
+                            No survey response data available for {stackedBreakdownDimension} breakdown.
+                          </Typography>
+                        ) : (
+                          <ResponsiveContainer width="100%" height={340}>
+                            <BarChart data={stackedBreakdownData} margin={{ top: 15, right: 30, left: 10, bottom: stackedBreakdownDimension === 'College' ? 40 : 10 }}>
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                              <XAxis
+                                dataKey="name"
+                                tick={{ fontFamily: 'Poppins, sans-serif', fontSize: 11.5, fill: '#64748b', fontWeight: 600 }}
+                                interval={0}
+                                angle={stackedBreakdownDimension === 'College' ? -35 : 0}
+                                textAnchor={stackedBreakdownDimension === 'College' ? 'end' : 'middle'}
+                                height={stackedBreakdownDimension === 'College' ? 60 : 30}
+                              />
+                              <YAxis
+                                allowDecimals={stackedValueScale === 'percentage'}
+                                unit={stackedValueScale === 'percentage' ? '%' : ''}
+                                domain={stackedValueScale === 'percentage' ? [0, 100] : [0, 'auto']}
+                                tick={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fill: '#64748b' }}
+                              />
+                              <RechartsTooltip content={<CustomSentimentStackedTooltip />} />
+                              <Legend wrapperStyle={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, paddingTop: 12 }} />
+                              <Bar
+                                dataKey="Positive"
+                                stackId={stackedLayoutMode === 'stacked' ? 'breakdownStack' : undefined}
+                                fill="url(#posGrad)"
+                                radius={stackedLayoutMode === 'stacked' ? [0, 0, 0, 0] : [6, 6, 0, 0]}
+                                maxBarSize={stackedLayoutMode === 'stacked' ? 42 : 24}
+                              />
+                              <Bar
+                                dataKey="Neutral"
+                                stackId={stackedLayoutMode === 'stacked' ? 'breakdownStack' : undefined}
+                                fill="url(#neuGrad)"
+                                radius={stackedLayoutMode === 'stacked' ? [0, 0, 0, 0] : [6, 6, 0, 0]}
+                                maxBarSize={stackedLayoutMode === 'stacked' ? 42 : 24}
+                              />
+                              <Bar
+                                dataKey="Negative"
+                                stackId={stackedLayoutMode === 'stacked' ? 'breakdownStack' : undefined}
+                                fill="url(#negGrad)"
+                                radius={[6, 6, 0, 0]}
+                                maxBarSize={stackedLayoutMode === 'stacked' ? 42 : 24}
+                              />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        )}
                       </CardContent>
                     </Card>
 
