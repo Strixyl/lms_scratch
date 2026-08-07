@@ -1572,7 +1572,7 @@ const SentimentDashboard = () => {
                             <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 15, color: '#1e293b', letterSpacing: 0.5, textTransform: 'uppercase' }}>
                               Sentiment Trend (12-Month {barChartMode === 'stacked' ? 'Stacked Bar' : 'Side-by-Side'} View) — {filterYear === 'All' ? 'All Batched Years' : `Year ${filterYear}`}
                             </Typography>
-                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#64748b', fontWeight: 500, mt: 0.2 }}>
+                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 14, color: '#64748b', fontWeight: 500, mt: 0.2 }}>
                               {barChartMode === 'stacked'
                                 ? 'Stacked breakdown of Positive, Neutral, and Negative responses per month'
                                 : 'Side-by-Side comparison of Positive, Neutral, and Negative responses per month'}
