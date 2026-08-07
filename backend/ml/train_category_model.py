@@ -9,7 +9,12 @@ from naive_bayes import CategoryClassifier
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 CLEAN_CSV_PATH = os.path.join(THIS_DIR, "data", "clean_category_dataset.csv")
-MANUAL_CSV_PATH = os.path.join(THIS_DIR, "data", "manual_boundary_cases.csv")
+if not os.path.exists(CLEAN_CSV_PATH):
+    CLEAN_CSV_PATH = os.path.join(THIS_DIR, "data", "train", "clean_category_dataset.csv")
+MANUAL_CSV_PATH = os.path.join(THIS_DIR, "manual_boundary_cases.csv")
+if not os.path.exists(MANUAL_CSV_PATH):
+    MANUAL_CSV_PATH = os.path.join(THIS_DIR, "data", "manual_boundary_cases.csv")
+TEST_CSV_PATH = os.path.join(THIS_DIR, "data", "test", "real_patron_comments_clean.csv")
 MODEL_OUTPUT_PATH = os.path.join(THIS_DIR, "category_model.pkl")
 
 RANDOM_STATE = 42
@@ -18,10 +23,22 @@ TEST_SIZE = 0.2
 
 ALPHA_GRID = [0.01, 0.1, 0.5, 1.0, 1.5, 2.0, 5.0]
 NGRAM_RANGE_GRID = [(1, 1), (1, 2)]
-MIN_DF_GRID = [1, 2]
+MIN_DF_GRID = [1, 2, 3, 5]
 
 
 def load_data():
+    # Hard guard: this function must never read from the test-set path.
+    # If a future edit accidentally points CLEAN_CSV_PATH or MANUAL_CSV_PATH
+    # at data/test/, this assertion stops training before any leakage happens.
+    assert CLEAN_CSV_PATH != TEST_CSV_PATH, (
+        "CLEAN_CSV_PATH must not equal TEST_CSV_PATH — training must never "
+        "read the held-out real-comment test set."
+    )
+    assert MANUAL_CSV_PATH != TEST_CSV_PATH, (
+        "MANUAL_CSV_PATH must not equal TEST_CSV_PATH — training must never "
+        "read the held-out real-comment test set."
+    )
+
     if not os.path.exists(CLEAN_CSV_PATH):
         raise FileNotFoundError(
             f"Clean dataset not found at {CLEAN_CSV_PATH}. "

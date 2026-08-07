@@ -11,23 +11,47 @@ except ImportError as exc:
         "pip install clean-text --break-system-packages"
     ) from exc
 
+try:
+    from spellchecker import SpellChecker
+except ImportError as exc:
+    raise ImportError(
+        "pyspellchecker is required for gibberish detection. Install it with: "
+        "pip install pyspellchecker --break-system-packages"
+    ) from exc
+_spell = SpellChecker()
+
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-RAW_XLSX_PATH = os.path.abspath(os.path.join(THIS_DIR, "..", "..", "3kwithnoise.xlsx"))
+RAW_XLSX_PATH = os.path.abspath(os.path.join(THIS_DIR, "..", "..", "5kcatdataset.xlsx"))
+if not os.path.exists(RAW_XLSX_PATH):
+    RAW_XLSX_PATH = os.path.abspath(os.path.join(THIS_DIR, "..", "5kcatdataset.xlsx"))
+if not os.path.exists(RAW_XLSX_PATH):
+    RAW_XLSX_PATH = os.path.abspath(os.path.join(THIS_DIR, "5kcatdataset.xlsx"))
 
-OUTPUT_DIR = os.path.join(THIS_DIR, "data")
-OUTPUT_CSV_PATH = os.path.join(OUTPUT_DIR, "clean_category_dataset.csv")
+DATA_DIR = os.path.join(THIS_DIR, "data")
+TEST_DIR = os.path.join(DATA_DIR, "test")
+
+TRAIN_OUTPUT_CSV_PATH = os.path.join(DATA_DIR, "clean_category_dataset.csv")
+TEST_OUTPUT_CSV_PATH = os.path.join(TEST_DIR, "real_patron_comments_clean.csv")
 
 SHEET_NAME = "All_Data"
 
 VALID_CATEGORIES = ["Facilities", "Staff", "Collection", "Other/Uncategorized"]
 VALID_SENTIMENTS = ["Positive", "Neutral", "Negative"]
 
-# non informative text./ mkixed with actual comments from real survey dataset
+# non informative static filler texts.
+# Dynamic gibberish (e.g. "shdsuidhs", "asdfghj") and character repetitions ("walaaaaa")
+# are automatically caught by character normalization & spellcheck/consonant filters.
 NON_INFORMATIVE_TEXTS = {
     "none", "n/a", "na", "no", "nil", "nothing", "good", "okay", "ok", 
-    "asdf", "a", "b", "c", "thanks", "thank you", "n/a.", "none.", "good.",
-    "wala", "walaaaaa", "walaaaaaaaaaaaaa", "nan", "null"
+    "a", "b", "c", "thanks", "thank you", "n/a.", "none.", "good.",
+    "nan", "null"
+}
+
+# Local Tagalog & library domain whitelist so legitimate patron feedback isn't flagged by English spellchecker
+LOCAL_DOMAIN_WHITELIST = {
+    "wala", "sana", "meron", "may", "din", "rin", "opo", "po", "cr", "wifi", "aircon", 
+    "mabait", "maganda", "pangit", "tahimik", "maingay", "books", "book", "lib", "library"
 }
 
 MIN_CHAR_LENGTH = 3
@@ -136,18 +160,46 @@ def clean(df: pd.DataFrame) -> pd.DataFrame:
     df["comment"] = df["comment"].apply(normalize_text)
     df = df[df["comment"] != ""]
 
-    # tihs part filters the noise less than 3 letters comments, along with non informative text from above
+    # Noise filter using multi-library spellcheck, consonant heuristics, and length thresholds
     def is_gibberish_token(word: str) -> bool:
-        """Flags a single unbroken token (no spaces) as likely keyboard
-        mashing, e.g. "dgasdfasgdgdashgdaswgsdagvsadvgsdagvsadgvadsgdas".
-        Real English words used in casual feedback essentially never
-        exceed ~18-19 characters (e.g. "characteristically" = 18,
-        "disproportionately" = 18), while mashed strings tend to run
-        30+ characters — a length-only cutoff at 20 avoids the false
-        positives that vowel-ratio/consonant-run heuristics produce on
-        legitimate long words (e.g. "straightforward").
+        """Flags a single unbroken token (no spaces) as likely keyboard mashing,
+        e.g. "shdsuidhs", "asdfghj", or 30+ character strings.
         """
-        return len(word) >= 20
+        clean_w = word.lower().strip()
+        if len(clean_w) >= 20:
+            return True
+        
+        # 5+ consecutive consonants (e.g., "shdsu", "dfghj") usually indicates keyboard mashing
+        if re.search(r"[bcdfghjklmnpqrstvwxyz]{5,}", clean_w):
+            return True
+
+        # Single-token spellcheck filter for unrecognized strings (e.g. "shdsuidhs")
+        if len(clean_w) >= 4 and clean_w.isalpha() and clean_w not in LOCAL_DOMAIN_WHITELIST:
+            # Check if it lacks vowels entirely (e.g., "hshdhd")
+            if not any(v in clean_w for v in "aeiouy"):
+                return True
+            # Spellchecker dictionary verification
+            unknown = _spell.unknown([clean_w])
+            if len(unknown) == 1 and not clean_w.isupper() and len(clean_w) >= 6:
+                return True
+
+        return False
+
+    def is_gibberish_multiword(val: str) -> bool:
+        """Flags multi-word comments where almost every token is not a
+        real English or whitelisted word (e.g. "asdf jkl qwerty lorem ipsum dolor").
+        """
+        tokens = [t.lower() for t in val.split() if t.isalpha() and len(t) >= 2]
+        if len(tokens) < 3:
+            return False
+        
+        # Filter out local domain whitelisted words before calculating unknown ratio
+        non_whitelisted = [t for t in tokens if t not in LOCAL_DOMAIN_WHITELIST]
+        if not non_whitelisted:
+            return False
+
+        unknown = _spell.unknown(non_whitelisted)
+        return (len(unknown) / len(tokens)) >= 0.60
 
     def is_noise(val: str) -> bool:
         lower_val = val.lower()
@@ -157,11 +209,10 @@ def clean(df: pd.DataFrame) -> pd.DataFrame:
             return True
         if val.isdigit():  
             return True
-        # long single-token strings with no spaces (no real multi-word
-        # comment structure) and low vowel density are almost always
-        # keyboard mashing, not real feedback
         tokens = val.split()
         if len(tokens) == 1 and is_gibberish_token(tokens[0]):
+            return True
+        if len(tokens) >= 3 and is_gibberish_multiword(val):
             return True
         return False
 
@@ -180,9 +231,14 @@ def clean(df: pd.DataFrame) -> pd.DataFrame:
         dropped_bad_labels = df[bad_cat_mask | bad_sent_mask]
         df = df[~(bad_cat_mask | bad_sent_mask)]
 
-    # drop duplicates, only the first will remain/get
+    # drop duplicates: same comment text AND same category label is a
+    # true redundant duplicate. Same comment text under a DIFFERENT
+    # category is not redundant — short generic comments (e.g. "this
+    # needs improvement") can legitimately apply to different things
+    # across different patron submissions, and collapsing them away
+    # would silently discard genuine cross-category ambiguity.
     before_dedupe = len(df)
-    df = df.drop_duplicates(subset=["comment"], keep="first")
+    df = df.drop_duplicates(subset=["comment", "category"], keep="first")
     dupes_dropped = before_dedupe - len(df)
 
 
@@ -221,21 +277,52 @@ def clean(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def main():
-    target_path = RAW_XLSX_PATH
-    if len(sys.argv) > 1 and sys.argv[1].strip():
-        target_path = sys.argv[1].strip()
+    args = [a for a in sys.argv[1:] if a.strip()]
+
+    role = "train"
+    positional = []
+    for a in args:
+        if a.strip().lower() in ("--role=train", "--train"):
+            role = "train"
+        elif a.strip().lower() in ("--role=test", "--test"):
+            role = "test"
+        elif a.strip().lower().startswith("--role="):
+            role = a.split("=", 1)[1].strip().lower()
+        else:
+            positional.append(a)
+
+    if role not in ("train", "test"):
+        raise ValueError(f"--role must be 'train' or 'test', got: {role!r}")
+
+    target_path = positional[0] if positional else RAW_XLSX_PATH
 
     if not os.path.exists(target_path):
         raise FileNotFoundError(f"Raw dataset not found at: {target_path}")
 
     print(f"Loading raw dataset from: {target_path}")
+    print(f"Role: {role.upper()}")
     raw_df = load_raw(target_path, SHEET_NAME)
 
     clean_df = clean(raw_df)
 
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
-    clean_df.to_csv(OUTPUT_CSV_PATH, index=False, encoding="utf-8")
-    print(f"\nSaved cleaned dataset to: {OUTPUT_CSV_PATH}")
+    if role == "train":
+        os.makedirs(DATA_DIR, exist_ok=True)
+        out_path = TRAIN_OUTPUT_CSV_PATH
+    else:
+        os.makedirs(TEST_DIR, exist_ok=True)
+        out_path = TEST_OUTPUT_CSV_PATH
+
+    clean_df.to_csv(out_path, index=False, encoding="utf-8")
+    print(f"\nSaved cleaned dataset to: {out_path}")
+
+    if role == "test":
+        print(
+            "\n" + "!" * 60 +
+            "\nTHIS IS A TEST-SET FILE — real/held-out data.\n"
+            "Do NOT reference this path from train_category_model.py or\n"
+            "any training/grid-search code. It exists only to be scored\n"
+            "against an already-trained model.\n" + "!" * 60
+        )
 
 
 if __name__ == "__main__":
