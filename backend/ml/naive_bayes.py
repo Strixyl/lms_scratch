@@ -21,9 +21,29 @@ DOMAIN_KEYWORDS = {
     },
     "Collection": {
         "book", "books", "textbook", "textbooks", "journal", "journals", 
-        "thesis", "catalog", "ebook", "ebooks", "periodical", "periodicals"
+        "thesis", "catalog", "ebook", "ebooks", "periodical", "periodicals",
+        "novel", "novels", "fiction", "literature", "manga", "author", "authors",
+        "reference", "references", "bestseller", "bestsellers", "reviewer", "reviewers"
     }
 }
+
+# Off-topic personal phrases that have no library domain relevance.
+# When a comment matches one of these patterns AND contains no domain
+# keywords, it should be routed to Other/Uncategorized regardless of
+# what the NB model predicts (avoids stem-collision false positives
+# like "miss" -> "missing pages" -> Collection).
+OFF_TOPIC_PATTERNS = [
+    re.compile(r"\bi\s+miss\s+my\b", re.IGNORECASE),
+    re.compile(r"\bmiss\s+ko\b", re.IGNORECASE),
+    re.compile(r"\bmissing\s+my\b", re.IGNORECASE),
+    re.compile(r"\bi\s+miss\s+home\b", re.IGNORECASE),
+    re.compile(r"\bmiss\s+na\s+miss\b", re.IGNORECASE),
+]
+
+# All domain keywords flattened for quick "has any library context" check
+_ALL_DOMAIN_WORDS = set()
+for _kw_set in DOMAIN_KEYWORDS.values():
+    _ALL_DOMAIN_WORDS |= _kw_set
 
 def preprocess(text: str) -> str:
     if text is None:
@@ -73,14 +93,39 @@ class CategoryClassifier:
         if not text or not str(text).strip():
             return FALLBACK_LABEL
 
+        text_words = set(re.findall(r"\b\w+\b", str(text).lower()))
+        has_domain_context = bool(text_words & _ALL_DOMAIN_WORDS)
+
+        # ── Off-topic personal chatter guard ──────────────────────────
+        # Phrases like "I miss my baby" have zero library relevance but
+        # get pulled toward Collection because PorterStemmer maps both
+        # "miss" (longing) and "missing" (absent pages) to the same stem.
+        # If the comment matches an off-topic pattern AND contains no
+        # domain keyword, short-circuit to Other/Uncategorized.
+        if not has_domain_context:
+            for pat in OFF_TOPIC_PATTERNS:
+                if pat.search(text):
+                    return FALLBACK_LABEL
+
         probs = self.predict_proba(text)
         top_idx = probs.argmax()
         top_label = self.classes_[top_idx]
         top_confidence = probs[top_idx]
 
+        # ── Collection-vs-Staff override ──────────────────────────────
+        # Book requests ("more books", "novels like Harry Potter") get
+        # misclassified as Staff because the synthetic training set used
+        # "book" almost exclusively in Staff rows ("staff handling book
+        # returns"). If the NB model says Staff but the comment contains
+        # Collection keywords and NO Staff keywords, override to Collection.
+        if top_label == "Staff":
+            has_collection_words = bool(text_words & DOMAIN_KEYWORDS["Collection"])
+            has_staff_words = bool(text_words & DOMAIN_KEYWORDS["Staff"])
+            if has_collection_words and not has_staff_words:
+                top_label = "Collection"
+
         if top_confidence < threshold:
             # Check domain keywords before defaulting to Other/Uncategorized
-            text_words = set(re.findall(r"\b\w+\b", str(text).lower()))
             for category, keywords in DOMAIN_KEYWORDS.items():
                 if text_words.intersection(keywords):
                     return category

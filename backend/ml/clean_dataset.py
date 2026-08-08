@@ -44,7 +44,7 @@ VALID_CATEGORIES = ["Facilities", "Staff", "Collection", "Other/Uncategorized"]
 NON_INFORMATIVE_TEXTS = {
     "none", "n/a", "na", "no", "nil", "nothing", "good", "okay", "ok", 
     "a", "b", "c", "thanks", "thank you", "n/a.", "none.", "good.",
-    "nan", "null"
+    "nan", "null", "baby", "miss", "utut", "wioe", 
 }
 
 # Local Tagalog & library domain whitelist so legitimate patron feedback isn't flagged by English spellchecker
