@@ -112,17 +112,26 @@ class CategoryClassifier:
         top_label = self.classes_[top_idx]
         top_confidence = probs[top_idx]
 
-        # ── Collection-vs-Staff override ──────────────────────────────
-        # Book requests ("more books", "novels like Harry Potter") get
-        # misclassified as Staff because the synthetic training set used
-        # "book" almost exclusively in Staff rows ("staff handling book
-        # returns"). If the NB model says Staff but the comment contains
-        # Collection keywords and NO Staff keywords, override to Collection.
+        # ── Staff-without-staff-keywords override ────────────────────
+        # The NB model can predict "Staff" when there are no actual
+        # staff-role words in the comment, due to stem collisions
+        # (e.g. "library" → "librari" = "librarian"). When that happens
+        # and specific domain keywords for another category ARE present,
+        # override to that category. For marginal-confidence predictions
+        # with no domain keywords at all, fall back to Other/Uncategorized.
         if top_label == "Staff":
-            has_collection_words = bool(text_words & DOMAIN_KEYWORDS["Collection"])
             has_staff_words = bool(text_words & DOMAIN_KEYWORDS["Staff"])
-            if has_collection_words and not has_staff_words:
-                top_label = "Collection"
+            if not has_staff_words:
+                has_collection_words = bool(text_words & DOMAIN_KEYWORDS["Collection"])
+                has_facilities_words = bool(text_words & DOMAIN_KEYWORDS["Facilities"])
+                if has_collection_words:
+                    top_label = "Collection"
+                elif has_facilities_words:
+                    top_label = "Facilities"
+                elif top_confidence < 0.85:
+                    # No domain keywords at all and marginal confidence —
+                    # likely a stem collision, not a real Staff comment.
+                    top_label = FALLBACK_LABEL
 
         if top_confidence < threshold:
             # Check domain keywords before defaulting to Other/Uncategorized

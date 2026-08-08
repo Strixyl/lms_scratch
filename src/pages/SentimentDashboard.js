@@ -113,8 +113,7 @@ const getSurveyScore = (s) => {
     return ratingAvg;
   }
 
-  const bertScore = s.SentimentResult === 'Positive' ? 1 : s.SentimentResult === 'Negative' ? -1 : 0;
-  return ratingAvg * 0.5 + bertScore * 0.5;
+  return s.SentimentResult === 'Positive' ? 1.0 : s.SentimentResult === 'Negative' ? -1.0 : 0.0;
 };
 
 const STOPWORDS = new Set([

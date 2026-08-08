@@ -64,19 +64,17 @@ async function analyzeSentiment(responses, message) {
     category = categoryResult?.data?.category ?? 'Other/Uncategorized';
   }
 
-  // ── Combined result ──
+  // ── Combined result (Option A: Comment-First) ──
   let overallSentiment;
   let sentimentScore;
   if (!message || message.trim().length === 0) {
+    // No comment submitted -> fallback to 10-question emoji satisfaction rating
     overallSentiment = emojiSentiment;
     sentimentScore = ratingAvg;
   } else {
-    // Emoji 50% + BERT 50%
-    const emojiScore = ratingAvg;
-    const bertScore = textSentiment === 'Positive' ? 1 : textSentiment === 'Negative' ? -1 : 0;
-    const combined = emojiScore * 0.5 + bertScore * 0.5;
-    overallSentiment = combined > 0.15 ? 'Positive' : combined < -0.15 ? 'Negative' : 'Neutral';
-    sentimentScore = combined;
+    // Open-ended comment submitted -> sentiment is strictly based on the patron's written feedback (BERT)
+    overallSentiment = textSentiment;
+    sentimentScore = textSentiment === 'Positive' ? 1.0 : textSentiment === 'Negative' ? -1.0 : 0.0;
   }
 
   console.log(`📊 Emoji: ${emojiSentiment} | BERT: ${textSentiment} | Category: ${category} | Overall: ${overallSentiment}`);
