@@ -75,7 +75,7 @@ const surveyQuestions = [
   "Your general satisfaction with your experience at the library.",
 ];
 
-// ── Cisco CSAT Style Rating Component (100% Equal Box Grid Layout) ───────────
+// ── Cisco CSAT Style Rating Component (Minimalist Pure White Theme) ─────────
 const CiscoQuestionItem = ({ qIdx, question, selectedId, onSelect }) => {
   const [hoveredId, setHoveredId] = useState(null);
   const activeId = hoveredId || selectedId;
@@ -85,16 +85,16 @@ const CiscoQuestionItem = ({ qIdx, question, selectedId, onSelect }) => {
     <Paper
       elevation={0}
       sx={{
-        p: 2.2,
+        p: 2,
         borderRadius: '16px',
-        bgcolor: selectedId ? '#f0f9ff' : '#ffffff',
-        border: selectedId ? '1.5px solid #00bceb' : '1px solid #cbd5e1',
-        boxShadow: selectedId ? '0 4px 16px rgba(0, 188, 235, 0.12)' : '0 2px 8px rgba(0,0,0,0.03)',
+        bgcolor: '#ffffff',
+        border: '1px solid #e2e8f0',
+        boxShadow: 'none',
         width: '100%',
         minWidth: 0,
-        height: '205px',
-        minHeight: '205px',
-        maxHeight: '205px',
+        height: '154px',
+        minHeight: '154px',
+        maxHeight: '154px',
         boxSizing: 'border-box',
         display: 'flex',
         flexDirection: 'column',
@@ -102,47 +102,48 @@ const CiscoQuestionItem = ({ qIdx, question, selectedId, onSelect }) => {
         overflow: 'hidden',
       }}
     >
-      {/* Fixed 68px Height Question Header Box (Accommodates larger 15px-16px font size across all equal boxes) */}
-      <Box sx={{ height: '68px', minHeight: '68px', maxHeight: '68px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1, overflow: 'hidden' }}>
+      {/* Header Box */}
+      <Box sx={{ height: '48px', minHeight: '48px', maxHeight: '48px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1, overflow: 'hidden' }}>
         <Typography
           variant="subtitle1"
           sx={{
             fontFamily: 'Poppins, sans-serif',
             fontWeight: 600,
             color: '#0f172a',
-            fontSize: { xs: '15px', sm: '16px' },
+            fontSize: { xs: '13.5px', sm: '14.5px' },
             lineHeight: 1.35,
             flex: 1,
             minWidth: 0,
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
           }}
         >
           {qIdx + 1}. {question}
         </Typography>
 
-        {/* Always present Chip badge for uniform header structure */}
         <Chip
           label={activeOpt ? `${activeOpt.ciscoLabel} – ${activeOpt.label}` : 'Select rating'}
           size="small"
           sx={{
             fontFamily: 'Poppins, sans-serif',
             fontWeight: 600,
-            fontSize: '10px',
-            bgcolor: activeOpt ? (hoveredId ? '#0284c7' : '#00bceb') : '#f1f5f9',
-            color: activeOpt ? '#ffffff' : '#64748b',
-            border: '1px solid',
-            borderColor: activeOpt ? '#00a3cc' : '#cbd5e1',
-            height: '20px',
-            px: 0.3,
+            fontSize: '10.5px',
+            bgcolor: '#f1f5f9',
+            color: activeOpt ? '#0f172a' : '#64748b',
+            border: '1px solid #cbd5e1',
+            height: '22px',
+            px: 0.5,
             flexShrink: 0,
           }}
         />
       </Box>
 
-      {/* Radio Buttons Rating Row (100% Equal Baseline Position across all Equal Boxes) */}
-      <Box sx={{ display: 'flex', width: '100%', gap: 0.3, mt: 'auto' }}>
+      {/* Radio Buttons Rating Row */}
+      <Box sx={{ display: 'flex', width: '100%', gap: 0.5, mt: 'auto' }}>
         {RATING_OPTIONS.map((opt) => {
           const isSelected = selectedId === opt.id;
-          const isHovered = hoveredId === opt.id;
 
           return (
             <Box
@@ -158,39 +159,29 @@ const CiscoQuestionItem = ({ qIdx, question, selectedId, onSelect }) => {
                 alignItems: 'center',
                 cursor: 'pointer',
                 py: 0.5,
-                px: 0.1,
+                px: 0.2,
                 borderRadius: '8px',
-                bgcolor: isSelected
-                  ? 'rgba(0, 188, 235, 0.12)'
-                  : isHovered
-                  ? 'rgba(0, 188, 235, 0.06)'
-                  : 'transparent',
-                border: '1px solid',
-                borderColor: isSelected
-                  ? '#00bceb'
-                  : isHovered
-                  ? '#00bceb'
-                  : 'transparent',
+                bgcolor: '#ffffff',
+                border: '1px solid transparent',
                 boxSizing: 'border-box',
               }}
             >
-              {/* Fixed 28px Height Text Label Box */}
+              {/* Fixed 26px Height Text Label Box */}
               <Typography
                 sx={{
                   fontFamily: 'Poppins, sans-serif',
-                  fontSize: { xs: '8.5px', sm: '9.5px' },
+                  fontSize: { xs: '9px', sm: '10px' },
                   fontWeight: isSelected ? 700 : 500,
-                  color: isSelected ? '#0084ad' : '#475569',
+                  color: isSelected ? '#0f172a' : '#475569',
                   lineHeight: 1.1,
                   textAlign: 'center',
-                  height: '28px',
-                  minHeight: '28px',
-                  maxHeight: '28px',
+                  height: '26px',
+                  minHeight: '26px',
+                  maxHeight: '26px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   wordBreak: 'break-word',
-                  hyphens: 'auto',
                 }}
               >
                 {opt.label}
@@ -203,7 +194,7 @@ const CiscoQuestionItem = ({ qIdx, question, selectedId, onSelect }) => {
                   color: '#94a3b8',
                   p: 0.2,
                   '&.Mui-checked': { color: '#00bceb' },
-                  '& .MuiSvgIcon-root': { fontSize: 22 },
+                  '& .MuiSvgIcon-root': { fontSize: 21 },
                   pointerEvents: 'none',
                 }}
               />
@@ -212,9 +203,9 @@ const CiscoQuestionItem = ({ qIdx, question, selectedId, onSelect }) => {
                   fontFamily: 'Poppins, sans-serif',
                   fontSize: '12px',
                   fontWeight: isSelected ? 700 : 600,
-                  color: isSelected ? '#00bceb' : '#334155',
+                  color: isSelected ? '#0f172a' : '#334155',
                   lineHeight: 1,
-                  mt: 0.2,
+                  mt: 0.1,
                 }}
               >
                 {opt.ciscoLabel}
@@ -228,8 +219,8 @@ const CiscoQuestionItem = ({ qIdx, question, selectedId, onSelect }) => {
 };
 
 
-// ── Single-Question Focus Wizard Rating Component (Original Wizard Design) ───
-const WizardQuestionItem = ({ qIdx, question, selectedId, onSelect, isAdvancing, justSelectedId }) => {
+// ── Single-Question Focus Wizard Rating Component (Minimalist Pure White Theme) ───
+const WizardQuestionItem = ({ qIdx, question, selectedId, onSelect }) => {
   const [hoveredId, setHoveredId] = useState(null);
   const activeId = hoveredId || selectedId;
   const activeOpt = RATING_OPTIONS.find((o) => o.id === activeId);
@@ -240,10 +231,9 @@ const WizardQuestionItem = ({ qIdx, question, selectedId, onSelect, isAdvancing,
       sx={{
         p: { xs: 2, sm: 3 },
         borderRadius: '16px',
-        bgcolor: selectedId ? '#f8fafc' : '#ffffff',
-        border: selectedId ? '1.5px solid #00bceb' : '1px solid #e2e8f0',
-        boxShadow: selectedId ? '0 6px 16px rgba(0, 188, 235, 0.12)' : '0 2px 8px rgba(0,0,0,0.04)',
-        transition: 'all 0.25s ease-in-out',
+        bgcolor: '#ffffff',
+        border: '1px solid #e2e8f0',
+        boxShadow: 'none',
       }}
     >
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, gap: 2 }}>
@@ -261,13 +251,11 @@ const WizardQuestionItem = ({ qIdx, question, selectedId, onSelect, isAdvancing,
             fontFamily: 'Poppins, sans-serif',
             fontWeight: 600,
             fontSize: '11px',
-            bgcolor: activeOpt ? (hoveredId ? '#0284c7' : '#00bceb') : '#f1f5f9',
-            color: activeOpt ? '#ffffff' : '#64748b',
-            border: '1px solid',
-            borderColor: activeOpt ? '#00a3cc' : '#cbd5e1',
+            bgcolor: '#f1f5f9',
+            color: activeOpt ? '#0f172a' : '#64748b',
+            border: '1px solid #cbd5e1',
             height: '26px',
             px: 0.5,
-            transition: 'all 0.2s ease',
           }}
         />
       </Box>
@@ -276,7 +264,6 @@ const WizardQuestionItem = ({ qIdx, question, selectedId, onSelect, isAdvancing,
       <Box sx={{ display: 'flex', width: '100%', gap: 1 }}>
         {RATING_OPTIONS.map((opt) => {
           const isSelected = selectedId === opt.id;
-          const isJustChosen = justSelectedId === opt.id && isAdvancing;
 
           return (
             <Box
@@ -293,37 +280,20 @@ const WizardQuestionItem = ({ qIdx, question, selectedId, onSelect, isAdvancing,
                 py: 1.2,
                 px: 0.5,
                 borderRadius: '10px',
-                bgcolor: isJustChosen
-                  ? 'rgba(0, 188, 235, 0.15)'
-                  : isSelected
-                  ? 'rgba(0, 188, 235, 0.08)'
-                  : 'transparent',
-                border: isJustChosen
-                  ? '2px solid #00bceb'
-                  : isSelected
-                  ? '1.5px solid rgba(0, 188, 235, 0.4)'
-                  : '1px solid transparent',
-                transform: isJustChosen ? 'scale(1.06)' : isSelected ? 'scale(1.02)' : 'scale(1)',
-                transition: 'all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                '&:hover': {
-                  bgcolor: 'rgba(0, 188, 235, 0.08)',
-                  transform: 'translateY(-2px)',
-                },
+                bgcolor: '#ffffff',
+                border: '1px solid transparent',
+                boxSizing: 'border-box',
               }}
             >
               <Typography
                 sx={{
                   fontFamily: 'Poppins, sans-serif',
-                  fontSize: { xs: '10px', sm: '11.5px' },
+                  fontSize: { xs: '10px', sm: '11px' },
                   fontWeight: isSelected ? 700 : 500,
-                  color: isSelected ? '#0084ad' : '#475569',
+                  color: isSelected ? '#0f172a' : '#475569',
                   lineHeight: 1.2,
-                  mb: 0.5,
                   textAlign: 'center',
-                  minHeight: '28px',
-                  display: 'flex',
-                  alignItems: 'flex-end',
-                  justifyContent: 'center',
+                  mb: 0.5,
                 }}
               >
                 {opt.label}
@@ -334,11 +304,10 @@ const WizardQuestionItem = ({ qIdx, question, selectedId, onSelect, isAdvancing,
                 name={`wizard-question-${qIdx}`}
                 sx={{
                   color: '#94a3b8',
+                  p: 0.5,
                   '&.Mui-checked': { color: '#00bceb' },
-                  '& .MuiSvgIcon-root': { fontSize: 28 },
+                  '& .MuiSvgIcon-root': { fontSize: 24 },
                   pointerEvents: 'none',
-                  transition: 'transform 0.2s ease',
-                  transform: isJustChosen ? 'scale(1.2)' : 'scale(1)',
                 }}
               />
               <Typography
@@ -346,8 +315,9 @@ const WizardQuestionItem = ({ qIdx, question, selectedId, onSelect, isAdvancing,
                   fontFamily: 'Poppins, sans-serif',
                   fontSize: '13px',
                   fontWeight: isSelected ? 700 : 600,
-                  color: isSelected ? '#00bceb' : '#334155',
-                  mt: 0.2,
+                  color: isSelected ? '#0f172a' : '#334155',
+                  lineHeight: 1,
+                  mt: 0.3,
                 }}
               >
                 {opt.ciscoLabel}
@@ -538,7 +508,19 @@ const SatisfactionSurvey = () => {
                 <Box sx={{ maxWidth: '1400px', width: '100%', mx: 'auto', display: 'flex', flexDirection: 'column', gap: 2.5 }}>
 
                   {/* Header Progress Banner */}
-                  <Paper elevation={0} sx={{ p: 2, borderRadius: '14px', border: '1px solid #e2e8f0', bgcolor: '#ffffff' }}>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 2,
+                      borderRadius: '14px',
+                      border: '1px solid #e2e8f0',
+                      bgcolor: '#ffffff',
+                      maxWidth: viewMode === 'wizard' ? '850px' : '100%',
+                      mx: 'auto',
+                      width: '100%',
+                      boxSizing: 'border-box',
+                    }}
+                  >
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                       <Typography variant="subtitle1" fontWeight="bold" sx={{ color: '#0f172a', fontFamily: 'Poppins, sans-serif' }}>
                         Library Experience Rating ({completedCount}/10 Answered)
@@ -567,7 +549,20 @@ const SatisfactionSurvey = () => {
                   </Paper>
 
                   {/* View Mode Controls Bar */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1.5, pb: 0.5 }}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justify: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: 1.5,
+                      pb: 0.5,
+                      maxWidth: viewMode === 'wizard' ? '850px' : '100%',
+                      mx: 'auto',
+                      width: '100%',
+                      boxSizing: 'border-box',
+                    }}
+                  >
                     <Typography variant="body2" sx={{ fontFamily: 'Poppins, sans-serif', color: '#64748b', fontWeight: 500 }}>
                       Select Rating View Style:
                     </Typography>
@@ -633,15 +628,18 @@ const SatisfactionSurvey = () => {
                     <Paper
                       elevation={0}
                       sx={{
-                        p: { xs: 2.5, md: 4 },
+                        p: { xs: 2, md: 3 },
                         borderRadius: '16px',
                         bgcolor: '#ffffff',
-                        border: '1px solid #cbd5e1',
-                        boxShadow: '0 8px 24px rgba(0,0,0,0.06)',
+                        border: '1px solid #e2e8f0',
+                        boxShadow: 'none',
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: 2.5,
+                        gap: 0.5,
                         overflow: 'hidden',
+                        maxWidth: '850px',
+                        mx: 'auto',
+                        width: '100%',
                       }}
                     >
                       {/* Wizard Header Bar */}
@@ -793,7 +791,20 @@ const SatisfactionSurvey = () => {
                   )}
 
                   {/* Feedback Message Box Section */}
-                  <Paper elevation={0} sx={{ p: 2.5, borderRadius: '14px', border: '1px solid #e2e8f0', bgcolor: '#ffffff', mt: 1 }}>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 2.5,
+                      borderRadius: '14px',
+                      border: '1px solid #e2e8f0',
+                      bgcolor: '#ffffff',
+                      mt: 1,
+                      maxWidth: viewMode === 'wizard' ? '850px' : '100%',
+                      mx: 'auto',
+                      width: '100%',
+                      boxSizing: 'border-box',
+                    }}
+                  >
                     <Typography fontWeight="bold" fontFamily="Poppins, sans-serif" fontSize="13px" mb={1} color="#1e293b">
                       We'd love to hear your thoughts! (Optional)
                     </Typography>
@@ -822,6 +833,10 @@ const SatisfactionSurvey = () => {
                       flexDirection: 'column',
                       alignItems: 'center',
                       mb: 4,
+                      maxWidth: viewMode === 'wizard' ? '850px' : '100%',
+                      mx: 'auto',
+                      width: '100%',
+                      boxSizing: 'border-box',
                     }}
                   >
                     <Button
