@@ -134,7 +134,8 @@ export const CONTROLLED_LEXICON = {
     'Restroom & Hygiene': [
       'restroom', 'comfort room', 'toilet', 'washroom', 'lavatory',
       'dirty restroom', 'smelly restroom', 'unclean', 'foul odor',
-      'soap', 'tissue', 'paper towel', 'water', 'faucet', 'flush', 'sink'
+      'soap', 'tissue', 'paper towel', 'water', 'faucet', 'flush', 'sink',
+      'tissues',
     ],
     'Air Conditioning': [
       'aircon', 'air conditioning', 'ac', 'temperature', 'hot', 'warm', 'cold',
@@ -156,6 +157,12 @@ export const CONTROLLED_LEXICON = {
     'Lighting & Cleanliness': [
       'light', 'lighting', 'dark', 'dim', 'bright', 'clean', 'cleanliness',
       'dust', 'dusty', 'trash', 'garbage', 'litter', 'maintenance'
+    ],
+    'Equipments': [
+      'equipment', 'equipments', 'scanner', 'barcode scanner', 'barcode',
+      'pc', 'computer', 'computers', 'desktop', 'computer lab', 'mouse',
+      'keyboard', 'monitor', 'screen', 'printer', 'printing', 'print',
+      'photocopy', 'photocopier', 'scanner', 'scanning'
     ]
   },
   Staff: {
@@ -186,11 +193,6 @@ export const CONTROLLED_LEXICON = {
       'borrow', 'borrowing', 'return', 'returning', 'due date', 'fine', 'fines',
       'penalty', 'renewal', 'renew', 'library card', 'checkout', 'check out'
     ],
-    'Computers': [
-      'pc', 'computer', 'computers', 'desktop', 'computer lab', 'mouse',
-      'keyboard', 'monitor', 'screen', 'printer', 'printing', 'print',
-      'photocopy', 'photocopier', 'scanner', 'scanning'
-    ]
   }
 };
 
