@@ -111,21 +111,24 @@ backend/
 ├── sentiment_service.py          # Dual-Engine Flask microservice (Port 5001)
 └── ml/                           # Machine learning pipeline directory
     ├── data/
-    │   └── clean_category_dataset.csv  # Standardized 3-column CSV training data
-    ├── clean_dataset.py         # Step 1: Automated dataset cleaner & noise filter
+    │   ├── clean_category_dataset.csv  # Standardized 2-column CSV training data (comment, category)
+    │   └── test/
+    │       └── real_patron_comments_clean.csv # Held-out test set (pending collection)
+    ├── clean_dataset.py         # Step 1: Dataset cleaner & router (--role=train / --role=test)
     ├── naive_bayes.py           # Step 2: CategoryClassifier pipeline wrapper class
-    ├── train_category_model.py  # Step 3: Stratified split, grid search & model exporter
-    ├── category_model.pkl       # Serialized Naïve Bayes model binary artifact
-    └── alpha_search_category.png# Log-scale validation accuracy hyperparameter plot
+    ├── train_category_model.py  # Step 3: Stratified split, hard test guard, grid search & model exporter
+    ├── evaluate_on_test_set.py  # Step 3.5: Evaluates category_model.pkl on test set (no .fit())
+    └── category_model.pkl       # Serialized Naïve Bayes model binary artifact
 ```
 
 ### Python ML Module Details
 
 | Step | Script / Artifact | Key Functionality |
 |---|---|---|
-| **Step 1** | [`clean_dataset.py`](file:///C:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/ml/clean_dataset.py) | Dynamic candidate column mapping for raw `.xlsx` datasets (`dataset_5k_wnoise.xlsx`), noise string removal (`"none"`, `"n/a"`, `"ok"`, `"asdf"`, `"wala"`), numeric filtering, text length filtering ($\ge 3$ chars), deduplication, and export to `clean_category_dataset.csv`. |
+| **Step 1** | [`clean_dataset.py`](file:///C:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/ml/clean_dataset.py) | Dynamic column mapping (2-column output: `comment`, `category`), `clean-text` normalization, noise & gibberish filtering ($\ge 20$-char mashing, $\ge 60\%$ spellcheck unknown ratio for English scope), deduplication by `(comment, category)`, and routing via `--role=train` or `--role=test`. |
 | **Step 2** | [`naive_bayes.py`](file:///C:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/ml/naive_bayes.py) | Implements `CategoryClassifier` class wrapping `TfidfVectorizer` + `MultinomialNB`. Includes regex text preprocessor (`preprocess`) and confidence threshold fallback method (`predict_with_fallback`, $\tau = 0.45$). |
-| **Step 3** | [`train_category_model.py`](file:///C:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/ml/train_category_model.py) | Executes 80/20 stratified train/validation split, grid searches hyperparameters ($\alpha \in [0.01..5.0]$, unigrams/bigrams, $\text{min\_df} \in [1, 2]$), logs classification metrics, plots `alpha_search_category.png`, and serializes best model to `category_model.pkl`. |
+| **Step 3** | [`train_category_model.py`](file:///C:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/ml/train_category_model.py) | Enforces hard test-isolation assertions, merges `manual_boundary_cases.csv`, executes 80/20 stratified train/validation split, grid searches hyperparameters ($\alpha \in [0.01..5.0]$, unigrams/bigrams, $\text{min\_df} \in [1, 2, 3, 5]$), logs classification metrics, and serializes best model to `category_model.pkl`. |
+| **Step 3.5** | [`evaluate_on_test_set.py`](file:///C:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/ml/evaluate_on_test_set.py) | Scores `category_model.pkl` against `data/test/real_patron_comments_clean.csv` (contains no `.fit()` call; execution pending real data collection). |
 | **Artifact** | [`category_model.pkl`](file:///C:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/ml/category_model.pkl) | Binary model artifact unpickled by `sentiment_service.py` at microservice initialization. |
 
 ---

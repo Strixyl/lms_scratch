@@ -22,11 +22,11 @@ _spell = SpellChecker()
 
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-RAW_XLSX_PATH = os.path.abspath(os.path.join(THIS_DIR, "..", "..", "5kcatdataset.xlsx"))
+RAW_XLSX_PATH = os.path.abspath(os.path.join(THIS_DIR, "..", "..", "5kcategorydataset.xlsx"))
 if not os.path.exists(RAW_XLSX_PATH):
-    RAW_XLSX_PATH = os.path.abspath(os.path.join(THIS_DIR, "..", "5kcatdataset.xlsx"))
+    RAW_XLSX_PATH = os.path.abspath(os.path.join(THIS_DIR, "..", "5kcategorydataset.xlsx"))
 if not os.path.exists(RAW_XLSX_PATH):
-    RAW_XLSX_PATH = os.path.abspath(os.path.join(THIS_DIR, "5kcatdataset.xlsx"))
+    RAW_XLSX_PATH = os.path.abspath(os.path.join(THIS_DIR, "5kcategorydataset.xlsx"))
 
 DATA_DIR = os.path.join(THIS_DIR, "data")
 TEST_DIR = os.path.join(DATA_DIR, "test")
@@ -37,7 +37,6 @@ TEST_OUTPUT_CSV_PATH = os.path.join(TEST_DIR, "real_patron_comments_clean.csv")
 SHEET_NAME = "All_Data"
 
 VALID_CATEGORIES = ["Facilities", "Staff", "Collection", "Other/Uncategorized"]
-VALID_SENTIMENTS = ["Positive", "Neutral", "Negative"]
 
 # non informative static filler texts.
 # Dynamic gibberish (e.g. "shdsuidhs", "asdfghj") and character repetitions ("walaaaaa")
@@ -109,11 +108,9 @@ def clean(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     text_candidates = ["text", "message", "comment", "feedback", "comments", "response"]
     cat_candidates = ["category", "cat", "topic", "class", "label"]
-    sent_candidates = ["sentiment", "sent", "polarity", "rating", "emotion"]
 
     text_col = next((c for c in df.columns if str(c).strip().lower() in text_candidates), None)
     cat_col = next((c for c in df.columns if str(c).strip().lower() in cat_candidates), None)
-    sent_col = next((c for c in df.columns if str(c).strip().lower() in sent_candidates), None)
     if not text_col:
         for c in df.columns:
             if df[c].dtype == object:
@@ -122,7 +119,7 @@ def clean(df: pd.DataFrame) -> pd.DataFrame:
         if not text_col:
             raise KeyError(f"Could not find a text/feedback column in dataset columns: {df.columns.tolist()}")
 
-    print(f"Mapped dataset columns -> Text: '{text_col}', Category: '{cat_col}', Sentiment: '{sent_col}'")
+    print(f"Mapped dataset columns -> Text: '{text_col}', Category: '{cat_col}'")
 
     # rename key columns
     df = df.rename(columns={text_col: "comment"})
@@ -133,13 +130,7 @@ def clean(df: pd.DataFrame) -> pd.DataFrame:
     else:
         df["category"] = "Unassigned"
 
-    has_sentiment = sent_col is not None
-    if has_sentiment:
-        df = df.rename(columns={sent_col: "sentiment"})
-    else:
-        df["sentiment"] = "Unassigned"
-
-    main_cols = ["comment", "category", "sentiment"]
+    main_cols = ["comment", "category"]
     other_cols = [c for c in df.columns if c not in main_cols]
     df = df[main_cols + other_cols]
 
@@ -222,14 +213,12 @@ def clean(df: pd.DataFrame) -> pd.DataFrame:
 
 
     df["category"] = df["category"].astype(str).str.strip().str.title()
-    df["sentiment"] = df["sentiment"].astype(str).str.strip().str.title()
 
     dropped_bad_labels = pd.DataFrame()
-    if has_category or has_sentiment:
+    if has_category:
         bad_cat_mask = (df["category"] != "Unassigned") & (~df["category"].isin(VALID_CATEGORIES))
-        bad_sent_mask = (df["sentiment"] != "Unassigned") & (~df["sentiment"].isin(VALID_SENTIMENTS))
-        dropped_bad_labels = df[bad_cat_mask | bad_sent_mask]
-        df = df[~(bad_cat_mask | bad_sent_mask)]
+        dropped_bad_labels = df[bad_cat_mask]
+        df = df[~bad_cat_mask]
 
     # drop duplicates: same comment text AND same category label is a
     # true redundant duplicate. Same comment text under a DIFFERENT
@@ -256,14 +245,7 @@ def clean(df: pd.DataFrame) -> pd.DataFrame:
     print()
     print("Category distribution (post-clean):")
     print(df["category"].value_counts().to_string())
-    print()
-    print("Sentiment distribution (post-clean):")
-    print(df["sentiment"].value_counts().to_string())
-    print()
-    if has_category and has_sentiment:
-        print("Category x Sentiment crosstab:")
-        print(pd.crosstab(df["category"], df["sentiment"]).to_string())
-        print("=" * 60)
+    print("=" * 60)
 
     if len(dropped_noise) > 0:
         print("\nSample of dropped non-informative noise rows:")
@@ -271,7 +253,7 @@ def clean(df: pd.DataFrame) -> pd.DataFrame:
 
     if len(dropped_bad_labels) > 0:
         print("\nSample of dropped bad-label rows:")
-        print(dropped_bad_labels[["comment", "category", "sentiment"]].head(10).to_string())
+        print(dropped_bad_labels[["comment", "category"]].head(10).to_string())
 
     return df
 
