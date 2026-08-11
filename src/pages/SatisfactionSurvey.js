@@ -806,7 +806,7 @@ const SatisfactionSurvey = () => {
                     }}
                   >
                     <Typography fontWeight="bold" fontFamily="Poppins, sans-serif" fontSize="13px" mb={1} color="#1e293b">
-                      We'd love to hear your thoughts! (Optional)
+                      We'd love to hear your thoughts!
                     </Typography>
                     <TextField
                       fullWidth
