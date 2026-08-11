@@ -47,12 +47,15 @@ This document records technical enhancements made to the **Dual-Engine NLP Categ
 ### 4. Calibrated Confidence Fallback Threshold
 - **Adjustment**: Tuned default confidence threshold $\tau$ from `0.45` to `0.40`. For a 4-class classification problem (Facilities, Staff, Collection, Other/Uncategorized), 25% represents uniform chance. A 40% threshold provides optimal precision while preventing legitimate domain comments from falling into `Other/Uncategorized`.
 
-### 5. Clause-Aware Category Alignment for Dual-Topic / Mixed Comments
-- **Problem**: In multi-topic feedback (e.g., *"The library staff are very accommodating and friendly, but the Wi-Fi connection keeps dropping every 5 minutes"*), evaluating sentiment via clause-splitting (`most-negative-wins`) while evaluating category on the unsplit full text caused category-sentiment mismatch. The negative sentiment from the Wi-Fi complaint was incorrectly assigned to the `Staff` category.
-- **Fix**: Added `get_clause_category()` in `sentiment_service.py`:
-  - Parses contrastive conjunctions (`but`, `however`, `although`, etc.) into discrete clauses.
-  - Computes sentiment and category for each clause.
-  - If a negative complaint clause surfaces (e.g., *"Wi-Fi keeps dropping"* $\rightarrow$ `Negative`), the system binds the overall Category to **that specific winning negative clause** (`Facilities`), ensuring accurate complaint routing on the dashboard.
+### 5. Clause-Aware Category Alignment & Domain Keyword Override for Dual-Topic Comments
+- **Problem**: 
+  1. In multi-topic feedback (e.g., *"Staff are friendly, but the Wi-Fi keeps dropping"*), single-shot text categorization assigned `Staff` while sentiment picked `Negative` from the Wi-Fi clause.
+  2. In long feedback with non-domain praise (e.g., *"water is refreshing... improve the aircon"*), Naïve Bayes assigned 98% probability to `Other/Uncategorized` due to feature dilution, bypassing confidence fallback threshold checks (`top_confidence < threshold`) and ignoring explicit terms like `"aircon"`.
+- **Fix**: Upgraded `sentiment_service.py` (`get_clause_category()`) and `naive_bayes.py` (`predict_with_fallback()`):
+  - Parses contrastive conjunctions (`but`, `however`, `although`, `though`, etc.) into discrete clauses.
+  - If a negative complaint clause surfaces (e.g., *"Wi-Fi keeps dropping"* $\rightarrow$ `Negative`), the system binds the overall Category to **that specific winning negative clause** (`Facilities`).
+  - If `predict_with_fallback()` outputs `Other/Uncategorized`, it checks `DOMAIN_KEYWORDS` to override `Other/Uncategorized` whenever unambiguous terms (`aircon`, `wifi`, `librarian`, `textbook`) are present in text.
+  - If full-text prediction defaults to `Other/Uncategorized`, `get_clause_category()` evaluates individual clauses to extract specific domain categories (`Facilities`).
 
 ---
 

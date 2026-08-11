@@ -67,11 +67,11 @@ This directory houses the backend ecosystem supporting the **Henry Luce III Libr
 - **Supported Categories**: `Facilities`, `Staff`, `Collection`, `Other/Uncategorized`
 
 #### 🔀 Dual-Topic & Mixed-Sentiment Clause Resolution
-- **Problem**: In multi-topic feedback (e.g., *"Staff are friendly, but the Wi-Fi keeps dropping"*), single-shot text categorization could assign the overall response to `Staff` while sentiment analysis flagged `Negative` based on the Wi-Fi clause, misattributing negative complaints to staff.
-- **Solution**: Implemented `get_clause_category()` in `sentiment_service.py`:
-  1. Conjunction-based clause splitting (`split_clauses()`) parses contrastive sentences on pivot words (`but`, `however`, `although`, etc.).
-  2. Each clause is evaluated independently for sentiment (BERT) and category (Naïve Bayes).
-  3. If a negative complaint clause is surfaced by the sentiment engine (e.g., *"Wi-Fi keeps dropping"* $\rightarrow$ `Negative`), the system binds the overall response Category to **that specific winning negative clause** (`Facilities`), ensuring accurate dashboard feedback routing.
+- **Problem**: In multi-topic feedback (e.g., *"Staff are friendly, but the Wi-Fi keeps dropping"*) or long feedback with non-domain praise (*"water is refreshing... improve the aircon"*), single-shot text categorization could either misattribute complaints or dilute domain keywords into `Other/Uncategorized`.
+- **Solution**: Implemented `get_clause_category()` in `sentiment_service.py` and updated `predict_with_fallback()` in `naive_bayes.py`:
+  1. **Conjunction Clause Splitting (`split_clauses()`)**: Parses contrastive sentences on pivot words (`but`, `however`, `although`, `though`, etc.).
+  2. **Winning Negative Clause Binding**: If a negative complaint clause is surfaced by BERT (e.g., *"Wi-Fi keeps dropping"* $\rightarrow$ `Negative`), the response Category binds to **that specific negative clause** (`Facilities`).
+  3. **Domain Keyword Override & Clause Fallback**: If Naïve Bayes classifies full text as `Other/Uncategorized` due to feature dilution, `predict_with_fallback()` checks for explicit domain keywords (`aircon`, `wifi`, `librarian`, `textbook`), and `get_clause_category()` inspects individual clauses to ensure actionable feedback (e.g. aircon complaints) routes to `Facilities`.
 
 ---
 
