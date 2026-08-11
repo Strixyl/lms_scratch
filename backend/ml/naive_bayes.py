@@ -133,7 +133,7 @@ class CategoryClassifier:
                     # likely a stem collision, not a real Staff comment.
                     top_label = FALLBACK_LABEL
 
-        if top_confidence < threshold:
+        if top_label == FALLBACK_LABEL or top_confidence < threshold:
             # Check domain keywords before defaulting to Other/Uncategorized
             for category, keywords in DOMAIN_KEYWORDS.items():
                 if text_words.intersection(keywords):

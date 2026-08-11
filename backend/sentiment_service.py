@@ -139,7 +139,16 @@ def get_clause_category(text: str):      #gets the negative clause and identifie
 
     cat = category_model.predict_with_fallback(text)
     probs = category_model.predict_proba(text)
-    return cat, float(probs.max())
+    conf = float(probs.max())
+
+    if cat == 'Other/Uncategorized':
+        for c in clauses:
+            clause_cat = category_model.predict_with_fallback(c)
+            if clause_cat != 'Other/Uncategorized':
+                clause_conf = float(category_model.predict_proba(c).max())
+                return clause_cat, clause_conf
+
+    return cat, conf
 
 
 @app.route('/categorize', methods=['POST'])
