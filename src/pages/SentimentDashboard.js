@@ -86,6 +86,19 @@ const SATISFACTION_SCALE = {
   dissatisfied: 2, very_dissatisfied: 1, na: null,
 };
 
+const formatRatingShort = (val) => {
+  if (!val) return 'N/A';
+  const scale = {
+    very_satisfied: '5',
+    satisfied: '4',
+    neutral: '3',
+    dissatisfied: '2',
+    very_dissatisfied: '1',
+    na: 'N/A',
+  };
+  return scale[val] || val;
+};
+
 const getSatisfactionAverage = (s) => {
   const qList = [
     s.Question1, s.Question2, s.Question3, s.Question4, s.Question5,
@@ -1146,7 +1159,18 @@ const SentimentDashboard = () => {
       'No.': index + 1,
       'Clientele Group': row.Clientele || 'N/A',
       'College': row.College || 'N/A',
+      'Course': row.Course || 'N/A',
       'Text Response Inputted': row.Message || '',
+      'Q1': formatRatingShort(row.Question1),
+      'Q2': formatRatingShort(row.Question2),
+      'Q3': formatRatingShort(row.Question3),
+      'Q4': formatRatingShort(row.Question4),
+      'Q5': formatRatingShort(row.Question5),
+      'Q6': formatRatingShort(row.Question6),
+      'Q7': formatRatingShort(row.Question7),
+      'Q8': formatRatingShort(row.Question8),
+      'Q9': formatRatingShort(row.Question9),
+      'Q10': formatRatingShort(row.Question10),
       'Overall Sentiment': row.SentimentResult || '',
       'Category': row.Category || 'Other/Uncategorized',
       'Date Submitted': row.DateSubmitted ? new Date(row.DateSubmitted).toLocaleDateString() : 'N/A'
@@ -1198,23 +1222,26 @@ const SentimentDashboard = () => {
         <head>
           <title>Sentiment Analysis Summary Report</title>
           <style>
-            body { font-family: Arial, sans-serif; padding: 30px; color: #000; }
-            h1 { text-align: center; font-size: 20px; margin-bottom: 4px; }
-            h2 { text-align: center; font-size: 15px; font-weight: normal; margin-bottom: 4px; color: #444; }
-            p.daterange { text-align: center; font-size: 13px; color: #666; margin-bottom: 25px; }
-            .summary { display: flex; justify-content: space-around; gap: 10px; margin-bottom: 25px; }
-            .summary-box { border: 1px solid #ccc; border-radius: 8px; padding: 12px; text-align: center; flex: 1; }
-            .summary-box .value { font-size: 24px; font-weight: bold; }
+            @page { size: landscape; margin: 8mm; }
+            body { font-family: Arial, sans-serif; padding: 15px; color: #000; }
+            h1 { text-align: center; font-size: 18px; margin-bottom: 4px; }
+            h2 { text-align: center; font-size: 13px; font-weight: normal; margin-bottom: 4px; color: #444; }
+            p.daterange { text-align: center; font-size: 12px; color: #666; margin-bottom: 15px; }
+            .summary { display: flex; justify-content: space-around; gap: 10px; margin-bottom: 15px; }
+            .summary-box { border: 1px solid #ccc; border-radius: 6px; padding: 8px; text-align: center; flex: 1; }
+            .summary-box .value { font-size: 20px; font-weight: bold; }
             .summary-box.pos .value { color: #047857; }
             .summary-box.neu .value { color: #b45309; }
             .summary-box.neg .value { color: #be123c; }
             .summary-box.tot .value { color: #1e3a8a; }
-            .summary-box .label { font-size: 12px; color: #555; margin-top: 4px; font-weight: bold; }
-            table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 15px; }
-            th { background-color: #334155; color: white; padding: 8px; text-align: left; }
-            td { padding: 8px; border-bottom: 1px solid #eee; }
+            .summary-box .label { font-size: 11px; color: #555; margin-top: 2px; font-weight: bold; }
+            .scale-legend { font-size: 10.5px; color: #475569; background: #f8fafc; border: 1px solid #cbd5e1; padding: 6px 10px; border-radius: 4px; margin-bottom: 12px; text-align: center; font-weight: 600; }
+            table { width: 100%; border-collapse: collapse; font-size: 10px; margin-top: 10px; }
+            th { background-color: #334155; color: white; padding: 6px 4px; text-align: left; font-size: 10px; }
+            td { padding: 5px 4px; border-bottom: 1px solid #eee; word-break: break-word; font-size: 9.5px; }
             tr:nth-child(even) { background-color: #f9f9f9; }
-            .footer { margin-top: 30px; text-align: center; font-size: 11px; color: #999; }
+            .q-cell { text-align: center; font-weight: bold; }
+            .footer { margin-top: 20px; text-align: center; font-size: 10px; color: #999; }
           </style>
         </head>
         <body>${printContents}</body>
@@ -2143,7 +2170,12 @@ const SentimentDashboard = () => {
                                       {row.Clientele || 'N/A'}
                                     </TableCell>
                                     <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 700, color: '#1a237e' }}>
-                                      {row.College || 'N/A'}
+                                      <div>{row.College || 'N/A'}</div>
+                                      {row.Course && (
+                                        <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 500 }}>
+                                          {row.Course}
+                                        </div>
+                                      )}
                                     </TableCell>
                                     <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 600, color: '#1e293b', py: 1.5, pr: 3, lineHeight: 1.4 }}>
                                       {row.Message && row.Message.trim().length > 0 ? (
@@ -2289,12 +2321,27 @@ const SentimentDashboard = () => {
                 <div className="summary-box neg"><div className="value">{counts.Negative}</div><div className="label">Negative</div></div>
               </div>
 
+              <div className="scale-legend">
+                CSAT Rating Scale: 5 = Very Satisfied | 4 = Satisfied | 3 = Neutral | 2 = Dissatisfied | 1 = Very Dissatisfied | N/A = Not Applicable
+              </div>
+
               <table>
                 <thead>
                   <tr>
                     <th>Clientele</th>
                     <th>College/Dept</th>
+                    <th>Course</th>
                     <th>Patron Feedback Message</th>
+                    <th style={{ textAlign: 'center' }}>Q1</th>
+                    <th style={{ textAlign: 'center' }}>Q2</th>
+                    <th style={{ textAlign: 'center' }}>Q3</th>
+                    <th style={{ textAlign: 'center' }}>Q4</th>
+                    <th style={{ textAlign: 'center' }}>Q5</th>
+                    <th style={{ textAlign: 'center' }}>Q6</th>
+                    <th style={{ textAlign: 'center' }}>Q7</th>
+                    <th style={{ textAlign: 'center' }}>Q8</th>
+                    <th style={{ textAlign: 'center' }}>Q9</th>
+                    <th style={{ textAlign: 'center' }}>Q10</th>
                     <th>Sentiment Result</th>
                     <th>Category</th>
                   </tr>
@@ -2303,8 +2350,19 @@ const SentimentDashboard = () => {
                   {reviewRows.map((row) => (
                     <tr key={row.Id}>
                       <td style={{ textTransform: 'capitalize' }}>{row.Clientele}</td>
-                      <td>{row.College}</td>
+                      <td>{row.College || 'N/A'}</td>
+                      <td>{row.Course || 'N/A'}</td>
                       <td>{row.Message}</td>
+                      <td className="q-cell">{formatRatingShort(row.Question1)}</td>
+                      <td className="q-cell">{formatRatingShort(row.Question2)}</td>
+                      <td className="q-cell">{formatRatingShort(row.Question3)}</td>
+                      <td className="q-cell">{formatRatingShort(row.Question4)}</td>
+                      <td className="q-cell">{formatRatingShort(row.Question5)}</td>
+                      <td className="q-cell">{formatRatingShort(row.Question6)}</td>
+                      <td className="q-cell">{formatRatingShort(row.Question7)}</td>
+                      <td className="q-cell">{formatRatingShort(row.Question8)}</td>
+                      <td className="q-cell">{formatRatingShort(row.Question9)}</td>
+                      <td className="q-cell">{formatRatingShort(row.Question10)}</td>
                       <td><strong>{row.SentimentResult}</strong></td>
                       <td>{row.Category || 'Other/Uncategorized'}</td>
                     </tr>
