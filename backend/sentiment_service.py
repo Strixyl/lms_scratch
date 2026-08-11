@@ -104,11 +104,11 @@ def analyze():
 
     clauses = split_clauses(text)
     clause_results = [bert_sentiment(c) for c in clauses]
-    sentiment, score = aggregate_most_negative_wins(clause_results)
+    sentiment, score = aggregate_most_negative_wins(clause_results)   #gets the most negative clause to be prioritized for improvement
 
     return jsonify({ 'sentiment': sentiment, 'score': score })
 
-def get_clause_category(text: str):
+def get_clause_category(text: str):      #gets the negative clause and identifies which category it falls
     text = text.strip()
     if not text:
         return 'Other/Uncategorized', 0.0
@@ -119,7 +119,7 @@ def get_clause_category(text: str):
         probs = category_model.predict_proba(text)
         return cat, float(probs.max())
 
-    neg_clause_cats = []
+    neg_clause_cats = []   # assigns whcih categeryo it falls to
     for c in clauses:
         sent, score = bert_sentiment(c)
         if sent == 'Negative':
