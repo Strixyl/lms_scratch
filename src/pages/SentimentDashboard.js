@@ -6,8 +6,8 @@ import {
   TableRow, Paper, Button, TextField, CircularProgress,
   MenuItem, Select, FormControl, InputLabel,
   Dialog, DialogTitle, DialogContent, DialogActions, Avatar, Chip,
-  InputAdornment, TableSortLabel, Tooltip, Snackbar, Alert,
-  Checkbox, IconButton, ToggleButton, ToggleButtonGroup
+  TableSortLabel, Tooltip, Snackbar, Alert,
+  Checkbox, ToggleButton, ToggleButtonGroup
 } from '@mui/material';
 import {
   Print as PrintIcon,
@@ -21,7 +21,6 @@ import {
   SentimentSatisfied as SentimentSatisfiedIcon,
   Assessment as AssessmentIcon,
   AdminPanelSettings as AdminIcon,
-  Clear as ClearIcon,
   CalendarToday as CalendarTodayIcon,
   RestartAlt as RestartAltIcon,
   Inbox as InboxIcon
@@ -473,7 +472,7 @@ const SentimentDashboard = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
-  const [loggedInUser, setLoggedInUser] = useState('');
+  const [, setLoggedInUser] = useState('');
 
   useEffect(() => {
     const savedUser = localStorage.getItem('loggedInUser');
@@ -515,10 +514,8 @@ const SentimentDashboard = () => {
   const [page, setPage] = useState(0);
 
   // Word Cloud interactive states & filters
-  const [wcSearch, setWcSearch] = useState('');
-  const [wcSentimentFilter, setWcSentimentFilter] = useState('All');
-  const [wcMaxWords, setWcMaxWords] = useState(60);
-  const [wcRotation, setWcRotation] = useState('horizontal');
+  const [, setWcSearch] = useState('');
+  const [, setWcSentimentFilter] = useState('All');
   const [selectedWordFilter, setSelectedWordFilter] = useState('');
 
   // Live Search & Sort states
@@ -878,7 +875,7 @@ const SentimentDashboard = () => {
   };
 
   // Dynamic term frequencies for word cloud visualization based on active filters
-  const { freq: termFrequencies = {}, displayMap: stemToOriginalMap = {}, sentimentCounts: wordSentimentCounts = {} } = useMemo(() => {
+  const { freq: termFrequencies = {}, displayMap: stemToOriginalMap = {} } = useMemo(() => {
     return buildTermFrequencies(filtered.length > 0 ? filtered : surveys);
   }, [filtered, surveys]);
 

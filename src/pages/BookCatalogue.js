@@ -28,9 +28,7 @@ import {
   Divider,
   Stack,
   Tooltip,
-  Autocomplete,
-  Tabs,
-  Tab
+  Autocomplete
 } from '@mui/material';
 import {
   Refresh as RefreshIcon,
@@ -42,8 +40,7 @@ import {
   TableChart as TableChartIcon,
   GridView as GridViewIcon,
   Visibility as VisibilityIcon,
-  PostAdd as PostAddIcon,
-  Add as AddIcon
+  PostAdd as PostAddIcon
 } from '@mui/icons-material';
 import * as XLSX from 'xlsx';
 import Header from '../Components/Header';

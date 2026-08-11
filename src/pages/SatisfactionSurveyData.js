@@ -117,6 +117,7 @@ const SatisfactionSurveyData = () => {
 
   useEffect(() => {
     fetchSurveys(); // Load initial data
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleResetFilters = () => {
