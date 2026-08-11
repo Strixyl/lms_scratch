@@ -61,10 +61,17 @@ This directory houses the backend ecosystem supporting the **Henry Luce III Libr
 - **Response**: `{ "sentiment": "Positive", "score": 0.985 }`
 
 #### `POST /categorize`
-- **Description**: Categorizes text into domain categories using TF-IDF + Multinomial Naïve Bayes with confidence threshold fallback ($\tau = 0.45$).
+- **Description**: Categorizes text into domain categories using TF-IDF + Multinomial Naïve Bayes with confidence threshold fallback ($\tau = 0.45$). Includes clause-aware category resolution (`get_clause_category`) for dual-topic comments.
 - **Request Body**: `{ "text": "The air conditioning system on the 3rd floor is cold." }`
 - **Response**: `{ "category": "Facilities", "confidence": 0.924 }`
 - **Supported Categories**: `Facilities`, `Staff`, `Collection`, `Other/Uncategorized`
+
+#### 🔀 Dual-Topic & Mixed-Sentiment Clause Resolution
+- **Problem**: In multi-topic feedback (e.g., *"Staff are friendly, but the Wi-Fi keeps dropping"*), single-shot text categorization could assign the overall response to `Staff` while sentiment analysis flagged `Negative` based on the Wi-Fi clause, misattributing negative complaints to staff.
+- **Solution**: Implemented `get_clause_category()` in `sentiment_service.py`:
+  1. Conjunction-based clause splitting (`split_clauses()`) parses contrastive sentences on pivot words (`but`, `however`, `although`, etc.).
+  2. Each clause is evaluated independently for sentiment (BERT) and category (Naïve Bayes).
+  3. If a negative complaint clause is surfaced by the sentiment engine (e.g., *"Wi-Fi keeps dropping"* $\rightarrow$ `Negative`), the system binds the overall response Category to **that specific winning negative clause** (`Facilities`), ensuring accurate dashboard feedback routing.
 
 ---
 

@@ -47,6 +47,13 @@ This document records technical enhancements made to the **Dual-Engine NLP Categ
 ### 4. Calibrated Confidence Fallback Threshold
 - **Adjustment**: Tuned default confidence threshold $\tau$ from `0.45` to `0.40`. For a 4-class classification problem (Facilities, Staff, Collection, Other/Uncategorized), 25% represents uniform chance. A 40% threshold provides optimal precision while preventing legitimate domain comments from falling into `Other/Uncategorized`.
 
+### 5. Clause-Aware Category Alignment for Dual-Topic / Mixed Comments
+- **Problem**: In multi-topic feedback (e.g., *"The library staff are very accommodating and friendly, but the Wi-Fi connection keeps dropping every 5 minutes"*), evaluating sentiment via clause-splitting (`most-negative-wins`) while evaluating category on the unsplit full text caused category-sentiment mismatch. The negative sentiment from the Wi-Fi complaint was incorrectly assigned to the `Staff` category.
+- **Fix**: Added `get_clause_category()` in `sentiment_service.py`:
+  - Parses contrastive conjunctions (`but`, `however`, `although`, etc.) into discrete clauses.
+  - Computes sentiment and category for each clause.
+  - If a negative complaint clause surfaces (e.g., *"Wi-Fi keeps dropping"* $\rightarrow$ `Negative`), the system binds the overall Category to **that specific winning negative clause** (`Facilities`), ensuring accurate complaint routing on the dashboard.
+
 ---
 
 ## 🛠️ Complete Installation & Dependency Guide
