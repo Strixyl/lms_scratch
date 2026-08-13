@@ -431,51 +431,339 @@ const BookCatalogue = () => {
   };
 
   // Print selected rows as book cards
+  // Print selected rows as book cards (Page 1 Front & Page 2 Back for every 4 books)
   const handlePrintSelected = () => {
     if (selectedRows.length === 0) {
       alert('Select at least one book to print.');
       return;
     }
 
-    const printWindow = window.open('', '', 'width=1000,height=800');
+    const frontEmptyRows = Array(12).fill('<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>').join('');
+    const backEmptyRows = Array(20).fill('<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>').join('');
+
+    // Chunk selectedRows into groups of 4
+    const chunks = [];
+    for (let i = 0; i < selectedRows.length; i += 4) {
+      chunks.push(selectedRows.slice(i, i + 4));
+    }
+
+    const printWindow = window.open('', '', 'width=1100,height=850');
     const doc = printWindow.document;
 
     doc.open();
     doc.write(`
-      <!DOCTYPE html><html><head><title>Print Book Cards</title>
-      <style>
-        @page { size: Letter; margin: 0.5in; }
-        html, body { margin: 0; padding: 0; font-family: 'Times New Roman', serif; font-size: 11pt; }
-        .card-grid { display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 480px; gap: 8px; }
-        .card { border: 1px solid black; padding: 10px; display: flex; flex-direction: column; box-sizing: border-box; }
-        .row { display: flex; align-items: center; margin-bottom: 6px; }
-        .row .label { white-space: nowrap; margin-right: 6px; }
-        table { border-collapse: collapse; width: 100%; margin-top: 6px; }
-        th, td { border: 1px solid black; padding: 4px; text-align: left; font-size: 10pt; }
-      </style>
-      </head><body><div id="print-content"><div class="card-grid">
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Print Book Cards (Front & Back)</title>
+        <style>
+          @page { size: Letter; margin: 0.35in; }
+          * { box-sizing: border-box; margin: 0; padding: 0; }
+          body { font-family: 'Times New Roman', serif; font-size: 10pt; color: #000; }
+          .print-page {
+            width: 100%;
+            height: 100vh;
+            page-break-after: always;
+            break-after: page;
+          }
+          .print-page:last-child {
+            page-break-after: avoid;
+            break-after: avoid;
+          }
+          .card-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            width: 100%;
+            height: 100%;
+            border: 1px solid #000;
+          }
+          .card {
+            border: 1px solid #000;
+            padding: 12px 14px;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            position: relative;
+            overflow: hidden;
+          }
+          .card-header {
+            position: relative;
+            text-align: center;
+            margin-bottom: 24px;
+          }
+          .uni-title {
+            font-weight: bold;
+            font-size: 11pt;
+            text-align: center;
+          }
+          .iso-code {
+            position: absolute;
+            top: 0;
+            right: 0;
+            font-size: 6pt;
+            text-align: right;
+            line-height: 1.2;
+          }
+          .field-container {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 8px;
+          }
+          .field-line {
+            display: flex;
+            align-items: flex-end;
+          }
+          .field-row {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+          }
+          .field-item {
+            display: flex;
+            align-items: flex-end;
+            flex: 1;
+          }
+          .prefix-item {
+            flex: 0 0 40px;
+          }
+          .center-text {
+            text-align: center;
+          }
+          .field-label {
+            font-size: 9.5pt;
+            white-space: nowrap;
+            margin-right: 6px;
+          }
+          .field-value {
+            font-size: 9.5pt;
+            font-weight: bold;
+            flex-grow: 1;
+          }
+          .underline {
+            border-bottom: 1px solid #000;
+            min-height: 16px;
+            display: inline-block;
+            width: 100%;
+            padding-left: 4px;
+          }
+          .borrow-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 4px;
+            flex-grow: 1;
+          }
+          .borrow-table thead tr {
+            border-top: 2.5px solid #000;
+            border-bottom: 1.5px solid #000;
+          }
+          .borrow-table th, .borrow-table td {
+            border: 1px solid #000;
+            padding: 2px 4px;
+            font-size: 8.5pt;
+            text-align: center;
+          }
+          .borrow-table th {
+            font-weight: bold;
+            vertical-align: middle;
+          }
+          .borrow-table td {
+            height: 19px;
+          }
+          .back-card {
+            padding: 10px;
+          }
+          .back-card .borrow-table {
+            height: 100%;
+            margin-top: 0;
+          }
+          /* Book Packet Styles */
+          .packet-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            width: 100%;
+            height: 100%;
+            border: 1px solid #000;
+          }
+          .packet {
+            border: 1px solid #000;
+            padding: 14px 16px;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            position: relative;
+            overflow: hidden;
+          }
+          .packet-header {
+            position: relative;
+            text-align: center;
+            margin-bottom: 28px;
+          }
+          .packet-uni {
+            font-weight: bold;
+            font-size: 11pt;
+            text-align: center;
+          }
+          .packet-iso {
+            position: absolute;
+            top: 0;
+            right: 0;
+            font-size: 6pt;
+            text-align: right;
+            line-height: 1.2;
+          }
+          .packet-fields {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 12px;
+          }
+          .packet-row {
+            display: flex;
+            align-items: flex-end;
+          }
+          .packet-label {
+            font-size: 9.5pt;
+            font-weight: bold;
+            white-space: nowrap;
+            margin-right: 8px;
+          }
+          .packet-val {
+            font-size: 9.5pt;
+            font-weight: bold;
+            flex-grow: 1;
+          }
+          .packet-prefix-label {
+            font-size: 9.5pt;
+            font-weight: bold;
+            margin-top: 4px;
+          }
+          .packet-fold-box {
+            flex-grow: 1;
+            border-top: 1px solid #000;
+            margin-top: 16px;
+          }
+        </style>
+      </head>
+      <body>
     `);
 
-    selectedRows.forEach((row) => {
-      doc.write(`
-        <div class="card">
-          <div style="text-align:center; font-weight:bold;">Central Philippine University</div>
-          <div class="row"><span class="label">Author:</span><span>${row.authorName || row.publisher || ''}</span></div>
-          <div class="row"><span class="label">Title:</span><span>${row.title}</span></div>
-          <div class="row"><span class="label">Acc. No.:</span><span>${row.accessionNumber}</span></div>
-          <div class="row"><span class="label">Barcode:</span><span>${row.barcode}</span></div>
-          <div class="row"><span class="label">Call No.:</span><span>${row.callNumber}</span></div>
-          <table>
-            <thead><tr><th>Date Borrowed/Due</th><th>Borrower's Name</th><th>Borrower's ID</th></tr></thead>
-            <tbody>
-              ${Array.from({ length: 6 }).map(() => '<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>').join('')}
-            </tbody>
+    chunks.forEach((chunk) => {
+      const frontCardsHTML = Array(4).fill(null).map((_, idx) => {
+        const row = chunk[idx % chunk.length];
+        if (!row) return `<div class="card"></div>`;
+        const libPrefix = row.library ? (row.library.includes('Henry Luce') ? 'HL' : '') : '';
+        return `
+          <div class="card">
+            <div class="card-header">
+              <div class="uni-title">Central Philippine University</div>
+              ${(row.isoCode && idx === 0) ? `<div class="iso-code">${row.isoCode.replace('REV.', '<br>REV.').replace('April', '<br>April')}</div>` : ''}
+            </div>
+            <div class="field-container">
+              <div class="field-line">
+                <span class="field-label">Author</span>
+                <span class="field-value underline">${row.authorName || row.publisher || ''}</span>
+              </div>
+              <div class="field-line">
+                <span class="field-label">Title</span>
+                <span class="field-value underline">${row.title || ''}</span>
+              </div>
+              <div class="field-row">
+                <div class="field-item">
+                  <span class="field-label">Acc. No.</span>
+                  <span class="field-value underline">${row.accessionNumber || ''}</span>
+                </div>
+                <div class="field-item">
+                  <span class="field-label">Barcode</span>
+                  <span class="field-value underline">${row.barcode || ''}</span>
+                </div>
+                ${libPrefix ? `
+                <div class="field-item prefix-item">
+                  <span class="field-value underline center-text">${libPrefix}</span>
+                </div>` : ''}
+              </div>
+            </div>
+            <table class="borrow-table">
+              <thead>
+                <tr>
+                  <th style="width: 32%;">Date Borrowed/<br>Due Date</th>
+                  <th style="width: 43%;">Borrower's Name</th>
+                  <th style="width: 25%;">Borrower's<br>ID Number</th>
+                </tr>
+              </thead>
+              <tbody>${frontEmptyRows}</tbody>
+            </table>
+          </div>
+        `;
+      }).join('');
+
+      const backCardsHTML = Array(4).fill(0).map(() => `
+        <div class="card back-card">
+          <table class="borrow-table">
+            <thead>
+              <tr>
+                <th style="width: 32%;">Date Borrowed/<br>Due Date</th>
+                <th style="width: 43%;">Borrower's Name</th>
+                <th style="width: 25%;">Borrower's<br>ID Number</th>
+              </tr>
+            </thead>
+            <tbody>${backEmptyRows}</tbody>
           </table>
+        </div>
+      `).join('');
+
+      const packetsHTML = Array(4).fill(null).map((_, idx) => {
+        const row = chunk[idx % chunk.length];
+        if (!row) return `<div class="packet"></div>`;
+        const libPrefix = row.library ? (row.library.includes('Henry Luce') ? 'HL' : '') : '';
+        return `
+          <div class="packet">
+            <div class="packet-header">
+              <div class="packet-uni">CENTRAL PHILIPPINE UNIVERSITY</div>
+              ${(row.isoCode && idx === 0) ? `<div class="packet-iso">${row.isoCode.replace('REV.', '<br>REV.').replace('April', '<br>April')}</div>` : ''}
+            </div>
+            <div class="packet-fields">
+              <div class="packet-row">
+                <span class="packet-label">CALL No.</span>
+                <span class="packet-val underline">${row.callNumber || ''}</span>
+              </div>
+              <div class="packet-row">
+                <span class="packet-label">ACC. No.</span>
+                <span class="packet-val underline">${row.accessionNumber || ''}</span>
+              </div>
+              ${libPrefix ? `
+              <div class="packet-row">
+                <span class="packet-prefix-label">${libPrefix}</span>
+              </div>` : ''}
+            </div>
+            <div class="packet-fold-box"></div>
+          </div>
+        `;
+      }).join('');
+
+      doc.write(`
+        <!-- Page 1: 4 Book Cards Front -->
+        <div class="print-page">
+          <div class="card-grid">${frontCardsHTML}</div>
+        </div>
+        <!-- Page 2: 4 Book Cards Back (Back-to-Back with Page 1) -->
+        <div class="print-page">
+          <div class="card-grid">${backCardsHTML}</div>
+        </div>
+        <!-- Page 3: 4 Book Packets (Paper 2) -->
+        <div class="print-page">
+          <div class="packet-grid">${packetsHTML}</div>
+        </div>
+        <!-- Page 4: 4 Book Packets Duplicate (Paper 3) -->
+        <div class="print-page">
+          <div class="packet-grid">${packetsHTML}</div>
         </div>
       `);
     });
 
-    doc.write('</div></div></body></html>');
+    doc.write('</body></html>');
     doc.close();
 
     printWindow.onload = () => {
