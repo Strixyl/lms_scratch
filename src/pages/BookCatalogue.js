@@ -243,22 +243,32 @@ const BookCatalogue = () => {
     const list = [];
     cardPackets.forEach((record, recordIndex) => {
       const recId = record.CardID || record.id || record.CardId || `rec-${recordIndex}`;
+
       for (let i = 1; i <= 4; i++) {
-        if (record[`selectedLibrary${i}`] || record[`bookTitle${i}`]) {
+        const title = (record[`bookTitle${i}`] || '').trim();
+        const acc = (record[`accessionNumber${i}`] || '').trim();
+        const lib = (record[`selectedLibrary${i}`] || '').trim();
+        const call = (record[`callNumber${i}`] || '').trim();
+        const author = getAuthorName(record, i);
+        const publisher = (record[`publisherAuthor${i}`] || record[`publisher${i}`] || '').trim();
+        const barcode = (record[`barcodeValue${i}`] || '').trim();
+
+        // Only include columns that actually contain a book title or accession number
+        if (title || acc) {
           list.push({
             id: `${recId}-${i}`,
             recordId: recId,
             bookNum: i,
-            library: record[`selectedLibrary${i}`] || 'N/A',
-            section: record[`section${i}`] || 'General',
-            callNumber: record[`callNumber${i}`] || '',
-            title: record[`bookTitle${i}`] || 'Untitled',
-            authorName: getAuthorName(record, i),
-            publisher: record[`publisherAuthor${i}`] || record[`publisher${i}`] || '',
+            library: lib || record[`selectedLibrary1`] || 'N/A',
+            section: record[`section${i}`] || record[`section1`] || 'General',
+            callNumber: call,
+            title: title || 'Untitled',
+            authorName: author,
+            publisher: publisher,
             copyNumber: record[`copyNumber${i}`] || '',
-            barcode: record[`barcodeValue${i}`] || '',
-            isoCode: record[`isoCodeValue${i}`] || '',
-            accessionNumber: record[`accessionNumber${i}`] || '',
+            barcode: barcode,
+            isoCode: record[`isoCodeValue${i}`] || record[`isoCodeValue1`] || '',
+            accessionNumber: acc || record[`accessionNumber1`] || '',
           });
         }
       }

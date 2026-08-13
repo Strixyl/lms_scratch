@@ -54,22 +54,63 @@ export default function CardAndPacket() {
     return `${last || ''}${last && first ? ', ' : ''}${first || ''}${mi ? ' ' + mi : ''}`.trim();
   };
 
+  const preparePayload = () => {
+    const lib1 = selectedLibrary1 || '';
+    const sec1 = section1 || '';
+    const acc1 = accessionNumber1 || '';
+
+    const getLib = (lib, acc, title) => lib || ((acc || title) ? lib1 : '');
+    const getSec = (sec, acc, title) => sec || ((acc || title) ? sec1 : '');
+    const getAcc = (acc, title) => acc || (title ? acc1 : '');
+
+    const l1 = lib1;
+    const l2 = getLib(selectedLibrary2, accessionNumber2, bookTitle2);
+    const l3 = getLib(selectedLibrary3, accessionNumber3, bookTitle3);
+    const l4 = getLib(selectedLibrary4, accessionNumber4, bookTitle4);
+
+    const s1 = sec1;
+    const s2 = getSec(section2, accessionNumber2, bookTitle2);
+    const s3 = getSec(section3, accessionNumber3, bookTitle3);
+    const s4 = getSec(section4, accessionNumber4, bookTitle4);
+
+    const a1 = acc1;
+    const a2 = getAcc(accessionNumber2, bookTitle2);
+    const a3 = getAcc(accessionNumber3, bookTitle3);
+    const a4 = getAcc(accessionNumber4, bookTitle4);
+
+    const b1 = barcodeValue1 || (a1 ? `${getBarcodePrefix(l1)}${a1}` : '');
+    const b2 = barcodeValue2 || (a2 ? `${getBarcodePrefix(l2)}${a2}` : '');
+    const b3 = barcodeValue3 || (a3 ? `${getBarcodePrefix(l3)}${a3}` : '');
+    const b4 = barcodeValue4 || (a4 ? `${getBarcodePrefix(l4)}${a4}` : '');
+
+    const iso1 = isoCodeValue1 || (l1 ? getIsoCode(l1) : '');
+    const iso2 = isoCodeValue2 || (l2 ? getIsoCode(l2) : '');
+    const iso3 = isoCodeValue3 || (l3 ? getIsoCode(l3) : '');
+    const iso4 = isoCodeValue4 || (l4 ? getIsoCode(l4) : '');
+
+    return {
+      selectedLibrary1: l1, section1: s1,
+      selectedLibrary2: l2, section2: s2,
+      selectedLibrary3: l3, section3: s3,
+      selectedLibrary4: l4, section4: s4,
+      authorName1: authorLastName1, publisherAuthor1,
+      authorName2: authorLastName2, publisherAuthor2,
+      authorName3: authorLastName3, publisherAuthor3,
+      authorName4: authorLastName4, publisherAuthor4,
+      bookTitle1, bookTitle2, bookTitle3, bookTitle4,
+      accessionNumber1: a1, accessionNumber2: a2, accessionNumber3: a3, accessionNumber4: a4,
+      callNumber1, callNumber2, callNumber3, callNumber4,
+      copyNumber1: '', copyNumber2: '', copyNumber3: '', copyNumber4: '',
+      barcodeValue1: b1, barcodeValue2: b2, barcodeValue3: b3, barcodeValue4: b4,
+      isoCodeValue1: iso1, isoCodeValue2: iso2, isoCodeValue3: iso3, isoCodeValue4: iso4,
+    };
+  };
+
   // ✅ Save with duplicate check
   const handleSave = async () => {
     try {
-      await axios.post('http://localhost:5000/api/card-and-packet', {
-        selectedLibrary1, section1, selectedLibrary2, section2, selectedLibrary3, section3, selectedLibrary4, section4,
-        authorName1: authorLastName1, publisherAuthor1,
-        authorName2: authorLastName2, publisherAuthor2,
-        authorName3: authorLastName3, publisherAuthor3,
-        authorName4: authorLastName4, publisherAuthor4,
-        bookTitle1, bookTitle2, bookTitle3, bookTitle4,
-        accessionNumber1, accessionNumber2, accessionNumber3, accessionNumber4,
-        callNumber1, callNumber2, callNumber3, callNumber4,
-        copyNumber1: '', copyNumber2: '', copyNumber3: '', copyNumber4: '',
-        barcodeValue1, barcodeValue2, barcodeValue3, barcodeValue4,
-        isoCodeValue1, isoCodeValue2, isoCodeValue3, isoCodeValue4,
-      });
+      const payload = preparePayload();
+      await axios.post('http://localhost:5000/api/card-and-packet', payload);
       alert('Data saved successfully!');
       handleClear();
     } catch (error) {
@@ -124,23 +165,20 @@ export default function CardAndPacket() {
   const handleUpdate = async () => {
     if (!selectedDocId) { alert('No entry selected to update.'); return; }
     try {
-      await axios.put(`http://localhost:5000/api/card-and-packet/${selectedDocId}`, {
-        selectedLibrary1, section1, selectedLibrary2, section2, selectedLibrary3, section3, selectedLibrary4, section4,
-        authorName1: authorLastName1, publisherAuthor1,
-        authorName2: authorLastName2, publisherAuthor2,
-        authorName3: authorLastName3, publisherAuthor3,
-        authorName4: authorLastName4, publisherAuthor4,
-        bookTitle1, bookTitle2, bookTitle3, bookTitle4,
-        accessionNumber1, accessionNumber2, accessionNumber3, accessionNumber4,
-        callNumber1, callNumber2, callNumber3, callNumber4,
-        copyNumber1: '', copyNumber2: '', copyNumber3: '', copyNumber4: '',
-        barcodeValue1, barcodeValue2, barcodeValue3, barcodeValue4,
-        isoCodeValue1, isoCodeValue2, isoCodeValue3, isoCodeValue4,
-      });
+      const payload = preparePayload();
+      await axios.put(`http://localhost:5000/api/card-and-packet/${selectedDocId}`, payload);
       alert('Entry updated successfully.');
+      setSelectedLibrary1(payload.selectedLibrary1); setSection1(payload.section1); setAccessionNumber(payload.accessionNumber1); setBarcodeValue(payload.barcodeValue1); setIsoCodeValue(payload.isoCodeValue1);
+      setSelectedLibrary2(payload.selectedLibrary2); setSection2(payload.section2); setAccessionNumber2(payload.accessionNumber2); setBarcodeValue2(payload.barcodeValue2); setIsoCodeValue2(payload.isoCodeValue2);
+      setSelectedLibrary3(payload.selectedLibrary3); setSection3(payload.section3); setAccessionNumber3(payload.accessionNumber3); setBarcodeValue3(payload.barcodeValue3); setIsoCodeValue3(payload.isoCodeValue3);
+      setSelectedLibrary4(payload.selectedLibrary4); setSection4(payload.section4); setAccessionNumber4(payload.accessionNumber4); setBarcodeValue4(payload.barcodeValue4); setIsoCodeValue4(payload.isoCodeValue4);
     } catch (error) {
-      console.error('Error updating:', error);
-      alert('Failed to update entry.');
+      if (error.response?.status === 400) {
+        alert(error.response.data.message);
+      } else {
+        console.error('Error updating:', error);
+        alert('Failed to update entry.');
+      }
     }
   };
 
@@ -360,9 +398,9 @@ export default function CardAndPacket() {
   const handleLibraryChange2 = (e, v) => { setSelectedLibrary2(v); setIsoCodeValue2(getIsoCode(v)); setBarcodeValue2(`${getBarcodePrefix(v)}${accessionNumber2}`); };
   const handleLibraryChange3 = (e, v) => { setSelectedLibrary3(v); setIsoCodeValue3(getIsoCode(v)); setBarcodeValue3(`${getBarcodePrefix(v)}${accessionNumber3}`); };
   const handleLibraryChange4 = (e, v) => { setSelectedLibrary4(v); setIsoCodeValue4(getIsoCode(v)); setBarcodeValue4(`${getBarcodePrefix(v)}${accessionNumber4}`); };
-  const handleAccessionNumberChange2 = (e) => { const v = e.target.value; setAccessionNumber2(v); setBarcodeValue2(`${getBarcodePrefix(selectedLibrary2)}${v}`); };
-  const handleAccessionNumberChange3 = (e) => { const v = e.target.value; setAccessionNumber3(v); setBarcodeValue3(`${getBarcodePrefix(selectedLibrary3)}${v}`); };
-  const handleAccessionNumberChange4 = (e) => { const v = e.target.value; setAccessionNumber4(v); setBarcodeValue4(`${getBarcodePrefix(selectedLibrary4)}${v}`); }; const columns = [
+  const handleAccessionNumberChange2 = (e) => { const v = e.target.value; setAccessionNumber2(v); setBarcodeValue2(`${getBarcodePrefix(selectedLibrary2 || selectedLibrary1)}${v}`); };
+  const handleAccessionNumberChange3 = (e) => { const v = e.target.value; setAccessionNumber3(v); setBarcodeValue3(`${getBarcodePrefix(selectedLibrary3 || selectedLibrary1)}${v}`); };
+  const handleAccessionNumberChange4 = (e) => { const v = e.target.value; setAccessionNumber4(v); setBarcodeValue4(`${getBarcodePrefix(selectedLibrary4 || selectedLibrary1)}${v}`); }; const columns = [
     {
       label: 'First Column',
       library: selectedLibrary1, setLibrary: handleLibraryChange,
@@ -506,15 +544,19 @@ export default function CardAndPacket() {
       </Grid>
 
       <Modal open={openModal} onClose={handleClose}>
-        <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 400, bgcolor: 'background.paper', border: '2px solid #000', boxShadow: 24, p: 4, borderRadius: 2 }}>
+        <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 450, bgcolor: 'background.paper', border: '2px solid #000', boxShadow: 24, p: 4, borderRadius: 2 }}>
           <Typography variant="h6" mb={2}>Search Results</Typography>
-          {searchResults.map((result) => (
-            <Box key={result.CardID} sx={{ p: 1, border: '1px solid #ccc', borderRadius: 1, mb: 1, cursor: 'pointer', '&:hover': { backgroundColor: '#f0f0f0' } }} onClick={() => loadSelectedEntry(result)}>
-              {/* ✅ Show only accession number 1 */}
-              <Typography variant="body1">{result.accessionNumber1}</Typography>
-            </Box>
-          ))}
-          <Button variant="contained" onClick={handleClose} sx={{ mt: 2 }}>Close</Button>
+          {searchResults.map((result) => {
+            const accs = [result.accessionNumber1, result.accessionNumber2, result.accessionNumber3, result.accessionNumber4].filter(Boolean).join(', ');
+            const title = result.bookTitle1 || result.bookTitle2 || result.bookTitle3 || result.bookTitle4 || `Entry #${result.CardID}`;
+            return (
+              <Box key={result.CardID} sx={{ p: 1.5, border: '1px solid #cbd5e1', borderRadius: 2, mb: 1.5, cursor: 'pointer', '&:hover': { backgroundColor: '#f1f5f9' } }} onClick={() => loadSelectedEntry(result)}>
+                <Typography variant="subtitle2" fontWeight="700" color="#1b365d">{title}</Typography>
+                <Typography variant="body2" color="text.secondary">Acc No(s): {accs || 'N/A'}</Typography>
+              </Box>
+            );
+          })}
+          <Button variant="contained" onClick={handleClose} sx={{ mt: 1 }}>Close</Button>
         </Box>
       </Modal>
 
