@@ -46,6 +46,8 @@ import * as XLSX from 'xlsx';
 import Header from '../Components/Header';
 import TopBar from '../Components/TopBar';
 
+const FONT_FAMILY = "'Poppins', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+
 const initialEncodeState = {
   library: '',
   section: '',
@@ -620,15 +622,33 @@ const BookCatalogue = () => {
             gap: 8px;
             margin-bottom: 12px;
           }
-          .packet-row {
+          .packet-row-split {
+            display: flex;
+            gap: 16px;
+            align-items: flex-end;
+          }
+          .packet-field-item {
             display: flex;
             align-items: flex-end;
+            flex: 1;
+          }
+          .packet-fold-box {
+            flex-grow: 1;
+            border-top: 1px solid #000;
+            margin-top: 12px;
+            margin-bottom: 4px;
+          }
+          .packet-bottom-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-top: auto;
           }
           .packet-label {
             font-size: 9.5pt;
             font-weight: bold;
             white-space: nowrap;
-            margin-right: 8px;
+            margin-right: 6px;
           }
           .packet-val {
             font-size: 9.5pt;
@@ -638,12 +658,6 @@ const BookCatalogue = () => {
           .packet-prefix-label {
             font-size: 9.5pt;
             font-weight: bold;
-            margin-top: 4px;
-          }
-          .packet-fold-box {
-            flex-grow: 1;
-            border-top: 1px solid #000;
-            margin-top: 16px;
           }
         </style>
       </head>
@@ -722,23 +736,24 @@ const BookCatalogue = () => {
           <div class="packet">
             <div class="packet-header">
               <div class="packet-uni">CENTRAL PHILIPPINE UNIVERSITY</div>
-              ${(row.isoCode && idx === 0) ? `<div class="packet-iso">${row.isoCode.replace('REV.', '<br>REV.').replace('April', '<br>April')}</div>` : ''}
             </div>
             <div class="packet-fields">
-              <div class="packet-row">
-                <span class="packet-label">CALL No.</span>
-                <span class="packet-val underline">${row.callNumber || ''}</span>
+              <div class="packet-row-split">
+                <div class="packet-field-item">
+                  <span class="packet-label">CALL No.</span>
+                  <span class="packet-val underline">${row.callNumber || ''}</span>
+                </div>
+                <div class="packet-field-item">
+                  <span class="packet-label">ACC. No.</span>
+                  <span class="packet-val underline">${row.accessionNumber || ''}</span>
+                </div>
               </div>
-              <div class="packet-row">
-                <span class="packet-label">ACC. No.</span>
-                <span class="packet-val underline">${row.accessionNumber || ''}</span>
-              </div>
-              ${libPrefix ? `
-              <div class="packet-row">
-                <span class="packet-prefix-label">${libPrefix}</span>
-              </div>` : ''}
             </div>
             <div class="packet-fold-box"></div>
+            <div class="packet-bottom-row">
+              <span class="packet-prefix-label">${libPrefix}</span>
+              ${(row.isoCode && idx === 0) ? `<div class="packet-iso">${row.isoCode.replace('REV.', '<br>REV.').replace('April', '<br>April')}</div>` : ''}
+            </div>
           </div>
         `;
       }).join('');
@@ -814,6 +829,7 @@ const BookCatalogue = () => {
           label={params.value || 'N/A'}
           size="small"
           sx={{
+            fontFamily: FONT_FAMILY,
             fontWeight: 600,
             bgcolor: params.value?.toLowerCase().includes('main') ? '#fef3c7' : '#f1f5f9',
             color: params.value?.toLowerCase().includes('main') ? '#92400e' : '#334155',
@@ -823,9 +839,30 @@ const BookCatalogue = () => {
         />
       ),
     },
+    {
+      field: 'title',
+      headerName: 'Book Title',
+      flex: 2,
+      minWidth: 200,
+      renderCell: (params) => (
+        <Typography
+          variant="body2"
+          sx={{
+            fontFamily: FONT_FAMILY,
+            fontWeight: 700,
+            color: '#1b365d',
+            fontSize: '0.875rem',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {params.value}
+        </Typography>
+      ),
+    },
     { field: 'section', headerName: 'Section', flex: 1, minWidth: 110 },
     { field: 'callNumber', headerName: 'Call Number', flex: 1, minWidth: 110 },
-    { field: 'title', headerName: 'Book Title', flex: 1.8, minWidth: 180 },
     { field: 'authorName', headerName: 'Author', flex: 1.5, minWidth: 150 },
     { field: 'publisher', headerName: 'Publisher', flex: 1, minWidth: 110 },
     { field: 'copyNumber', headerName: 'Copy #', flex: 0.6, minWidth: 70 },
@@ -873,10 +910,10 @@ const BookCatalogue = () => {
                     bgcolor: '#ffffff',
                   }}
                 >
-                  <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, letterSpacing: 0.5 }}>
+                  <Typography variant="caption" sx={{ fontFamily: FONT_FAMILY, color: '#64748b', fontWeight: 600, letterSpacing: 0.5 }}>
                     TOTAL BOOKS
                   </Typography>
-                  <Typography variant="h5" sx={{ fontWeight: 700, color: '#1b365d', mt: 0.5 }}>
+                  <Typography variant="h5" sx={{ fontFamily: FONT_FAMILY, fontWeight: 700, color: '#1b365d', mt: 0.5 }}>
                     {flatBookData.length}
                   </Typography>
                 </Paper>
@@ -893,10 +930,10 @@ const BookCatalogue = () => {
                     bgcolor: '#ffffff',
                   }}
                 >
-                  <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, letterSpacing: 0.5 }}>
+                  <Typography variant="caption" sx={{ fontFamily: FONT_FAMILY, color: '#64748b', fontWeight: 600, letterSpacing: 0.5 }}>
                     LIBRARIES
                   </Typography>
-                  <Typography variant="h5" sx={{ fontWeight: 700, color: '#1b365d', mt: 0.5 }}>
+                  <Typography variant="h5" sx={{ fontFamily: FONT_FAMILY, fontWeight: 700, color: '#1b365d', mt: 0.5 }}>
                     {availableLibraries.length - 1}
                   </Typography>
                 </Paper>
@@ -913,10 +950,10 @@ const BookCatalogue = () => {
                     bgcolor: '#ffffff',
                   }}
                 >
-                  <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, letterSpacing: 0.5 }}>
+                  <Typography variant="caption" sx={{ fontFamily: FONT_FAMILY, color: '#64748b', fontWeight: 600, letterSpacing: 0.5 }}>
                     SECTIONS
                   </Typography>
-                  <Typography variant="h5" sx={{ fontWeight: 700, color: '#1b365d', mt: 0.5 }}>
+                  <Typography variant="h5" sx={{ fontFamily: FONT_FAMILY, fontWeight: 700, color: '#1b365d', mt: 0.5 }}>
                     {availableSections.length - 1}
                   </Typography>
                 </Paper>
@@ -934,10 +971,10 @@ const BookCatalogue = () => {
                     transition: 'all 0.2s',
                   }}
                 >
-                  <Typography variant="caption" sx={{ color: selectedRows.length > 0 ? '#b45309' : '#64748b', fontWeight: 700 }}>
+                  <Typography variant="caption" sx={{ fontFamily: FONT_FAMILY, color: selectedRows.length > 0 ? '#b45309' : '#64748b', fontWeight: 700 }}>
                     SELECTED
                   </Typography>
-                  <Typography variant="h5" sx={{ fontWeight: 700, color: selectedRows.length > 0 ? '#b45309' : '#64748b', mt: 0.5 }}>
+                  <Typography variant="h5" sx={{ fontFamily: FONT_FAMILY, fontWeight: 700, color: selectedRows.length > 0 ? '#b45309' : '#64748b', mt: 0.5 }}>
                     {selectedRows.length}
                   </Typography>
                 </Paper>
@@ -956,6 +993,7 @@ const BookCatalogue = () => {
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     InputProps={{
+                      style: { fontFamily: FONT_FAMILY },
                       startAdornment: (
                         <InputAdornment position="start">
                           <SearchIcon sx={{ color: '#d49f1e', fontSize: 18 }} />
@@ -969,23 +1007,23 @@ const BookCatalogue = () => {
                         </InputAdornment>
                       ),
                     }}
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5, fontFamily: FONT_FAMILY } }}
                   />
                 </Grid>
 
                 {/* Library Filter */}
                 <Grid item xs={6} sm={3}>
                   <FormControl fullWidth size="small">
-                    <InputLabel id="library-filter-label">Library</InputLabel>
+                    <InputLabel id="library-filter-label" sx={{ fontFamily: FONT_FAMILY }}>Library</InputLabel>
                     <Select
                       labelId="library-filter-label"
                       value={selectedLibraryFilter}
                       label="Library"
                       onChange={(e) => setSelectedLibraryFilter(e.target.value)}
-                      sx={{ borderRadius: 1.5 }}
+                      sx={{ borderRadius: 1.5, fontFamily: FONT_FAMILY }}
                     >
                       {availableLibraries.map((lib) => (
-                        <MenuItem key={lib} value={lib}>
+                        <MenuItem key={lib} value={lib} sx={{ fontFamily: FONT_FAMILY }}>
                           {lib === 'ALL' ? 'All Libraries' : lib}
                         </MenuItem>
                       ))}
@@ -996,16 +1034,16 @@ const BookCatalogue = () => {
                 {/* Section Filter */}
                 <Grid item xs={6} sm={3}>
                   <FormControl fullWidth size="small">
-                    <InputLabel id="section-filter-label">Section</InputLabel>
+                    <InputLabel id="section-filter-label" sx={{ fontFamily: FONT_FAMILY }}>Section</InputLabel>
                     <Select
                       labelId="section-filter-label"
                       value={selectedSectionFilter}
                       label="Section"
                       onChange={(e) => setSelectedSectionFilter(e.target.value)}
-                      sx={{ borderRadius: 1.5 }}
+                      sx={{ borderRadius: 1.5, fontFamily: FONT_FAMILY }}
                     >
                       {availableSections.map((sec) => (
-                        <MenuItem key={sec} value={sec}>
+                        <MenuItem key={sec} value={sec} sx={{ fontFamily: FONT_FAMILY }}>
                           {sec === 'ALL' ? 'All Sections' : sec}
                         </MenuItem>
                       ))}
@@ -1029,6 +1067,7 @@ const BookCatalogue = () => {
                         px: 1.5,
                         py: 0.5,
                         fontWeight: 600,
+                        fontFamily: FONT_FAMILY,
                         '&.Mui-selected': { bgcolor: '#1b365d', color: '#ffffff', '&:hover': { bgcolor: '#0f2744' } },
                       }}
                     >
@@ -1041,6 +1080,7 @@ const BookCatalogue = () => {
                         px: 1.5,
                         py: 0.5,
                         fontWeight: 600,
+                        fontFamily: FONT_FAMILY,
                         '&.Mui-selected': { bgcolor: '#1b365d', color: '#ffffff', '&:hover': { bgcolor: '#0f2744' } },
                       }}
                     >
@@ -1062,6 +1102,7 @@ const BookCatalogue = () => {
                   sx={{
                     borderRadius: 1.5,
                     textTransform: 'none',
+                    fontFamily: FONT_FAMILY,
                     bgcolor: '#1b365d',
                     color: '#ffffff',
                     fontWeight: 700,
@@ -1076,7 +1117,7 @@ const BookCatalogue = () => {
                   size="small"
                   startIcon={<RefreshIcon fontSize="small" />}
                   onClick={fetchCardPackets}
-                  sx={{ borderRadius: 1.5, textTransform: 'none', borderColor: '#d49f1e', color: '#b45309' }}
+                  sx={{ borderRadius: 1.5, textTransform: 'none', fontFamily: FONT_FAMILY, borderColor: '#d49f1e', color: '#b45309', fontWeight: 600 }}
                 >
                   Refresh
                 </Button>
@@ -1085,7 +1126,7 @@ const BookCatalogue = () => {
                   variant="outlined"
                   size="small"
                   onClick={handleToggleSelectAll}
-                  sx={{ borderRadius: 1.5, textTransform: 'none', borderColor: '#1b365d', color: '#1b365d', fontWeight: 600 }}
+                  sx={{ borderRadius: 1.5, textTransform: 'none', fontFamily: FONT_FAMILY, borderColor: '#1b365d', color: '#1b365d', fontWeight: 600 }}
                 >
                   {isAllSelected ? 'Deselect All' : `Select All (${filteredBookData.length})`}
                 </Button>
@@ -1099,6 +1140,7 @@ const BookCatalogue = () => {
                   sx={{
                     borderRadius: 1.5,
                     textTransform: 'none',
+                    fontFamily: FONT_FAMILY,
                     bgcolor: '#d49f1e',
                     color: '#ffffff',
                     fontWeight: 600,
@@ -1113,7 +1155,7 @@ const BookCatalogue = () => {
                   size="small"
                   startIcon={<FileDownloadIcon fontSize="small" />}
                   onClick={handleExportExcel}
-                  sx={{ borderRadius: 1.5, textTransform: 'none', borderColor: '#cbd5e1', color: '#475569' }}
+                  sx={{ borderRadius: 1.5, textTransform: 'none', fontFamily: FONT_FAMILY, borderColor: '#cbd5e1', color: '#475569', fontWeight: 600 }}
                 >
                   Export Excel
                 </Button>
@@ -1125,13 +1167,13 @@ const BookCatalogue = () => {
                     color="error"
                     startIcon={<DeleteIcon fontSize="small" />}
                     onClick={() => setDeleteTarget('BATCH')}
-                    sx={{ borderRadius: 1.5, textTransform: 'none' }}
+                    sx={{ borderRadius: 1.5, textTransform: 'none', fontFamily: FONT_FAMILY, fontWeight: 600 }}
                   >
                     Delete Selected ({selectedRows.length})
                   </Button>
                 )}
 
-                <Typography variant="body2" sx={{ ml: 'auto', color: '#64748b', fontSize: '0.85rem' }}>
+                <Typography variant="body2" sx={{ ml: 'auto', color: '#64748b', fontSize: '0.85rem', fontFamily: FONT_FAMILY, fontWeight: 500 }}>
                   Showing {filteredBookData.length} books
                 </Typography>
               </Box>
@@ -1155,6 +1197,7 @@ const BookCatalogue = () => {
                   }}
                   sx={{
                     border: 'none',
+                    fontFamily: FONT_FAMILY,
                     '& .MuiDataGrid-columnHeaders': {
                       bgcolor: '#1b365d',
                       borderBottom: '3px solid #d49f1e',
@@ -1164,9 +1207,12 @@ const BookCatalogue = () => {
                       color: '#ffffff !important',
                     },
                     '& .MuiDataGrid-columnHeaderTitle': {
+                      fontFamily: FONT_FAMILY,
                       color: '#ffffff !important',
                       fontWeight: 700,
-                      fontSize: '0.85rem',
+                      fontSize: '0.82rem',
+                      letterSpacing: '0.03em',
+                      textTransform: 'uppercase',
                     },
                     '& .MuiDataGrid-columnHeader .MuiCheckbox-root': {
                       color: '#ffffff !important',
@@ -1178,6 +1224,7 @@ const BookCatalogue = () => {
                       color: '#ffffff !important',
                     },
                     '& .MuiDataGrid-row': {
+                      fontFamily: FONT_FAMILY,
                       '&:hover': {
                         bgcolor: '#faf8f0',
                       },
@@ -1189,8 +1236,12 @@ const BookCatalogue = () => {
                       },
                     },
                     '& .MuiDataGrid-cell': {
+                      fontFamily: FONT_FAMILY,
                       borderBottom: '1px solid #f1f5f9',
                       fontSize: '0.85rem',
+                    },
+                    '& .MuiDataGrid-footerContainer, & .MuiTablePagination-root, & .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
+                      fontFamily: FONT_FAMILY,
                     },
                   }}
                 />
@@ -1260,7 +1311,8 @@ const BookCatalogue = () => {
                             <Typography
                               variant="subtitle2"
                               style={{
-                                fontWeight: 600,
+                                fontFamily: FONT_FAMILY,
+                                fontWeight: 700,
                                 color: '#1b365d',
                                 marginBottom: '4px',
                                 lineHeight: 1.3,
@@ -1328,29 +1380,29 @@ const BookCatalogue = () => {
 
           {/* Quick CPU Card Preview Dialog */}
           <Dialog open={Boolean(previewBook)} onClose={() => setPreviewBook(null)} maxWidth="xs" fullWidth>
-            <DialogTitle sx={{ bgcolor: '#1b365d', color: '#ffffff', fontSize: '1rem', fontWeight: 600 }}>
+            <DialogTitle sx={{ bgcolor: '#1b365d', color: '#ffffff', fontSize: '1rem', fontWeight: 600, fontFamily: FONT_FAMILY }}>
               CPU Book Card Preview
             </DialogTitle>
             <DialogContent sx={{ p: 2.5, bgcolor: '#fafafa' }}>
               {previewBook && (
-                <Box sx={{ p: 2, border: '2px solid #1b365d', borderRadius: 1, bgcolor: '#fff', fontFamily: 'serif' }}>
-                  <Typography variant="subtitle2" align="center" sx={{ fontWeight: 700, color: '#1b365d' }}>
+                <Box sx={{ p: 2, border: '2px solid #1b365d', borderRadius: 1, bgcolor: '#fff', fontFamily: FONT_FAMILY }}>
+                  <Typography variant="subtitle2" align="center" sx={{ fontFamily: FONT_FAMILY, fontWeight: 700, color: '#1b365d' }}>
                     Central Philippine University
                   </Typography>
-                  <Typography variant="caption" display="block" align="center" sx={{ mb: 1, color: '#64748b' }}>
+                  <Typography variant="caption" display="block" align="center" sx={{ fontFamily: FONT_FAMILY, mb: 1, color: '#64748b' }}>
                     {previewBook.library} - {previewBook.section}
                   </Typography>
                   <Divider sx={{ mb: 1 }} />
-                  <Typography variant="body2"><strong>Author:</strong> {previewBook.authorName || previewBook.publisher || 'Unknown Author'}</Typography>
-                  <Typography variant="body2"><strong>Title:</strong> {previewBook.title}</Typography>
-                  <Typography variant="body2"><strong>Acc #:</strong> {previewBook.accessionNumber}</Typography>
-                  <Typography variant="body2"><strong>Barcode:</strong> {previewBook.barcode}</Typography>
-                  <Typography variant="body2"><strong>Call #:</strong> {previewBook.callNumber}</Typography>
+                  <Typography variant="body2" sx={{ fontFamily: FONT_FAMILY }}><strong>Author:</strong> {previewBook.authorName || previewBook.publisher || 'Unknown Author'}</Typography>
+                  <Typography variant="body2" sx={{ fontFamily: FONT_FAMILY }}><strong>Title:</strong> {previewBook.title}</Typography>
+                  <Typography variant="body2" sx={{ fontFamily: FONT_FAMILY }}><strong>Acc #:</strong> {previewBook.accessionNumber}</Typography>
+                  <Typography variant="body2" sx={{ fontFamily: FONT_FAMILY }}><strong>Barcode:</strong> {previewBook.barcode}</Typography>
+                  <Typography variant="body2" sx={{ fontFamily: FONT_FAMILY }}><strong>Call #:</strong> {previewBook.callNumber}</Typography>
                 </Box>
               )}
             </DialogContent>
             <DialogActions sx={{ p: 2, bgcolor: '#f1f5f9' }}>
-              <Button size="small" onClick={() => setPreviewBook(null)} variant="outlined" sx={{ borderColor: '#cbd5e1', color: '#475569' }}>
+              <Button size="small" onClick={() => setPreviewBook(null)} variant="outlined" sx={{ borderRadius: 1.5, fontFamily: FONT_FAMILY, borderColor: '#cbd5e1', color: '#475569', fontWeight: 600 }}>
                 Close
               </Button>
             </DialogActions>
@@ -1358,21 +1410,21 @@ const BookCatalogue = () => {
 
           {/* Delete Confirmation Dialog */}
           <Dialog open={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)} maxWidth="xs" fullWidth>
-            <DialogTitle sx={{ fontSize: '1rem', fontWeight: 600, color: '#ef4444' }}>
+            <DialogTitle sx={{ fontSize: '1rem', fontWeight: 600, color: '#ef4444', fontFamily: FONT_FAMILY }}>
               Confirm Delete
             </DialogTitle>
             <DialogContent>
-              <Typography variant="body2" sx={{ color: '#475569' }}>
+              <Typography variant="body2" sx={{ color: '#475569', fontFamily: FONT_FAMILY }}>
                 {deleteTarget === 'BATCH'
                   ? `Delete ${selectedRows.length} selected book record(s)?`
                   : `Delete "${deleteTarget?.title || 'this book'}"?`}
               </Typography>
             </DialogContent>
             <DialogActions sx={{ p: 2 }}>
-              <Button size="small" onClick={() => setDeleteTarget(null)} color="inherit">
+              <Button size="small" onClick={() => setDeleteTarget(null)} color="inherit" sx={{ fontFamily: FONT_FAMILY, fontWeight: 600 }}>
                 Cancel
               </Button>
-              <Button size="small" onClick={handleExecuteDelete} color="error" variant="contained">
+              <Button size="small" onClick={handleExecuteDelete} color="error" variant="contained" sx={{ borderRadius: 1.5, fontFamily: FONT_FAMILY, fontWeight: 600 }}>
                 Delete
               </Button>
             </DialogActions>
@@ -1383,7 +1435,7 @@ const BookCatalogue = () => {
             <DialogTitle sx={{ bgcolor: '#1b365d', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 3, py: 2 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <PostAddIcon sx={{ color: '#d49f1e', fontSize: 26 }} />
-                <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1.15rem' }}>
+                <Typography variant="h6" sx={{ fontFamily: FONT_FAMILY, fontWeight: 700, fontSize: '1.15rem' }}>
                   Encode Book Card & Packet Entry
                 </Typography>
               </Box>
@@ -1392,12 +1444,12 @@ const BookCatalogue = () => {
               </IconButton>
             </DialogTitle>
 
-            <DialogContent sx={{ p: 3, bgcolor: '#f8fafc' }}>
+            <DialogContent sx={{ p: 3, bgcolor: '#f8fafc', fontFamily: FONT_FAMILY }}>
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2.5, pt: 1 }}>
 
                 {/* Library */}
                 <Box>
-                  <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a' }}>
+                  <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a', fontFamily: FONT_FAMILY }}>
                     Library <span style={{ color: '#ef4444' }}>*</span>
                   </Typography>
                   <Autocomplete
@@ -1405,13 +1457,13 @@ const BookCatalogue = () => {
                     freeSolo
                     value={encodeData.library}
                     onChange={(e, val) => handleEncodeLibChange(val)}
-                    renderInput={(params) => <TextField {...params} size="small" placeholder="Choose or type library..." fullWidth sx={{ bgcolor: '#ffffff' }} />}
+                    renderInput={(params) => <TextField {...params} size="small" placeholder="Choose or type library..." fullWidth sx={{ bgcolor: '#ffffff', '& .MuiInputBase-root': { fontFamily: FONT_FAMILY } }} />}
                   />
                 </Box>
 
                 {/* Section */}
                 <Box>
-                  <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a' }}>
+                  <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a', fontFamily: FONT_FAMILY }}>
                     Section
                   </Typography>
                   <Autocomplete
@@ -1419,13 +1471,13 @@ const BookCatalogue = () => {
                     freeSolo
                     value={encodeData.section}
                     onChange={(e, val) => handleEncodeFieldChange('section', val || '')}
-                    renderInput={(params) => <TextField {...params} size="small" placeholder="Choose or type section..." fullWidth sx={{ bgcolor: '#ffffff' }} />}
+                    renderInput={(params) => <TextField {...params} size="small" placeholder="Choose or type section..." fullWidth sx={{ bgcolor: '#ffffff', '& .MuiInputBase-root': { fontFamily: FONT_FAMILY } }} />}
                   />
                 </Box>
 
                 {/* Author */}
                 <Box>
-                  <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a' }}>
+                  <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a', fontFamily: FONT_FAMILY }}>
                     Author (Full Name)
                   </Typography>
                   <TextField
@@ -1434,13 +1486,13 @@ const BookCatalogue = () => {
                     placeholder="e.g. Last Name, First Name M.I."
                     value={encodeData.authorName}
                     onChange={(e) => handleEncodeFieldChange('authorName', e.target.value)}
-                    sx={{ bgcolor: '#ffffff' }}
+                    sx={{ bgcolor: '#ffffff', '& .MuiInputBase-root': { fontFamily: FONT_FAMILY } }}
                   />
                 </Box>
 
                 {/* Publisher */}
                 <Box>
-                  <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a' }}>
+                  <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a', fontFamily: FONT_FAMILY }}>
                     Publisher / Corporate Author
                   </Typography>
                   <TextField
@@ -1449,13 +1501,13 @@ const BookCatalogue = () => {
                     placeholder="Enter publisher or institution name"
                     value={encodeData.publisherAuthor}
                     onChange={(e) => handleEncodeFieldChange('publisherAuthor', e.target.value)}
-                    sx={{ bgcolor: '#ffffff' }}
+                    sx={{ bgcolor: '#ffffff', '& .MuiInputBase-root': { fontFamily: FONT_FAMILY } }}
                   />
                 </Box>
 
                 {/* Book Title - Full Width */}
                 <Box sx={{ gridColumn: { xs: 'span 1', sm: 'span 2' } }}>
-                  <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a' }}>
+                  <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a', fontFamily: FONT_FAMILY }}>
                     Book Title <span style={{ color: '#ef4444' }}>*</span>
                   </Typography>
                   <TextField
@@ -1466,13 +1518,13 @@ const BookCatalogue = () => {
                     placeholder="Enter complete book title..."
                     value={encodeData.bookTitle}
                     onChange={(e) => handleEncodeFieldChange('bookTitle', e.target.value)}
-                    sx={{ bgcolor: '#ffffff' }}
+                    sx={{ bgcolor: '#ffffff', '& .MuiInputBase-root': { fontFamily: FONT_FAMILY } }}
                   />
                 </Box>
 
                 {/* Accession Number */}
                 <Box>
-                  <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a' }}>
+                  <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a', fontFamily: FONT_FAMILY }}>
                     Accession Number <span style={{ color: '#ef4444' }}>*</span>
                   </Typography>
                   <TextField
@@ -1481,13 +1533,13 @@ const BookCatalogue = () => {
                     placeholder="Enter accession number..."
                     value={encodeData.accessionNumber}
                     onChange={(e) => handleEncodeAccChange(e.target.value)}
-                    sx={{ bgcolor: '#ffffff' }}
+                    sx={{ bgcolor: '#ffffff', '& .MuiInputBase-root': { fontFamily: FONT_FAMILY } }}
                   />
                 </Box>
 
                 {/* Barcode */}
                 <Box>
-                  <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a' }}>
+                  <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a', fontFamily: FONT_FAMILY }}>
                     Barcode (Auto-generated)
                   </Typography>
                   <TextField
@@ -1495,13 +1547,13 @@ const BookCatalogue = () => {
                     fullWidth
                     value={encodeData.barcodeValue}
                     onChange={(e) => handleEncodeFieldChange('barcodeValue', e.target.value)}
-                    sx={{ bgcolor: '#ffffff' }}
+                    sx={{ bgcolor: '#ffffff', '& .MuiInputBase-root': { fontFamily: FONT_FAMILY } }}
                   />
                 </Box>
 
                 {/* Copy Number */}
                 <Box>
-                  <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a' }}>
+                  <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a', fontFamily: FONT_FAMILY }}>
                     Copy Number (Optional)
                   </Typography>
                   <TextField
@@ -1510,13 +1562,13 @@ const BookCatalogue = () => {
                     placeholder="e.g. c.1, c.2"
                     value={encodeData.copyNumber}
                     onChange={(e) => handleEncodeFieldChange('copyNumber', e.target.value)}
-                    sx={{ bgcolor: '#ffffff' }}
+                    sx={{ bgcolor: '#ffffff', '& .MuiInputBase-root': { fontFamily: FONT_FAMILY } }}
                   />
                 </Box>
 
                 {/* ISO Code */}
                 <Box>
-                  <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a' }}>
+                  <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a', fontFamily: FONT_FAMILY }}>
                     ISO Code (Auto-generated)
                   </Typography>
                   <TextField
@@ -1524,13 +1576,13 @@ const BookCatalogue = () => {
                     fullWidth
                     value={encodeData.isoCodeValue}
                     onChange={(e) => handleEncodeFieldChange('isoCodeValue', e.target.value)}
-                    sx={{ bgcolor: '#ffffff' }}
+                    sx={{ bgcolor: '#ffffff', '& .MuiInputBase-root': { fontFamily: FONT_FAMILY } }}
                   />
                 </Box>
 
                 {/* Call Number - Full Width */}
                 <Box sx={{ gridColumn: { xs: 'span 1', sm: 'span 2' } }}>
-                  <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a' }}>
+                  <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a', fontFamily: FONT_FAMILY }}>
                     Call Number
                   </Typography>
                   <TextField
@@ -1541,7 +1593,7 @@ const BookCatalogue = () => {
                     placeholder="Enter call number..."
                     value={encodeData.callNumber}
                     onChange={(e) => handleEncodeFieldChange('callNumber', e.target.value)}
-                    sx={{ bgcolor: '#ffffff' }}
+                    sx={{ bgcolor: '#ffffff', '& .MuiInputBase-root': { fontFamily: FONT_FAMILY } }}
                   />
                 </Box>
 
@@ -1549,12 +1601,12 @@ const BookCatalogue = () => {
             </DialogContent>
 
             <DialogActions sx={{ px: 3, py: 2, bgcolor: '#f1f5f9', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', gap: 1 }}>
-              <Button onClick={resetEncodeForm} variant="outlined" color="error" size="medium" sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}>
+              <Button onClick={resetEncodeForm} variant="outlined" color="error" size="medium" sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, fontFamily: FONT_FAMILY }}>
                 Clear Form
               </Button>
 
               <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
-                <Button onClick={() => setEncodeModalOpen(false)} variant="outlined" size="medium" sx={{ borderRadius: 2, textTransform: 'none', borderColor: '#cbd5e1', color: '#475569', fontWeight: 600 }}>
+                <Button onClick={() => setEncodeModalOpen(false)} variant="outlined" size="medium" sx={{ borderRadius: 2, textTransform: 'none', borderColor: '#cbd5e1', color: '#475569', fontWeight: 600, fontFamily: FONT_FAMILY }}>
                   Cancel
                 </Button>
                 <Button
@@ -1564,6 +1616,7 @@ const BookCatalogue = () => {
                   sx={{
                     borderRadius: 2,
                     textTransform: 'none',
+                    fontFamily: FONT_FAMILY,
                     bgcolor: '#d49f1e',
                     color: '#1b365d',
                     fontWeight: 700,
@@ -1582,6 +1635,7 @@ const BookCatalogue = () => {
                   sx={{
                     borderRadius: 2,
                     textTransform: 'none',
+                    fontFamily: FONT_FAMILY,
                     bgcolor: '#1b365d',
                     color: '#ffffff',
                     fontWeight: 700,

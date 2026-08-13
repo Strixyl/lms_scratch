@@ -284,23 +284,24 @@ export default function CardAndPacket() {
       <div class="packet">
         <div class="packet-header">
           <div class="packet-uni">CENTRAL PHILIPPINE UNIVERSITY</div>
-          ${(card.isoCode && idx === 0) ? `<div class="packet-iso">${card.isoCode.replace('REV.', '<br>REV.').replace('April', '<br>April')}</div>` : ''}
         </div>
         <div class="packet-fields">
-          <div class="packet-row">
-            <span class="packet-label">CALL No.</span>
-            <span class="packet-val underline">${card.callNum || ''}</span>
+          <div class="packet-row-split">
+            <div class="packet-field-item">
+              <span class="packet-label">CALL No.</span>
+              <span class="packet-val underline">${card.callNum || ''}</span>
+            </div>
+            <div class="packet-field-item">
+              <span class="packet-label">ACC. No.</span>
+              <span class="packet-val underline">${card.accession || ''}</span>
+            </div>
           </div>
-          <div class="packet-row">
-            <span class="packet-label">ACC. No.</span>
-            <span class="packet-val underline">${card.accession || ''}</span>
-          </div>
-          ${libPrefix ? `
-          <div class="packet-row">
-            <span class="packet-prefix-label">${libPrefix}</span>
-          </div>` : ''}
         </div>
         <div class="packet-fold-box"></div>
+        <div class="packet-bottom-row">
+          <span class="packet-prefix-label">${libPrefix}</span>
+          ${(card.isoCode && idx === 0) ? `<div class="packet-iso">${card.isoCode.replace('REV.', '<br>REV.').replace('April', '<br>April')}</div>` : ''}
+        </div>
       </div>
     `;
     }).join('');
@@ -476,15 +477,28 @@ export default function CardAndPacket() {
             gap: 8px;
             margin-bottom: 12px;
           }
-          .packet-row {
+          .packet-row-split {
+            display: flex;
+            gap: 16px;
+            align-items: flex-end;
+          }
+          .packet-field-item {
             display: flex;
             align-items: flex-end;
+            flex: 1;
+          }
+          .packet-bottom-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-top: auto;
+            margin-bottom: 4px;
           }
           .packet-label {
             font-size: 9.5pt;
             font-weight: bold;
             white-space: nowrap;
-            margin-right: 8px;
+            margin-right: 6px;
           }
           .packet-val {
             font-size: 9.5pt;
@@ -494,12 +508,11 @@ export default function CardAndPacket() {
           .packet-prefix-label {
             font-size: 9.5pt;
             font-weight: bold;
-            margin-top: 4px;
           }
           .packet-fold-box {
-            flex-grow: 1;
             border-top: 1px solid #000;
-            margin-top: 16px;
+            margin-top: 4px;
+            flex-grow: 1;
           }
         </style>
       </head>
@@ -755,23 +768,30 @@ export default function CardAndPacket() {
                             )}
                           </Box>
                           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 1 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'flex-end' }}>
-                              <Typography fontSize="9pt" fontWeight="bold" sx={{ whiteSpace: 'nowrap', mr: 1 }}>CALL No.</Typography>
-                              <Box sx={{ flexGrow: 1, borderBottom: '1px solid black', fontWeight: 'bold', fontSize: '9pt', pl: 0.5, minHeight: '18px' }}>
-                                {col.callNum}
+                            <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-end' }}>
+                              <Box sx={{ display: 'flex', alignItems: 'flex-end', flex: 1 }}>
+                                <Typography fontSize="9pt" fontWeight="bold" sx={{ whiteSpace: 'nowrap', mr: 0.75 }}>CALL No.</Typography>
+                                <Box sx={{ flexGrow: 1, borderBottom: '1px solid black', fontWeight: 'bold', fontSize: '9pt', pl: 0.5, minHeight: '18px' }}>
+                                  {col.callNum}
+                                </Box>
+                              </Box>
+                              <Box sx={{ display: 'flex', alignItems: 'flex-end', flex: 1 }}>
+                                <Typography fontSize="9pt" fontWeight="bold" sx={{ whiteSpace: 'nowrap', mr: 0.75 }}>ACC. No.</Typography>
+                                <Box sx={{ flexGrow: 1, borderBottom: '1px solid black', fontWeight: 'bold', fontSize: '9pt', pl: 0.5, minHeight: '18px' }}>
+                                  {col.accession}
+                                </Box>
                               </Box>
                             </Box>
-                            <Box sx={{ display: 'flex', alignItems: 'flex-end' }}>
-                              <Typography fontSize="9pt" fontWeight="bold" sx={{ whiteSpace: 'nowrap', mr: 1 }}>ACC. No.</Typography>
-                              <Box sx={{ flexGrow: 1, borderBottom: '1px solid black', fontWeight: 'bold', fontSize: '9pt', pl: 0.5, minHeight: '18px' }}>
-                                {col.accession}
-                              </Box>
-                            </Box>
-                            {libPrefix && (
-                              <Typography fontSize="9pt" fontWeight="bold" sx={{ mt: 0.5 }}>{libPrefix}</Typography>
+                          </Box>
+                           <Box sx={{ borderTop: '1px solid black', flexGrow: 1, mt: 1, mb: 0.5 }} />
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mt: 'auto' }}>
+                            <Typography fontSize="9pt" fontWeight="bold">{libPrefix}</Typography>
+                            {(col.isoCode && i === 0) && (
+                              <Typography fontSize="5.5pt" sx={{ textAlign: 'right', lineHeight: 1.2 }}>
+                                {col.isoCode.replace('REV.', '\nREV.').replace('April', '\nApril')}
+                              </Typography>
                             )}
                           </Box>
-                          <Box sx={{ flexGrow: 1, borderTop: '1px solid black', mt: 1.5 }} />
                         </Box>
                       );
                     })}
