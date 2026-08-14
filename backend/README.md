@@ -61,10 +61,17 @@ This directory houses the backend ecosystem supporting the **Henry Luce III Libr
 - **Response**: `{ "sentiment": "Positive", "score": 0.985 }`
 
 #### `POST /categorize`
-- **Description**: Categorizes text into domain categories using TF-IDF + Multinomial Naïve Bayes with confidence threshold fallback ($\tau = 0.45$).
+- **Description**: Categorizes text into domain categories using TF-IDF + Multinomial Naïve Bayes with confidence threshold fallback ($\tau = 0.45$). Includes clause-aware category resolution (`get_clause_category`) for dual-topic comments.
 - **Request Body**: `{ "text": "The air conditioning system on the 3rd floor is cold." }`
 - **Response**: `{ "category": "Facilities", "confidence": 0.924 }`
 - **Supported Categories**: `Facilities`, `Staff`, `Collection`, `Other/Uncategorized`
+
+#### 🔀 Dual-Topic & Mixed-Sentiment Clause Resolution
+- **Problem**: In multi-topic feedback (e.g., *"Staff are friendly, but the Wi-Fi keeps dropping"*) or long feedback with non-domain praise (*"water is refreshing... improve the aircon"*), single-shot text categorization could either misattribute complaints or dilute domain keywords into `Other/Uncategorized`.
+- **Solution**: Implemented `get_clause_category()` in `sentiment_service.py` and updated `predict_with_fallback()` in `naive_bayes.py`:
+  1. **Conjunction Clause Splitting (`split_clauses()`)**: Parses contrastive sentences on pivot words (`but`, `however`, `although`, `though`, etc.).
+  2. **Winning Negative Clause Binding**: If a negative complaint clause is surfaced by BERT (e.g., *"Wi-Fi keeps dropping"* $\rightarrow$ `Negative`), the response Category binds to **that specific negative clause** (`Facilities`).
+  3. **Domain Keyword Override & Clause Fallback**: If Naïve Bayes classifies full text as `Other/Uncategorized` due to feature dilution, `predict_with_fallback()` checks for explicit domain keywords (`aircon`, `wifi`, `librarian`, `textbook`), and `get_clause_category()` inspects individual clauses to ensure actionable feedback (e.g. aircon complaints) routes to `Facilities`.
 
 ---
 

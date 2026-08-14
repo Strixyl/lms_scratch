@@ -628,7 +628,7 @@ const LoginDashboard = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
-  const [loggedInUser, setLoggedInUser] = useState('');
+  const [, setLoggedInUser] = useState('');
 
   const [rawLogins, setRawLogins] = useState([]);
   const [loading, setLoading] = useState(true);

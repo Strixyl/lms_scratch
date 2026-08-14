@@ -104,9 +104,52 @@ def analyze():
 
     clauses = split_clauses(text)
     clause_results = [bert_sentiment(c) for c in clauses]
-    sentiment, score = aggregate_most_negative_wins(clause_results)
+    sentiment, score = aggregate_most_negative_wins(clause_results)   #gets the most negative clause to be prioritized for improvement
 
     return jsonify({ 'sentiment': sentiment, 'score': score })
+
+def get_clause_category(text: str):      #gets the negative clause and identifies which category it falls
+    text = text.strip()
+    if not text:
+        return 'Other/Uncategorized', 0.0
+
+    clauses = split_clauses(text)
+    if len(clauses) <= 1:
+        cat = category_model.predict_with_fallback(text)
+        probs = category_model.predict_proba(text)
+        return cat, float(probs.max())
+
+    neg_clause_cats = []   # assigns whcih categeryo it falls to
+    for c in clauses:
+        sent, score = bert_sentiment(c)
+        if sent == 'Negative':
+            cat = category_model.predict_with_fallback(c)
+            probs = category_model.predict_proba(c)
+            conf = float(probs.max())
+            neg_clause_cats.append((c, cat, conf, score))
+
+    if neg_clause_cats:
+        specific_neg = [item for item in neg_clause_cats if item[1] != 'Other/Uncategorized']
+        if specific_neg:
+            best = max(specific_neg, key=lambda x: x[3])
+            return best[1], best[2]
+        else:
+            best = max(neg_clause_cats, key=lambda x: x[3])
+            return best[1], best[2]
+
+    cat = category_model.predict_with_fallback(text)
+    probs = category_model.predict_proba(text)
+    conf = float(probs.max())
+
+    if cat == 'Other/Uncategorized':
+        for c in clauses:
+            clause_cat = category_model.predict_with_fallback(c)
+            if clause_cat != 'Other/Uncategorized':
+                clause_conf = float(category_model.predict_proba(c).max())
+                return clause_cat, clause_conf
+
+    return cat, conf
+
 
 @app.route('/categorize', methods=['POST'])
 def categorize():
@@ -116,11 +159,7 @@ def categorize():
     if not text.strip():
         return jsonify({ 'category': 'Other/Uncategorized', 'confidence': 0 })
 
-    category = category_model.predict_with_fallback(text)
-
-
-    probs = category_model.predict_proba(text)
-    confidence = float(probs.max())
+    category, confidence = get_clause_category(text)
 
     return jsonify({ 'category': category, 'confidence': confidence })
 

@@ -8,9 +8,6 @@ import {
   TextField,
   Button,
   FormControl,
-  FormControlLabel,
-  RadioGroup,
-  Radio,
   InputLabel,
   Select,
   MenuItem,
@@ -19,6 +16,8 @@ import {
   Paper,
   Chip,
   LinearProgress,
+  Collapse,
+  Radio,
 } from '@mui/material';
 import {
   Speed as SpeedIcon,
@@ -27,6 +26,15 @@ import {
   NavigateBefore as BackIcon,
   CheckCircle as CheckIcon,
   Send as SendIcon,
+  School as SchoolIcon,
+  CastForEducation as FacultyIcon,
+  Badge as StaffIcon,
+  Science as ResearcherIcon,
+  AdminPanelSettings as AdminIcon,
+  WorkspacePremium as AlumniIcon,
+  AccessTime as ClockIcon,
+  Check as CheckMarkIcon,
+  RadioButtonUnchecked as UncheckedIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
 
@@ -38,6 +46,16 @@ const RATING_OPTIONS = [
   { id: 'satisfied', label: 'Satisfied', ciscoLabel: '4' },
   { id: 'very_satisfied', label: 'Very Satisfied', ciscoLabel: '5' },
   { id: 'na', label: 'N/A', ciscoLabel: 'N/A' },
+];
+
+// ── Patron Types with Icons (Modern Left Sidebar) ───────────────────────────
+const PATRON_TYPES = [
+  { id: 'student', label: 'Student', icon: SchoolIcon, desc: 'College & Course req.' },
+  { id: 'faculty', label: 'Faculty', icon: FacultyIcon, desc: 'College & Course req.' },
+  { id: 'staff', label: 'Staff', icon: StaffIcon, desc: 'University Staff' },
+  { id: 'researcher', label: 'Researcher', icon: ResearcherIcon, desc: 'Visiting Scholar' },
+  { id: 'admin', label: 'CPU Admin', icon: AdminIcon, desc: 'Administration' },
+  { id: 'alumni', label: 'Alumnus/Alumni', icon: AlumniIcon, desc: 'CPU Graduate' },
 ];
 
 // ── College Courses Lookup ──────────────────────────────────────────────────
@@ -75,7 +93,7 @@ const surveyQuestions = [
   "Your general satisfaction with your experience at the library.",
 ];
 
-// ── Cisco CSAT Style Rating Component (Minimalist Pure White Theme) ─────────
+// ── Cisco CSAT Style Rating Component (Original Minimalist Pure White Theme) ─
 const CiscoQuestionItem = ({ qIdx, question, selectedId, onSelect }) => {
   const [hoveredId, setHoveredId] = useState(null);
   const activeId = hoveredId || selectedId;
@@ -218,8 +236,7 @@ const CiscoQuestionItem = ({ qIdx, question, selectedId, onSelect }) => {
   );
 };
 
-
-// ── Single-Question Focus Wizard Rating Component (Minimalist Pure White Theme) ───
+// ── Single-Question Focus Wizard Rating Component (Original Minimalist Pure White Theme) ─
 const WizardQuestionItem = ({ qIdx, question, selectedId, onSelect }) => {
   const [hoveredId, setHoveredId] = useState(null);
   const activeId = hoveredId || selectedId;
@@ -330,10 +347,6 @@ const WizardQuestionItem = ({ qIdx, question, selectedId, onSelect }) => {
   );
 };
 
-
-
-
-
 // ── Main Satisfaction Survey Page ───────────────────────────────────────────
 const SatisfactionSurvey = () => {
   const [currentTime] = useState(new Date());
@@ -389,11 +402,27 @@ const SatisfactionSurvey = () => {
   const completedCount = responses.filter((r) => r !== null).length;
   const progressPercent = (completedCount / 10) * 100;
 
+  // Validation state for Patron Profile
+  const isCollegeRequired = clientele === 'student' || clientele === 'faculty';
+  const isPatronProfileValid = Boolean(
+    clientele && (!isCollegeRequired || (selectedCollege && selectedCourse))
+  );
+
   const handleCollegeChange = (e) => {
     const college = e.target.value;
     setSelectedCollege(college);
     setSelectedCourse('');
     setAvailableCourses(COLLEGE_COURSES[college] || []);
+  };
+
+  const handlePatronSelect = (patronId) => {
+    setClientele(patronId);
+    if (patronId !== 'student' && patronId !== 'faculty') {
+      setSelectedCollege('');
+      setSelectedCourse('');
+      setAvailableCourses([]);
+    }
+    if (submitError) setSubmitError('');
   };
 
   const handleSubmit = async () => {
@@ -403,7 +432,7 @@ const SatisfactionSurvey = () => {
       setSubmitError('Please select a clientele type in the left sidebar.');
       return;
     }
-    if ((clientele === 'student' || clientele === 'faculty') && (!selectedCollege || !selectedCourse)) {
+    if (isCollegeRequired && (!selectedCollege || !selectedCourse)) {
       setSubmitError('College and Course are required for Student and Faculty.');
       return;
     }
@@ -442,69 +471,265 @@ const SatisfactionSurvey = () => {
             <TopBar title="Satisfaction Survey" onMenuClick={toggleDrawer} subtitle="HENRY LUCE III LIBRARY SATISFACTION SURVEY" />
           </Box>
 
-          <Box sx={{ flex: '1 1 auto', overflow: 'hidden', display: 'flex', bgcolor: '#1b0892', fontFamily: 'Poppins, sans-serif' }}>
-            <Grid container spacing={0} sx={{ height: '100%', width: '100%', m: 0 }}>
+          <Box sx={{ flex: '1 1 auto', overflow: 'hidden', display: 'flex', flexDirection: { xs: 'column', md: 'row' }, bgcolor: '#f8fafc', fontFamily: 'Poppins, sans-serif' }}>
 
-              {/* Left Sidebar (Compact Container Width) */}
-              <Grid item xs={12} md={2.5} sx={{ bgcolor: '#000d3a', color: 'white', p: { xs: 2, sm: 2.5 }, height: '100%', overflowY: 'auto', width: { xs: '100%', md: '22%' }, display: 'flex', flexDirection: 'column' }}>
-                <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '1.1rem' }}>
-                  Clientele Profile:
-                </Typography>
-                <FormControl component="fieldset">
-                  <RadioGroup name="clientele" value={clientele} onChange={(e) => setClientele(e.target.value)}>
-                    <FormControlLabel value="student" control={<Radio size="small" sx={{ color: 'white' }} />} label="Student" />
-                    <FormControlLabel value="faculty" control={<Radio size="small" sx={{ color: 'white' }} />} label="Faculty" />
-                    <FormControlLabel value="staff" control={<Radio size="small" sx={{ color: 'white' }} />} label="Staff" />
-                    <FormControlLabel value="researcher" control={<Radio size="small" sx={{ color: 'white' }} />} label="Researcher" />
-                    <FormControlLabel value="admin" control={<Radio size="small" sx={{ color: 'white' }} />} label="CPU Admin" />
-                    <FormControlLabel value="alumni" control={<Radio size="small" sx={{ color: 'white' }} />} label="Alumnus/Alumni" />
-                  </RadioGroup>
-                </FormControl>
-
-                <FormControl fullWidth size="small" sx={{ mt: 2.5 }}>
-                  <InputLabel sx={{ color: 'white' }}>College</InputLabel>
-                  <Select
-                    label="College"
-                    value={selectedCollege}
-                    onChange={handleCollegeChange}
-                    sx={{ color: 'white', '.MuiOutlinedInput-notchedOutline': { borderColor: 'white' }, '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'white' }, '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'white' } }}
+            {/* ── Left Sidebar (Modern Elevated Patron Dock with Divider Glow) ── */}
+            <Box
+              sx={{
+                width: { xs: '100%', md: '340px', lg: '360px' },
+                minWidth: { md: '320px', lg: '350px' },
+                maxWidth: { md: '380px' },
+                flexShrink: 0,
+                background: 'linear-gradient(180deg, #091230 0%, #03081a 100%)',
+                color: 'white',
+                p: { xs: 2.2, sm: 2.8 },
+                height: '100%',
+                overflowY: 'auto',
+                display: 'flex',
+                flexDirection: 'column',
+                borderRight: '1px solid rgba(255, 255, 255, 0.08)',
+                boxShadow: '6px 0 24px rgba(0, 0, 0, 0.35)',
+                zIndex: 10,
+                position: 'relative',
+              }}
+            >
+              {/* Section Header */}
+              <Box sx={{ mb: 2.2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.8 }}>
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      fontFamily: 'Poppins, sans-serif',
+                      fontWeight: 700,
+                      color: '#ffffff',
+                      fontSize: '19.5px',
+                      letterSpacing: '0.2px',
+                    }}
                   >
-                    <MenuItem value="">Select</MenuItem>
-                    {Object.keys(COLLEGE_COURSES).map((c) => (
-                      <MenuItem key={c} value={c}>{c}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-
-                <FormControl fullWidth size="small" sx={{ mt: 2.5 }}>
-                  <InputLabel sx={{ color: 'white' }}>Course</InputLabel>
-                  <Select
-                    label="Course"
-                    value={selectedCourse}
-                    onChange={(e) => setSelectedCourse(e.target.value)}
-                    disabled={availableCourses.length === 0}
-                    sx={{ color: 'white', '.MuiOutlinedInput-notchedOutline': { borderColor: 'white' }, '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'white' }, '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'white' } }}
-                  >
-                    <MenuItem value="">Select</MenuItem>
-                    {availableCourses.map((crs, i) => (
-                      <MenuItem key={i} value={crs}>{crs}</MenuItem>
-                    ))}
-                  </Select>
-                  <Typography variant="caption" sx={{ mt: 1, display: 'block', color: 'rgba(255,255,255,0.7)', fontSize: '11px' }}>
-                    *Required for Student and Faculty only.
+                    Clientele Profile:
                   </Typography>
-                </FormControl>
 
-                <Box sx={{ mt: 'auto', pt: 3 }}>
-                  <Typography variant="caption" display="block" sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '11px' }}>
-                    {currentTime.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} –{' '}
-                    {currentTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })}
-                  </Typography>
+                  {/* Live Profile Readiness Chip */}
+                  <Chip
+                    icon={isPatronProfileValid ? <CheckMarkIcon sx={{ fontSize: '15px !important', color: '#ffffff !important' }} /> : <UncheckedIcon sx={{ fontSize: '14px !important', color: '#94a3b8 !important' }} />}
+                    label={isPatronProfileValid ? 'Ready' : 'Incomplete'}
+                    size="small"
+                    sx={{
+                      fontFamily: 'Poppins, sans-serif',
+                      fontWeight: 700,
+                      fontSize: '11.5px',
+                      height: '26px',
+                      px: 0.5,
+                      bgcolor: isPatronProfileValid ? 'rgba(34, 197, 94, 0.22)' : 'rgba(255, 255, 255, 0.08)',
+                      color: isPatronProfileValid ? '#4ade80' : '#94a3b8',
+                      border: isPatronProfileValid ? '1px solid rgba(74, 222, 128, 0.4)' : '1px solid rgba(255, 255, 255, 0.15)',
+                    }}
+                  />
                 </Box>
-              </Grid>
+                <Typography sx={{ color: 'rgba(255, 255, 255, 0.78)', fontSize: '13px', lineHeight: 1.4, display: 'block', fontFamily: 'Poppins, sans-serif' }}>
+                  Select your patron role to personalize your feedback.
+                </Typography>
+              </Box>
 
-              {/* Right Content Panel (Expanded Horizontal Area) */}
-              <Grid item xs={12} md={9.5} sx={{ bgcolor: '#f8fafc', p: { xs: 2, md: 3 }, height: '100%', overflowY: 'auto', width: { xs: '100%', md: '78%' }, display: 'flex', flexDirection: 'column' }}>
+              {/* Interactive Patron Category Tiles (Replaces Plain Radios) */}
+              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.2, mb: 2.2 }}>
+                {PATRON_TYPES.map((type) => {
+                  const isSelected = clientele === type.id;
+                  const IconComp = type.icon;
+
+                  return (
+                    <Box
+                      key={type.id}
+                      onClick={() => handlePatronSelect(type.id)}
+                      sx={{
+                        p: 1.5,
+                        borderRadius: '12px',
+                        cursor: 'pointer',
+                        bgcolor: isSelected ? 'rgba(0, 188, 235, 0.18)' : 'rgba(255, 255, 255, 0.05)',
+                        border: isSelected ? '1.8px solid #00bceb' : '1px solid rgba(255, 255, 255, 0.12)',
+                        boxShadow: isSelected ? '0 0 16px rgba(0, 188, 235, 0.3)' : 'none',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'flex-start',
+                        gap: 0.8,
+                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                        transform: isSelected ? 'scale(1.02)' : 'none',
+                        '&:hover': {
+                          bgcolor: isSelected ? 'rgba(0, 188, 235, 0.25)' : 'rgba(255, 255, 255, 0.09)',
+                          borderColor: isSelected ? '#00bceb' : 'rgba(255, 255, 255, 0.3)',
+                          transform: 'translateY(-2px)',
+                        },
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <IconComp sx={{ fontSize: 24, color: isSelected ? '#00bceb' : '#94a3b8', transition: 'color 0.2s' }} />
+                        {isSelected && (
+                          <CheckIcon sx={{ fontSize: 17, color: '#00bceb' }} />
+                        )}
+                      </Box>
+                      <Box sx={{ minWidth: 0, width: '100%' }}>
+                        <Typography
+                          sx={{
+                            fontFamily: 'Poppins, sans-serif',
+                            fontWeight: isSelected ? 700 : 600,
+                            fontSize: '13.5px',
+                            color: isSelected ? '#ffffff' : 'rgba(255, 255, 255, 0.9)',
+                            lineHeight: 1.25,
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
+                        >
+                          {type.label}
+                        </Typography>
+                        <Typography
+                          sx={{
+                            fontFamily: 'Poppins, sans-serif',
+                            fontSize: '10.5px',
+                            color: isSelected ? '#7dd3fc' : 'rgba(255, 255, 255, 0.52)',
+                            lineHeight: 1.15,
+                            mt: 0.3,
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
+                        >
+                          {type.desc}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  );
+                })}
+              </Box>
+
+              {/* College & Course Dropdowns (Smoothly Expands for Student & Faculty) */}
+              <Collapse in={isCollegeRequired} timeout={300} sx={{ width: '100%' }}>
+                <Box
+                  sx={{
+                    p: 2,
+                    borderRadius: '14px',
+                    bgcolor: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    mb: 2.2,
+                  }}
+                >
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      fontFamily: 'Poppins, sans-serif',
+                      fontWeight: 700,
+                      color: '#38bdf8',
+                      fontSize: '11.5px',
+                      display: 'block',
+                      mb: 1.5,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                    }}
+                  >
+                    Academic Affiliation *
+                  </Typography>
+
+                  <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+                    <InputLabel sx={{ color: 'rgba(255, 255, 255, 0.75)', fontSize: '13.5px' }}>College</InputLabel>
+                    <Select
+                      label="College"
+                      value={selectedCollege}
+                      onChange={handleCollegeChange}
+                      sx={{
+                        color: 'white',
+                        bgcolor: 'rgba(255, 255, 255, 0.06)',
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                        fontFamily: 'Poppins, sans-serif',
+                        '.MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.25)' },
+                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#00bceb' },
+                        '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.45)' },
+                        '.MuiSvgIcon-root': { color: '#00bceb' },
+                      }}
+                    >
+                      <MenuItem value="" sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '13px' }}>
+                        <em>Select College</em>
+                      </MenuItem>
+                      {Object.keys(COLLEGE_COURSES).map((c) => (
+                        <MenuItem key={c} value={c} sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '13px' }}>
+                          {c}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  <FormControl fullWidth size="small">
+                    <InputLabel sx={{ color: 'rgba(255, 255, 255, 0.75)', fontSize: '13.5px' }}>Course / Program</InputLabel>
+                    <Select
+                      label="Course / Program"
+                      value={selectedCourse}
+                      onChange={(e) => setSelectedCourse(e.target.value)}
+                      disabled={availableCourses.length === 0}
+                      sx={{
+                        color: 'white',
+                        bgcolor: 'rgba(255, 255, 255, 0.06)',
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                        fontFamily: 'Poppins, sans-serif',
+                        '.MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.25)' },
+                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#00bceb' },
+                        '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.45)' },
+                        '.MuiSvgIcon-root': { color: '#00bceb' },
+                      }}
+                    >
+                      <MenuItem value="" sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '13px' }}>
+                        <em>Select Course</em>
+                      </MenuItem>
+                      {availableCourses.map((crs, i) => (
+                        <MenuItem key={i} value={crs} sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '13px' }}>
+                          {crs}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Box>
+              </Collapse>
+
+              {/* Footer Time Card & System Info */}
+              <Box sx={{ mt: 'auto', pt: 2 }}>
+                <Box
+                  sx={{
+                    p: 1.4,
+                    borderRadius: '10px',
+                    bgcolor: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid rgba(255, 255, 255, 0.09)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1.2,
+                  }}
+                >
+                  <ClockIcon sx={{ fontSize: 18, color: '#38bdf8' }} />
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '11.5px', fontWeight: 600, display: 'block', lineHeight: 1.2 }}>
+                      {currentTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.55)', fontSize: '10.5px', display: 'block' }}>
+                      {currentTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+            </Box>
+
+            {/* ── Right Content Panel (Original Questionnaire Design & Style Switcher) ── */}
+            <Box
+              sx={{
+                flex: '1 1 auto',
+                minWidth: 0,
+                width: '100%',
+                bgcolor: '#f8fafc',
+                p: { xs: 2, md: 3 },
+                height: '100%',
+                overflowY: 'auto',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
                 <Box sx={{ maxWidth: '1400px', width: '100%', mx: 'auto', display: 'flex', flexDirection: 'column', gap: 2.5 }}>
 
                   {/* Header Progress Banner */}
@@ -553,7 +778,7 @@ const SatisfactionSurvey = () => {
                     sx={{
                       display: 'flex',
                       alignItems: 'center',
-                      justify: 'space-between',
+                      justifyContent: 'space-between',
                       flexWrap: 'wrap',
                       gap: 1.5,
                       pb: 0.5,
@@ -596,11 +821,10 @@ const SatisfactionSurvey = () => {
                           '&:hover': { bgcolor: viewMode === 'cisco' ? '#0096c7' : '#f1f5f9' },
                         }}
                       />
-
                     </Box>
                   </Box>
 
-                  {/* Cisco CSAT Style Renderer (100% Guaranteed 2 Equal Columns Per Row CSS Grid Layout) */}
+                  {/* Cisco CSAT Style Renderer (2 Equal Columns Grid) */}
                   {viewMode === 'cisco' && (
                     <Box
                       sx={{
@@ -622,8 +846,7 @@ const SatisfactionSurvey = () => {
                     </Box>
                   )}
 
-
-
+                  {/* Single-Question Focus Wizard Renderer */}
                   {viewMode === 'wizard' && (
                     <Paper
                       elevation={0}
@@ -656,7 +879,7 @@ const SatisfactionSurvey = () => {
                           </Typography>
                         </Box>
 
-                        {/* Animated Selection / Progress Feedback Badge */}
+                        {/* Animated Selection Feedback Badge */}
                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
                           {isAdvancing ? (
                             <Chip
@@ -806,7 +1029,7 @@ const SatisfactionSurvey = () => {
                     }}
                   >
                     <Typography fontWeight="bold" fontFamily="Poppins, sans-serif" fontSize="13px" mb={1} color="#1e293b">
-                      We'd love to hear your thoughts! (Optional)
+                      We'd love to hear your thoughts!
                     </Typography>
                     <TextField
                       fullWidth
@@ -876,8 +1099,7 @@ const SatisfactionSurvey = () => {
                   </Paper>
 
                 </Box>
-              </Grid>
-            </Grid>
+            </Box>
           </Box>
 
           <Snackbar

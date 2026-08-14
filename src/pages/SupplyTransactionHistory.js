@@ -40,6 +40,7 @@ const SupplyTransactionHistory = () => {
       return;
     }
     fetchTransactions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchTransactions = async () => {

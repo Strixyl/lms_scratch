@@ -6,8 +6,8 @@ import {
   TableRow, Paper, Button, TextField, CircularProgress,
   MenuItem, Select, FormControl, InputLabel,
   Dialog, DialogTitle, DialogContent, DialogActions, Avatar, Chip,
-  InputAdornment, TableSortLabel, Tooltip, Snackbar, Alert,
-  Checkbox, IconButton, ToggleButton, ToggleButtonGroup
+  TableSortLabel, Tooltip, Snackbar, Alert,
+  Checkbox, ToggleButton, ToggleButtonGroup
 } from '@mui/material';
 import {
   Print as PrintIcon,
@@ -21,7 +21,6 @@ import {
   SentimentSatisfied as SentimentSatisfiedIcon,
   Assessment as AssessmentIcon,
   AdminPanelSettings as AdminIcon,
-  Clear as ClearIcon,
   CalendarToday as CalendarTodayIcon,
   RestartAlt as RestartAltIcon,
   Inbox as InboxIcon
@@ -87,6 +86,19 @@ const SATISFACTION_SCALE = {
   dissatisfied: 2, very_dissatisfied: 1, na: null,
 };
 
+const formatRatingShort = (val) => {
+  if (!val) return 'N/A';
+  const scale = {
+    very_satisfied: '5',
+    satisfied: '4',
+    neutral: '3',
+    dissatisfied: '2',
+    very_dissatisfied: '1',
+    na: 'N/A',
+  };
+  return scale[val] || val;
+};
+
 const getSatisfactionAverage = (s) => {
   const qList = [
     s.Question1, s.Question2, s.Question3, s.Question4, s.Question5,
@@ -113,8 +125,7 @@ const getSurveyScore = (s) => {
     return ratingAvg;
   }
 
-  const bertScore = s.SentimentResult === 'Positive' ? 1 : s.SentimentResult === 'Negative' ? -1 : 0;
-  return ratingAvg * 0.5 + bertScore * 0.5;
+  return s.SentimentResult === 'Positive' ? 1.0 : s.SentimentResult === 'Negative' ? -1.0 : 0.0;
 };
 
 const STOPWORDS = new Set([
@@ -207,15 +218,15 @@ const stemWord = (word) => {
 const RECOMMENDATIONS = {
   Facilities: {
     moderate: 'Consider a facilities walkthrough to address recurring comfort/accessibility complaints (lighting, seating, temperature, cleanliness).',
-    high: 'Facilities feedback is predominantly negative — prioritize an infrastructure audit and budget request for repairs/upgrades this term.',
+    high: 'Facilities feedback is predominantly negative prioritize an infrastructure audit and budget request for repairs/upgrades this term.',
   },
   Staff: {
-    moderate: 'Some patrons report friction with staff interactions — a refresher on frontline service standards may help.',
-    high: 'Staff-related complaints are high — recommend a service-quality review with librarians and targeted retraining.',
+    moderate: 'Some patrons report friction with staff interactions, a refresher on frontline service standards may help.',
+    high: 'Staff-related complaints are high, recommend a service-quality review with librarians and staffs.',
   },
   Collection: {
-    moderate: 'Patrons are flagging gaps in available materials — review acquisition requests for undersupplied subject areas.',
-    high: 'Collection dissatisfaction is high — conduct a collection audit and prioritize acquisitions for the most-requested subjects.',
+    moderate: 'Patrons are flagging gaps in available materials, review acquisition requests for undersupplied subject areas.',
+    high: 'Collection dissatisfaction is high, conduct a collection audit and prioritize acquisitions for the most-requested topics and subjects.',
   },
 };
 
@@ -466,6 +477,31 @@ const CustomSentimentStackedTooltip = ({ active, payload, label }) => {
   return null;
 };
 
+// ── Custom Tooltip for Category Donut Gauge (Matches Reference Design) ────────
+const CustomDonutGaugeTooltip = ({ active, payload }) => {
+  if (active && payload && payload.length) {
+    const item = payload[0];
+    const isNoData = item.name === 'No Data';
+    if (isNoData) return null;
+    return (
+      <Paper elevation={4} sx={{ p: 1.5, bgcolor: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: 2.5, boxShadow: '0 8px 24px rgba(0,0,0,0.1)', minWidth: 120 }}>
+        <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 11.5, color: '#64748b', fontWeight: 600 }}>
+          {item.name} Sentiment
+        </Typography>
+        <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 18, fontWeight: 800, color: '#1e293b', my: 0.2 }}>
+          {item.value}%
+        </Typography>
+        {item.payload.count !== undefined && (
+          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>
+            {item.payload.count} response{item.payload.count !== 1 ? 's' : ''}
+          </Typography>
+        )}
+      </Paper>
+    );
+  }
+  return null;
+};
+
 const ROWS_PER_PAGE = 8;
 
 const SentimentDashboard = () => {
@@ -474,7 +510,7 @@ const SentimentDashboard = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
-  const [loggedInUser, setLoggedInUser] = useState('');
+  const [, setLoggedInUser] = useState('');
 
   useEffect(() => {
     const savedUser = localStorage.getItem('loggedInUser');
@@ -516,10 +552,8 @@ const SentimentDashboard = () => {
   const [page, setPage] = useState(0);
 
   // Word Cloud interactive states & filters
-  const [wcSearch, setWcSearch] = useState('');
-  const [wcSentimentFilter, setWcSentimentFilter] = useState('All');
-  const [wcMaxWords, setWcMaxWords] = useState(60);
-  const [wcRotation, setWcRotation] = useState('horizontal');
+  const [, setWcSearch] = useState('');
+  const [, setWcSentimentFilter] = useState('All');
   const [selectedWordFilter, setSelectedWordFilter] = useState('');
 
   // Live Search & Sort states
@@ -848,6 +882,37 @@ const SentimentDashboard = () => {
     });
   }, [filtered, stackedBreakdownDimension, stackedValueScale]);
 
+  // ── Sentiment Distribution by Category (Multi-Donut Rings matching UI Reference) ───
+  const categoryDonutData = useMemo(() => {
+    const categories = ['Facilities', 'Staff', 'Collection'];
+    return categories.map(cat => {
+      const items = filtered.filter(s => (s.Category || 'Other/Uncategorized') === cat);
+      const pos = items.filter(s => s.SentimentResult === 'Positive').length;
+      const neu = items.filter(s => s.SentimentResult === 'Neutral').length;
+      const neg = items.filter(s => s.SentimentResult === 'Negative').length;
+      const tot = items.length;
+
+      const posPct = tot > 0 ? Math.round((pos / tot) * 100) : 0;
+      const neuPct = tot > 0 ? Math.round((neu / tot) * 100) : 0;
+      const negPct = tot > 0 ? Math.max(0, 100 - posPct - neuPct) : 0;
+
+      const slices = tot > 0 ? [
+        { name: 'Positive', value: posPct, count: pos, color: '#22c55e' },
+        { name: 'Neutral', value: neuPct, count: neu, color: '#f59e0b' },
+        { name: 'Negative', value: negPct, count: neg, color: '#ef4444' },
+      ].filter(s => s.value > 0) : [
+        { name: 'No Data', value: 100, count: 0, color: '#e2e8f0' }
+      ];
+
+      return {
+        name: cat,
+        total: tot,
+        posPct,
+        slices
+      };
+    });
+  }, [filtered]);
+
   // ── Word/Term Frequency & TF-IDF Ranking for Top Comments (Approach B) ──────
   const buildTermFrequencies = (pool) => {
     const freq = {};
@@ -879,7 +944,7 @@ const SentimentDashboard = () => {
   };
 
   // Dynamic term frequencies for word cloud visualization based on active filters
-  const { freq: termFrequencies = {}, displayMap: stemToOriginalMap = {}, sentimentCounts: wordSentimentCounts = {} } = useMemo(() => {
+  const { freq: termFrequencies = {}, displayMap: stemToOriginalMap = {} } = useMemo(() => {
     return buildTermFrequencies(filtered.length > 0 ? filtered : surveys);
   }, [filtered, surveys]);
 
@@ -1150,7 +1215,18 @@ const SentimentDashboard = () => {
       'No.': index + 1,
       'Clientele Group': row.Clientele || 'N/A',
       'College': row.College || 'N/A',
+      'Course': row.Course || 'N/A',
       'Text Response Inputted': row.Message || '',
+      'Q1': formatRatingShort(row.Question1),
+      'Q2': formatRatingShort(row.Question2),
+      'Q3': formatRatingShort(row.Question3),
+      'Q4': formatRatingShort(row.Question4),
+      'Q5': formatRatingShort(row.Question5),
+      'Q6': formatRatingShort(row.Question6),
+      'Q7': formatRatingShort(row.Question7),
+      'Q8': formatRatingShort(row.Question8),
+      'Q9': formatRatingShort(row.Question9),
+      'Q10': formatRatingShort(row.Question10),
       'Overall Sentiment': row.SentimentResult || '',
       'Category': row.Category || 'Other/Uncategorized',
       'Date Submitted': row.DateSubmitted ? new Date(row.DateSubmitted).toLocaleDateString() : 'N/A'
@@ -1202,23 +1278,26 @@ const SentimentDashboard = () => {
         <head>
           <title>Sentiment Analysis Summary Report</title>
           <style>
-            body { font-family: Arial, sans-serif; padding: 30px; color: #000; }
-            h1 { text-align: center; font-size: 20px; margin-bottom: 4px; }
-            h2 { text-align: center; font-size: 15px; font-weight: normal; margin-bottom: 4px; color: #444; }
-            p.daterange { text-align: center; font-size: 13px; color: #666; margin-bottom: 25px; }
-            .summary { display: flex; justify-content: space-around; gap: 10px; margin-bottom: 25px; }
-            .summary-box { border: 1px solid #ccc; border-radius: 8px; padding: 12px; text-align: center; flex: 1; }
-            .summary-box .value { font-size: 24px; font-weight: bold; }
+            @page { size: landscape; margin: 8mm; }
+            body { font-family: Arial, sans-serif; padding: 15px; color: #000; }
+            h1 { text-align: center; font-size: 18px; margin-bottom: 4px; }
+            h2 { text-align: center; font-size: 13px; font-weight: normal; margin-bottom: 4px; color: #444; }
+            p.daterange { text-align: center; font-size: 12px; color: #666; margin-bottom: 15px; }
+            .summary { display: flex; justify-content: space-around; gap: 10px; margin-bottom: 15px; }
+            .summary-box { border: 1px solid #ccc; border-radius: 6px; padding: 8px; text-align: center; flex: 1; }
+            .summary-box .value { font-size: 20px; font-weight: bold; }
             .summary-box.pos .value { color: #047857; }
             .summary-box.neu .value { color: #b45309; }
             .summary-box.neg .value { color: #be123c; }
             .summary-box.tot .value { color: #1e3a8a; }
-            .summary-box .label { font-size: 12px; color: #555; margin-top: 4px; font-weight: bold; }
-            table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 15px; }
-            th { background-color: #334155; color: white; padding: 8px; text-align: left; }
-            td { padding: 8px; border-bottom: 1px solid #eee; }
+            .summary-box .label { font-size: 11px; color: #555; margin-top: 2px; font-weight: bold; }
+            .scale-legend { font-size: 10.5px; color: #475569; background: #f8fafc; border: 1px solid #cbd5e1; padding: 6px 10px; border-radius: 4px; margin-bottom: 12px; text-align: center; font-weight: 600; }
+            table { width: 100%; border-collapse: collapse; font-size: 10px; margin-top: 10px; }
+            th { background-color: #334155; color: white; padding: 6px 4px; text-align: left; font-size: 10px; }
+            td { padding: 5px 4px; border-bottom: 1px solid #eee; word-break: break-word; font-size: 9.5px; }
             tr:nth-child(even) { background-color: #f9f9f9; }
-            .footer { margin-top: 30px; text-align: center; font-size: 11px; color: #999; }
+            .q-cell { text-align: center; font-weight: bold; }
+            .footer { margin-top: 20px; text-align: center; font-size: 10px; color: #999; }
           </style>
         </head>
         <body>${printContents}</body>
@@ -1783,70 +1862,77 @@ const SentimentDashboard = () => {
                       <TopCommentsCard title="Top 5 Negative Comments" rows={topNegative} accent="#e11d48" lightBorder="#fecdd3" icon={<ThumbDownIcon />} />
                     </Box>
 
-                    {/* ── Charts Grid (Sentiment Donut & Category Breakdown with soft light colors) ───── */}
-                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2.5, mb: 3 }}>
-                      <Card elevation={0} sx={{ border: '1.5px solid #e2e8f0', borderRadius: 3.5, backgroundColor: 'white' }}>
-                        <CardContent sx={{ p: 3 }}>
-                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 14, color: '#1e293b', letterSpacing: 0.5, textTransform: 'uppercase', mb: 2 }}>
-                            Sentiment Distribution
+                    {/* ── Sentiment Distribution by Category (Design Reference Multi-Donut Card) ───── */}
+                    <Card elevation={0} sx={{ border: '1.5px solid #e2e8f0', borderRadius: 3.5, mb: 3, backgroundColor: 'white' }}>
+                      <CardContent sx={{ p: 3 }}>
+                        {/* Header with Title and Legend Indicators */}
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 16, color: '#1e293b' }}>
+                            Sentiment Distribution by Category
                           </Typography>
-                          {total === 0 ? (
-                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', color: '#94a3b8', textAlign: 'center', py: 6 }}>
-                              No sentiment data available for the selected filters.
-                            </Typography>
-                          ) : (
-                            <ResponsiveContainer width="100%" height={260}>
-                              <PieChart>
-                                <Pie data={chartData} cx="50%" cy="50%"
-                                  innerRadius={65} outerRadius={100} paddingAngle={3}
-                                  dataKey="value" labelLine={false} label={renderCustomLabel}>
-                                  {chartData.map((entry) => (
-                                    <Cell key={entry.name} fill={CHART_COLORS[['Positive', 'Neutral', 'Negative'].indexOf(entry.name)]} />
-                                  ))}
-                                </Pie>
-                                <RechartsTooltip formatter={(value, name) => [`${value} responses`, name]}
-                                  contentStyle={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, borderRadius: 10, border: '1px solid #cbd5e1' }} />
-                                <Legend formatter={(value, entry) => {
-                                  const pct = total > 0 ? Math.round((entry.payload.value / total) * 100) : 0;
-                                  return <span style={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 600, color: '#475569' }}>{value} {pct}%</span>;
-                                }} />
-                              </PieChart>
-                            </ResponsiveContainer>
-                          )}
-                        </CardContent>
-                      </Card>
 
-                      <Card elevation={0} sx={{ border: '1.5px solid #e2e8f0', borderRadius: 3.5, backgroundColor: 'white' }}>
-                        <CardContent sx={{ p: 3 }}>
-                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 14, color: '#1e293b', letterSpacing: 0.5, textTransform: 'uppercase', mb: 2 }}>
-                            Category Breakdown
-                          </Typography>
-                          {total === 0 || categoryChartData.length === 0 ? (
-                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', color: '#94a3b8', textAlign: 'center', py: 6 }}>
-                              No category data available for the selected filters.
-                            </Typography>
-                          ) : (
-                            <ResponsiveContainer width="100%" height={260}>
-                              <PieChart>
-                                <Pie data={categoryChartData} cx="50%" cy="50%"
-                                  innerRadius={65} outerRadius={100} paddingAngle={3}
-                                  dataKey="value" labelLine={false} label={renderCustomLabel}>
-                                  {categoryChartData.map((entry) => (
-                                    <Cell key={entry.name} fill={entry.color} />
-                                  ))}
-                                </Pie>
-                                <RechartsTooltip formatter={(value, name) => [`${value} responses`, name]}
-                                  contentStyle={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, borderRadius: 10, border: '1px solid #cbd5e1' }} />
-                                <Legend formatter={(value, entry) => {
-                                  const pct = total > 0 ? Math.round((entry.payload.value / total) * 100) : 0;
-                                  return <span style={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 600, color: '#475569' }}>{value} {pct}%</span>;
-                                }} />
-                              </PieChart>
-                            </ResponsiveContainer>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </Box>
+                          {/* Legend Indicators */}
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                              <Box sx={{ width: 8, height: 8, transform: 'rotate(45deg)', bgcolor: '#22c55e' }} />
+                              <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#64748b', fontWeight: 600 }}>
+                                Positive
+                              </Typography>
+                            </Box>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                              <Box sx={{ width: 8, height: 8, transform: 'rotate(45deg)', bgcolor: '#f59e0b' }} />
+                              <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#64748b', fontWeight: 600 }}>
+                                Neutral
+                              </Typography>
+                            </Box>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                              <Box sx={{ width: 8, height: 8, transform: 'rotate(45deg)', bgcolor: '#ef4444' }} />
+                              <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#64748b', fontWeight: 600 }}>
+                                Negative
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </Box>
+
+                        {/* 3 Donut Rings Row */}
+                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2, alignItems: 'center', minHeight: 250, pt: 1 }}>
+                          {categoryDonutData.map((donut) => (
+                            <Box key={donut.name} sx={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                              <ResponsiveContainer width="100%" height={220}>
+                                <PieChart>
+                                  <Pie
+                                    data={donut.slices}
+                                    dataKey="value"
+                                    nameKey="name"
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={50}
+                                    outerRadius={74}
+                                    startAngle={90}
+                                    endAngle={-270}
+                                    stroke="none"
+                                  >
+                                    {donut.slices.map((entry, i) => (
+                                      <Cell key={`cell-${donut.name}-${i}`} fill={entry.color} />
+                                    ))}
+                                  </Pie>
+                                  {donut.total > 0 && <RechartsTooltip content={<CustomDonutGaugeTooltip />} />}
+                                </PieChart>
+                              </ResponsiveContainer>
+                              {/* Centered Label inside the Donut Hole */}
+                              <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', pointerEvents: 'none' }}>
+                                <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 14, color: '#334155', lineHeight: 1.2 }}>
+                                  {donut.name}
+                                </Typography>
+                                <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 500, fontSize: 11, color: '#94a3b8', mt: 0.3 }}>
+                                  {donut.total} responses
+                                </Typography>
+                              </Box>
+                            </Box>
+                          ))}
+                        </Box>
+                      </CardContent>
+                    </Card>
 
                     {/* ── Service Improvement Recommendations ───── */}
                     <Card elevation={0} sx={{ border: '1.5px solid #e2e8f0', borderRadius: 3.5, mb: 3, backgroundColor: 'white' }}>
@@ -2147,7 +2233,12 @@ const SentimentDashboard = () => {
                                       {row.Clientele || 'N/A'}
                                     </TableCell>
                                     <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 700, color: '#1a237e' }}>
-                                      {row.College || 'N/A'}
+                                      <div>{row.College || 'N/A'}</div>
+                                      {row.Course && (
+                                        <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 500 }}>
+                                          {row.Course}
+                                        </div>
+                                      )}
                                     </TableCell>
                                     <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 600, color: '#1e293b', py: 1.5, pr: 3, lineHeight: 1.4 }}>
                                       {row.Message && row.Message.trim().length > 0 ? (
@@ -2293,12 +2384,27 @@ const SentimentDashboard = () => {
                 <div className="summary-box neg"><div className="value">{counts.Negative}</div><div className="label">Negative</div></div>
               </div>
 
+              <div className="scale-legend">
+                CSAT Rating Scale: 5 = Very Satisfied | 4 = Satisfied | 3 = Neutral | 2 = Dissatisfied | 1 = Very Dissatisfied | N/A = Not Applicable
+              </div>
+
               <table>
                 <thead>
                   <tr>
                     <th>Clientele</th>
                     <th>College/Dept</th>
+                    <th>Course</th>
                     <th>Patron Feedback Message</th>
+                    <th style={{ textAlign: 'center' }}>Q1</th>
+                    <th style={{ textAlign: 'center' }}>Q2</th>
+                    <th style={{ textAlign: 'center' }}>Q3</th>
+                    <th style={{ textAlign: 'center' }}>Q4</th>
+                    <th style={{ textAlign: 'center' }}>Q5</th>
+                    <th style={{ textAlign: 'center' }}>Q6</th>
+                    <th style={{ textAlign: 'center' }}>Q7</th>
+                    <th style={{ textAlign: 'center' }}>Q8</th>
+                    <th style={{ textAlign: 'center' }}>Q9</th>
+                    <th style={{ textAlign: 'center' }}>Q10</th>
                     <th>Sentiment Result</th>
                     <th>Category</th>
                   </tr>
@@ -2307,8 +2413,19 @@ const SentimentDashboard = () => {
                   {reviewRows.map((row) => (
                     <tr key={row.Id}>
                       <td style={{ textTransform: 'capitalize' }}>{row.Clientele}</td>
-                      <td>{row.College}</td>
+                      <td>{row.College || 'N/A'}</td>
+                      <td>{row.Course || 'N/A'}</td>
                       <td>{row.Message}</td>
+                      <td className="q-cell">{formatRatingShort(row.Question1)}</td>
+                      <td className="q-cell">{formatRatingShort(row.Question2)}</td>
+                      <td className="q-cell">{formatRatingShort(row.Question3)}</td>
+                      <td className="q-cell">{formatRatingShort(row.Question4)}</td>
+                      <td className="q-cell">{formatRatingShort(row.Question5)}</td>
+                      <td className="q-cell">{formatRatingShort(row.Question6)}</td>
+                      <td className="q-cell">{formatRatingShort(row.Question7)}</td>
+                      <td className="q-cell">{formatRatingShort(row.Question8)}</td>
+                      <td className="q-cell">{formatRatingShort(row.Question9)}</td>
+                      <td className="q-cell">{formatRatingShort(row.Question10)}</td>
                       <td><strong>{row.SentimentResult}</strong></td>
                       <td>{row.Category || 'Other/Uncategorized'}</td>
                     </tr>

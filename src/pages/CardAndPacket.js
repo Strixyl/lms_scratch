@@ -1,5 +1,5 @@
 import {
-  Grid, Box, Typography, TextField, Button, Dialog, DialogTitle, DialogContent, DialogActions, Modal, Chip, Divider,
+  Grid, Box, Typography, TextField, Button, Dialog, DialogTitle, DialogContent, Modal, ToggleButton, ToggleButtonGroup,
 } from "@mui/material";
 import React, { useState, useEffect, useRef } from "react";
 import Header from '../Components/Header';
@@ -39,6 +39,7 @@ export default function CardAndPacket() {
   const [openModal, setOpenModal] = useState(false);
   const [selectedDocId, setSelectedDocId] = useState(null);
   const [printModalOpen, setPrintModalOpen] = useState(false);
+  const [previewSide, setPreviewSide] = useState('front');
   const [showBackToTop, setShowBackToTop] = useState(false);
   const printRef = useRef();
 
@@ -54,22 +55,63 @@ export default function CardAndPacket() {
     return `${last || ''}${last && first ? ', ' : ''}${first || ''}${mi ? ' ' + mi : ''}`.trim();
   };
 
+  const preparePayload = () => {
+    const lib1 = selectedLibrary1 || '';
+    const sec1 = section1 || '';
+    const acc1 = accessionNumber1 || '';
+
+    const getLib = (lib, acc, title) => lib || ((acc || title) ? lib1 : '');
+    const getSec = (sec, acc, title) => sec || ((acc || title) ? sec1 : '');
+    const getAcc = (acc, title) => acc || (title ? acc1 : '');
+
+    const l1 = lib1;
+    const l2 = getLib(selectedLibrary2, accessionNumber2, bookTitle2);
+    const l3 = getLib(selectedLibrary3, accessionNumber3, bookTitle3);
+    const l4 = getLib(selectedLibrary4, accessionNumber4, bookTitle4);
+
+    const s1 = sec1;
+    const s2 = getSec(section2, accessionNumber2, bookTitle2);
+    const s3 = getSec(section3, accessionNumber3, bookTitle3);
+    const s4 = getSec(section4, accessionNumber4, bookTitle4);
+
+    const a1 = acc1;
+    const a2 = getAcc(accessionNumber2, bookTitle2);
+    const a3 = getAcc(accessionNumber3, bookTitle3);
+    const a4 = getAcc(accessionNumber4, bookTitle4);
+
+    const b1 = barcodeValue1 || (a1 ? `${getBarcodePrefix(l1)}${a1}` : '');
+    const b2 = barcodeValue2 || (a2 ? `${getBarcodePrefix(l2)}${a2}` : '');
+    const b3 = barcodeValue3 || (a3 ? `${getBarcodePrefix(l3)}${a3}` : '');
+    const b4 = barcodeValue4 || (a4 ? `${getBarcodePrefix(l4)}${a4}` : '');
+
+    const iso1 = isoCodeValue1 || (l1 ? getIsoCode(l1) : '');
+    const iso2 = isoCodeValue2 || (l2 ? getIsoCode(l2) : '');
+    const iso3 = isoCodeValue3 || (l3 ? getIsoCode(l3) : '');
+    const iso4 = isoCodeValue4 || (l4 ? getIsoCode(l4) : '');
+
+    return {
+      selectedLibrary1: l1, section1: s1,
+      selectedLibrary2: l2, section2: s2,
+      selectedLibrary3: l3, section3: s3,
+      selectedLibrary4: l4, section4: s4,
+      authorName1: authorLastName1, publisherAuthor1,
+      authorName2: authorLastName2, publisherAuthor2,
+      authorName3: authorLastName3, publisherAuthor3,
+      authorName4: authorLastName4, publisherAuthor4,
+      bookTitle1, bookTitle2, bookTitle3, bookTitle4,
+      accessionNumber1: a1, accessionNumber2: a2, accessionNumber3: a3, accessionNumber4: a4,
+      callNumber1, callNumber2, callNumber3, callNumber4,
+      copyNumber1: '', copyNumber2: '', copyNumber3: '', copyNumber4: '',
+      barcodeValue1: b1, barcodeValue2: b2, barcodeValue3: b3, barcodeValue4: b4,
+      isoCodeValue1: iso1, isoCodeValue2: iso2, isoCodeValue3: iso3, isoCodeValue4: iso4,
+    };
+  };
+
   // ✅ Save with duplicate check
   const handleSave = async () => {
     try {
-      await axios.post('http://localhost:5000/api/card-and-packet', {
-        selectedLibrary1, section1, selectedLibrary2, section2, selectedLibrary3, section3, selectedLibrary4, section4,
-        authorName1: authorLastName1, publisherAuthor1,
-        authorName2: authorLastName2, publisherAuthor2,
-        authorName3: authorLastName3, publisherAuthor3,
-        authorName4: authorLastName4, publisherAuthor4,
-        bookTitle1, bookTitle2, bookTitle3, bookTitle4,
-        accessionNumber1, accessionNumber2, accessionNumber3, accessionNumber4,
-        callNumber1, callNumber2, callNumber3, callNumber4,
-        copyNumber1: '', copyNumber2: '', copyNumber3: '', copyNumber4: '',
-        barcodeValue1, barcodeValue2, barcodeValue3, barcodeValue4,
-        isoCodeValue1, isoCodeValue2, isoCodeValue3, isoCodeValue4,
-      });
+      const payload = preparePayload();
+      await axios.post('http://localhost:5000/api/card-and-packet', payload);
       alert('Data saved successfully!');
       handleClear();
     } catch (error) {
@@ -124,23 +166,20 @@ export default function CardAndPacket() {
   const handleUpdate = async () => {
     if (!selectedDocId) { alert('No entry selected to update.'); return; }
     try {
-      await axios.put(`http://localhost:5000/api/card-and-packet/${selectedDocId}`, {
-        selectedLibrary1, section1, selectedLibrary2, section2, selectedLibrary3, section3, selectedLibrary4, section4,
-        authorName1: authorLastName1, publisherAuthor1,
-        authorName2: authorLastName2, publisherAuthor2,
-        authorName3: authorLastName3, publisherAuthor3,
-        authorName4: authorLastName4, publisherAuthor4,
-        bookTitle1, bookTitle2, bookTitle3, bookTitle4,
-        accessionNumber1, accessionNumber2, accessionNumber3, accessionNumber4,
-        callNumber1, callNumber2, callNumber3, callNumber4,
-        copyNumber1: '', copyNumber2: '', copyNumber3: '', copyNumber4: '',
-        barcodeValue1, barcodeValue2, barcodeValue3, barcodeValue4,
-        isoCodeValue1, isoCodeValue2, isoCodeValue3, isoCodeValue4,
-      });
+      const payload = preparePayload();
+      await axios.put(`http://localhost:5000/api/card-and-packet/${selectedDocId}`, payload);
       alert('Entry updated successfully.');
+      setSelectedLibrary1(payload.selectedLibrary1); setSection1(payload.section1); setAccessionNumber(payload.accessionNumber1); setBarcodeValue(payload.barcodeValue1); setIsoCodeValue(payload.isoCodeValue1);
+      setSelectedLibrary2(payload.selectedLibrary2); setSection2(payload.section2); setAccessionNumber2(payload.accessionNumber2); setBarcodeValue2(payload.barcodeValue2); setIsoCodeValue2(payload.isoCodeValue2);
+      setSelectedLibrary3(payload.selectedLibrary3); setSection3(payload.section3); setAccessionNumber3(payload.accessionNumber3); setBarcodeValue3(payload.barcodeValue3); setIsoCodeValue3(payload.isoCodeValue3);
+      setSelectedLibrary4(payload.selectedLibrary4); setSection4(payload.section4); setAccessionNumber4(payload.accessionNumber4); setBarcodeValue4(payload.barcodeValue4); setIsoCodeValue4(payload.isoCodeValue4);
     } catch (error) {
-      console.error('Error updating:', error);
-      alert('Failed to update entry.');
+      if (error.response?.status === 400) {
+        alert(error.response.data.message);
+      } else {
+        console.error('Error updating:', error);
+        alert('Failed to update entry.');
+      }
     }
   };
 
@@ -162,155 +201,338 @@ export default function CardAndPacket() {
   const handleOpenPrint = () => setPrintModalOpen(true);
 
   const handlePrint = () => {
-    const cardData = [
+    const rawCardData = [
       { library: selectedLibrary1, section: section1, author: publisherAuthor1 || authorLastName1, title: bookTitle1, accession: accessionNumber1, barcode: barcodeValue1, callNum: callNumber1, isoCode: isoCodeValue1 },
       { library: selectedLibrary2, section: section2, author: publisherAuthor2 || authorLastName2, title: bookTitle2, accession: accessionNumber2, barcode: barcodeValue2, callNum: callNumber2, isoCode: isoCodeValue2 },
       { library: selectedLibrary3, section: section3, author: publisherAuthor3 || authorLastName3, title: bookTitle3, accession: accessionNumber3, barcode: barcodeValue3, callNum: callNumber3, isoCode: isoCodeValue3 },
       { library: selectedLibrary4, section: section4, author: publisherAuthor4 || authorLastName4, title: bookTitle4, accession: accessionNumber4, barcode: barcodeValue4, callNum: callNumber4, isoCode: isoCodeValue4 },
     ];
 
-    const emptyRows = Array(10).fill('<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>').join('');
+    const activeBooks = rawCardData.filter(b => b.title || b.accession || b.author || b.callNum);
+    const cardData = Array(4).fill(null).map((_, idx) => {
+      if (activeBooks.length === 0) return rawCardData[idx];
+      return activeBooks[idx % activeBooks.length];
+    });
 
-    const cardHTML = cardData.map(card => `
+    const frontEmptyRows = Array(12).fill('<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>').join('');
+    const backEmptyRows = Array(20).fill('<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>').join('');
+
+    const frontCardsHTML = cardData.map((card, idx) => {
+      const libPrefix = card.library ? (card.library.includes('Henry Luce') ? 'HL' : '') : '';
+      return `
       <div class="card">
-        <div class="card-top">
-          <div class="call-num">${(card.callNum || '').replace(/\n/g, '<br>').replace(/ /g, '<br>')}</div>
-          <div class="header">
-            <div class="uni">Central Philippine University</div>
-            <div class="lib">${card.library || 'Henry Luce III Library'}</div>
-            <div class="section">${(card.section || '').toUpperCase()}</div>
+        <div class="card-header">
+          <div class="uni-title">Central Philippine University</div>
+          ${(card.isoCode && idx === 0) ? `<div class="iso-code">${card.isoCode.replace('REV.', '<br>REV.').replace('April', '<br>April')}</div>` : ''}
+        </div>
+        <div class="field-container">
+          <div class="field-line">
+            <span class="field-label">Author</span>
+            <span class="field-value underline">${card.author || ''}</span>
           </div>
-          <div class="iso">${(card.isoCode || '').replace('REV.', '<br>REV.').replace('April', '<br>April')}</div>
-        </div>
-        <div class="spacer"></div>
-        <div class="field">
-          <span class="label">Author</span>
-          <span class="value underline">${card.author}</span>
-        </div>
-        <div class="field">
-          <span class="label">Title</span>
-          <span class="value underline">${card.title}</span>
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <span class="label">Acc. No.</span>
-            <span class="value underline">${card.accession}</span>
+          <div class="field-line">
+            <span class="field-label">Title</span>
+            <span class="field-value underline">${card.title || ''}</span>
           </div>
-          <div class="field">
-            <span class="label">Barcode</span>
-            <span class="value underline">${card.barcode}</span>
+          <div class="field-row">
+            <div class="field-item">
+              <span class="field-label">Acc. No.</span>
+              <span class="field-value underline">${card.accession || ''}</span>
+            </div>
+            <div class="field-item">
+              <span class="field-label">Barcode</span>
+              <span class="field-value underline">${card.barcode || ''}</span>
+            </div>
+            ${libPrefix ? `
+            <div class="field-item prefix-item">
+              <span class="field-value underline center-text">${libPrefix}</span>
+            </div>` : ''}
           </div>
         </div>
-        <table>
+        <table class="borrow-table">
           <thead>
             <tr>
-              <th>Date Borrowed/<br>Due Date</th>
-              <th>Borrower's Name</th>
-              <th>Borrower's<br>ID Number</th>
+              <th style="width: 32%;">Date Borrowed/<br>Due Date</th>
+              <th style="width: 43%;">Borrower's Name</th>
+              <th style="width: 25%;">Borrower's<br>ID Number</th>
             </tr>
           </thead>
-          <tbody>${emptyRows}</tbody>
+          <tbody>${frontEmptyRows}</tbody>
+        </table>
+      </div>
+    `;
+    }).join('');
+
+    const backCardsHTML = Array(4).fill(0).map(() => `
+      <div class="card back-card">
+        <table class="borrow-table">
+          <thead>
+            <tr>
+              <th style="width: 32%;">Date Borrowed/<br>Due Date</th>
+              <th style="width: 43%;">Borrower's Name</th>
+              <th style="width: 25%;">Borrower's<br>ID Number</th>
+            </tr>
+          </thead>
+          <tbody>${backEmptyRows}</tbody>
         </table>
       </div>
     `).join('');
+
+    const packetsHTML = cardData.map((card, idx) => {
+      const libPrefix = card.library ? (card.library.includes('Henry Luce') ? 'HL' : '') : '';
+      return `
+      <div class="packet">
+        <div class="packet-header">
+          <div class="packet-uni">CENTRAL PHILIPPINE UNIVERSITY</div>
+        </div>
+        <div class="packet-fields">
+          <div class="packet-row-split">
+            <div class="packet-field-item">
+              <span class="packet-label">CALL No.</span>
+              <span class="packet-val underline">${card.callNum || ''}</span>
+            </div>
+            <div class="packet-field-item">
+              <span class="packet-label">ACC. No.</span>
+              <span class="packet-val underline">${card.accession || ''}</span>
+            </div>
+          </div>
+        </div>
+        <div class="packet-fold-box"></div>
+        <div class="packet-bottom-row">
+          <span class="packet-prefix-label">${libPrefix}</span>
+          ${(card.isoCode && idx === 0) ? `<div class="packet-iso">${card.isoCode.replace('REV.', '<br>REV.').replace('April', '<br>April')}</div>` : ''}
+        </div>
+      </div>
+    `;
+    }).join('');
 
     const printWindow = window.open('', '', 'width=1100,height=850');
     printWindow.document.write(`
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Book Card Print</title>
+        <title>Book Card & Packet Print (3 Papers / 4 Pages)</title>
         <style>
-          @page { size: Letter; margin: 0.4in; }
+          @page { size: Letter; margin: 0.35in; }
           * { box-sizing: border-box; margin: 0; padding: 0; }
-          body { font-family: 'Times New Roman', serif; font-size: 9pt; }
+          body { font-family: 'Times New Roman', serif; font-size: 10pt; color: #000; }
+          .print-page {
+            width: 100%;
+            height: 100vh;
+            page-break-after: always;
+            break-after: page;
+          }
+          .print-page:last-child {
+            page-break-after: avoid;
+            break-after: avoid;
+          }
           .card-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             grid-template-rows: 1fr 1fr;
-            gap: 0px;
             width: 100%;
-            height: 100vh;
+            height: 100%;
+            border: 1px solid #000;
           }
           .card {
-            border: none;
-            padding: 8px;
+            border: 1px solid #000;
+            padding: 12px 14px;
             display: flex;
             flex-direction: column;
+            box-sizing: border-box;
+            position: relative;
             overflow: hidden;
           }
-          .card-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-          }
-          .call-num {
-            font-size: 8.5pt;
-            font-weight: bold;
-            min-width: 45px;
-            text-align: left;
-            line-height: 1.5;
-          }
-          .header {
+          .card-header {
+            position: relative;
             text-align: center;
-            flex-grow: 1;
-            padding: 0 4px;
+            margin-bottom: 24px;
           }
-          .uni { font-weight: bold; font-size: 9pt; }
-          .lib { font-weight: bold; font-size: 8.5pt; }
-          .section { font-weight: bold; font-size: 8.5pt; }
-          .iso {
-            font-size: 5pt;
+          .uni-title {
+            font-weight: bold;
+            font-size: 11pt;
+            text-align: center;
+          }
+          .iso-code {
+            position: absolute;
+            top: 0;
+            right: 0;
+            font-size: 6pt;
             text-align: right;
-            min-width: 48px;
-            line-height: 1.3;
-            font-style: italic;
+            line-height: 1.2;
           }
-          .spacer { height: 14px; }
-          .field {
+          .field-container {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 8px;
+          }
+          .field-line {
             display: flex;
             align-items: flex-end;
-            margin-bottom: 4px;
           }
           .field-row {
             display: flex;
-            gap: 8px;
-            margin-bottom: 4px;
+            gap: 12px;
+            align-items: flex-end;
           }
-          .field-row .field { flex: 1; }
-          .label {
-            font-size: 8.5pt;
+          .field-item {
+            display: flex;
+            align-items: flex-end;
+            flex: 1;
+          }
+          .prefix-item {
+            flex: 0 0 40px;
+          }
+          .center-text {
+            text-align: center;
+          }
+          .field-label {
+            font-size: 9.5pt;
             white-space: nowrap;
-            margin-right: 4px;
+            margin-right: 6px;
           }
-          .value {
-            font-size: 8.5pt;
+          .field-value {
+            font-size: 9.5pt;
             font-weight: bold;
             flex-grow: 1;
           }
           .underline {
-            border-bottom: 1.5px solid black;
+            border-bottom: 1px solid #000;
+            min-height: 16px;
             display: inline-block;
             width: 100%;
+            padding-left: 4px;
           }
-          table {
+          .borrow-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 6px;
+            margin-top: 4px;
             flex-grow: 1;
           }
-          th, td {
-            border: 1px solid black;
-            padding: 2px 3px;
-            font-size: 7.5pt;
+          .borrow-table thead tr {
+            border-top: 2.5px solid #000;
+            border-bottom: 1.5px solid #000;
+          }
+          .borrow-table th, .borrow-table td {
+            border: 1px solid #000;
+            padding: 2px 4px;
+            font-size: 8.5pt;
             text-align: center;
           }
-          th { font-weight: bold; }
-          td { height: 18px; }
+          .borrow-table th {
+            font-weight: bold;
+            vertical-align: middle;
+          }
+          .borrow-table td {
+            height: 19px;
+          }
+          .back-card {
+            padding: 10px;
+          }
+          .back-card .borrow-table {
+            height: 100%;
+            margin-top: 0;
+          }
+
+          /* Book Packet Styles */
+          .packet-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            width: 100%;
+            height: 100%;
+            border: 1px solid #000;
+          }
+          .packet {
+            border: 1px solid #000;
+            padding: 14px 16px;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            position: relative;
+            overflow: hidden;
+          }
+          .packet-header {
+            position: relative;
+            text-align: center;
+            margin-bottom: 28px;
+          }
+          .packet-uni {
+            font-weight: bold;
+            font-size: 11pt;
+            text-align: center;
+          }
+          .packet-iso {
+            position: absolute;
+            top: 0;
+            right: 0;
+            font-size: 6pt;
+            text-align: right;
+            line-height: 1.2;
+          }
+          .packet-fields {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 12px;
+          }
+          .packet-row-split {
+            display: flex;
+            gap: 16px;
+            align-items: flex-end;
+          }
+          .packet-field-item {
+            display: flex;
+            align-items: flex-end;
+            flex: 1;
+          }
+          .packet-bottom-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-top: auto;
+            margin-bottom: 4px;
+          }
+          .packet-label {
+            font-size: 9.5pt;
+            font-weight: bold;
+            white-space: nowrap;
+            margin-right: 6px;
+          }
+          .packet-val {
+            font-size: 9.5pt;
+            font-weight: bold;
+            flex-grow: 1;
+          }
+          .packet-prefix-label {
+            font-size: 9.5pt;
+            font-weight: bold;
+          }
+          .packet-fold-box {
+            border-top: 1px solid #000;
+            margin-top: 4px;
+            flex-grow: 1;
+          }
         </style>
       </head>
       <body>
-        <div class="card-grid">${cardHTML}</div>
+        <!-- Page 1: 4 Book Cards Front -->
+        <div class="print-page">
+          <div class="card-grid">${frontCardsHTML}</div>
+        </div>
+        <!-- Page 2: 4 Book Cards Back (Back-to-Back with Page 1) -->
+        <div class="print-page">
+          <div class="card-grid">${backCardsHTML}</div>
+        </div>
+        <!-- Page 3: 4 Book Packets (Paper 2) -->
+        <div class="print-page">
+          <div class="packet-grid">${packetsHTML}</div>
+        </div>
+        <!-- Page 4: 4 Book Packets Duplicate (Paper 3) -->
+        <div class="print-page">
+          <div class="packet-grid">${packetsHTML}</div>
+        </div>
       </body>
       </html>
     `);
@@ -360,9 +582,9 @@ export default function CardAndPacket() {
   const handleLibraryChange2 = (e, v) => { setSelectedLibrary2(v); setIsoCodeValue2(getIsoCode(v)); setBarcodeValue2(`${getBarcodePrefix(v)}${accessionNumber2}`); };
   const handleLibraryChange3 = (e, v) => { setSelectedLibrary3(v); setIsoCodeValue3(getIsoCode(v)); setBarcodeValue3(`${getBarcodePrefix(v)}${accessionNumber3}`); };
   const handleLibraryChange4 = (e, v) => { setSelectedLibrary4(v); setIsoCodeValue4(getIsoCode(v)); setBarcodeValue4(`${getBarcodePrefix(v)}${accessionNumber4}`); };
-  const handleAccessionNumberChange2 = (e) => { const v = e.target.value; setAccessionNumber2(v); setBarcodeValue2(`${getBarcodePrefix(selectedLibrary2)}${v}`); };
-  const handleAccessionNumberChange3 = (e) => { const v = e.target.value; setAccessionNumber3(v); setBarcodeValue3(`${getBarcodePrefix(selectedLibrary3)}${v}`); };
-  const handleAccessionNumberChange4 = (e) => { const v = e.target.value; setAccessionNumber4(v); setBarcodeValue4(`${getBarcodePrefix(selectedLibrary4)}${v}`); }; const columns = [
+  const handleAccessionNumberChange2 = (e) => { const v = e.target.value; setAccessionNumber2(v); setBarcodeValue2(`${getBarcodePrefix(selectedLibrary2 || selectedLibrary1)}${v}`); };
+  const handleAccessionNumberChange3 = (e) => { const v = e.target.value; setAccessionNumber3(v); setBarcodeValue3(`${getBarcodePrefix(selectedLibrary3 || selectedLibrary1)}${v}`); };
+  const handleAccessionNumberChange4 = (e) => { const v = e.target.value; setAccessionNumber4(v); setBarcodeValue4(`${getBarcodePrefix(selectedLibrary4 || selectedLibrary1)}${v}`); }; const columns = [
     {
       label: 'First Column',
       library: selectedLibrary1, setLibrary: handleLibraryChange,
@@ -413,6 +635,12 @@ export default function CardAndPacket() {
     },
   ];
 
+  const activeCols = columns.filter(c => c.title || c.accession || c.publisher || c.authorName || c.callNum);
+  const previewColumns = Array(4).fill(null).map((_, i) => {
+    if (activeCols.length === 0) return columns[i];
+    return activeCols[i % activeCols.length];
+  });
+
   return (
     <Box>
       <Header>
@@ -421,62 +649,156 @@ export default function CardAndPacket() {
             <TopBar title="Book Card and Book Packet" onMenuClick={toggleDrawer} subtitle="BOOK CARD AND BOOK PACKET" />
 
             <Dialog open={printModalOpen} onClose={() => setPrintModalOpen(false)} maxWidth="md" fullWidth>
-              <DialogTitle>Print Preview</DialogTitle>
+              <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="h6" fontWeight="bold">Print Preview (3 Papers / 4 Pages)</Typography>
+                <ToggleButtonGroup
+                  value={previewSide}
+                  exclusive
+                  onChange={(e, val) => { if (val) setPreviewSide(val); }}
+                  size="small"
+                >
+                  <ToggleButton value="front" sx={{ fontWeight: 'bold' }}>Page 1: Front Cards</ToggleButton>
+                  <ToggleButton value="back" sx={{ fontWeight: 'bold' }}>Page 2: Back Cards</ToggleButton>
+                  <ToggleButton value="packet" sx={{ fontWeight: 'bold' }}>Page 3 & 4: Packets (2 Papers)</ToggleButton>
+                </ToggleButtonGroup>
+              </DialogTitle>
               <DialogContent>
-                <Box ref={printRef} sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: '0px', height: '700px', fontFamily: 'Times New Roman, serif', fontSize: '9pt' }}>
-                  {columns.map((col, i) => (
-                    <Box key={i} sx={{ border: 'none', padding: '8px', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', overflow: 'hidden' }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <Typography fontSize="8pt" fontWeight="bold" sx={{ whiteSpace: 'pre-wrap', minWidth: '40px', wordBreak: 'break-all' }}>{col.callNum}</Typography>
-                        <Box sx={{ textAlign: 'center', flexGrow: 1, px: 0.5 }}>
-                          <Typography fontSize="8.5pt" fontWeight="bold">Central Philippine University</Typography>
-                          <Typography fontSize="8pt" fontWeight="bold">{col.library || 'Henry Luce III Library'}</Typography>
-                          <Typography fontSize="8pt" fontWeight="bold">{(col.section || '').toUpperCase()}</Typography>
+                {previewSide === 'front' ? (
+                  <Box ref={printRef} sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: '0px', height: '700px', fontFamily: 'Times New Roman, serif', fontSize: '9pt', border: '1px solid #000' }}>
+                    {previewColumns.map((col, i) => {
+                      const libPrefix = col.library ? (col.library.includes('Henry Luce') ? 'HL' : '') : '';
+                      return (
+                        <Box key={i} sx={{ border: '1px solid #000', padding: '12px', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', overflow: 'hidden', position: 'relative' }}>
+                          <Box sx={{ position: 'relative', textAlign: 'center', mb: 2 }}>
+                            <Typography fontSize="10.5pt" fontWeight="bold">Central Philippine University</Typography>
+                            {(col.isoCode && i === 0) && (
+                              <Typography fontSize="5.5pt" sx={{ position: 'absolute', top: 0, right: 0, textAlign: 'right', lineHeight: 1.2 }}>
+                                {col.isoCode.replace('REV.', '\nREV.').replace('April', '\nApril')}
+                              </Typography>
+                            )}
+                          </Box>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, mb: 1 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'flex-end' }}>
+                              <Typography fontSize="9pt" sx={{ whiteSpace: 'nowrap', mr: 0.75 }}>Author</Typography>
+                              <Box sx={{ flexGrow: 1, borderBottom: '1px solid black', fontWeight: 'bold', fontSize: '9pt', pl: 0.5, minHeight: '18px' }}>
+                                {col.publisher || col.authorName}
+                              </Box>
+                            </Box>
+                            <Box sx={{ display: 'flex', alignItems: 'flex-end' }}>
+                              <Typography fontSize="9pt" sx={{ whiteSpace: 'nowrap', mr: 0.75 }}>Title</Typography>
+                              <Box sx={{ flexGrow: 1, borderBottom: '1px solid black', fontWeight: 'bold', fontSize: '9pt', pl: 0.5, minHeight: '18px' }}>
+                                {col.title}
+                              </Box>
+                            </Box>
+                            <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-end' }}>
+                              <Box sx={{ display: 'flex', alignItems: 'flex-end', flex: 1 }}>
+                                <Typography fontSize="9pt" sx={{ whiteSpace: 'nowrap', mr: 0.5 }}>Acc. No.</Typography>
+                                <Box sx={{ flexGrow: 1, borderBottom: '1px solid black', fontWeight: 'bold', fontSize: '9pt', pl: 0.5, minHeight: '18px' }}>
+                                  {col.accession}
+                                </Box>
+                              </Box>
+                              <Box sx={{ display: 'flex', alignItems: 'flex-end', flex: 1 }}>
+                                <Typography fontSize="9pt" sx={{ whiteSpace: 'nowrap', mr: 0.5 }}>Barcode</Typography>
+                                <Box sx={{ flexGrow: 1, borderBottom: '1px solid black', fontWeight: 'bold', fontSize: '9pt', pl: 0.5, minHeight: '18px' }}>
+                                  {col.barcode}
+                                </Box>
+                              </Box>
+                              {libPrefix && (
+                                <Box sx={{ display: 'flex', alignItems: 'flex-end', width: '35px' }}>
+                                  <Box sx={{ flexGrow: 1, borderBottom: '1px solid black', fontWeight: 'bold', fontSize: '9pt', textAlign: 'center', minHeight: '18px' }}>
+                                    {libPrefix}
+                                  </Box>
+                                </Box>
+                              )}
+                            </Box>
+                          </Box>
+                          <Box sx={{ mt: 0.5, flexGrow: 1 }}>
+                            <table width="100%" border="1" cellPadding="2" cellSpacing="0" style={{ borderCollapse: 'collapse', fontSize: '7.5pt' }}>
+                              <thead>
+                                <tr style={{ borderTop: '2.5px solid black', borderBottom: '1.5px solid black' }}>
+                                  <th style={{ width: '32%', fontWeight: 'bold', textAlign: 'center' }}>Date Borrowed /<br />Due Date</th>
+                                  <th style={{ width: '43%', fontWeight: 'bold', textAlign: 'center' }}>Borrower's Name</th>
+                                  <th style={{ width: '25%', fontWeight: 'bold', textAlign: 'center' }}>Borrower's<br />ID Number</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {[...Array(12)].map((_, rowIdx) => (
+                                  <tr key={rowIdx}><td style={{ height: '18px' }}></td><td></td><td></td></tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </Box>
                         </Box>
-                        <Typography fontSize="5pt" sx={{ textAlign: 'right', minWidth: '45px', fontStyle: 'italic', lineHeight: 1.3 }}>
-                          {col.isoCode}
-                        </Typography>
-                      </Box>
-                      <Box sx={{ height: '12px' }} />
-                      <Box sx={{ display: 'flex', alignItems: 'flex-end', borderBottom: '1.5px solid black', mb: 0.5 }}>
-                        <Typography fontSize="8.5pt" sx={{ whiteSpace: 'nowrap', mr: 0.5 }}>Author</Typography>
-                        <Typography fontSize="8.5pt" fontWeight="bold" sx={{ flexGrow: 1 }}>{col.publisher || col.authorName}</Typography>
-                      </Box>
-                      <Box sx={{ display: 'flex', alignItems: 'flex-end', borderBottom: '1.5px solid black', mb: 0.5 }}>
-                        <Typography fontSize="8.5pt" sx={{ whiteSpace: 'nowrap', mr: 0.5 }}>Title</Typography>
-                        <Typography fontSize="8.5pt" fontWeight="bold" sx={{ flexGrow: 1 }}>{col.title}</Typography>
-                      </Box>
-                      <Box sx={{ display: 'flex', gap: 1, mb: 0.5 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'flex-end', borderBottom: '1.5px solid black', flex: 1 }}>
-                          <Typography fontSize="8.5pt" sx={{ whiteSpace: 'nowrap', mr: 0.5 }}>Acc. No.</Typography>
-                          <Typography fontSize="8.5pt" fontWeight="bold">{col.accession}</Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', alignItems: 'flex-end', borderBottom: '1.5px solid black', flex: 1 }}>
-                          <Typography fontSize="8.5pt" sx={{ whiteSpace: 'nowrap', mr: 0.5 }}>Barcode</Typography>
-                          <Typography fontSize="8.5pt" fontWeight="bold">{col.barcode}</Typography>
-                        </Box>
-                      </Box>
-                      <Box sx={{ mt: 0.5, flexGrow: 1 }}>
-                        <table width="100%" border="1" cellPadding="2" cellSpacing="0" style={{ borderCollapse: 'collapse', fontSize: '7pt' }}>
+                      );
+                    })}
+                  </Box>
+                ) : previewSide === 'back' ? (
+                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: '0px', height: '700px', fontFamily: 'Times New Roman, serif', fontSize: '9pt', border: '1px solid #000' }}>
+                    {[...Array(4)].map((_, i) => (
+                      <Box key={i} sx={{ border: '1px solid #000', padding: '10px', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', overflow: 'hidden' }}>
+                        <table width="100%" border="1" cellPadding="2" cellSpacing="0" style={{ borderCollapse: 'collapse', fontSize: '7.5pt', height: '100%' }}>
                           <thead>
-                            <tr>
-                              <th>Date Borrowed / Due Date</th>
-                              <th>Borrower's Name</th>
-                              <th>Borrower's ID Number</th>
+                            <tr style={{ borderTop: '2.5px solid black', borderBottom: '1.5px solid black' }}>
+                              <th style={{ width: '32%', fontWeight: 'bold', textAlign: 'center' }}>Date Borrowed /<br />Due Date</th>
+                              <th style={{ width: '43%', fontWeight: 'bold', textAlign: 'center' }}>Borrower's Name</th>
+                              <th style={{ width: '25%', fontWeight: 'bold', textAlign: 'center' }}>Borrower's<br />ID Number</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {[...Array(8)].map((_, rowIdx) => (
+                            {[...Array(20)].map((_, rowIdx) => (
                               <tr key={rowIdx}><td style={{ height: '18px' }}></td><td></td><td></td></tr>
                             ))}
                           </tbody>
                         </table>
                       </Box>
-                    </Box>
-                  ))}
-                </Box>
+                    ))}
+                  </Box>
+                ) : (
+                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: '0px', height: '700px', fontFamily: 'Times New Roman, serif', fontSize: '9pt', border: '1px solid #000' }}>
+                    {previewColumns.map((col, i) => {
+                      const libPrefix = col.library ? (col.library.includes('Henry Luce') ? 'HL' : '') : '';
+                      return (
+                        <Box key={i} sx={{ border: '1px solid #000', padding: '14px 16px', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', overflow: 'hidden', position: 'relative' }}>
+                          <Box sx={{ position: 'relative', textAlign: 'center', mb: 2 }}>
+                            <Typography fontSize="10.5pt" fontWeight="bold">CENTRAL PHILIPPINE UNIVERSITY</Typography>
+                            {(col.isoCode && i === 0) && (
+                              <Typography fontSize="5.5pt" sx={{ position: 'absolute', top: 0, right: 0, textAlign: 'right', lineHeight: 1.2 }}>
+                                {col.isoCode.replace('REV.', '\nREV.').replace('April', '\nApril')}
+                              </Typography>
+                            )}
+                          </Box>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 1 }}>
+                            <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-end' }}>
+                              <Box sx={{ display: 'flex', alignItems: 'flex-end', flex: 1 }}>
+                                <Typography fontSize="9pt" fontWeight="bold" sx={{ whiteSpace: 'nowrap', mr: 0.75 }}>CALL No.</Typography>
+                                <Box sx={{ flexGrow: 1, borderBottom: '1px solid black', fontWeight: 'bold', fontSize: '9pt', pl: 0.5, minHeight: '18px' }}>
+                                  {col.callNum}
+                                </Box>
+                              </Box>
+                              <Box sx={{ display: 'flex', alignItems: 'flex-end', flex: 1 }}>
+                                <Typography fontSize="9pt" fontWeight="bold" sx={{ whiteSpace: 'nowrap', mr: 0.75 }}>ACC. No.</Typography>
+                                <Box sx={{ flexGrow: 1, borderBottom: '1px solid black', fontWeight: 'bold', fontSize: '9pt', pl: 0.5, minHeight: '18px' }}>
+                                  {col.accession}
+                                </Box>
+                              </Box>
+                            </Box>
+                          </Box>
+                           <Box sx={{ borderTop: '1px solid black', flexGrow: 1, mt: 1, mb: 0.5 }} />
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mt: 'auto' }}>
+                            <Typography fontSize="9pt" fontWeight="bold">{libPrefix}</Typography>
+                            {(col.isoCode && i === 0) && (
+                              <Typography fontSize="5.5pt" sx={{ textAlign: 'right', lineHeight: 1.2 }}>
+                                {col.isoCode.replace('REV.', '\nREV.').replace('April', '\nApril')}
+                              </Typography>
+                            )}
+                          </Box>
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                )}
                 <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
-                  <Button variant="contained" onClick={handlePrint}>🖨️ Print</Button>
+                  <Button variant="contained" onClick={handlePrint}>🖨️ Print (Page 1 Front & Page 2 Back)</Button>
                   <Button variant="outlined" onClick={() => setPrintModalOpen(false)}>Close</Button>
                 </Box>
               </DialogContent>
@@ -506,15 +828,19 @@ export default function CardAndPacket() {
       </Grid>
 
       <Modal open={openModal} onClose={handleClose}>
-        <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 400, bgcolor: 'background.paper', border: '2px solid #000', boxShadow: 24, p: 4, borderRadius: 2 }}>
+        <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 450, bgcolor: 'background.paper', border: '2px solid #000', boxShadow: 24, p: 4, borderRadius: 2 }}>
           <Typography variant="h6" mb={2}>Search Results</Typography>
-          {searchResults.map((result) => (
-            <Box key={result.CardID} sx={{ p: 1, border: '1px solid #ccc', borderRadius: 1, mb: 1, cursor: 'pointer', '&:hover': { backgroundColor: '#f0f0f0' } }} onClick={() => loadSelectedEntry(result)}>
-              {/* ✅ Show only accession number 1 */}
-              <Typography variant="body1">{result.accessionNumber1}</Typography>
-            </Box>
-          ))}
-          <Button variant="contained" onClick={handleClose} sx={{ mt: 2 }}>Close</Button>
+          {searchResults.map((result) => {
+            const accs = [result.accessionNumber1, result.accessionNumber2, result.accessionNumber3, result.accessionNumber4].filter(Boolean).join(', ');
+            const title = result.bookTitle1 || result.bookTitle2 || result.bookTitle3 || result.bookTitle4 || `Entry #${result.CardID}`;
+            return (
+              <Box key={result.CardID} sx={{ p: 1.5, border: '1px solid #cbd5e1', borderRadius: 2, mb: 1.5, cursor: 'pointer', '&:hover': { backgroundColor: '#f1f5f9' } }} onClick={() => loadSelectedEntry(result)}>
+                <Typography variant="subtitle2" fontWeight="700" color="#1b365d">{title}</Typography>
+                <Typography variant="body2" color="text.secondary">Acc No(s): {accs || 'N/A'}</Typography>
+              </Box>
+            );
+          })}
+          <Button variant="contained" onClick={handleClose} sx={{ mt: 1 }}>Close</Button>
         </Box>
       </Modal>
 
