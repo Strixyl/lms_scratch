@@ -477,6 +477,31 @@ const CustomSentimentStackedTooltip = ({ active, payload, label }) => {
   return null;
 };
 
+// ── Custom Tooltip for Category Donut Gauge (Matches Reference Design) ────────
+const CustomDonutGaugeTooltip = ({ active, payload }) => {
+  if (active && payload && payload.length) {
+    const item = payload[0];
+    const isNoData = item.name === 'No Data';
+    if (isNoData) return null;
+    return (
+      <Paper elevation={4} sx={{ p: 1.5, bgcolor: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: 2.5, boxShadow: '0 8px 24px rgba(0,0,0,0.1)', minWidth: 120 }}>
+        <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 11.5, color: '#64748b', fontWeight: 600 }}>
+          {item.name} Sentiment
+        </Typography>
+        <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 18, fontWeight: 800, color: '#1e293b', my: 0.2 }}>
+          {item.value}%
+        </Typography>
+        {item.payload.count !== undefined && (
+          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>
+            {item.payload.count} response{item.payload.count !== 1 ? 's' : ''}
+          </Typography>
+        )}
+      </Paper>
+    );
+  }
+  return null;
+};
+
 const ROWS_PER_PAGE = 8;
 
 const SentimentDashboard = () => {
@@ -856,6 +881,37 @@ const SentimentDashboard = () => {
       return item;
     });
   }, [filtered, stackedBreakdownDimension, stackedValueScale]);
+
+  // ── Sentiment Distribution by Category (Multi-Donut Rings matching UI Reference) ───
+  const categoryDonutData = useMemo(() => {
+    const categories = ['Facilities', 'Staff', 'Collection'];
+    return categories.map(cat => {
+      const items = filtered.filter(s => (s.Category || 'Other/Uncategorized') === cat);
+      const pos = items.filter(s => s.SentimentResult === 'Positive').length;
+      const neu = items.filter(s => s.SentimentResult === 'Neutral').length;
+      const neg = items.filter(s => s.SentimentResult === 'Negative').length;
+      const tot = items.length;
+
+      const posPct = tot > 0 ? Math.round((pos / tot) * 100) : 0;
+      const neuPct = tot > 0 ? Math.round((neu / tot) * 100) : 0;
+      const negPct = tot > 0 ? Math.max(0, 100 - posPct - neuPct) : 0;
+
+      const slices = tot > 0 ? [
+        { name: 'Positive', value: posPct, count: pos, color: '#22c55e' },
+        { name: 'Neutral', value: neuPct, count: neu, color: '#f59e0b' },
+        { name: 'Negative', value: negPct, count: neg, color: '#ef4444' },
+      ].filter(s => s.value > 0) : [
+        { name: 'No Data', value: 100, count: 0, color: '#e2e8f0' }
+      ];
+
+      return {
+        name: cat,
+        total: tot,
+        posPct,
+        slices
+      };
+    });
+  }, [filtered]);
 
   // ── Word/Term Frequency & TF-IDF Ranking for Top Comments (Approach B) ──────
   const buildTermFrequencies = (pool) => {
@@ -1806,70 +1862,77 @@ const SentimentDashboard = () => {
                       <TopCommentsCard title="Top 5 Negative Comments" rows={topNegative} accent="#e11d48" lightBorder="#fecdd3" icon={<ThumbDownIcon />} />
                     </Box>
 
-                    {/* ── Charts Grid (Sentiment Donut & Category Breakdown with soft light colors) ───── */}
-                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2.5, mb: 3 }}>
-                      <Card elevation={0} sx={{ border: '1.5px solid #e2e8f0', borderRadius: 3.5, backgroundColor: 'white' }}>
-                        <CardContent sx={{ p: 3 }}>
-                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 14, color: '#1e293b', letterSpacing: 0.5, textTransform: 'uppercase', mb: 2 }}>
-                            Sentiment Distribution
+                    {/* ── Sentiment Distribution by Category (Design Reference Multi-Donut Card) ───── */}
+                    <Card elevation={0} sx={{ border: '1.5px solid #e2e8f0', borderRadius: 3.5, mb: 3, backgroundColor: 'white' }}>
+                      <CardContent sx={{ p: 3 }}>
+                        {/* Header with Title and Legend Indicators */}
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 16, color: '#1e293b' }}>
+                            Sentiment Distribution by Category
                           </Typography>
-                          {total === 0 ? (
-                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', color: '#94a3b8', textAlign: 'center', py: 6 }}>
-                              No sentiment data available for the selected filters.
-                            </Typography>
-                          ) : (
-                            <ResponsiveContainer width="100%" height={260}>
-                              <PieChart>
-                                <Pie data={chartData} cx="50%" cy="50%"
-                                  innerRadius={65} outerRadius={100} paddingAngle={3}
-                                  dataKey="value" labelLine={false} label={renderCustomLabel}>
-                                  {chartData.map((entry) => (
-                                    <Cell key={entry.name} fill={CHART_COLORS[['Positive', 'Neutral', 'Negative'].indexOf(entry.name)]} />
-                                  ))}
-                                </Pie>
-                                <RechartsTooltip formatter={(value, name) => [`${value} responses`, name]}
-                                  contentStyle={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, borderRadius: 10, border: '1px solid #cbd5e1' }} />
-                                <Legend formatter={(value, entry) => {
-                                  const pct = total > 0 ? Math.round((entry.payload.value / total) * 100) : 0;
-                                  return <span style={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 600, color: '#475569' }}>{value} {pct}%</span>;
-                                }} />
-                              </PieChart>
-                            </ResponsiveContainer>
-                          )}
-                        </CardContent>
-                      </Card>
 
-                      <Card elevation={0} sx={{ border: '1.5px solid #e2e8f0', borderRadius: 3.5, backgroundColor: 'white' }}>
-                        <CardContent sx={{ p: 3 }}>
-                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 14, color: '#1e293b', letterSpacing: 0.5, textTransform: 'uppercase', mb: 2 }}>
-                            Category Breakdown
-                          </Typography>
-                          {total === 0 || categoryChartData.length === 0 ? (
-                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', color: '#94a3b8', textAlign: 'center', py: 6 }}>
-                              No category data available for the selected filters.
-                            </Typography>
-                          ) : (
-                            <ResponsiveContainer width="100%" height={260}>
-                              <PieChart>
-                                <Pie data={categoryChartData} cx="50%" cy="50%"
-                                  innerRadius={65} outerRadius={100} paddingAngle={3}
-                                  dataKey="value" labelLine={false} label={renderCustomLabel}>
-                                  {categoryChartData.map((entry) => (
-                                    <Cell key={entry.name} fill={entry.color} />
-                                  ))}
-                                </Pie>
-                                <RechartsTooltip formatter={(value, name) => [`${value} responses`, name]}
-                                  contentStyle={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, borderRadius: 10, border: '1px solid #cbd5e1' }} />
-                                <Legend formatter={(value, entry) => {
-                                  const pct = total > 0 ? Math.round((entry.payload.value / total) * 100) : 0;
-                                  return <span style={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 600, color: '#475569' }}>{value} {pct}%</span>;
-                                }} />
-                              </PieChart>
-                            </ResponsiveContainer>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </Box>
+                          {/* Legend Indicators */}
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                              <Box sx={{ width: 8, height: 8, transform: 'rotate(45deg)', bgcolor: '#22c55e' }} />
+                              <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#64748b', fontWeight: 600 }}>
+                                Positive
+                              </Typography>
+                            </Box>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                              <Box sx={{ width: 8, height: 8, transform: 'rotate(45deg)', bgcolor: '#f59e0b' }} />
+                              <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#64748b', fontWeight: 600 }}>
+                                Neutral
+                              </Typography>
+                            </Box>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                              <Box sx={{ width: 8, height: 8, transform: 'rotate(45deg)', bgcolor: '#ef4444' }} />
+                              <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#64748b', fontWeight: 600 }}>
+                                Negative
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </Box>
+
+                        {/* 3 Donut Rings Row */}
+                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2, alignItems: 'center', minHeight: 250, pt: 1 }}>
+                          {categoryDonutData.map((donut) => (
+                            <Box key={donut.name} sx={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                              <ResponsiveContainer width="100%" height={220}>
+                                <PieChart>
+                                  <Pie
+                                    data={donut.slices}
+                                    dataKey="value"
+                                    nameKey="name"
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={50}
+                                    outerRadius={74}
+                                    startAngle={90}
+                                    endAngle={-270}
+                                    stroke="none"
+                                  >
+                                    {donut.slices.map((entry, i) => (
+                                      <Cell key={`cell-${donut.name}-${i}`} fill={entry.color} />
+                                    ))}
+                                  </Pie>
+                                  {donut.total > 0 && <RechartsTooltip content={<CustomDonutGaugeTooltip />} />}
+                                </PieChart>
+                              </ResponsiveContainer>
+                              {/* Centered Label inside the Donut Hole */}
+                              <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', pointerEvents: 'none' }}>
+                                <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 14, color: '#334155', lineHeight: 1.2 }}>
+                                  {donut.name}
+                                </Typography>
+                                <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 500, fontSize: 11, color: '#94a3b8', mt: 0.3 }}>
+                                  {donut.total} responses
+                                </Typography>
+                              </Box>
+                            </Box>
+                          ))}
+                        </Box>
+                      </CardContent>
+                    </Card>
 
                     {/* ── Service Improvement Recommendations ───── */}
                     <Card elevation={0} sx={{ border: '1.5px solid #e2e8f0', borderRadius: 3.5, mb: 3, backgroundColor: 'white' }}>
