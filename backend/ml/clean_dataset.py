@@ -22,17 +22,16 @@ _spell = SpellChecker()
 
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-RAW_XLSX_PATH = os.path.abspath(os.path.join(THIS_DIR, "..", "..", "5kcategorydataset.xlsx"))
+RAW_XLSX_PATH = os.path.abspath(os.path.join(THIS_DIR, "..", "..", "dataset_10k.xlsx"))
 if not os.path.exists(RAW_XLSX_PATH):
-    RAW_XLSX_PATH = os.path.abspath(os.path.join(THIS_DIR, "..", "5kcategorydataset.xlsx"))
+    RAW_XLSX_PATH = os.path.abspath(os.path.join(THIS_DIR, "..", "dataset_10k.xlsx"))
 if not os.path.exists(RAW_XLSX_PATH):
-    RAW_XLSX_PATH = os.path.abspath(os.path.join(THIS_DIR, "5kcategorydataset.xlsx"))
+    RAW_XLSX_PATH = os.path.abspath(os.path.join(THIS_DIR, "dataset_10k.xlsx"))
 
 DATA_DIR = os.path.join(THIS_DIR, "data")
 TEST_DIR = os.path.join(DATA_DIR, "test")
 
 TRAIN_OUTPUT_CSV_PATH = os.path.join(DATA_DIR, "clean_category_dataset.csv")
-TEST_OUTPUT_CSV_PATH = os.path.join(TEST_DIR, "real_patron_comments_clean.csv")
 
 SHEET_NAME = "All_Data"
 
