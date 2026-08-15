@@ -403,7 +403,7 @@ const SatisfactionSurvey = () => {
   const progressPercent = (completedCount / 10) * 100;
 
   // Validation state for Patron Profile
-  const isCollegeRequired = clientele === 'student' || clientele === 'faculty';
+  const isCollegeRequired = clientele === 'student';
   const isPatronProfileValid = Boolean(
     clientele && (!isCollegeRequired || (selectedCollege && selectedCourse))
   );
@@ -433,7 +433,7 @@ const SatisfactionSurvey = () => {
       return;
     }
     if (isCollegeRequired && (!selectedCollege || !selectedCourse)) {
-      setSubmitError('College and Course are required for Student and Faculty.');
+      setSubmitError('College and Course are required for Students.');
       return;
     }
     if (!responses.every((r) => r !== null)) {
@@ -705,7 +705,7 @@ const SatisfactionSurvey = () => {
                 >
                   <ClockIcon sx={{ fontSize: 18, color: '#38bdf8' }} />
                   <Box sx={{ minWidth: 0 }}>
-                    <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '11.5px', fontWeight: 600, display: 'block', lineHeight: 1.2 }}>
+                    <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '11.5px', fontWeight: 600, display: 'block', lineHeight: 2.0 }}>
                       {currentTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </Typography>
                     <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.55)', fontSize: '10.5px', display: 'block' }}>
@@ -730,375 +730,375 @@ const SatisfactionSurvey = () => {
                 flexDirection: 'column',
               }}
             >
-                <Box sx={{ maxWidth: '1400px', width: '100%', mx: 'auto', display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+              <Box sx={{ maxWidth: '1400px', width: '100%', mx: 'auto', display: 'flex', flexDirection: 'column', gap: 2.5 }}>
 
-                  {/* Header Progress Banner */}
+                {/* Header Progress Banner */}
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 2,
+                    borderRadius: '14px',
+                    border: '1px solid #e2e8f0',
+                    bgcolor: '#ffffff',
+                    maxWidth: viewMode === 'wizard' ? '850px' : '100%',
+                    mx: 'auto',
+                    width: '100%',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                    <Typography variant="subtitle1" fontWeight="bold" sx={{ color: '#0f172a', fontFamily: 'Poppins, sans-serif' }}>
+                      Library Experience Rating ({completedCount}/10 Answered)
+                    </Typography>
+                    <Chip
+                      icon={<CheckIcon sx={{ fontSize: '16px !important' }} />}
+                      label={`${Math.round(progressPercent)}% Complete`}
+                      color={progressPercent === 100 ? 'success' : 'primary'}
+                      size="small"
+                      sx={{ fontWeight: 600, fontFamily: 'Poppins, sans-serif' }}
+                    />
+                  </Box>
+                  <LinearProgress
+                    variant="determinate"
+                    value={progressPercent}
+                    sx={{
+                      height: 8,
+                      borderRadius: 4,
+                      bgcolor: '#e2e8f0',
+                      '& .MuiLinearProgress-bar': {
+                        borderRadius: 4,
+                        bgcolor: progressPercent === 100 ? '#43a047' : '#00bceb',
+                      },
+                    }}
+                  />
+                </Paper>
+
+                {/* View Mode Controls Bar */}
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: 1.5,
+                    pb: 0.5,
+                    maxWidth: viewMode === 'wizard' ? '850px' : '100%',
+                    mx: 'auto',
+                    width: '100%',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  <Typography variant="body2" sx={{ fontFamily: 'Poppins, sans-serif', color: '#64748b', fontWeight: 500 }}>
+                    Select Rating View Style:
+                  </Typography>
+
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Chip
+                      icon={<WizardIcon sx={{ fontSize: '18px !important' }} />}
+                      label="Single-Question Focus Wizard"
+                      clickable
+                      onClick={() => setViewMode('wizard')}
+                      sx={{
+                        fontFamily: 'Poppins, sans-serif',
+                        fontWeight: 600,
+                        bgcolor: viewMode === 'wizard' ? '#1b0892' : '#ffffff',
+                        color: viewMode === 'wizard' ? '#ffffff' : '#475569',
+                        border: '1px solid #cbd5e1',
+                        '&:hover': { bgcolor: viewMode === 'wizard' ? '#120569' : '#f1f5f9' },
+                      }}
+                    />
+                    <Chip
+                      icon={<SpeedIcon sx={{ fontSize: '18px !important' }} />}
+                      label="Cisco CSAT Style"
+                      clickable
+                      onClick={() => setViewMode('cisco')}
+                      sx={{
+                        fontFamily: 'Poppins, sans-serif',
+                        fontWeight: 600,
+                        bgcolor: viewMode === 'cisco' ? '#00bceb' : '#ffffff',
+                        color: viewMode === 'cisco' ? '#ffffff' : '#475569',
+                        border: '1px solid #cbd5e1',
+                        '&:hover': { bgcolor: viewMode === 'cisco' ? '#0096c7' : '#f1f5f9' },
+                      }}
+                    />
+                  </Box>
+                </Box>
+
+                {/* Cisco CSAT Style Renderer (2 Equal Columns Grid) */}
+                {viewMode === 'cisco' && (
+                  <Box
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+                      gap: 2.5,
+                      width: '100%',
+                    }}
+                  >
+                    {surveyQuestions.map((qText, idx) => (
+                      <CiscoQuestionItem
+                        key={idx}
+                        qIdx={idx}
+                        question={qText}
+                        selectedId={responses[idx]}
+                        onSelect={handleRatingSelect}
+                      />
+                    ))}
+                  </Box>
+                )}
+
+                {/* Single-Question Focus Wizard Renderer */}
+                {viewMode === 'wizard' && (
                   <Paper
                     elevation={0}
                     sx={{
-                      p: 2,
-                      borderRadius: '14px',
-                      border: '1px solid #e2e8f0',
+                      p: { xs: 2, md: 3 },
+                      borderRadius: '16px',
                       bgcolor: '#ffffff',
-                      maxWidth: viewMode === 'wizard' ? '850px' : '100%',
+                      border: '1px solid #e2e8f0',
+                      boxShadow: 'none',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 0.5,
+                      overflow: 'hidden',
+                      maxWidth: '850px',
                       mx: 'auto',
                       width: '100%',
-                      boxSizing: 'border-box',
                     }}
                   >
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                      <Typography variant="subtitle1" fontWeight="bold" sx={{ color: '#0f172a', fontFamily: 'Poppins, sans-serif' }}>
-                        Library Experience Rating ({completedCount}/10 Answered)
-                      </Typography>
-                      <Chip
-                        icon={<CheckIcon sx={{ fontSize: '16px !important' }} />}
-                        label={`${Math.round(progressPercent)}% Complete`}
-                        color={progressPercent === 100 ? 'success' : 'primary'}
-                        size="small"
-                        sx={{ fontWeight: 600, fontFamily: 'Poppins, sans-serif' }}
-                      />
+                    {/* Wizard Header Bar */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, borderBottom: '1px solid #f1f5f9' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <Chip
+                          label={`Question ${wizardIndex + 1} of 10`}
+                          size="small"
+                          color="primary"
+                          sx={{ fontWeight: 700, fontFamily: 'Poppins, sans-serif', bgcolor: '#1b0892', fontSize: '11.5px' }}
+                        />
+                        <Typography variant="body2" sx={{ fontFamily: 'Poppins, sans-serif', color: '#64748b', fontSize: '12px', fontWeight: 500 }}>
+                          Single-Question Focus Mode
+                        </Typography>
+                      </Box>
+
+                      {/* Animated Selection Feedback Badge */}
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        {isAdvancing ? (
+                          <Chip
+                            icon={<CheckIcon sx={{ fontSize: '16px !important', color: '#ffffff !important' }} />}
+                            label="Saved! Moving to Next Question..."
+                            size="small"
+                            sx={{
+                              fontFamily: 'Poppins, sans-serif',
+                              fontWeight: 600,
+                              fontSize: '11px',
+                              bgcolor: '#16a34a',
+                              color: '#ffffff',
+                              animation: 'pulseBadge 0.4s ease-in-out infinite alternate',
+                              '@keyframes pulseBadge': {
+                                '0%': { transform: 'scale(0.96)', opacity: 0.85 },
+                                '100%': { transform: 'scale(1.03)', opacity: 1 },
+                              },
+                            }}
+                          />
+                        ) : (
+                          <Typography variant="caption" sx={{ fontFamily: 'Poppins, sans-serif', color: '#64748b', fontWeight: 600 }}>
+                            {completedCount}/10 Answered
+                          </Typography>
+                        )}
+                      </Box>
                     </Box>
+
+                    {/* Mini Step Progress Bar */}
                     <LinearProgress
                       variant="determinate"
-                      value={progressPercent}
+                      value={((wizardIndex + 1) / 10) * 100}
                       sx={{
-                        height: 8,
-                        borderRadius: 4,
+                        height: 6,
+                        borderRadius: 3,
                         bgcolor: '#e2e8f0',
                         '& .MuiLinearProgress-bar': {
-                          borderRadius: 4,
-                          bgcolor: progressPercent === 100 ? '#43a047' : '#00bceb',
+                          borderRadius: 3,
+                          bgcolor: '#0066ff',
+                          transition: 'transform 0.4s ease-out',
                         },
                       }}
                     />
-                  </Paper>
 
-                  {/* View Mode Controls Bar */}
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      flexWrap: 'wrap',
-                      gap: 1.5,
-                      pb: 0.5,
-                      maxWidth: viewMode === 'wizard' ? '850px' : '100%',
-                      mx: 'auto',
-                      width: '100%',
-                      boxSizing: 'border-box',
-                    }}
-                  >
-                    <Typography variant="body2" sx={{ fontFamily: 'Poppins, sans-serif', color: '#64748b', fontWeight: 500 }}>
-                      Select Rating View Style:
-                    </Typography>
-
-                    <Box sx={{ display: 'flex', gap: 1 }}>
-                      <Chip
-                        icon={<WizardIcon sx={{ fontSize: '18px !important' }} />}
-                        label="Single-Question Focus Wizard"
-                        clickable
-                        onClick={() => setViewMode('wizard')}
-                        sx={{
-                          fontFamily: 'Poppins, sans-serif',
-                          fontWeight: 600,
-                          bgcolor: viewMode === 'wizard' ? '#1b0892' : '#ffffff',
-                          color: viewMode === 'wizard' ? '#ffffff' : '#475569',
-                          border: '1px solid #cbd5e1',
-                          '&:hover': { bgcolor: viewMode === 'wizard' ? '#120569' : '#f1f5f9' },
-                        }}
-                      />
-                      <Chip
-                        icon={<SpeedIcon sx={{ fontSize: '18px !important' }} />}
-                        label="Cisco CSAT Style"
-                        clickable
-                        onClick={() => setViewMode('cisco')}
-                        sx={{
-                          fontFamily: 'Poppins, sans-serif',
-                          fontWeight: 600,
-                          bgcolor: viewMode === 'cisco' ? '#00bceb' : '#ffffff',
-                          color: viewMode === 'cisco' ? '#ffffff' : '#475569',
-                          border: '1px solid #cbd5e1',
-                          '&:hover': { bgcolor: viewMode === 'cisco' ? '#0096c7' : '#f1f5f9' },
-                        }}
-                      />
-                    </Box>
-                  </Box>
-
-                  {/* Cisco CSAT Style Renderer (2 Equal Columns Grid) */}
-                  {viewMode === 'cisco' && (
+                    {/* Animated Question Card Container */}
                     <Box
+                      key={wizardIndex}
                       sx={{
-                        display: 'grid',
-                        gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
-                        gap: 2.5,
-                        width: '100%',
+                        animation:
+                          slideDirection === 'next'
+                            ? 'wizardSlideNext 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+                            : 'wizardSlidePrev 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        '@keyframes wizardSlideNext': {
+                          '0%': { opacity: 0, transform: 'translateX(40px) scale(0.98)' },
+                          '100%': { opacity: 1, transform: 'translateX(0) scale(1)' },
+                        },
+                        '@keyframes wizardSlidePrev': {
+                          '0%': { opacity: 0, transform: 'translateX(-40px) scale(0.98)' },
+                          '100%': { opacity: 1, transform: 'translateX(0) scale(1)' },
+                        },
                       }}
                     >
-                      {surveyQuestions.map((qText, idx) => (
-                        <CiscoQuestionItem
-                          key={idx}
-                          qIdx={idx}
-                          question={qText}
-                          selectedId={responses[idx]}
-                          onSelect={handleRatingSelect}
-                        />
-                      ))}
+                      <WizardQuestionItem
+                        qIdx={wizardIndex}
+                        question={surveyQuestions[wizardIndex]}
+                        selectedId={responses[wizardIndex]}
+                        onSelect={handleWizardSelect}
+                        isAdvancing={isAdvancing}
+                        justSelectedId={justSelectedId}
+                      />
                     </Box>
-                  )}
 
-                  {/* Single-Question Focus Wizard Renderer */}
-                  {viewMode === 'wizard' && (
-                    <Paper
-                      elevation={0}
-                      sx={{
-                        p: { xs: 2, md: 3 },
-                        borderRadius: '16px',
-                        bgcolor: '#ffffff',
-                        border: '1px solid #e2e8f0',
-                        boxShadow: 'none',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 0.5,
-                        overflow: 'hidden',
-                        maxWidth: '850px',
-                        mx: 'auto',
-                        width: '100%',
-                      }}
-                    >
-                      {/* Wizard Header Bar */}
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, borderBottom: '1px solid #f1f5f9' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                          <Chip
-                            label={`Question ${wizardIndex + 1} of 10`}
-                            size="small"
-                            color="primary"
-                            sx={{ fontWeight: 700, fontFamily: 'Poppins, sans-serif', bgcolor: '#1b0892', fontSize: '11.5px' }}
-                          />
-                          <Typography variant="body2" sx={{ fontFamily: 'Poppins, sans-serif', color: '#64748b', fontSize: '12px', fontWeight: 500 }}>
-                            Single-Question Focus Mode
-                          </Typography>
-                        </Box>
+                    {/* Wizard Controls Navigation Footer */}
+                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', justifyContent: 'space-between', mt: 0.5 }}>
+                      <Button
+                        disabled={wizardIndex === 0}
+                        onClick={() => changeWizardIndex(wizardIndex - 1)}
+                        startIcon={<BackIcon />}
+                        sx={{
+                          textTransform: 'none',
+                          fontFamily: 'Poppins, sans-serif',
+                          fontWeight: 600,
+                          transition: 'all 0.2s ease',
+                          '&:hover': { transform: 'translateX(-3px)' },
+                        }}
+                      >
+                        Previous
+                      </Button>
 
-                        {/* Animated Selection Feedback Badge */}
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          {isAdvancing ? (
-                            <Chip
-                              icon={<CheckIcon sx={{ fontSize: '16px !important', color: '#ffffff !important' }} />}
-                              label="Saved! Moving to Next Question..."
-                              size="small"
+                      <Box sx={{ display: 'flex', gap: 0.8, alignItems: 'center' }}>
+                        {surveyQuestions.map((_, idx) => {
+                          const isCurrent = idx === wizardIndex;
+                          const isAnswered = responses[idx] !== null;
+
+                          return (
+                            <Box
+                              key={idx}
+                              onClick={() => changeWizardIndex(idx)}
                               sx={{
-                                fontFamily: 'Poppins, sans-serif',
-                                fontWeight: 600,
-                                fontSize: '11px',
-                                bgcolor: '#16a34a',
-                                color: '#ffffff',
-                                animation: 'pulseBadge 0.4s ease-in-out infinite alternate',
-                                '@keyframes pulseBadge': {
-                                  '0%': { transform: 'scale(0.96)', opacity: 0.85 },
-                                  '100%': { transform: 'scale(1.03)', opacity: 1 },
+                                width: isCurrent ? 26 : 10,
+                                height: isCurrent ? 10 : 8,
+                                borderRadius: '5px',
+                                bgcolor: isCurrent ? '#0066ff' : isAnswered ? '#43a047' : '#cbd5e1',
+                                cursor: 'pointer',
+                                boxShadow: isCurrent ? '0 0 8px rgba(0, 102, 255, 0.4)' : 'none',
+                                transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                                '&:hover': {
+                                  transform: 'scale(1.25)',
+                                  bgcolor: isCurrent ? '#0052cc' : isAnswered ? '#2e7d32' : '#94a3b8',
                                 },
                               }}
                             />
-                          ) : (
-                            <Typography variant="caption" sx={{ fontFamily: 'Poppins, sans-serif', color: '#64748b', fontWeight: 600 }}>
-                              {completedCount}/10 Answered
-                            </Typography>
-                          )}
-                        </Box>
+                          );
+                        })}
                       </Box>
 
-                      {/* Mini Step Progress Bar */}
-                      <LinearProgress
-                        variant="determinate"
-                        value={((wizardIndex + 1) / 10) * 100}
+                      <Button
+                        disabled={wizardIndex === 9}
+                        onClick={() => changeWizardIndex(wizardIndex + 1)}
+                        endIcon={<NextIcon />}
                         sx={{
-                          height: 6,
-                          borderRadius: 3,
-                          bgcolor: '#e2e8f0',
-                          '& .MuiLinearProgress-bar': {
-                            borderRadius: 3,
-                            bgcolor: '#0066ff',
-                            transition: 'transform 0.4s ease-out',
-                          },
-                        }}
-                      />
-
-                      {/* Animated Question Card Container */}
-                      <Box
-                        key={wizardIndex}
-                        sx={{
-                          animation:
-                            slideDirection === 'next'
-                              ? 'wizardSlideNext 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards'
-                              : 'wizardSlidePrev 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-                          '@keyframes wizardSlideNext': {
-                            '0%': { opacity: 0, transform: 'translateX(40px) scale(0.98)' },
-                            '100%': { opacity: 1, transform: 'translateX(0) scale(1)' },
-                          },
-                          '@keyframes wizardSlidePrev': {
-                            '0%': { opacity: 0, transform: 'translateX(-40px) scale(0.98)' },
-                            '100%': { opacity: 1, transform: 'translateX(0) scale(1)' },
-                          },
+                          textTransform: 'none',
+                          fontFamily: 'Poppins, sans-serif',
+                          fontWeight: 600,
+                          transition: 'all 0.2s ease',
+                          '&:hover': { transform: 'translateX(3px)' },
                         }}
                       >
-                        <WizardQuestionItem
-                          qIdx={wizardIndex}
-                          question={surveyQuestions[wizardIndex]}
-                          selectedId={responses[wizardIndex]}
-                          onSelect={handleWizardSelect}
-                          isAdvancing={isAdvancing}
-                          justSelectedId={justSelectedId}
-                        />
-                      </Box>
+                        Next
+                      </Button>
+                    </Box>
+                  </Paper>
+                )}
 
-                      {/* Wizard Controls Navigation Footer */}
-                      <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', justifyContent: 'space-between', mt: 0.5 }}>
-                        <Button
-                          disabled={wizardIndex === 0}
-                          onClick={() => changeWizardIndex(wizardIndex - 1)}
-                          startIcon={<BackIcon />}
-                          sx={{
-                            textTransform: 'none',
-                            fontFamily: 'Poppins, sans-serif',
-                            fontWeight: 600,
-                            transition: 'all 0.2s ease',
-                            '&:hover': { transform: 'translateX(-3px)' },
-                          }}
-                        >
-                          Previous
-                        </Button>
+                {/* Feedback Message Box Section */}
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 2.5,
+                    borderRadius: '14px',
+                    border: '1px solid #e2e8f0',
+                    bgcolor: '#ffffff',
+                    mt: 1,
+                    maxWidth: viewMode === 'wizard' ? '850px' : '100%',
+                    mx: 'auto',
+                    width: '100%',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  <Typography fontWeight="bold" fontFamily="Poppins, sans-serif" fontSize="13px" mb={1} color="#1e293b">
+                    We'd love to hear your thoughts!
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    multiline
+                    rows={2.5}
+                    placeholder="Let us know your thoughts, suggestions, or anything else you'd like to share..."
+                    variant="outlined"
+                    size="small"
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    inputProps={{ style: { fontFamily: 'Poppins, sans-serif', fontSize: '12.5px' } }}
+                  />
+                </Paper>
 
-                        <Box sx={{ display: 'flex', gap: 0.8, alignItems: 'center' }}>
-                          {surveyQuestions.map((_, idx) => {
-                            const isCurrent = idx === wizardIndex;
-                            const isAnswered = responses[idx] !== null;
+                {/* SUBMIT SURVEY BUTTON SECTION */}
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 3,
+                    borderRadius: '14px',
+                    border: '1px solid #e2e8f0',
+                    bgcolor: '#ffffff',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    mb: 4,
+                    maxWidth: viewMode === 'wizard' ? '850px' : '100%',
+                    mx: 'auto',
+                    width: '100%',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  <Button
+                    variant="contained"
+                    size="large"
+                    onClick={handleSubmit}
+                    startIcon={<SendIcon />}
+                    sx={{
+                      py: 1.5,
+                      px: 6,
+                      borderRadius: '30px',
+                      backgroundColor: '#1b0892',
+                      color: '#ffffff',
+                      fontWeight: 'bold',
+                      fontSize: '15px',
+                      fontFamily: 'Poppins, sans-serif',
+                      letterSpacing: '0.5px',
+                      boxShadow: '0 4px 14px rgba(27, 8, 146, 0.3)',
+                      '&:hover': {
+                        backgroundColor: '#120569',
+                        boxShadow: '0 6px 18px rgba(27, 8, 146, 0.4)',
+                      },
+                    }}
+                  >
+                    SUBMIT SURVEY
+                  </Button>
 
-                            return (
-                              <Box
-                                key={idx}
-                                onClick={() => changeWizardIndex(idx)}
-                                sx={{
-                                  width: isCurrent ? 26 : 10,
-                                  height: isCurrent ? 10 : 8,
-                                  borderRadius: '5px',
-                                  bgcolor: isCurrent ? '#0066ff' : isAnswered ? '#43a047' : '#cbd5e1',
-                                  cursor: 'pointer',
-                                  boxShadow: isCurrent ? '0 0 8px rgba(0, 102, 255, 0.4)' : 'none',
-                                  transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                                  '&:hover': {
-                                    transform: 'scale(1.25)',
-                                    bgcolor: isCurrent ? '#0052cc' : isAnswered ? '#2e7d32' : '#94a3b8',
-                                  },
-                                }}
-                              />
-                            );
-                          })}
-                        </Box>
-
-                        <Button
-                          disabled={wizardIndex === 9}
-                          onClick={() => changeWizardIndex(wizardIndex + 1)}
-                          endIcon={<NextIcon />}
-                          sx={{
-                            textTransform: 'none',
-                            fontFamily: 'Poppins, sans-serif',
-                            fontWeight: 600,
-                            transition: 'all 0.2s ease',
-                            '&:hover': { transform: 'translateX(3px)' },
-                          }}
-                        >
-                          Next
-                        </Button>
-                      </Box>
-                    </Paper>
+                  {submitError && (
+                    <Typography color="error" sx={{ mt: 1.5, fontWeight: 600, fontFamily: 'Poppins, sans-serif', fontSize: '13px' }}>
+                      {submitError}
+                    </Typography>
                   )}
 
-                  {/* Feedback Message Box Section */}
-                  <Paper
-                    elevation={0}
-                    sx={{
-                      p: 2.5,
-                      borderRadius: '14px',
-                      border: '1px solid #e2e8f0',
-                      bgcolor: '#ffffff',
-                      mt: 1,
-                      maxWidth: viewMode === 'wizard' ? '850px' : '100%',
-                      mx: 'auto',
-                      width: '100%',
-                      boxSizing: 'border-box',
-                    }}
-                  >
-                    <Typography fontWeight="bold" fontFamily="Poppins, sans-serif" fontSize="13px" mb={1} color="#1e293b">
-                      We'd love to hear your thoughts!
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      multiline
-                      rows={2.5}
-                      placeholder="Let us know your thoughts, suggestions, or anything else you'd like to share..."
-                      variant="outlined"
-                      size="small"
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                      inputProps={{ style: { fontFamily: 'Poppins, sans-serif', fontSize: '12.5px' } }}
-                    />
-                  </Paper>
+                  <Typography variant="caption" sx={{ mt: 1, color: '#64748b', fontFamily: 'Poppins, sans-serif' }}>
+                    *Please select a rating for all 10 questions and fill in your clientele info before submitting.
+                  </Typography>
+                </Paper>
 
-                  {/* SUBMIT SURVEY BUTTON SECTION */}
-                  <Paper
-                    elevation={0}
-                    sx={{
-                      p: 3,
-                      borderRadius: '14px',
-                      border: '1px solid #e2e8f0',
-                      bgcolor: '#ffffff',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      mb: 4,
-                      maxWidth: viewMode === 'wizard' ? '850px' : '100%',
-                      mx: 'auto',
-                      width: '100%',
-                      boxSizing: 'border-box',
-                    }}
-                  >
-                    <Button
-                      variant="contained"
-                      size="large"
-                      onClick={handleSubmit}
-                      startIcon={<SendIcon />}
-                      sx={{
-                        py: 1.5,
-                        px: 6,
-                        borderRadius: '30px',
-                        backgroundColor: '#1b0892',
-                        color: '#ffffff',
-                        fontWeight: 'bold',
-                        fontSize: '15px',
-                        fontFamily: 'Poppins, sans-serif',
-                        letterSpacing: '0.5px',
-                        boxShadow: '0 4px 14px rgba(27, 8, 146, 0.3)',
-                        '&:hover': {
-                          backgroundColor: '#120569',
-                          boxShadow: '0 6px 18px rgba(27, 8, 146, 0.4)',
-                        },
-                      }}
-                    >
-                      SUBMIT SURVEY
-                    </Button>
-
-                    {submitError && (
-                      <Typography color="error" sx={{ mt: 1.5, fontWeight: 600, fontFamily: 'Poppins, sans-serif', fontSize: '13px' }}>
-                        {submitError}
-                      </Typography>
-                    )}
-
-                    <Typography variant="caption" sx={{ mt: 1, color: '#64748b', fontFamily: 'Poppins, sans-serif' }}>
-                      *Please select a rating for all 10 questions and fill in your clientele info before submitting.
-                    </Typography>
-                  </Paper>
-
-                </Box>
+              </Box>
             </Box>
           </Box>
 
