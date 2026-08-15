@@ -23,7 +23,12 @@ import {
   AdminPanelSettings as AdminIcon,
   CalendarToday as CalendarTodayIcon,
   RestartAlt as RestartAltIcon,
-  Inbox as InboxIcon
+  Inbox as InboxIcon,
+  TrendingUp as TrendingUpIcon,
+  BarChart as BarChartIcon,
+  PieChart as PieChartIcon,
+  Lightbulb as LightbulbIcon,
+  RateReview as RateReviewIcon
 } from '@mui/icons-material';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import ReactWordcloud from 'react-wordcloud';
@@ -274,34 +279,63 @@ const TopCommentsCard = ({ title, rows, accent, icon, lightBorder }) => (
   <Card elevation={0} sx={{
     borderRadius: 3.5,
     backgroundColor: '#ffffff',
-    border: `1.5px solid ${lightBorder}`,
+    border: '1.5px solid #cbd5e1',
     flex: 1, minWidth: 300,
+    boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.06)',
     transition: 'all 0.25s ease',
+    overflow: 'hidden',
     '&:hover': {
-      boxShadow: `0 8px 20px -6px ${accent}25`
+      boxShadow: '0 8px 24px -4px rgba(29, 10, 97, 0.15)'
     }
   }}>
-    <CardContent sx={{ p: 2.5 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, mb: 2 }}>
-        <Avatar sx={{ bgcolor: `${accent}15`, color: accent, width: 34, height: 34, fontSize: 20 }}>
+    <Box sx={{
+      bgcolor: '#1d0a61',
+      px: 3, py: 1.8,
+      borderBottom: '3px solid #d49f1e',
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+    }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+        <Box sx={{ color: '#f59e0b', display: 'flex', alignItems: 'center' }}>
           {icon}
-        </Avatar>
+        </Box>
         <Typography sx={{
-          fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 14, color: accent,
-          letterSpacing: 0.5, textTransform: 'uppercase'
+          fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 15, color: '#ffffff',
+          letterSpacing: 0.3
         }}>
           {title}
         </Typography>
       </Box>
+      <Typography sx={{
+        fontFamily: 'Poppins, sans-serif', fontSize: 12.5, color: '#fbbf24',
+        fontWeight: 700, bgcolor: 'rgba(255,255,255,0.1)', px: 1.5, py: 0.3, borderRadius: 2
+      }}>
+        {rows.length} {rows.length === 1 ? 'Comment' : 'Comments'}
+      </Typography>
+    </Box>
+    <CardContent sx={{ p: 2.5 }}>
       {rows.length === 0 ? (
         <Typography sx={{ fontFamily: 'Poppins, sans-serif', color: '#94a3b8', fontSize: 13, py: 2 }}>No comments yet.</Typography>
       ) : rows.map((row, i) => (
-        <Box key={i} sx={{ py: 1.2, borderBottom: i < rows.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
-          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#1e293b', fontWeight: 500, lineHeight: 1.4 }}>
+        <Box
+          key={i}
+          sx={{
+            p: 1.6, mb: i < rows.length - 1 ? 1.5 : 0,
+            bgcolor: `${accent}06`,
+            border: `1px solid ${accent}22`,
+            borderLeft: `4px solid ${accent}`,
+            borderRadius: 2.5,
+            transition: 'all 0.2s ease',
+            '&:hover': {
+              bgcolor: `${accent}0d`,
+              transform: 'translateX(2px)'
+            }
+          }}
+        >
+          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#1e293b', fontWeight: 500, lineHeight: 1.45 }}>
             "{row.Message}"
           </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 0.8 }}>
-            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 11.5, color: '#64748b', fontWeight: 600 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 1, pt: 0.8, borderTop: `1px dashed ${accent}25` }}>
+            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 11.5, color: '#475569', fontWeight: 600 }}>
               {row.Clientele} • {row.College}
             </Typography>
             <Chip
@@ -309,7 +343,7 @@ const TopCommentsCard = ({ title, rows, accent, icon, lightBorder }) => (
               size="small"
               sx={{
                 height: 22, fontSize: 11, fontWeight: 700, fontFamily: 'Poppins, sans-serif',
-                bgcolor: `${accent}15`, color: accent, border: `1px solid ${accent}30`
+                bgcolor: '#ffffff', color: accent, border: `1.5px solid ${accent}40`
               }}
             />
           </Box>
@@ -323,6 +357,21 @@ const selectSx = {
   backgroundColor: '#ffffff',
   borderRadius: 2.5,
   minWidth: 165,
+  '& .MuiOutlinedInput-root': {
+    borderRadius: 2.5,
+    backgroundColor: '#ffffff',
+    '& fieldset': {
+      borderColor: '#cbd5e1',
+      borderWidth: '1.5px',
+    },
+    '&:hover fieldset': {
+      borderColor: '#1a237e',
+    },
+    '&.Mui-focused fieldset': {
+      borderColor: '#d49f1e',
+      borderWidth: '2px',
+    },
+  },
   '& .MuiInputBase-root': {
     height: 46,
     fontFamily: 'Poppins, sans-serif',
@@ -336,7 +385,7 @@ const selectSx = {
     fontSize: 14,
     color: '#475569',
     '&.Mui-focused': {
-      color: '#2563eb',
+      color: '#1a237e',
       fontWeight: 700,
     }
   },
@@ -353,7 +402,8 @@ const SentimentChip = ({ label }) => {
     <Box sx={{
       display: 'inline-flex', alignItems: 'center', gap: 0.8,
       px: 1.5, py: 0.4, borderRadius: '20px',
-      backgroundColor: cfg.light, border: `1.5px solid ${cfg.dot}60`,
+      backgroundColor: cfg.light, border: `1.5px solid ${cfg.dot}`,
+      boxShadow: `0 2px 6px ${cfg.dot}30`
     }}>
       <Box sx={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: cfg.dot }} />
       <Typography sx={{ fontSize: 12, fontWeight: 700, color: cfg.text, fontFamily: 'Poppins, sans-serif' }}>
@@ -370,7 +420,8 @@ const CategoryChip = ({ label }) => {
     <Box sx={{
       display: 'inline-flex', alignItems: 'center', gap: 0.8,
       px: 1.5, py: 0.4, borderRadius: '20px',
-      backgroundColor: cfg.light, border: `1.5px solid ${cfg.dot}60`,
+      backgroundColor: cfg.light, border: `1.5px solid ${cfg.dot}`,
+      boxShadow: `0 2px 6px ${cfg.dot}30`
     }}>
       <Box sx={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: cfg.dot }} />
       <Typography sx={{ fontSize: 12, fontWeight: 700, color: cfg.text, fontFamily: 'Poppins, sans-serif' }}>
@@ -398,20 +449,29 @@ const SummaryCard = ({ title, value, subtitle, icon, color = '#3b82f6', tooltipC
   const cardContent = (
     <Card elevation={0} sx={{
       borderRadius: 3.5,
-      backgroundColor: '#ffffff',
-      border: '1.5px solid #e2e8f0',
+      background: `linear-gradient(150deg, #ffffff 0%, ${color}0d 100%)`,
+      border: `1.5px solid ${color}35`,
+      borderTop: `4px solid ${color}`,
       flex: 1, minWidth: 180,
       p: 2.5,
       cursor: tooltipContent ? 'pointer' : 'default',
+      boxShadow: `0 4px 16px -2px ${color}18`,
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       '&:hover': {
         transform: 'translateY(-4px)',
-        boxShadow: '0 12px 24px -10px rgba(0, 0, 0, 0.1)',
-        ...(tooltipContent && { borderColor: color })
+        boxShadow: `0 12px 24px -6px ${color}30`,
+        borderColor: color
       }
     }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
-        <Avatar sx={{ bgcolor: `${color}15`, color: color, width: 48, height: 48, fontSize: 24 }}>
+        <Avatar sx={{
+          bgcolor: `${color}18`,
+          color: color,
+          width: 48, height: 48,
+          fontSize: 24,
+          border: `1.5px solid ${color}35`,
+          boxShadow: `0 2px 10px ${color}20`
+        }}>
           {icon}
         </Avatar>
       </Box>
@@ -1323,18 +1383,25 @@ const SentimentDashboard = () => {
             />
 
             {!showLoginModal && (
-              <Box sx={{ p: 3, backgroundColor: '#f8fafc', minHeight: '100vh' }}>
-                {/* ── Modern Header Action Bar ───── */}
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Box sx={{ p: { xs: 2, md: 3 }, background: 'linear-gradient(180deg, #f0f4f8 0%, #e6edf5 100%)', minHeight: '100vh' }}>
+                {/* ── Modern Header Action Bar Banner ───── */}
+                <Paper elevation={0} sx={{
+                  p: 2.5, mb: 3, borderRadius: 3.5,
+                  bgcolor: '#ffffff',
+                  border: '1.5px solid #cbd5e1',
+                  borderLeft: '6px solid #d49f1e',
+                  boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.06)',
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2
+                }}>
                   <Box>
-                    <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 26, fontWeight: 800, color: '#0f172a' }}>
+                    <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: { xs: 20, md: 24 }, fontWeight: 800, color: '#0f172a' }}>
                       Henry Luce III Library Sentiment Analysis Dashboard
                     </Typography>
-                    <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 14, color: '#475569', fontWeight: 500, mt: 0.5 }}>
+                    <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13.5, color: '#475569', fontWeight: 500, mt: 0.5 }}>
                       Patron feedback sentiment breakdown, category distribution, and satisfaction analytics
                     </Typography>
                   </Box>
-                  <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+                  <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
                     <Button
                       variant="outlined"
                       color="secondary"
@@ -1342,15 +1409,17 @@ const SentimentDashboard = () => {
                       startIcon={<PrintIcon />}
                       sx={{
                         borderRadius: 2.5,
-                        height: 46,
-                        px: 3.5,
+                        height: 44,
+                        px: 3,
                         fontFamily: 'Poppins, sans-serif',
                         fontSize: 14,
                         fontWeight: 700,
                         textTransform: 'none',
                         borderColor: '#cbd5e1',
                         color: '#334155',
-                        '&:hover': { borderColor: '#94a3b8', bgcolor: '#f1f5f9' }
+                        bgcolor: '#ffffff',
+                        borderWidth: '1.5px',
+                        '&:hover': { borderColor: '#94a3b8', bgcolor: '#f8fafc', borderWidth: '1.5px' }
                       }}
                     >
                       Print / Save PDF
@@ -1361,8 +1430,8 @@ const SentimentDashboard = () => {
                       startIcon={<FileDownloadIcon />}
                       sx={{
                         borderRadius: 2.5,
-                        height: 46,
-                        px: 3.5,
+                        height: 44,
+                        px: 3,
                         fontFamily: 'Poppins, sans-serif',
                         fontSize: 14,
                         fontWeight: 700,
@@ -1381,56 +1450,64 @@ const SentimentDashboard = () => {
                       startIcon={<LogoutIcon />}
                       sx={{
                         borderRadius: 2.5,
-                        height: 46,
-                        px: 3,
+                        height: 44,
+                        px: 2.5,
                         fontFamily: 'Poppins, sans-serif',
                         fontSize: 14,
                         fontWeight: 700,
                         textTransform: 'none',
                         borderColor: '#fecdd3',
                         color: '#e11d48',
-                        '&:hover': { bgcolor: '#fff1f2', borderColor: '#f87171' }
+                        bgcolor: '#ffffff',
+                        borderWidth: '1.5px',
+                        '&:hover': { bgcolor: '#fff1f2', borderColor: '#f87171', borderWidth: '1.5px' }
                       }}
                     >
                       Logout
                     </Button>
                   </Box>
-                </Box>
+                </Paper>
 
                 {/* ── Filter Controls Container ───── */}
-                <Paper elevation={0} sx={{ mb: 3, borderRadius: 3.5, border: '1.5px solid #e2e8f0', bgcolor: '#ffffff', overflow: 'hidden' }}>
+                <Paper elevation={0} sx={{
+                  mb: 3, borderRadius: 3.5,
+                  border: '1.5px solid #cbd5e1',
+                  bgcolor: '#ffffff',
+                  boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.06)',
+                  overflow: 'hidden'
+                }}>
                   <Box sx={{
-                    bgcolor: '#1a237e',
+                    bgcolor: '#1d0a61',
                     px: 3, py: 1.8,
-                    borderBottom: '3px solid #0288d1',
+                    borderBottom: '3px solid #d49f1e',
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between'
                   }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-                      <FilterAltIcon sx={{ fontSize: 22, color: '#38bdf8' }} />
+                      <FilterAltIcon sx={{ fontSize: 22, color: '#f59e0b' }} />
                       <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 16, color: '#ffffff', letterSpacing: 0.3 }}>
                         Filter & Analytics Controls
                       </Typography>
                     </Box>
-                    <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#90caf9', fontWeight: 600 }}>
+                    <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#fbbf24', fontWeight: 700, bgcolor: 'rgba(255,255,255,0.1)', px: 1.5, py: 0.3, borderRadius: 2 }}>
                       {filtered.length} matching response{filtered.length === 1 ? '' : 's'}
                     </Typography>
                   </Box>
 
                   {/* ── Quick Date Presets Row ───── */}
-                  <Box sx={{ px: 3, pt: 2, pb: 1, borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                  <Box sx={{ px: 3, pt: 2, pb: 1.5, bgcolor: '#f8fafc', borderBottom: '1.5px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                     <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 700, color: '#475569', mr: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
                       <CalendarTodayIcon sx={{ fontSize: 16, color: '#1a237e' }} /> Quick Date Range:
                     </Typography>
-                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('today')} sx={{ borderRadius: 2, textTransform: 'none', fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 12, borderColor: '#cbd5e1', color: '#334155' }}>
+                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('today')} sx={{ borderRadius: 2, textTransform: 'none', fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 12, borderColor: '#cbd5e1', color: '#1e293b', bgcolor: '#ffffff', '&:hover': { bgcolor: '#f1f5f9', borderColor: '#1a237e' } }}>
                       Today
                     </Button>
-                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('week')} sx={{ borderRadius: 2, textTransform: 'none', fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 12, borderColor: '#cbd5e1', color: '#334155' }}>
+                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('week')} sx={{ borderRadius: 2, textTransform: 'none', fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 12, borderColor: '#cbd5e1', color: '#1e293b', bgcolor: '#ffffff', '&:hover': { bgcolor: '#f1f5f9', borderColor: '#1a237e' } }}>
                       This Week
                     </Button>
-                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('month')} sx={{ borderRadius: 2, textTransform: 'none', fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 12, borderColor: '#cbd5e1', color: '#334155' }}>
+                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('month')} sx={{ borderRadius: 2, textTransform: 'none', fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 12, borderColor: '#cbd5e1', color: '#1e293b', bgcolor: '#ffffff', '&:hover': { bgcolor: '#f1f5f9', borderColor: '#1a237e' } }}>
                       This Month
                     </Button>
-                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('all')} sx={{ borderRadius: 2, textTransform: 'none', fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 12, borderColor: '#cbd5e1', color: '#334155' }}>
+                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('all')} sx={{ borderRadius: 2, textTransform: 'none', fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 12, borderColor: '#cbd5e1', color: '#1e293b', bgcolor: '#ffffff', '&:hover': { bgcolor: '#f1f5f9', borderColor: '#1a237e' } }}>
                       All Time
                     </Button>
                   </Box>
@@ -1521,7 +1598,18 @@ const SentimentDashboard = () => {
                     <Button
                       variant="contained"
                       onClick={fetchSurveys}
-                      sx={{ bgcolor: '#1a237e', px: 3.5, height: 46, borderRadius: 2.5, textTransform: 'none', fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 15, '&:hover': { bgcolor: '#0d47a1' } }}
+                      sx={{
+                        bgcolor: '#1a237e',
+                        px: 3.5,
+                        height: 46,
+                        borderRadius: 2.5,
+                        textTransform: 'none',
+                        fontFamily: 'Poppins, sans-serif',
+                        fontWeight: 700,
+                        fontSize: 15,
+                        boxShadow: '0 4px 12px rgba(26, 35, 126, 0.25)',
+                        '&:hover': { bgcolor: '#0d47a1' }
+                      }}
                     >
                       Apply Filters
                     </Button>
@@ -1530,7 +1618,18 @@ const SentimentDashboard = () => {
                         variant="outlined"
                         color="inherit"
                         onClick={handleClear}
-                        sx={{ height: 46, px: 3, borderRadius: 2.5, textTransform: 'none', fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 15, borderColor: '#cbd5e1' }}
+                        sx={{
+                          height: 46,
+                          px: 3,
+                          borderRadius: 2.5,
+                          textTransform: 'none',
+                          fontFamily: 'Poppins, sans-serif',
+                          fontWeight: 700,
+                          fontSize: 15,
+                          borderColor: '#cbd5e1',
+                          borderWidth: '1.5px',
+                          '&:hover': { borderWidth: '1.5px', borderColor: '#94a3b8' }
+                        }}
                       >
                         Reset
                       </Button>
@@ -1539,8 +1638,8 @@ const SentimentDashboard = () => {
 
                   {/* ── Active Filter Chips Row ───── */}
                   {hasActiveFilter && (
-                    <Box sx={{ px: 3, pb: 2, pt: 1, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', borderTop: '1px solid #f1f5f9' }}>
-                      <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12.5, fontWeight: 700, color: '#64748b' }}>
+                    <Box sx={{ px: 3, pb: 2, pt: 1.5, bgcolor: '#f8fafc', display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', borderTop: '1.5px solid #e2e8f0' }}>
+                      <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12.5, fontWeight: 700, color: '#475569' }}>
                         Active Filters:
                       </Typography>
                       {(startDate || endDate) && (
@@ -1548,7 +1647,7 @@ const SentimentDashboard = () => {
                           label={`Date: ${startDate || 'Start'} to ${endDate || 'End'}`}
                           onDelete={() => handleRemoveFilter('date')}
                           size="small"
-                          sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 12, bgcolor: '#f1f5f9', color: '#334155' }}
+                          sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 12, bgcolor: '#ffffff', color: '#1e293b', border: '1.5px solid #cbd5e1' }}
                         />
                       )}
                       {filterClientele && (
@@ -1556,7 +1655,7 @@ const SentimentDashboard = () => {
                           label={`Clientele: ${filterClientele}`}
                           onDelete={() => handleRemoveFilter('clientele')}
                           size="small"
-                          sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 12, bgcolor: '#f3e8ff', color: '#6b21a8' }}
+                          sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 12, bgcolor: '#f3e8ff', color: '#6b21a8', border: '1.5px solid #c084fc' }}
                         />
                       )}
                       {filterCollege && (
@@ -1564,7 +1663,7 @@ const SentimentDashboard = () => {
                           label={`College: ${filterCollege}`}
                           onDelete={() => handleRemoveFilter('college')}
                           size="small"
-                          sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 12, bgcolor: '#e0f2fe', color: '#0369a1' }}
+                          sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 12, bgcolor: '#e0f2fe', color: '#0369a1', border: '1.5px solid #7dd3fc' }}
                         />
                       )}
                       {filterSentiment && (
@@ -1572,7 +1671,7 @@ const SentimentDashboard = () => {
                           label={`Sentiment: ${filterSentiment}`}
                           onDelete={() => handleRemoveFilter('sentiment')}
                           size="small"
-                          sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 12, bgcolor: '#ecfdf5', color: '#047857' }}
+                          sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 12, bgcolor: '#ecfdf5', color: '#047857', border: '1.5px solid #6ee7b7' }}
                         />
                       )}
                       {filterCategory && (
@@ -1580,7 +1679,7 @@ const SentimentDashboard = () => {
                           label={`Category: ${filterCategory}`}
                           onDelete={() => handleRemoveFilter('category')}
                           size="small"
-                          sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 12, bgcolor: '#fffbeb', color: '#b45309' }}
+                          sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 12, bgcolor: '#fffbeb', color: '#b45309', border: '1.5px solid #fcd34d' }}
                         />
                       )}
                       <Button
@@ -1646,55 +1745,85 @@ const SentimentDashboard = () => {
                     </Box>
 
                     {/* ── 12-Month Calendar View Bar Graph (Stacked Bar / Side-by-Side Toggle) ───── */}
-                    <Card elevation={0} sx={{ border: '1.5px solid #e2e8f0', borderRadius: 3.5, mb: 3, backgroundColor: 'white' }}>
-                      <CardContent sx={{ p: 3 }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1.5 }}>
+                    <Card elevation={0} sx={{
+                      border: '1.5px solid #cbd5e1',
+                      borderRadius: 3.5,
+                      mb: 3,
+                      backgroundColor: '#ffffff',
+                      boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.06)',
+                      overflow: 'hidden'
+                    }}>
+                      <Box sx={{
+                        bgcolor: '#1d0a61',
+                        px: 3, py: 1.8,
+                        borderBottom: '3px solid #d49f1e',
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1.5
+                      }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+                          <TrendingUpIcon sx={{ fontSize: 22, color: '#f59e0b' }} />
                           <Box>
-                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 15, color: '#1e293b', letterSpacing: 0.5, textTransform: 'uppercase' }}>
+                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 16, color: '#ffffff', letterSpacing: 0.3 }}>
                               Sentiment Trend (12-Month {barChartMode === 'stacked' ? 'Stacked Bar' : 'Side-by-Side'} View) — {filterYear === 'All' ? 'All Batched Years' : `Year ${filterYear}`}
                             </Typography>
-                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 14, color: '#64748b', fontWeight: 500, mt: 0.2 }}>
+                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12.5, color: '#90caf9', fontWeight: 500, mt: 0.2 }}>
                               {barChartMode === 'stacked'
                                 ? 'Stacked breakdown of Positive, Neutral, and Negative responses per month'
                                 : 'Side-by-Side comparison of Positive, Neutral, and Negative responses per month'}
                             </Typography>
                           </Box>
-
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-                            {/* Bar Layout Mode Switch (Stacked vs Grouped) */}
-                            <ToggleButtonGroup
-                              value={barChartMode}
-                              exclusive
-                              onChange={(e, newMode) => { if (newMode) setBarChartMode(newMode); }}
-                              size="small"
-                              sx={{ height: 38, borderRadius: 2.5, bgcolor: '#f8fafc', border: '1px solid #cbd5e1' }}
-                            >
-                              <ToggleButton value="stacked" sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 700, textTransform: 'none', px: 1.5 }}>
-                                Stacked Bar
-                              </ToggleButton>
-                              <ToggleButton value="grouped" sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 700, textTransform: 'none', px: 1.5 }}>
-                                Side-by-Side
-                              </ToggleButton>
-                            </ToggleButtonGroup>
-
-                            {/* Year Selector */}
-                            <FormControl size="small" sx={{ minWidth: 120 }}>
-                              <InputLabel sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 700, color: '#1a237e' }}>Year</InputLabel>
-                              <Select
-                                value={filterYear}
-                                label="Year"
-                                onChange={(e) => setFilterYear(e.target.value)}
-                                sx={{ height: 38, borderRadius: 2.5, fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 13 }}
-                              >
-                                <MenuItem value="All" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 13 }}>All Years</MenuItem>
-                                {availableYears.map(yr => (
-                                  <MenuItem key={yr} value={yr} sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 13 }}>{yr}</MenuItem>
-                                ))}
-                              </Select>
-                            </FormControl>
-                          </Box>
                         </Box>
 
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                          {/* Bar Layout Mode Switch (Stacked vs Grouped) */}
+                          <ToggleButtonGroup
+                            value={barChartMode}
+                            exclusive
+                            onChange={(e, newMode) => { if (newMode) setBarChartMode(newMode); }}
+                            size="small"
+                            sx={{
+                              height: 38, borderRadius: 2.5, bgcolor: '#ffffff',
+                              '& .MuiToggleButton-root': {
+                                fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 700, textTransform: 'none', px: 1.5,
+                                color: '#1d0a61',
+                                '&.Mui-selected': { bgcolor: '#d49f1e', color: '#1d0a61', fontWeight: 800, '&:hover': { bgcolor: '#c49015' } }
+                              }
+                            }}
+                          >
+                            <ToggleButton value="stacked">
+                              Stacked Bar
+                            </ToggleButton>
+                            <ToggleButton value="grouped">
+                              Side-by-Side
+                            </ToggleButton>
+                          </ToggleButtonGroup>
+
+                          {/* Year Selector */}
+                          <FormControl size="small" sx={{ minWidth: 120 }}>
+                            <InputLabel sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 700, color: '#ffffff' }}>Year</InputLabel>
+                            <Select
+                              value={filterYear}
+                              label="Year"
+                              onChange={(e) => setFilterYear(e.target.value)}
+                              sx={{
+                                height: 38,
+                                borderRadius: 2.5,
+                                fontFamily: 'Poppins, sans-serif',
+                                fontWeight: 700,
+                                fontSize: 13,
+                                bgcolor: '#ffffff',
+                                color: '#0f172a'
+                              }}
+                            >
+                              <MenuItem value="All" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 13 }}>All Years</MenuItem>
+                              {availableYears.map(yr => (
+                                <MenuItem key={yr} value={yr} sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 13 }}>{yr}</MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        </Box>
+                      </Box>
+
+                      <CardContent sx={{ p: 3 }}>
                         <ResponsiveContainer width="100%" height={320}>
                           <BarChart data={monthly12MonthData} margin={{ top: 15, right: 30, left: 0, bottom: 5 }}>
                             <defs>
@@ -1711,9 +1840,9 @@ const SentimentDashboard = () => {
                                 <stop offset="100%" stopColor="#dc2626" />
                               </linearGradient>
                             </defs>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                            <XAxis dataKey="month" tick={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fill: '#64748b', fontWeight: 600 }} />
-                            <YAxis allowDecimals={false} tick={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fill: '#64748b' }} />
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                            <XAxis dataKey="month" tick={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fill: '#475569', fontWeight: 600 }} />
+                            <YAxis allowDecimals={false} tick={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fill: '#475569' }} />
                             <RechartsTooltip content={<CustomSentimentStackedTooltip />} />
                             <Legend wrapperStyle={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, paddingTop: 12 }} />
                             <Bar
@@ -1743,68 +1872,105 @@ const SentimentDashboard = () => {
                     </Card>
 
                     {/* ── Dedicated Stacked Bar Chart: Sentiment Breakdown across Dimensions ───── */}
-                    <Card elevation={0} sx={{ border: '1.5px solid #e2e8f0', borderRadius: 3.5, mb: 3, backgroundColor: 'white' }}>
-                      <CardContent sx={{ p: 3 }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexWrap: 'wrap', gap: 1.5 }}>
+                    <Card elevation={0} sx={{
+                      border: '1.5px solid #cbd5e1',
+                      borderRadius: 3.5,
+                      mb: 3,
+                      backgroundColor: '#ffffff',
+                      boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.06)',
+                      overflow: 'hidden'
+                    }}>
+                      <Box sx={{
+                        bgcolor: '#1d0a61',
+                        px: 3, py: 1.8,
+                        borderBottom: '3px solid #d49f1e',
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1.5
+                      }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+                          <BarChartIcon sx={{ fontSize: 22, color: '#f59e0b' }} />
                           <Box>
-                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 15, color: '#1e293b', letterSpacing: 0.5, textTransform: 'uppercase' }}>
+                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 16, color: '#ffffff', letterSpacing: 0.3 }}>
                               Sentiment Distribution Breakdown (Stacked Bar Chart)
                             </Typography>
-                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#64748b', fontWeight: 500, mt: 0.2 }}>
+                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12.5, color: '#90caf9', fontWeight: 500, mt: 0.2 }}>
                               Stacked comparison of Positive, Neutral, and Negative sentiment volumes across {stackedBreakdownDimension}
                             </Typography>
                           </Box>
-
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-                            {/* Dimension Dropdown */}
-                            <FormControl size="small" sx={{ minWidth: 140 }}>
-                              <InputLabel sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 700, color: '#1a237e' }}>Breakdown By</InputLabel>
-                              <Select
-                                value={stackedBreakdownDimension}
-                                label="Breakdown By"
-                                onChange={(e) => setStackedBreakdownDimension(e.target.value)}
-                                sx={{ height: 38, borderRadius: 2.5, fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 13 }}
-                              >
-                                <MenuItem value="Category" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 13 }}>Category</MenuItem>
-                                <MenuItem value="Clientele" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 13 }}>Clientele Group</MenuItem>
-                                <MenuItem value="College" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 13 }}>College / Unit</MenuItem>
-                              </Select>
-                            </FormControl>
-
-                            {/* Stacked vs Grouped Toggle */}
-                            <ToggleButtonGroup
-                              value={stackedLayoutMode}
-                              exclusive
-                              onChange={(e, mode) => { if (mode) setStackedLayoutMode(mode); }}
-                              size="small"
-                              sx={{ height: 38, borderRadius: 2.5, bgcolor: '#f8fafc', border: '1px solid #cbd5e1' }}
-                            >
-                              <ToggleButton value="stacked" sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 700, textTransform: 'none', px: 1.5 }}>
-                                Stacked
-                              </ToggleButton>
-                              <ToggleButton value="grouped" sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 700, textTransform: 'none', px: 1.5 }}>
-                                Side-by-Side
-                              </ToggleButton>
-                            </ToggleButtonGroup>
-
-                            {/* Count vs Percentage Toggle */}
-                            <ToggleButtonGroup
-                              value={stackedValueScale}
-                              exclusive
-                              onChange={(e, scale) => { if (scale) setStackedValueScale(scale); }}
-                              size="small"
-                              sx={{ height: 38, borderRadius: 2.5, bgcolor: '#f8fafc', border: '1px solid #cbd5e1' }}
-                            >
-                              <ToggleButton value="count" sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 700, textTransform: 'none', px: 1.5 }}>
-                                Counts
-                              </ToggleButton>
-                              <ToggleButton value="percentage" sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 700, textTransform: 'none', px: 1.5 }}>
-                                100% %
-                              </ToggleButton>
-                            </ToggleButtonGroup>
-                          </Box>
                         </Box>
 
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                          {/* Dimension Dropdown */}
+                          <FormControl size="small" sx={{ minWidth: 140 }}>
+                            <InputLabel sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 700, color: '#ffffff' }}>Breakdown By</InputLabel>
+                            <Select
+                              value={stackedBreakdownDimension}
+                              label="Breakdown By"
+                              onChange={(e) => setStackedBreakdownDimension(e.target.value)}
+                              sx={{
+                                height: 38,
+                                borderRadius: 2.5,
+                                fontFamily: 'Poppins, sans-serif',
+                                fontWeight: 700,
+                                fontSize: 13,
+                                bgcolor: '#ffffff',
+                                color: '#0f172a'
+                              }}
+                            >
+                              <MenuItem value="Category" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 13 }}>Category</MenuItem>
+                              <MenuItem value="Clientele" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 13 }}>Clientele Group</MenuItem>
+                              <MenuItem value="College" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 13 }}>College / Unit</MenuItem>
+                            </Select>
+                          </FormControl>
+
+                          {/* Stacked vs Grouped Toggle */}
+                          <ToggleButtonGroup
+                            value={stackedLayoutMode}
+                            exclusive
+                            onChange={(e, mode) => { if (mode) setStackedLayoutMode(mode); }}
+                            size="small"
+                            sx={{
+                              height: 38, borderRadius: 2.5, bgcolor: '#ffffff',
+                              '& .MuiToggleButton-root': {
+                                fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 700, textTransform: 'none', px: 1.5,
+                                color: '#1d0a61',
+                                '&.Mui-selected': { bgcolor: '#d49f1e', color: '#1d0a61', fontWeight: 800, '&:hover': { bgcolor: '#c49015' } }
+                              }
+                            }}
+                          >
+                            <ToggleButton value="stacked">
+                              Stacked
+                            </ToggleButton>
+                            <ToggleButton value="grouped">
+                              Side-by-Side
+                            </ToggleButton>
+                          </ToggleButtonGroup>
+
+                          {/* Count vs Percentage Toggle */}
+                          <ToggleButtonGroup
+                            value={stackedValueScale}
+                            exclusive
+                            onChange={(e, scale) => { if (scale) setStackedValueScale(scale); }}
+                            size="small"
+                            sx={{
+                              height: 38, borderRadius: 2.5, bgcolor: '#ffffff',
+                              '& .MuiToggleButton-root': {
+                                fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 700, textTransform: 'none', px: 1.5,
+                                color: '#1d0a61',
+                                '&.Mui-selected': { bgcolor: '#d49f1e', color: '#1d0a61', fontWeight: 800, '&:hover': { bgcolor: '#c49015' } }
+                              }
+                            }}
+                          >
+                            <ToggleButton value="count">
+                              Counts
+                            </ToggleButton>
+                            <ToggleButton value="percentage">
+                              100% %
+                            </ToggleButton>
+                          </ToggleButtonGroup>
+                        </Box>
+                      </Box>
+
+                      <CardContent sx={{ p: 3 }}>
                         {stackedBreakdownData.length === 0 ? (
                           <Typography sx={{ fontFamily: 'Poppins, sans-serif', color: '#94a3b8', textAlign: 'center', py: 6 }}>
                             No survey response data available for {stackedBreakdownDimension} breakdown.
@@ -1812,10 +1978,10 @@ const SentimentDashboard = () => {
                         ) : (
                           <ResponsiveContainer width="100%" height={340}>
                             <BarChart data={stackedBreakdownData} margin={{ top: 15, right: 30, left: 10, bottom: stackedBreakdownDimension === 'College' ? 40 : 10 }}>
-                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                               <XAxis
                                 dataKey="name"
-                                tick={{ fontFamily: 'Poppins, sans-serif', fontSize: 11.5, fill: '#64748b', fontWeight: 600 }}
+                                tick={{ fontFamily: 'Poppins, sans-serif', fontSize: 11.5, fill: '#475569', fontWeight: 600 }}
                                 interval={0}
                                 angle={stackedBreakdownDimension === 'College' ? -35 : 0}
                                 textAnchor={stackedBreakdownDimension === 'College' ? 'end' : 'middle'}
@@ -1825,7 +1991,7 @@ const SentimentDashboard = () => {
                                 allowDecimals={stackedValueScale === 'percentage'}
                                 unit={stackedValueScale === 'percentage' ? '%' : ''}
                                 domain={stackedValueScale === 'percentage' ? [0, 100] : [0, 'auto']}
-                                tick={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fill: '#64748b' }}
+                                tick={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fill: '#475569' }}
                               />
                               <RechartsTooltip content={<CustomSentimentStackedTooltip />} />
                               <Legend wrapperStyle={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, paddingTop: 12 }} />
@@ -1863,93 +2029,181 @@ const SentimentDashboard = () => {
                     </Box>
 
                     {/* ── Sentiment Distribution by Category (Design Reference Multi-Donut Card) ───── */}
-                    <Card elevation={0} sx={{ border: '1.5px solid #e2e8f0', borderRadius: 3.5, mb: 3, backgroundColor: 'white' }}>
-                      <CardContent sx={{ p: 3 }}>
-                        {/* Header with Title and Legend Indicators */}
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
-                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 16, color: '#1e293b' }}>
-                            Sentiment Distribution by Category
-                          </Typography>
-
-                          {/* Legend Indicators */}
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-                              <Box sx={{ width: 8, height: 8, transform: 'rotate(45deg)', bgcolor: '#22c55e' }} />
-                              <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#64748b', fontWeight: 600 }}>
-                                Positive
-                              </Typography>
-                            </Box>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-                              <Box sx={{ width: 8, height: 8, transform: 'rotate(45deg)', bgcolor: '#f59e0b' }} />
-                              <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#64748b', fontWeight: 600 }}>
-                                Neutral
-                              </Typography>
-                            </Box>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-                              <Box sx={{ width: 8, height: 8, transform: 'rotate(45deg)', bgcolor: '#ef4444' }} />
-                              <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#64748b', fontWeight: 600 }}>
-                                Negative
-                              </Typography>
-                            </Box>
+                    <Card elevation={0} sx={{
+                      border: '1.5px solid #cbd5e1',
+                      borderRadius: 3.5,
+                      mb: 3,
+                      backgroundColor: '#ffffff',
+                      boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.06)',
+                      overflow: 'hidden'
+                    }}>
+                      <Box sx={{
+                        bgcolor: '#1d0a61',
+                        px: 3, py: 1.8,
+                        borderBottom: '3px solid #d49f1e',
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1
+                      }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+                          <PieChartIcon sx={{ fontSize: 22, color: '#f59e0b' }} />
+                          <Box>
+                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 16, color: '#ffffff', letterSpacing: 0.3 }}>
+                              Sentiment Distribution by Category
+                            </Typography>
+                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12.5, color: '#90caf9', fontWeight: 500, mt: 0.2 }}>
+                              Categorical satisfaction distribution across library key service areas
+                            </Typography>
                           </Box>
                         </Box>
 
-                        {/* 3 Donut Rings Row */}
-                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2, alignItems: 'center', minHeight: 250, pt: 1 }}>
-                          {categoryDonutData.map((donut) => (
-                            <Box key={donut.name} sx={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                              <ResponsiveContainer width="100%" height={220}>
-                                <PieChart>
-                                  <Pie
-                                    data={donut.slices}
-                                    dataKey="value"
-                                    nameKey="name"
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={50}
-                                    outerRadius={74}
-                                    startAngle={90}
-                                    endAngle={-270}
-                                    stroke="none"
-                                  >
-                                    {donut.slices.map((entry, i) => (
-                                      <Cell key={`cell-${donut.name}-${i}`} fill={entry.color} />
-                                    ))}
-                                  </Pie>
-                                  {donut.total > 0 && <RechartsTooltip content={<CustomDonutGaugeTooltip />} />}
-                                </PieChart>
-                              </ResponsiveContainer>
-                              {/* Centered Label inside the Donut Hole */}
-                              <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', pointerEvents: 'none' }}>
-                                <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 14, color: '#334155', lineHeight: 1.2 }}>
-                                  {donut.name}
-                                </Typography>
-                                <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 500, fontSize: 11, color: '#94a3b8', mt: 0.3 }}>
-                                  {donut.total} responses
-                                </Typography>
+                        {/* Legend Indicators */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, px: 1.4, py: 0.4, bgcolor: 'rgba(255,255,255,0.12)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.2)' }}>
+                            <Box sx={{ width: 8, height: 8, transform: 'rotate(45deg)', bgcolor: '#22c55e' }} />
+                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#ffffff', fontWeight: 700 }}>
+                              Positive
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, px: 1.4, py: 0.4, bgcolor: 'rgba(255,255,255,0.12)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.2)' }}>
+                            <Box sx={{ width: 8, height: 8, transform: 'rotate(45deg)', bgcolor: '#f59e0b' }} />
+                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#ffffff', fontWeight: 700 }}>
+                              Neutral
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, px: 1.4, py: 0.4, bgcolor: 'rgba(255,255,255,0.12)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.2)' }}>
+                            <Box sx={{ width: 8, height: 8, transform: 'rotate(45deg)', bgcolor: '#ef4444' }} />
+                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#ffffff', fontWeight: 700 }}>
+                              Negative
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </Box>
+
+                      <CardContent sx={{ p: 3 }}>
+                        {/* 3 Donut Rings Row in Distinct Inner Cards */}
+                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2.5, alignItems: 'stretch', pt: 0.5 }}>
+                          {categoryDonutData.map((donut) => {
+                            const categoryColorMap = {
+                              Facilities: '#0288d1',
+                              Staff: '#8b5cf6',
+                              Collection: '#f97316'
+                            };
+                            const catColor = categoryColorMap[donut.name] || '#1a237e';
+                            return (
+                              <Box
+                                key={donut.name}
+                                sx={{
+                                  position: 'relative',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  bgcolor: '#f8fafc',
+                                  border: '1.5px solid #e2e8f0',
+                                  borderTop: `3.5px solid ${catColor}`,
+                                  borderRadius: 3,
+                                  p: 2,
+                                  boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+                                }}
+                              >
+                                <Chip
+                                  label={donut.name}
+                                  size="small"
+                                  sx={{
+                                    fontWeight: 800,
+                                    fontFamily: 'Poppins, sans-serif',
+                                    bgcolor: `${catColor}15`,
+                                    color: catColor,
+                                    border: `1.5px solid ${catColor}35`,
+                                    mb: 0.5
+                                  }}
+                                />
+                                <ResponsiveContainer width="100%" height={210}>
+                                  <PieChart>
+                                    <Pie
+                                      data={donut.slices}
+                                      dataKey="value"
+                                      nameKey="name"
+                                      cx="50%"
+                                      cy="50%"
+                                      innerRadius={48}
+                                      outerRadius={72}
+                                      startAngle={90}
+                                      endAngle={-270}
+                                      stroke="#ffffff"
+                                      strokeWidth={2}
+                                    >
+                                      {donut.slices.map((entry, i) => (
+                                        <Cell key={`cell-${donut.name}-${i}`} fill={entry.color} />
+                                      ))}
+                                    </Pie>
+                                    {donut.total > 0 && <RechartsTooltip content={<CustomDonutGaugeTooltip />} />}
+                                  </PieChart>
+                                </ResponsiveContainer>
+                                {/* Centered Label inside the Donut Hole */}
+                                <Box sx={{ position: 'absolute', top: '56%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', pointerEvents: 'none' }}>
+                                  <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 16, color: '#0f172a', lineHeight: 1.1 }}>
+                                    {donut.posPct}%
+                                  </Typography>
+                                  <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 10.5, color: '#059669' }}>
+                                    Positive
+                                  </Typography>
+                                  <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 500, fontSize: 10, color: '#64748b', mt: 0.2 }}>
+                                    {donut.total} responses
+                                  </Typography>
+                                </Box>
                               </Box>
-                            </Box>
-                          ))}
+                            );
+                          })}
                         </Box>
                       </CardContent>
                     </Card>
 
                     {/* ── Service Improvement Recommendations ───── */}
-                    <Card elevation={0} sx={{ border: '1.5px solid #e2e8f0', borderRadius: 3.5, mb: 3, backgroundColor: 'white' }}>
+                    <Card elevation={0} sx={{
+                      border: '1.5px solid #cbd5e1',
+                      borderRadius: 3.5,
+                      mb: 3,
+                      backgroundColor: '#ffffff',
+                      boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.06)',
+                      overflow: 'hidden'
+                    }}>
+                      <Box sx={{
+                        bgcolor: '#1d0a61',
+                        px: 3, py: 1.8,
+                        borderBottom: '3px solid #d49f1e',
+                        display: 'flex', alignItems: 'center', gap: 1.2
+                      }}>
+                        <LightbulbIcon sx={{ fontSize: 22, color: '#f59e0b' }} />
+                        <Box>
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 16, color: '#ffffff', letterSpacing: 0.3 }}>
+                            Service Improvement Recommendations
+                          </Typography>
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12.5, color: '#90caf9', fontWeight: 500, mt: 0.2 }}>
+                            Actionable priority insights derived from negative patron sentiment signals
+                          </Typography>
+                        </Box>
+                      </Box>
+
                       <CardContent sx={{ p: 3 }}>
-                        <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 14, color: '#1e293b', letterSpacing: 0.5, textTransform: 'uppercase', mb: 2 }}>
-                          Service Improvement Recommendations
-                        </Typography>
                         {categoryStats.length === 0 ? (
                           <Typography sx={{ fontFamily: 'Poppins, sans-serif', color: '#94a3b8', textAlign: 'center', py: 6 }}>
                             No category is currently above the concern threshold.
                           </Typography>
                         ) : categoryStats.map(c => (
-                          <Box key={c.category} sx={{ py: 2, borderBottom: '1px solid #f1f5f9' }}>
-                            <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', mb: 1 }}>
+                          <Box
+                            key={c.category}
+                            sx={{
+                              mb: 2.5, p: 2.5,
+                              bgcolor: c.severity === 'high' ? '#fff1f2' : '#fffbeb',
+                              border: `1.5px solid ${c.severity === 'high' ? '#fecdd3' : '#fde68a'}`,
+                              borderLeft: `5px solid ${c.severity === 'high' ? '#e11d48' : '#d97706'}`,
+                              borderRadius: 3
+                            }}
+                          >
+                            <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', mb: 1.5, flexWrap: 'wrap' }}>
                               <Box sx={{
                                 px: 1.8, py: 0.5, borderRadius: '20px', flexShrink: 0,
-                                backgroundColor: c.severity === 'high' ? '#fff1f2' : '#fffbeb',
+                                backgroundColor: '#ffffff',
                                 border: `1.5px solid ${c.severity === 'high' ? '#f87171' : '#fbbf24'}`,
                               }}>
                                 <Typography sx={{ fontSize: 12, fontWeight: 800, color: c.severity === 'high' ? '#be123c' : '#b45309', fontFamily: 'Poppins, sans-serif' }}>
@@ -1962,22 +2216,22 @@ const SentimentDashboard = () => {
                             </Box>
 
                             {c.matchedKeywords.length > 0 && (
-                              <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12.5, color: '#475569', fontStyle: 'italic', ml: 0.5, mb: 1 }}>
+                              <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12.5, color: '#475569', fontStyle: 'italic', ml: 0.5, mb: 1.5 }}>
                                 <strong>Frequent Category Issue Signals:</strong> {c.matchedKeywords.join('; ')}
                               </Typography>
                             )}
 
                             {c.topEvidences.length > 0 && (
-                              <Box sx={{ mt: 1.5, p: 2, backgroundColor: '#f8fafc', borderRadius: 2.5, border: '1px solid #e2e8f0' }}>
-                                <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 11, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.8, mb: 1 }}>
+                              <Box sx={{ mt: 1.5, p: 2, backgroundColor: '#ffffff', borderRadius: 2.5, border: '1px solid #e2e8f0', borderLeft: '4px solid #0288d1' }}>
+                                <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 11, fontWeight: 800, color: '#0288d1', textTransform: 'uppercase', letterSpacing: 0.8, mb: 1 }}>
                                   Supporting Patron Feedback Evidence {c.primaryKw ? `— Top Issue Keyword: "${c.primaryKw}"` : ''} ({c.topEvidences.length})
                                 </Typography>
                                 {c.topEvidences.map((ev, idx) => (
-                                  <Box key={idx} sx={{ py: 0.8, borderBottom: idx < c.topEvidences.length - 1 ? '1px dashed #cbd5e1' : 'none' }}>
+                                  <Box key={idx} sx={{ py: 0.8, borderBottom: idx < c.topEvidences.length - 1 ? '1px dashed #e2e8f0' : 'none' }}>
                                     <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#1e293b', fontWeight: 500 }}>
                                       "{ev.Message}"
                                     </Typography>
-                                    <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 11.5, color: '#64748b', mt: 0.3 }}>
+                                    <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 11.5, color: '#64748b', mt: 0.3, fontWeight: 500 }}>
                                       {ev.Clientele} — {ev.College} · Word Freq: {ev.termScore || 0}
                                     </Typography>
                                   </Box>
@@ -1990,42 +2244,51 @@ const SentimentDashboard = () => {
                     </Card>
 
                     {/* ── Frequently Used Words (Word Cloud) ───── */}
-                    <Card elevation={0} sx={{ border: '1.5px solid #e2e8f0', borderRadius: 3.5, mb: 3, backgroundColor: 'white', overflow: 'hidden' }}>
-                      <CardContent sx={{ p: 3 }}>
-                        {/* Header Title & Badges */}
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1.5 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                            <Box sx={{ p: 1, borderRadius: 2, bgcolor: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <AssessmentIcon sx={{ color: '#4338ca', fontSize: 22 }} />
-                            </Box>
-                            <Box>
-                              <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 14, color: '#1e293b', letterSpacing: 0.5, textTransform: 'uppercase' }}>
-                                Frequently Used Words
-                              </Typography>
-                              <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#64748b', mt: 0.2 }}>
-                                Frequently mentioned terms across patron feedback
-                              </Typography>
-                            </Box>
-                          </Box>
-
-                          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
-                            <Chip
-                              label={`${wordCloudWords.length} Words`}
-                              size="small"
-                              sx={{ fontWeight: 700, fontFamily: 'Poppins, sans-serif', bgcolor: '#f1f5f9', color: '#475569', borderRadius: 1.5 }}
-                            />
-                            {selectedWordFilter && (
-                              <Chip
-                                label={`Filter: "${selectedWordFilter}"`}
-                                color="warning"
-                                size="small"
-                                onDelete={() => setSelectedWordFilter('')}
-                                sx={{ fontWeight: 700, fontFamily: 'Poppins, sans-serif', borderRadius: 1.5, bgcolor: '#f57c00', color: 'white' }}
-                              />
-                            )}
+                    <Card elevation={0} sx={{
+                      border: '1.5px solid #cbd5e1',
+                      borderRadius: 3.5,
+                      mb: 3,
+                      backgroundColor: '#ffffff',
+                      boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.06)',
+                      overflow: 'hidden'
+                    }}>
+                      <Box sx={{
+                        bgcolor: '#1d0a61',
+                        px: 3, py: 1.8,
+                        borderBottom: '3px solid #d49f1e',
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1.5
+                      }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+                          <AssessmentIcon sx={{ fontSize: 22, color: '#f59e0b' }} />
+                          <Box>
+                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 16, color: '#ffffff', letterSpacing: 0.3 }}>
+                              Frequently Used Words
+                            </Typography>
+                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12.5, color: '#90caf9', mt: 0.2, fontWeight: 500 }}>
+                              Interactive keyword frequency cloud across patron feedback submissions
+                            </Typography>
                           </Box>
                         </Box>
 
+                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                          <Chip
+                            label={`${wordCloudWords.length} Words`}
+                            size="small"
+                            sx={{ fontWeight: 700, fontFamily: 'Poppins, sans-serif', bgcolor: 'rgba(255,255,255,0.15)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 1.5 }}
+                          />
+                          {selectedWordFilter && (
+                            <Chip
+                              label={`Filter: "${selectedWordFilter}"`}
+                              color="warning"
+                              size="small"
+                              onDelete={() => setSelectedWordFilter('')}
+                              sx={{ fontWeight: 700, fontFamily: 'Poppins, sans-serif', borderRadius: 1.5, bgcolor: '#f57c00', color: 'white' }}
+                            />
+                          )}
+                        </Box>
+                      </Box>
+
+                      <CardContent sx={{ p: 3 }}>
                         {/* Word Cloud Canvas */}
                         {wordCloudWords.length === 0 ? (
                           <Typography sx={{ fontFamily: 'Poppins, sans-serif', color: '#94a3b8', textAlign: 'center', py: 6 }}>
@@ -2037,8 +2300,8 @@ const SentimentDashboard = () => {
                               height: 350,
                               borderRadius: 3,
                               p: 2,
-                              bgcolor: '#fafafa',
-                              border: '1px solid #e2e8f0',
+                              bgcolor: '#fcfdff',
+                              border: '1.5px solid #e2e8f0',
                               position: 'relative',
                               '& svg text': {
                                 cursor: 'pointer',
@@ -2061,20 +2324,37 @@ const SentimentDashboard = () => {
                       </CardContent>
                     </Card>
 
-                    {/* ── Survey Response Review Table (Identical Theme Design to LoginDashboard) ───── */}
-                    <Paper elevation={0} sx={{ p: 3, borderRadius: 3.5, border: '1px solid #e2e8f0', bgcolor: '#ffffff' }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1.5 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 17, color: '#1e293b' }}>
-                            Survey Response Review ({reviewRows.length} Matches)
-                          </Typography>
+                    {/* ── Survey Response Review Table ───── */}
+                    <Paper elevation={0} sx={{
+                      borderRadius: 3.5,
+                      border: '1.5px solid #cbd5e1',
+                      bgcolor: '#ffffff',
+                      boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.06)',
+                      overflow: 'hidden'
+                    }}>
+                      <Box sx={{
+                        bgcolor: '#1d0a61',
+                        px: 3, py: 1.8,
+                        borderBottom: '3px solid #d49f1e',
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1.5
+                      }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+                          <RateReviewIcon sx={{ fontSize: 22, color: '#f59e0b' }} />
+                          <Box>
+                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 16, color: '#ffffff', letterSpacing: 0.3 }}>
+                              Survey Response Review ({reviewRows.length} Matches)
+                            </Typography>
+                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12.5, color: '#90caf9', fontWeight: 500 }}>
+                              Detailed row-by-row inspection with rating scores and NLP classifications
+                            </Typography>
+                          </Box>
                           {selectedWordFilter && (
                             <Chip
                               label={`Word Filter: "${selectedWordFilter}"`}
                               color="warning"
                               size="small"
                               onDelete={() => setSelectedWordFilter('')}
-                              sx={{ fontWeight: 700, fontFamily: 'Poppins, sans-serif', borderRadius: 1.5, bgcolor: '#f57c00', color: 'white' }}
+                              sx={{ fontWeight: 700, fontFamily: 'Poppins, sans-serif', borderRadius: 1.5, bgcolor: '#f57c00', color: 'white', ml: 1 }}
                             />
                           )}
                         </Box>
@@ -2086,7 +2366,7 @@ const SentimentDashboard = () => {
                               size="small"
                               onClick={() => openDeleteModal(null)}
                               startIcon={<DeleteIcon />}
-                              sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 700, fontFamily: 'Poppins, sans-serif', height: 40 }}
+                              sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 700, fontFamily: 'Poppins, sans-serif', height: 38 }}
                             >
                               Delete Selected ({selectedRowIds.length})
                             </Button>
@@ -2094,232 +2374,238 @@ const SentimentDashboard = () => {
                         </Box>
                       </Box>
 
-                      <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #e2e8f0', borderRadius: 2.5, overflow: 'hidden' }}>
-                        <Table size="small">
-                          <TableHead>
-                            <TableRow sx={{
-                              backgroundColor: '#1d0a61',
-                              borderBottom: '3px solid #f57c00',
-                              '& th': {
-                                color: 'white',
-                                fontWeight: 700,
-                                fontFamily: 'Poppins, sans-serif',
-                                fontSize: 13,
-                                py: 1.5,
-                                borderRight: '1px solid rgba(255, 255, 255, 0.25)',
-                                '&:last-child': { borderRight: 'none' }
-                              }
-                            }}>
-                              <TableCell padding="checkbox">
-                                <Checkbox
-                                  size="small"
-                                  checked={isAllPageSelected}
-                                  indeterminate={isSomePageSelected}
-                                  onChange={handleSelectAllOnPage}
-                                  sx={{ color: 'white', '&.Mui-checked': { color: 'white' }, '&.MuiCheckbox-indeterminate': { color: 'white' } }}
-                                />
-                              </TableCell>
-                              <TableCell sx={{ color: 'white' }}>
-                                <TableSortLabel
-                                  active={sortField === 'Clientele'}
-                                  direction={sortField === 'Clientele' ? sortOrder : 'asc'}
-                                  onClick={() => handleRequestSort('Clientele')}
-                                  sx={{ color: 'white !important', '& .MuiTableSortLabel-icon': { color: 'white !important' } }}
-                                >
-                                  Clientele
-                                </TableSortLabel>
-                              </TableCell>
-                              <TableCell sx={{ color: 'white' }}>
-                                <TableSortLabel
-                                  active={sortField === 'College'}
-                                  direction={sortField === 'College' ? sortOrder : 'asc'}
-                                  onClick={() => handleRequestSort('College')}
-                                  sx={{ color: 'white !important', '& .MuiTableSortLabel-icon': { color: 'white !important' } }}
-                                >
-                                  College / Dept
-                                </TableSortLabel>
-                              </TableCell>
-                              <TableCell sx={{ color: 'white' }}>
-                                <TableSortLabel
-                                  active={sortField === 'Message'}
-                                  direction={sortField === 'Message' ? sortOrder : 'asc'}
-                                  onClick={() => handleRequestSort('Message')}
-                                  sx={{ color: 'white !important', '& .MuiTableSortLabel-icon': { color: 'white !important' } }}
-                                >
-                                  Patron Feedback Response
-                                </TableSortLabel>
-                              </TableCell>
-                              <TableCell sx={{ color: 'white' }}>
-                                <TableSortLabel
-                                  active={sortField === 'SentimentResult'}
-                                  direction={sortField === 'SentimentResult' ? sortOrder : 'asc'}
-                                  onClick={() => handleRequestSort('SentimentResult')}
-                                  sx={{ color: 'white !important', '& .MuiTableSortLabel-icon': { color: 'white !important' } }}
-                                >
-                                  Sentiment
-                                </TableSortLabel>
-                              </TableCell>
-                              <TableCell sx={{ color: 'white' }}>
-                                <TableSortLabel
-                                  active={sortField === 'Category'}
-                                  direction={sortField === 'Category' ? sortOrder : 'asc'}
-                                  onClick={() => handleRequestSort('Category')}
-                                  sx={{ color: 'white !important', '& .MuiTableSortLabel-icon': { color: 'white !important' } }}
-                                >
-                                  Category
-                                </TableSortLabel>
-                              </TableCell>
-                              <TableCell sx={{ color: 'white' }}>
-                                <TableSortLabel
-                                  active={sortField === 'DateSubmitted'}
-                                  direction={sortField === 'DateSubmitted' ? sortOrder : 'asc'}
-                                  onClick={() => handleRequestSort('DateSubmitted')}
-                                  sx={{ color: 'white !important', '& .MuiTableSortLabel-icon': { color: 'white !important' } }}
-                                >
-                                  Date Submitted
-                                </TableSortLabel>
-                              </TableCell>
-                              <TableCell align="center" sx={{ color: 'white' }}>Actions</TableCell>
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {pageRows.length === 0 ? (
-                              <TableRow>
-                                <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
-                                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-                                    <Avatar sx={{ bgcolor: '#f1f5f9', color: '#94a3b8', width: 54, height: 54 }}>
-                                      <InboxIcon sx={{ fontSize: 32 }} />
-                                    </Avatar>
-                                    <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 16, color: '#334155', mt: 1 }}>
-                                      No survey responses found
-                                    </Typography>
-                                    <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#64748b', maxWidth: 360 }}>
-                                      Try adjusting your date range or filter selections to view sentiment feedback.
-                                    </Typography>
-                                    <Button
-                                      size="small"
-                                      variant="outlined"
-                                      onClick={handleClear}
-                                      startIcon={<RestartAltIcon />}
-                                      sx={{ mt: 1, borderRadius: 2, textTransform: 'none', fontFamily: 'Poppins, sans-serif', fontWeight: 600 }}
-                                    >
-                                      Clear All Filters
-                                    </Button>
-                                  </Box>
+                      <Box sx={{ p: 3 }}>
+                        <TableContainer component={Paper} elevation={0} sx={{ border: '1.5px solid #cbd5e1', borderRadius: 2.5, overflow: 'hidden' }}>
+                          <Table size="small">
+                            <TableHead>
+                              <TableRow sx={{
+                                backgroundColor: '#1d0a61',
+                                borderBottom: '3px solid #d49f1e',
+                                '& th': {
+                                  color: 'white',
+                                  fontWeight: 700,
+                                  fontFamily: 'Poppins, sans-serif',
+                                  fontSize: 13,
+                                  py: 1.5,
+                                  borderRight: '1px solid rgba(255, 255, 255, 0.25)',
+                                  '&:last-child': { borderRight: 'none' }
+                                }
+                              }}>
+                                <TableCell padding="checkbox">
+                                  <Checkbox
+                                    size="small"
+                                    checked={isAllPageSelected}
+                                    indeterminate={isSomePageSelected}
+                                    onChange={handleSelectAllOnPage}
+                                    sx={{ color: 'white', '&.Mui-checked': { color: 'white' }, '&.MuiCheckbox-indeterminate': { color: 'white' } }}
+                                  />
                                 </TableCell>
-                              </TableRow>
-                            ) : (
-                              pageRows.map((row, i) => {
-                                const isSelected = selectedRowIds.includes(row.Id);
-                                const submittedDateStr = row.DateSubmitted
-                                  ? new Date(row.DateSubmitted.replace ? row.DateSubmitted.replace(' ', 'T') : row.DateSubmitted).toLocaleDateString()
-                                  : 'N/A';
-
-                                return (
-                                  <TableRow
-                                    key={row.Id || i}
-                                    hover
-                                    selected={isSelected}
-                                    sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                                <TableCell sx={{ color: 'white' }}>
+                                  <TableSortLabel
+                                    active={sortField === 'Clientele'}
+                                    direction={sortField === 'Clientele' ? sortOrder : 'asc'}
+                                    onClick={() => handleRequestSort('Clientele')}
+                                    sx={{ color: 'white !important', '& .MuiTableSortLabel-icon': { color: 'white !important' } }}
                                   >
-                                    <TableCell padding="checkbox">
-                                      <Checkbox
-                                        size="small"
-                                        checked={isSelected}
-                                        onChange={() => handleToggleSelectRow(row.Id)}
-                                      />
-                                    </TableCell>
-                                    <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#334155', fontWeight: 600, textTransform: 'capitalize' }}>
-                                      {row.Clientele || 'N/A'}
-                                    </TableCell>
-                                    <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 700, color: '#1a237e' }}>
-                                      <div>{row.College || 'N/A'}</div>
-                                      {row.Course && (
-                                        <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 500 }}>
-                                          {row.Course}
-                                        </div>
-                                      )}
-                                    </TableCell>
-                                    <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 600, color: '#1e293b', py: 1.5, pr: 3, lineHeight: 1.4 }}>
-                                      {row.Message && row.Message.trim().length > 0 ? (
-                                        row.Message
-                                      ) : (
-                                        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
-                                          <Typography component="span" sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12.5, color: '#94a3b8', fontStyle: 'italic' }}>
-                                            (No written comment)
-                                          </Typography>
-                                          <Box sx={{
-                                            px: 1, py: 0.2, borderRadius: '12px',
-                                            backgroundColor: '#e0e7ff', border: '1px solid #c7d2fe',
-                                            display: 'inline-block'
-                                          }}>
-                                            <Typography component="span" sx={{ fontSize: 10.5, fontWeight: 700, color: '#3730a3', fontFamily: 'Poppins, sans-serif' }}>
-                                              Rating Only
-                                            </Typography>
-                                          </Box>
-                                        </Box>
-                                      )}
-                                    </TableCell>
-                                    <TableCell sx={{ py: 1.5 }}>
-                                      <SentimentChip label={row.SentimentResult} />
-                                    </TableCell>
-                                    <TableCell sx={{ py: 1.5 }}>
-                                      <CategoryChip label={row.Category} />
-                                    </TableCell>
-                                    <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12.5, color: '#64748b', fontWeight: 500, py: 1.5 }}>
-                                      {submittedDateStr}
-                                    </TableCell>
-                                    <TableCell align="center" sx={{ py: 1.5 }}>
+                                    Clientele
+                                  </TableSortLabel>
+                                </TableCell>
+                                <TableCell sx={{ color: 'white' }}>
+                                  <TableSortLabel
+                                    active={sortField === 'College'}
+                                    direction={sortField === 'College' ? sortOrder : 'asc'}
+                                    onClick={() => handleRequestSort('College')}
+                                    sx={{ color: 'white !important', '& .MuiTableSortLabel-icon': { color: 'white !important' } }}
+                                  >
+                                    College / Dept
+                                  </TableSortLabel>
+                                </TableCell>
+                                <TableCell sx={{ color: 'white' }}>
+                                  <TableSortLabel
+                                    active={sortField === 'Message'}
+                                    direction={sortField === 'Message' ? sortOrder : 'asc'}
+                                    onClick={() => handleRequestSort('Message')}
+                                    sx={{ color: 'white !important', '& .MuiTableSortLabel-icon': { color: 'white !important' } }}
+                                  >
+                                    Patron Feedback Response
+                                  </TableSortLabel>
+                                </TableCell>
+                                <TableCell sx={{ color: 'white' }}>
+                                  <TableSortLabel
+                                    active={sortField === 'SentimentResult'}
+                                    direction={sortField === 'SentimentResult' ? sortOrder : 'asc'}
+                                    onClick={() => handleRequestSort('SentimentResult')}
+                                    sx={{ color: 'white !important', '& .MuiTableSortLabel-icon': { color: 'white !important' } }}
+                                  >
+                                    Sentiment
+                                  </TableSortLabel>
+                                </TableCell>
+                                <TableCell sx={{ color: 'white' }}>
+                                  <TableSortLabel
+                                    active={sortField === 'Category'}
+                                    direction={sortField === 'Category' ? sortOrder : 'asc'}
+                                    onClick={() => handleRequestSort('Category')}
+                                    sx={{ color: 'white !important', '& .MuiTableSortLabel-icon': { color: 'white !important' } }}
+                                  >
+                                    Category
+                                  </TableSortLabel>
+                                </TableCell>
+                                <TableCell sx={{ color: 'white' }}>
+                                  <TableSortLabel
+                                    active={sortField === 'DateSubmitted'}
+                                    direction={sortField === 'DateSubmitted' ? sortOrder : 'asc'}
+                                    onClick={() => handleRequestSort('DateSubmitted')}
+                                    sx={{ color: 'white !important', '& .MuiTableSortLabel-icon': { color: 'white !important' } }}
+                                  >
+                                    Date Submitted
+                                  </TableSortLabel>
+                                </TableCell>
+                                <TableCell align="center" sx={{ color: 'white' }}>Actions</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {pageRows.length === 0 ? (
+                                <TableRow>
+                                  <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                                      <Avatar sx={{ bgcolor: '#f1f5f9', color: '#94a3b8', width: 54, height: 54, border: '1.5px solid #cbd5e1' }}>
+                                        <InboxIcon sx={{ fontSize: 32 }} />
+                                      </Avatar>
+                                      <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 16, color: '#334155', mt: 1 }}>
+                                        No survey responses found
+                                      </Typography>
+                                      <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#64748b', maxWidth: 360 }}>
+                                        Try adjusting your date range or filter selections to view sentiment feedback.
+                                      </Typography>
                                       <Button
-                                        variant="contained"
                                         size="small"
-                                        onClick={() => openDeleteModal(row)}
-                                        startIcon={<DeleteIcon sx={{ fontSize: 16 }} />}
-                                        sx={{
-                                          borderRadius: 2,
-                                          fontFamily: 'Poppins, sans-serif',
-                                          fontSize: '11px',
-                                          fontWeight: 700,
-                                          textTransform: 'none',
-                                          px: 1.5, py: 0.5,
-                                          bgcolor: '#f43f5e',
-                                          '&:hover': { bgcolor: '#e11d48' }
-                                        }}
+                                        variant="outlined"
+                                        onClick={handleClear}
+                                        startIcon={<RestartAltIcon />}
+                                        sx={{ mt: 1, borderRadius: 2, textTransform: 'none', fontFamily: 'Poppins, sans-serif', fontWeight: 600, borderColor: '#cbd5e1' }}
                                       >
-                                        Delete
+                                        Clear All Filters
                                       </Button>
-                                    </TableCell>
-                                  </TableRow>
-                                );
-                              })
-                            )}
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
+                                    </Box>
+                                  </TableCell>
+                                </TableRow>
+                              ) : (
+                                pageRows.map((row, i) => {
+                                  const isSelected = selectedRowIds.includes(row.Id);
+                                  const submittedDateStr = row.DateSubmitted
+                                    ? new Date(row.DateSubmitted.replace ? row.DateSubmitted.replace(' ', 'T') : row.DateSubmitted).toLocaleDateString()
+                                    : 'N/A';
 
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2.5 }}>
-                        <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#64748b', fontWeight: 600 }}>
-                          Showing {page * ROWS_PER_PAGE + 1}–{Math.min((page + 1) * ROWS_PER_PAGE, reviewRows.length)} of {reviewRows.length} responses
-                        </Typography>
-                        <Box sx={{ display: 'flex', gap: 1 }}>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            disabled={page === 0}
-                            onClick={() => setPage(p => p - 1)}
-                            sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', fontWeight: 700, borderRadius: 2, borderColor: '#cbd5e1', color: '#475569' }}
-                          >
-                            &larr; Previous
-                          </Button>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            disabled={page >= totalPages - 1}
-                            onClick={() => setPage(p => p + 1)}
-                            sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', fontWeight: 700, borderRadius: 2, borderColor: '#cbd5e1', color: '#475569' }}
-                          >
-                            Next &rarr;
-                          </Button>
+                                  return (
+                                    <TableRow
+                                      key={row.Id || i}
+                                      hover
+                                      selected={isSelected}
+                                      sx={{
+                                        bgcolor: i % 2 === 0 ? '#ffffff' : '#f8fafc',
+                                        '&:hover': { bgcolor: 'rgba(26, 35, 126, 0.04) !important' },
+                                        '&:last-child td, &:last-child th': { border: 0 }
+                                      }}
+                                    >
+                                      <TableCell padding="checkbox">
+                                        <Checkbox
+                                          size="small"
+                                          checked={isSelected}
+                                          onChange={() => handleToggleSelectRow(row.Id)}
+                                        />
+                                      </TableCell>
+                                      <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#334155', fontWeight: 600, textTransform: 'capitalize' }}>
+                                        {row.Clientele || 'N/A'}
+                                      </TableCell>
+                                      <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 700, color: '#1a237e' }}>
+                                        <div>{row.College || 'N/A'}</div>
+                                        {row.Course && (
+                                          <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 500 }}>
+                                            {row.Course}
+                                          </div>
+                                        )}
+                                      </TableCell>
+                                      <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 600, color: '#1e293b', py: 1.5, pr: 3, lineHeight: 1.4 }}>
+                                        {row.Message && row.Message.trim().length > 0 ? (
+                                          row.Message
+                                        ) : (
+                                          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+                                            <Typography component="span" sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12.5, color: '#94a3b8', fontStyle: 'italic' }}>
+                                              (No written comment)
+                                            </Typography>
+                                            <Box sx={{
+                                              px: 1, py: 0.2, borderRadius: '12px',
+                                              backgroundColor: '#e0e7ff', border: '1px solid #c7d2fe',
+                                              display: 'inline-block'
+                                            }}>
+                                              <Typography component="span" sx={{ fontSize: 10.5, fontWeight: 700, color: '#3730a3', fontFamily: 'Poppins, sans-serif' }}>
+                                                Rating Only
+                                              </Typography>
+                                            </Box>
+                                          </Box>
+                                        )}
+                                      </TableCell>
+                                      <TableCell sx={{ py: 1.5 }}>
+                                        <SentimentChip label={row.SentimentResult} />
+                                      </TableCell>
+                                      <TableCell sx={{ py: 1.5 }}>
+                                        <CategoryChip label={row.Category} />
+                                      </TableCell>
+                                      <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12.5, color: '#64748b', fontWeight: 500, py: 1.5 }}>
+                                        {submittedDateStr}
+                                      </TableCell>
+                                      <TableCell align="center" sx={{ py: 1.5 }}>
+                                        <Button
+                                          variant="contained"
+                                          size="small"
+                                          onClick={() => openDeleteModal(row)}
+                                          startIcon={<DeleteIcon sx={{ fontSize: 16 }} />}
+                                          sx={{
+                                            borderRadius: 2,
+                                            fontFamily: 'Poppins, sans-serif',
+                                            fontSize: '11px',
+                                            fontWeight: 700,
+                                            textTransform: 'none',
+                                            px: 1.5, py: 0.5,
+                                            bgcolor: '#f43f5e',
+                                            '&:hover': { bgcolor: '#e11d48' }
+                                          }}
+                                        >
+                                          Delete
+                                        </Button>
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                })
+                              )}
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
+
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2.5 }}>
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#64748b', fontWeight: 600 }}>
+                            Showing {page * ROWS_PER_PAGE + 1}–{Math.min((page + 1) * ROWS_PER_PAGE, reviewRows.length)} of {reviewRows.length} responses
+                          </Typography>
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              disabled={page === 0}
+                              onClick={() => setPage(p => p - 1)}
+                              sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', fontWeight: 700, borderRadius: 2, borderColor: '#cbd5e1', color: '#475569', bgcolor: '#ffffff', '&:hover': { bgcolor: '#f8fafc' } }}
+                            >
+                              &larr; Previous
+                            </Button>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              disabled={page >= totalPages - 1}
+                              onClick={() => setPage(p => p + 1)}
+                              sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', fontWeight: 700, borderRadius: 2, borderColor: '#cbd5e1', color: '#475569', bgcolor: '#ffffff', '&:hover': { bgcolor: '#f8fafc' } }}
+                            >
+                              Next &rarr;
+                            </Button>
+                          </Box>
                         </Box>
                       </Box>
                     </Paper>
