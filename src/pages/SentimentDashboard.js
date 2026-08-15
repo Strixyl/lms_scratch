@@ -635,11 +635,11 @@ const SentimentDashboard = () => {
 
   const printRef = useRef();
 
-  const fetchSurveys = async () => {
+  const fetchSurveys = async (sDate = startDate, eDate = endDate) => {
     setLoading(true);
     try {
       const response = await axios.get('http://localhost:5000/api/surveys', {
-        params: { startDate, endDate },
+        params: { startDate: sDate, endDate: eDate },
       });
       setSurveys(response.data);
       setPage(0);
@@ -662,25 +662,31 @@ const SentimentDashboard = () => {
       return `${yyyy}-${mm}-${dd}`;
     };
 
+    let newStart = '';
+    let newEnd = '';
+
     if (presetKey === 'today') {
       const dateStr = formatISO(today);
-      setStartDate(dateStr);
-      setEndDate(dateStr);
+      newStart = dateStr;
+      newEnd = dateStr;
     } else if (presetKey === 'week') {
       const day = today.getDay();
       const diff = today.getDate() - day + (day === 0 ? -6 : 1);
-      const startOfWeek = new Date(today.setDate(diff));
-      setStartDate(formatISO(startOfWeek));
-      setEndDate(formatISO(new Date()));
+      const startOfWeek = new Date(today.getFullYear(), today.getMonth(), diff);
+      newStart = formatISO(startOfWeek);
+      newEnd = formatISO(new Date());
     } else if (presetKey === 'month') {
       const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-      setStartDate(formatISO(startOfMonth));
-      setEndDate(formatISO(new Date()));
+      newStart = formatISO(startOfMonth);
+      newEnd = formatISO(new Date());
     } else if (presetKey === 'all') {
-      setStartDate('');
-      setEndDate('');
+      newStart = '';
+      newEnd = '';
     }
+    setStartDate(newStart);
+    setEndDate(newEnd);
     setPage(0);
+    fetchSurveys(newStart, newEnd);
   };
 
   const handleToggleSelectRow = (id) => {
@@ -725,6 +731,7 @@ const SentimentDashboard = () => {
     if (key === 'date') {
       setStartDate('');
       setEndDate('');
+      fetchSurveys('', '');
     } else if (key === 'clientele') {
       setFilterClientele('');
     } else if (key === 'college') {
@@ -749,7 +756,7 @@ const SentimentDashboard = () => {
     setWcSentimentFilter('All');
     setSortField('DateSubmitted');
     setSortOrder('desc');
-    setTimeout(fetchSurveys, 0);
+    fetchSurveys('', '');
   };
 
   const handleRequestSort = (field) => {

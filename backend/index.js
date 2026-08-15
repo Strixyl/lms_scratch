@@ -233,12 +233,12 @@ app.post('/api/survey', async (req, res) => {
         Clientele, College, Course, Message,
         Question1, Question2, Question3, Question4, Question5,
         Question6, Question7, Question8, Question9, Question10,
-        SentimentResult, Category, SentimentScore
+        SentimentResult, Category, SentimentScore, DateSubmitted
       )
       VALUES (
         @clientele, @college, @course, @message,
         @q1, @q2, @q3, @q4, @q5, @q6, @q7, @q8, @q9, @q10,
-        @sentimentResult, @category, @sentimentScore
+        @sentimentResult, @category, @sentimentScore, GETDATE()
       )
     `);
 
@@ -453,17 +453,24 @@ app.get('/api/surveys', async (req, res) => {
              Question1, Question2, Question3, Question4, Question5,
              Question6, Question7, Question8, Question9, Question10,
              SentimentResult, Category, SentimentScore,
-             FORMAT(DateSubmitted AT TIME ZONE 'UTC' AT TIME ZONE 'SE Asia Standard Time', 'yyyy-MM-dd HH:mm:ss') AS DateSubmitted
+             FORMAT(DateSubmitted, 'yyyy-MM-dd HH:mm:ss') AS DateSubmitted
       FROM SatisfactionSurveys
     `;
 
     const conditions = [];
 
     if (startDate && endDate) {
-      conditions.push(`(DateSubmitted AT TIME ZONE 'UTC' AT TIME ZONE 'SE Asia Standard Time') BETWEEN @startDate AND @endDate`);
-      request.input('startDate', sql.DateTime, new Date(startDate));
-      request.input('endDate', sql.DateTime, new Date(endDate));
+      conditions.push(`CAST(DateSubmitted AS DATE) BETWEEN @startDate AND @endDate`);
+      request.input('startDate', sql.Date, startDate);
+      request.input('endDate', sql.Date, endDate);
+    } else if (startDate) {
+      conditions.push(`CAST(DateSubmitted AS DATE) >= @startDate`);
+      request.input('startDate', sql.Date, startDate);
+    } else if (endDate) {
+      conditions.push(`CAST(DateSubmitted AS DATE) <= @endDate`);
+      request.input('endDate', sql.Date, endDate);
     }
+
     if (clientele && clientele.trim() !== '') {
       conditions.push(`Clientele = @clientele`);
       request.input('clientele', sql.NVarChar, clientele.trim());
