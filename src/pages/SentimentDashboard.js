@@ -148,67 +148,83 @@ const STOPWORDS = new Set([
 export const CONTROLLED_LEXICON = {
   Facilities: {
     'Restroom & Hygiene': [
-      'restroom', 'comfort room', 'toilet', 'washroom', 'lavatory',
-      'dirty restroom', 'smelly restroom', 'unclean', 'foul odor',
-      'soap', 'tissue', 'paper towel', 'water', 'faucet', 'flush', 'sink',
-      'tissues',
+      'restroom', 'restrooms', 'comfort room', 'comfort rooms', 'cr', 'toilet', 'toilets',
+      'washroom', 'washrooms', 'lavatory', 'dirty restroom', 'smelly restroom',
+      'unclean', 'foul odor', 'soap', 'tissue', 'tissues', 'paper towel', 'paper towels',
+      'water', 'faucet', 'faucets', 'flush', 'sink', 'sinks', 'bidet'
     ],
     'Air Conditioning': [
-      'aircon', 'air conditioning', 'ac', 'temperature', 'hot', 'warm', 'cold',
-      'cooling', 'fan', 'humid', 'ventilation', 'climate control'
+      'aircon', 'air condition', 'air conditioning', 'ac unit', 'air-con', 'temperature',
+      'too hot', 'too warm', 'too cold', 'freezing', 'cold temperature', 'hot temperature',
+      'cooling', 'electric fan', 'humid', 'ventilation', 'climate control', 'stuffy'
     ],
     'Tables, Seating & Space': [
-      'table', 'tables', 'chair', 'chairs', 'seat', 'seating', 'bench', 'desk',
-      'space', 'crowded', 'full', 'overcrowded', 'cubicle', 'study hall', 'carrel'
+      'table', 'tables', 'chair', 'chairs', 'seat', 'seats', 'seating', 'bench', 'benches',
+      'desk', 'desks', 'space', 'crowded', 'full', 'overcrowded', 'cubicle', 'cubicles',
+      'study hall', 'carrel', 'carrels', 'study area', 'reading area'
     ],
     'Wi-Fi & Power Outlets': [
-      'wifi', 'wi-fi', 'internet', 'connection', 'network', 'signal', 'disconnecting',
-      'slow internet', 'fast internet', 'outlet', 'outlets', 'plug', 'socket',
-      'charging', 'extension cord'
+      'wifi', 'wi-fi', 'internet', 'connection', 'wi-fi connection', 'wifi connection',
+      'network', 'signal', 'disconnecting', 'disconnected', 'slow internet', 'fast internet',
+      'no internet', 'outlet', 'outlets', 'power outlet', 'power outlets', 'plug', 'plugs',
+      'socket', 'sockets', 'charging', 'extension cord'
     ],
     'Noise Level & Ambience': [
-      'noise', 'noisy', 'loud', 'quiet', 'silent', 'talking', 'chitchat',
-      'distracting', 'peaceful', 'concentration', 'study zone', 'chaotic'
+      'noise', 'noisy', 'loud', 'quiet', 'silent', 'talking', 'chitchat', 'whispering',
+      'distracting', 'distraction', 'peaceful', 'concentration', 'study zone', 'chaotic'
     ],
     'Lighting & Cleanliness': [
-      'light', 'lighting', 'dark', 'dim', 'bright', 'clean', 'cleanliness',
-      'dust', 'dusty', 'trash', 'garbage', 'litter', 'maintenance'
+      'lighting', 'dim light', 'dark', 'dim', 'bright', 'clean', 'cleanliness',
+      'dust', 'dusty', 'trash', 'garbage', 'litter', 'maintenance', 'smell', 'odor'
     ],
     'Equipments': [
-      'equipment', 'equipments', 'scanner', 'barcode scanner', 'barcode',
-      'pc', 'computer', 'computers', 'desktop', 'computer lab', 'mouse',
-      'keyboard', 'monitor', 'screen', 'printer', 'printing', 'print',
-      'photocopy', 'photocopier', 'scanner', 'scanning'
+      'equipment', 'equipments', 'scanner', 'scanners', 'barcode scanner', 'barcode',
+      'computer', 'computers', 'desktop', 'computer lab', 'mouse',
+      'keyboard', 'monitor', 'screen', 'printer', 'printing', 'printer machine',
+      'photocopy', 'photocopier', 'scanning', 'cyber library', 'cyberlib'
     ]
   },
   Staff: {
     'Librarians & Staffs': [
-      'librarian', 'librarians', 'staff', 'assistant', 'assistants',
-      'student assistant', 'desk staff', 'counter', 'personnel'
+      'librarian', 'librarians', 'staff', 'staffs', 'library staff', 'assistant', 'assistants',
+      'student assistant', 'student assistants', 'desk staff', 'counter staff', 'personnel',
+      'circulation counter', 'reference counter', 'staff in charge', 'front desk'
     ],
     'Security': [
-      'guard', 'guards', 'security', 'entrance guard', 'bag check', 'sign in'
+      'guard', 'guards', 'security', 'security guard', 'security guards', 'entrance guard',
+      'bag check', 'bag deposit', 'sign in', 'entrance lobby', 'lobby guard'
     ],
     'Service Quality & Attitude': [
-      'attitude', 'polite', 'rude', 'helpful', 'unhelpful', 'approachable',
-      'unapproachable', 'accommodating', 'kind', 'attentive', 'ignoring',
-      'slow service', 'fast service', 'snobbish', 'friendly', 'courteous'
+      'attitude', 'polite', 'impolite', 'rude', 'helpful', 'unhelpful', 'not helpful',
+      'approachable', 'unapproachable', 'accommodating', 'unaccommodating', 'kind',
+      'unkind', 'attentive', 'inattentive', 'ignoring', 'slow service', 'fast service',
+      'snobbish', 'friendly', 'unfriendly', 'courteous', 'discourteous', 'assisted',
+      'assistance', 'annoyed'
     ]
   },
   Collection: {
+    'Digital Resources & E-Books': [
+      'e-book', 'ebook', 'e-books', 'ebooks', 'e-journal', 'e-journals', 'ejournal', 'ejournals',
+      'digital repository', 'repository', 'online database', 'database', 'databases',
+      'digital library', 'online journal', 'online journals', 'e-resource', 'e-resources',
+      'electronic resource', 'electronic resources'
+    ],
     'Books & Reference Materials': [
-      'book', 'books', 'reference', 'textbook', 'journal', 'reading material',
-      'thesis', 'manuscript', 'periodical', 'magazine', 'dictionary', 'encyclopedia',
-      'outdated', 'old books', 'updated', 'edition'
+      'book', 'books', 'reference material', 'reference materials', 'reference book',
+      'reference books', 'textbook', 'textbooks', 'journal', 'journals', 'reading material',
+      'reading materials', 'thesis', 'manuscript', 'manuscripts', 'periodical', 'periodicals',
+      'magazine', 'magazines', 'dictionary', 'encyclopedia', 'book collections', 'collection',
+      'outdated', 'old books', 'updated books', 'edition'
     ],
     'Catalogue, OPAC & Search': [
-      'catalogue', 'catalog', 'opac', 'online catalog', 'system', 'search',
-      'index', 'accession number', 'call number', 'location', 'shelf', 'shelving'
+      'catalogue', 'catalog', 'opac', 'online catalog', 'card catalog', 'search system',
+      'index', 'accession number', 'call number', 'location', 'shelf', 'shelving', 'book shelf'
     ],
     'Borrowing & Circulation': [
-      'borrow', 'borrowing', 'return', 'returning', 'due date', 'fine', 'fines',
-      'penalty', 'renewal', 'renew', 'library card', 'checkout', 'check out'
-    ],
+      'borrow', 'borrowing', 'return', 'returning', 'due date', 'fine', 'fines', 'overdue',
+      'penalty', 'renewal', 'renew', 'library card', 'checkout', 'check out', 'circulation',
+      'stamp card', 'stamp my card', 'stamping'
+    ]
   }
 };
 
@@ -601,6 +617,7 @@ const SentimentDashboard = () => {
   };
 
   const [surveys, setSurveys] = useState([]);
+  const [allSurveys, setAllSurveys] = useState([]);
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -642,6 +659,9 @@ const SentimentDashboard = () => {
         params: { startDate: sDate, endDate: eDate },
       });
       setSurveys(response.data);
+      if (!sDate && !eDate) {
+        setAllSurveys(response.data);
+      }
       setPage(0);
       setSelectedRowIds([]);
     } catch (err) {
@@ -651,7 +671,13 @@ const SentimentDashboard = () => {
     }
   };
 
-  useEffect(() => { fetchSurveys(); }, []); // eslint-disable-line
+  useEffect(() => {
+    fetchSurveys();
+    // Pre-fetch all surveys to guarantee stable, fixed Top 5 comments regardless of active date filters
+    axios.get('http://localhost:5000/api/surveys')
+      .then(res => setAllSurveys(res.data))
+      .catch(err => console.error('Error prefetching all surveys:', err));
+  }, []); // eslint-disable-line
 
   const handleDatePreset = (presetKey) => {
     const today = new Date();
@@ -707,6 +733,7 @@ const SentimentDashboard = () => {
         const response = await axios.delete(`http://localhost:5000/api/surveys/${recordToDelete.Id}`);
         if (response.data.success) {
           setSurveys(prev => prev.filter(s => s.Id !== recordToDelete.Id));
+          setAllSurveys(prev => prev.filter(s => s.Id !== recordToDelete.Id));
           setSelectedRowIds(prev => prev.filter(id => id !== recordToDelete.Id));
           setSnackbarMsg('Review entry deleted successfully.');
         }
@@ -714,6 +741,7 @@ const SentimentDashboard = () => {
         const deletePromises = selectedRowIds.map(id => axios.delete(`http://localhost:5000/api/surveys/${id}`));
         await Promise.all(deletePromises);
         setSurveys(prev => prev.filter(s => !selectedRowIds.includes(s.Id)));
+        setAllSurveys(prev => prev.filter(s => !selectedRowIds.includes(s.Id)));
         setSnackbarMsg(`${selectedRowIds.length} review entries deleted successfully.`);
         setSelectedRowIds([]);
       }
@@ -964,11 +992,11 @@ const SentimentDashboard = () => {
       const negPct = tot > 0 ? Math.max(0, 100 - posPct - neuPct) : 0;
 
       const slices = tot > 0 ? [
-        { name: 'Positive', value: posPct, count: pos, color: '#22c55e' },
-        { name: 'Neutral', value: neuPct, count: neu, color: '#f59e0b' },
-        { name: 'Negative', value: negPct, count: neg, color: '#ef4444' },
+        { name: 'Positive', value: posPct, count: pos, color: 'url(#sentDonutPosGrad)', solidColor: '#2e7d32' },
+        { name: 'Neutral', value: neuPct, count: neu, color: 'url(#sentDonutNeuGrad)', solidColor: '#ed6c02' },
+        { name: 'Negative', value: negPct, count: neg, color: 'url(#sentDonutNegGrad)', solidColor: '#c62828' },
       ].filter(s => s.value > 0) : [
-        { name: 'No Data', value: 100, count: 0, color: '#e2e8f0' }
+        { name: 'No Data', value: 100, count: 0, color: '#e2e8f0', solidColor: '#e2e8f0' }
       ];
 
       return {
@@ -1023,25 +1051,33 @@ const SentimentDashboard = () => {
     const commentTopicMatches = commentsPool.map(s => {
       if (!s.Message || !s.Message.trim()) return { matchedTopics: [] };
       const msgLower = s.Message.toLowerCase();
-      const matchedTopics = new Set();
+      const matchedTopics = [];
 
-      Object.values(CONTROLLED_LEXICON).forEach(categoryTopics => {
+      Object.entries(CONTROLLED_LEXICON).forEach(([catName, categoryTopics]) => {
         Object.entries(categoryTopics).forEach(([topic, synonyms]) => {
+          let bestSynLen = 0;
           for (const syn of synonyms) {
-            const regex = new RegExp(`\\b${syn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
-            if (regex.test(msgLower) || msgLower.includes(syn)) {
-              matchedTopics.add(topic);
-              break;
+            const synLower = syn.toLowerCase();
+            const escaped = synLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            // Strict regex using non-word/boundary checks to avoid partial substring collisions (e.g. "ac" matching "academic" or "unapproachable")
+            const regex = new RegExp(`(^|[^a-zA-Z0-9])${escaped}([^a-zA-Z0-9]|$)`, 'i');
+            if (regex.test(msgLower)) {
+              if (synLower.length > bestSynLen) {
+                bestSynLen = synLower.length;
+              }
             }
+          }
+          if (bestSynLen > 0) {
+            matchedTopics.push({ topic, category: catName, matchLen: bestSynLen });
           }
         });
       });
 
-      matchedTopics.forEach(topic => {
-        topicPoolCounts[topic] = (topicPoolCounts[topic] || 0) + 1;
+      matchedTopics.forEach(m => {
+        topicPoolCounts[m.topic] = (topicPoolCounts[m.topic] || 0) + 1;
       });
 
-      return { matchedTopics: Array.from(matchedTopics) };
+      return { matchedTopics };
     });
 
     return commentsPool.map((commentObj, idx) => {
@@ -1050,16 +1086,28 @@ const SentimentDashboard = () => {
       }
 
       const { matchedTopics } = commentTopicMatches[idx];
-      let maxTopic = '';
+      let bestTopic = '';
+      let bestTopicScore = -1;
       let maxTopicFreq = 0;
       let totalTopicScore = 0;
 
-      matchedTopics.forEach(topic => {
-        const count = topicPoolCounts[topic] || 0;
+      matchedTopics.forEach(m => {
+        const count = topicPoolCounts[m.topic] || 0;
         totalTopicScore += count;
         if (count > maxTopicFreq) {
           maxTopicFreq = count;
-          maxTopic = topic;
+        }
+
+        // Scoring weight:
+        // 1. Matches comment's assigned category (+15 points)
+        // 2. Longer, more specific phrase match (m.matchLen * 1.5)
+        // 3. Pool frequency of the topic (count * 0.5)
+        const isSameCategory = commentObj.Category && commentObj.Category === m.category ? 15 : 0;
+        const candidateScore = isSameCategory + (m.matchLen * 1.5) + (count * 0.5);
+
+        if (candidateScore > bestTopicScore) {
+          bestTopicScore = candidateScore;
+          bestTopic = m.topic;
         }
       });
 
@@ -1070,13 +1118,16 @@ const SentimentDashboard = () => {
       const magnitude = Math.abs(getSurveyScore(commentObj));
       const blendedScore = Number(((0.7 * normalizedTopicScore) + (0.3 * magnitude * 10)).toFixed(2));
 
+      const assignedTopic = bestTopic || (commentObj.Category ? `${commentObj.Category} Feedback` : 'General Feedback');
+      const assignedFreq = topicPoolCounts[assignedTopic] || maxTopicFreq || 1;
+
       return {
         ...commentObj,
         tfidfScore: normalizedTopicScore,
         termScore: normalizedTopicScore,
         blendedScore,
-        topTerm: maxTopic || 'General Feedback',
-        maxTermFreq: maxTopicFreq
+        topTerm: assignedTopic,
+        maxTermFreq: assignedFreq
       };
     });
   };
@@ -1106,16 +1157,14 @@ const SentimentDashboard = () => {
     return selected;
   };
 
-  const positivePool = surveys.filter(s => {
+  const commentsMasterPool = allSurveys.length > 0 ? allSurveys : surveys;
+
+  const positivePool = commentsMasterPool.filter(s => {
     if (s.SentimentResult !== 'Positive' || !s.Message?.trim()) return false;
-    if (filterClientele && s.Clientele?.toLowerCase() !== filterClientele.toLowerCase()) return false;
-    if (filterCollege && s.College !== filterCollege) return false;
     return true;
   });
-  const negativePool = surveys.filter(s => {
+  const negativePool = commentsMasterPool.filter(s => {
     if (s.SentimentResult !== 'Negative' || !s.Message?.trim()) return false;
-    if (filterClientele && s.Clientele?.toLowerCase() !== filterClientele.toLowerCase()) return false;
-    if (filterCollege && s.College !== filterCollege) return false;
     return true;
   });
 
@@ -1878,163 +1927,6 @@ const SentimentDashboard = () => {
                       </CardContent>
                     </Card>
 
-                    {/* ── Dedicated Stacked Bar Chart: Sentiment Breakdown across Dimensions ───── */}
-                    <Card elevation={0} sx={{
-                      border: '1.5px solid #cbd5e1',
-                      borderRadius: 3.5,
-                      mb: 3,
-                      backgroundColor: '#ffffff',
-                      boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.06)',
-                      overflow: 'hidden'
-                    }}>
-                      <Box sx={{
-                        bgcolor: '#1d0a61',
-                        px: 3, py: 1.8,
-                        borderBottom: '3px solid #d49f1e',
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1.5
-                      }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-                          <BarChartIcon sx={{ fontSize: 22, color: '#f59e0b' }} />
-                          <Box>
-                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 16, color: '#ffffff', letterSpacing: 0.3 }}>
-                              Sentiment Distribution Breakdown (Stacked Bar Chart)
-                            </Typography>
-                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12.5, color: '#90caf9', fontWeight: 500, mt: 0.2 }}>
-                              Stacked comparison of Positive, Neutral, and Negative sentiment volumes across {stackedBreakdownDimension}
-                            </Typography>
-                          </Box>
-                        </Box>
-
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-                          {/* Dimension Dropdown */}
-                          <FormControl size="small" sx={{ minWidth: 140 }}>
-                            <InputLabel sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 700, color: '#ffffff' }}>Breakdown By</InputLabel>
-                            <Select
-                              value={stackedBreakdownDimension}
-                              label="Breakdown By"
-                              onChange={(e) => setStackedBreakdownDimension(e.target.value)}
-                              sx={{
-                                height: 38,
-                                borderRadius: 2.5,
-                                fontFamily: 'Poppins, sans-serif',
-                                fontWeight: 700,
-                                fontSize: 13,
-                                bgcolor: '#ffffff',
-                                color: '#0f172a'
-                              }}
-                            >
-                              <MenuItem value="Category" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 13 }}>Category</MenuItem>
-                              <MenuItem value="Clientele" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 13 }}>Clientele Group</MenuItem>
-                              <MenuItem value="College" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 13 }}>College / Unit</MenuItem>
-                            </Select>
-                          </FormControl>
-
-                          {/* Stacked vs Grouped Toggle */}
-                          <ToggleButtonGroup
-                            value={stackedLayoutMode}
-                            exclusive
-                            onChange={(e, mode) => { if (mode) setStackedLayoutMode(mode); }}
-                            size="small"
-                            sx={{
-                              height: 38, borderRadius: 2.5, bgcolor: '#ffffff',
-                              '& .MuiToggleButton-root': {
-                                fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 700, textTransform: 'none', px: 1.5,
-                                color: '#1d0a61',
-                                '&.Mui-selected': { bgcolor: '#d49f1e', color: '#1d0a61', fontWeight: 800, '&:hover': { bgcolor: '#c49015' } }
-                              }
-                            }}
-                          >
-                            <ToggleButton value="stacked">
-                              Stacked
-                            </ToggleButton>
-                            <ToggleButton value="grouped">
-                              Side-by-Side
-                            </ToggleButton>
-                          </ToggleButtonGroup>
-
-                          {/* Count vs Percentage Toggle */}
-                          <ToggleButtonGroup
-                            value={stackedValueScale}
-                            exclusive
-                            onChange={(e, scale) => { if (scale) setStackedValueScale(scale); }}
-                            size="small"
-                            sx={{
-                              height: 38, borderRadius: 2.5, bgcolor: '#ffffff',
-                              '& .MuiToggleButton-root': {
-                                fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 700, textTransform: 'none', px: 1.5,
-                                color: '#1d0a61',
-                                '&.Mui-selected': { bgcolor: '#d49f1e', color: '#1d0a61', fontWeight: 800, '&:hover': { bgcolor: '#c49015' } }
-                              }
-                            }}
-                          >
-                            <ToggleButton value="count">
-                              Counts
-                            </ToggleButton>
-                            <ToggleButton value="percentage">
-                              100% %
-                            </ToggleButton>
-                          </ToggleButtonGroup>
-                        </Box>
-                      </Box>
-
-                      <CardContent sx={{ p: 3 }}>
-                        {stackedBreakdownData.length === 0 ? (
-                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', color: '#94a3b8', textAlign: 'center', py: 6 }}>
-                            No survey response data available for {stackedBreakdownDimension} breakdown.
-                          </Typography>
-                        ) : (
-                          <ResponsiveContainer width="100%" height={340}>
-                            <BarChart data={stackedBreakdownData} margin={{ top: 15, right: 30, left: 10, bottom: stackedBreakdownDimension === 'College' ? 40 : 10 }}>
-                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                              <XAxis
-                                dataKey="name"
-                                tick={{ fontFamily: 'Poppins, sans-serif', fontSize: 11.5, fill: '#475569', fontWeight: 600 }}
-                                interval={0}
-                                angle={stackedBreakdownDimension === 'College' ? -35 : 0}
-                                textAnchor={stackedBreakdownDimension === 'College' ? 'end' : 'middle'}
-                                height={stackedBreakdownDimension === 'College' ? 60 : 30}
-                              />
-                              <YAxis
-                                allowDecimals={stackedValueScale === 'percentage'}
-                                unit={stackedValueScale === 'percentage' ? '%' : ''}
-                                domain={stackedValueScale === 'percentage' ? [0, 100] : [0, 'auto']}
-                                tick={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fill: '#475569' }}
-                              />
-                              <RechartsTooltip content={<CustomSentimentStackedTooltip />} />
-                              <Legend wrapperStyle={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, paddingTop: 12 }} />
-                              <Bar
-                                dataKey="Positive"
-                                stackId={stackedLayoutMode === 'stacked' ? 'breakdownStack' : undefined}
-                                fill="url(#posGrad)"
-                                radius={stackedLayoutMode === 'stacked' ? [0, 0, 0, 0] : [6, 6, 0, 0]}
-                                maxBarSize={stackedLayoutMode === 'stacked' ? 42 : 24}
-                              />
-                              <Bar
-                                dataKey="Neutral"
-                                stackId={stackedLayoutMode === 'stacked' ? 'breakdownStack' : undefined}
-                                fill="url(#neuGrad)"
-                                radius={stackedLayoutMode === 'stacked' ? [0, 0, 0, 0] : [6, 6, 0, 0]}
-                                maxBarSize={stackedLayoutMode === 'stacked' ? 42 : 24}
-                              />
-                              <Bar
-                                dataKey="Negative"
-                                stackId={stackedLayoutMode === 'stacked' ? 'breakdownStack' : undefined}
-                                fill="url(#negGrad)"
-                                radius={[6, 6, 0, 0]}
-                                maxBarSize={stackedLayoutMode === 'stacked' ? 42 : 24}
-                              />
-                            </BarChart>
-                          </ResponsiveContainer>
-                        )}
-                      </CardContent>
-                    </Card>
-
-                    {/* ── Top Positive & Negative Comments Grid ───── */}
-                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2.5, mb: 3 }}>
-                      <TopCommentsCard title="Top 5 Positive Comments" rows={topPositive} accent="#059669" lightBorder="#a7f3d0" icon={<ThumbUpIcon />} />
-                      <TopCommentsCard title="Top 5 Negative Comments" rows={topNegative} accent="#e11d48" lightBorder="#fecdd3" icon={<ThumbDownIcon />} />
-                    </Box>
-
                     {/* ── Sentiment Distribution by Category (Design Reference Multi-Donut Card) ───── */}
                     <Card elevation={0} sx={{
                       border: '1.5px solid #cbd5e1',
@@ -2065,19 +1957,19 @@ const SentimentDashboard = () => {
                         {/* Legend Indicators */}
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, px: 1.4, py: 0.4, bgcolor: 'rgba(255,255,255,0.12)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.2)' }}>
-                            <Box sx={{ width: 8, height: 8, transform: 'rotate(45deg)', bgcolor: '#22c55e' }} />
+                            <Box sx={{ width: 9, height: 9, borderRadius: '50%', background: 'linear-gradient(135deg, #2e7d32 0%, #81c784 100%)' }} />
                             <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#ffffff', fontWeight: 700 }}>
                               Positive
                             </Typography>
                           </Box>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, px: 1.4, py: 0.4, bgcolor: 'rgba(255,255,255,0.12)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.2)' }}>
-                            <Box sx={{ width: 8, height: 8, transform: 'rotate(45deg)', bgcolor: '#f59e0b' }} />
+                            <Box sx={{ width: 9, height: 9, borderRadius: '50%', background: 'linear-gradient(135deg, #ed6c02 0%, #ffb74d 100%)' }} />
                             <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#ffffff', fontWeight: 700 }}>
                               Neutral
                             </Typography>
                           </Box>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, px: 1.4, py: 0.4, bgcolor: 'rgba(255,255,255,0.12)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.2)' }}>
-                            <Box sx={{ width: 8, height: 8, transform: 'rotate(45deg)', bgcolor: '#ef4444' }} />
+                            <Box sx={{ width: 9, height: 9, borderRadius: '50%', background: 'linear-gradient(135deg, #c62828 0%, #ff8a80 100%)' }} />
                             <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#ffffff', fontWeight: 700 }}>
                               Negative
                             </Typography>
@@ -2091,8 +1983,8 @@ const SentimentDashboard = () => {
                           {categoryDonutData.map((donut) => {
                             const categoryColorMap = {
                               Facilities: '#0288d1',
-                              Staff: '#8b5cf6',
-                              Collection: '#f97316'
+                              Staff: '#7b1fa2',
+                              Collection: '#ed6c02'
                             };
                             const catColor = categoryColorMap[donut.name] || '#1a237e';
                             return (
@@ -2126,6 +2018,20 @@ const SentimentDashboard = () => {
                                 />
                                 <ResponsiveContainer width="100%" height={210}>
                                   <PieChart>
+                                    <defs>
+                                      <linearGradient id="sentDonutPosGrad" x1="0" y1="0" x2="1" y2="1">
+                                        <stop offset="0%" stopColor="#2e7d32" />
+                                        <stop offset="100%" stopColor="#81c784" />
+                                      </linearGradient>
+                                      <linearGradient id="sentDonutNeuGrad" x1="0" y1="0" x2="1" y2="1">
+                                        <stop offset="0%" stopColor="#ed6c02" />
+                                        <stop offset="100%" stopColor="#ffb74d" />
+                                      </linearGradient>
+                                      <linearGradient id="sentDonutNegGrad" x1="0" y1="0" x2="1" y2="1">
+                                        <stop offset="0%" stopColor="#c62828" />
+                                        <stop offset="100%" stopColor="#ff8a80" />
+                                      </linearGradient>
+                                    </defs>
                                     <Pie
                                       data={donut.slices}
                                       dataKey="value"
@@ -2134,6 +2040,8 @@ const SentimentDashboard = () => {
                                       cy="50%"
                                       innerRadius={48}
                                       outerRadius={72}
+                                      paddingAngle={donut.slices.length > 1 ? 4 : 0}
+                                      cornerRadius={donut.slices.length > 1 ? 4 : 0}
                                       startAngle={90}
                                       endAngle={-270}
                                       stroke="#ffffff"
@@ -2148,10 +2056,10 @@ const SentimentDashboard = () => {
                                 </ResponsiveContainer>
                                 {/* Centered Label inside the Donut Hole */}
                                 <Box sx={{ position: 'absolute', top: '56%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', pointerEvents: 'none' }}>
-                                  <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 16, color: '#0f172a', lineHeight: 1.1 }}>
+                                  <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 18, color: '#1e293b', lineHeight: 1.1 }}>
                                     {donut.posPct}%
                                   </Typography>
-                                  <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 10.5, color: '#059669' }}>
+                                  <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#2e7d32' }}>
                                     Positive
                                   </Typography>
                                   <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 500, fontSize: 10, color: '#64748b', mt: 0.2 }}>
@@ -2164,6 +2072,12 @@ const SentimentDashboard = () => {
                         </Box>
                       </CardContent>
                     </Card>
+
+                    {/* ── Top Positive & Negative Comments Grid ───── */}
+                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2.5, mb: 3 }}>
+                      <TopCommentsCard title="Top 5 Positive Comments" rows={topPositive} accent="#059669" lightBorder="#a7f3d0" icon={<ThumbUpIcon />} />
+                      <TopCommentsCard title="Top 5 Negative Comments" rows={topNegative} accent="#e11d48" lightBorder="#fecdd3" icon={<ThumbDownIcon />} />
+                    </Box>
 
                     {/* ── Service Improvement Recommendations ───── */}
                     <Card elevation={0} sx={{
