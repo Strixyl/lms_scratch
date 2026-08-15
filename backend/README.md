@@ -78,13 +78,13 @@ This directory houses the backend ecosystem supporting the **Henry Luce III Libr
 ### 2. Express Backend API Endpoints (Port 5000)
 
 #### 📝 Patron Survey & Sentiment Analysis
-- **`POST /api/survey`**: Accepts 10 Likert responses + open comment message. Triggers parallel BERT + Naïve Bayes microservice calls, computes blended `SentimentScore`, and inserts into `dbo.SatisfactionSurveys`.
-- **`GET /api/surveys`**: Retrieves survey records with optional filtering by date range, clientele type, college, and course.
+- **`POST /api/survey`**: Accepts 10 Likert responses + open comment message. Supports both Student and Faculty clientele (with optional college/course for faculty). Triggers parallel BERT + Naïve Bayes microservice calls, computes Option A (Comment-First) `SentimentScore`, and inserts into `dbo.SatisfactionSurveys`.
+- **`GET /api/surveys`**: Retrieves survey records with timezone-aligned (`Asia/Manila`, UTC+8) date range filtering, clientele type (`STUDENT`, `FACULTY`, `ALUMNI`, etc.), college, and course filters.
 - **`DELETE /api/surveys/:id`**: Deletes a specific survey response entry.
 
 #### 🪪 Patron Sign-In & Foot Traffic
 - **`POST /api/student-lookup`**: Queries `studInfo` by ID number, calculates `Time In` / `Time Out` log type for section, and inserts log into `dbo.LibLogins`.
-- **`GET /api/logins`**: Fetches patron sign-in logs with filtering by section, college mapping (`COLLEGE_MAP`), date range, and log type.
+- **`GET /api/logins`**: Fetches patron sign-in logs with timezone-aligned date boundaries (`YYYY-MM-DD 00:00:00` to `23:59:59.997`), section filters, college mapping (`COLLEGE_MAP`), and log type.
 - **`DELETE /api/logins/:id`**: Deletes a specific sign-in log entry.
 - **`POST /api/logins/delete-batch`**: Batch deletes multiple sign-in log entries.
 
@@ -196,16 +196,17 @@ npm start
 
 ## 🧪 Retraining the Machine Learning Category Model
 
-To retrain the Naïve Bayes category classifier using updated survey datasets (`5kwithnoise.xlsx` & `manual_boundary_cases.csv`):
+To retrain the Naïve Bayes category classifier using updated survey datasets (`dataset_10k.xlsx` / `5kwithnoise.xlsx` & `manual_boundary_cases.csv`):
 
 ```bash
 cd backend/ml
 
-# 1. Clean raw dataset (5kwithnoise.xlsx -> data/clean_category_dataset.csv)
-python clean_dataset.py
+# 1. Clean raw dataset (dataset_10k.xlsx -> data/clean_category_dataset.csv, 13,800+ rows)
+python clean_dataset.py --role=train
 
 # 2. Train model, merge manual boundary cases & generate updated category_model.pkl
 python train_category_model.py
 ```
+
 
 
