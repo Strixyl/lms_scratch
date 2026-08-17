@@ -1210,59 +1210,117 @@ const SentimentDashboard = () => {
                         </Box>
                       </Box>
 
-                      <CardContent sx={{ p: 3 }}>
+                      <CardContent sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
                         {categoryStats.length === 0 ? (
-                          <Typography sx={{ fontFamily: T.font.family, color: T.text.faint, textAlign: 'center', py: 6 }}>
-                            No category is currently above the concern threshold.
-                          </Typography>
-                        ) : categoryStats.map(c => (
-                          <Box key={c.category} sx={{
-                            mb: 2.5, p: 2.5,
-                            bgcolor: c.severity === 'high' ? T.status.errorLight : T.status.warningLight,
-                            border: `1.5px solid ${c.severity === 'high' ? T.status.errorBorder : T.status.warningBorder}`,
-                            borderLeft: `5px solid ${c.severity === 'high' ? T.status.errorText : T.status.warningText}`,
-                            borderRadius: 3
-                          }}>
-                            <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', mb: 1.5, flexWrap: 'wrap' }}>
-                              <Box sx={{
-                                px: 1.8, py: 0.5, borderRadius: T.radius.chip, flexShrink: 0,
-                                backgroundColor: T.surface.card,
-                                border: `1.5px solid ${c.severity === 'high' ? T.sentiment.Negative.dot : T.sentiment.Neutral.dot}`,
-                              }}>
-                                <Typography sx={{ fontSize: 12, fontWeight: 800, color: c.severity === 'high' ? T.sentiment.Negative.text : T.sentiment.Neutral.text, fontFamily: T.font.family }}>
-                                  {c.category} — {c.pct}% negative — {c.severity.toUpperCase()}
+                          <Box sx={{ textAlign: 'center', py: 6, bgcolor: T.surface.cardAlt, borderRadius: 3, border: `1.5px dashed ${T.surface.border}` }}>
+                            <LightbulbIcon sx={{ fontSize: 44, color: T.text.faint, mb: 1 }} />
+                            <Typography sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 16, color: T.text.heading }}>
+                              No Category Concern Flags
+                            </Typography>
+                            <Typography sx={{ fontFamily: T.font.family, fontSize: 13, color: T.text.muted, mt: 0.5 }}>
+                              All library service categories are currently performing below the negative sentiment threshold.
+                            </Typography>
+                          </Box>
+                        ) : categoryStats.map((c) => {
+                          const isHigh = c.severity === 'high';
+                          const leftAccentColor = isHigh ? '#dc2626' : '#f87171';
+                          const badgeBg = isHigh ? '#7f1d1d' : '#ffe4e6';
+                          const badgeColor = isHigh ? '#ffffff' : '#e11d48';
+
+                          return (
+                            <Box
+                              key={c.category}
+                              sx={{
+                                position: 'relative',
+                                bgcolor: '#ffffff',
+                                borderRadius: '16px',
+                                border: '1.5px solid #e2e8f0',
+                                borderLeft: `5px solid ${leftAccentColor}`,
+                                p: { xs: 2.5, md: 3 },
+                                boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+                                transition: 'all 0.2s ease',
+                                '&:hover': {
+                                  boxShadow: '0 4px 14px rgba(0,0,0,0.05)',
+                                }
+                              }}
+                            >
+                              {/* Title & Priority Badge */}
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1, flexWrap: 'wrap' }}>
+                                <Typography sx={{ fontFamily: T.font.family, fontSize: 16, fontWeight: 800, color: '#0f172a' }}>
+                                  {c.category} — {c.pct}% negative
                                 </Typography>
+                                <Box
+                                  sx={{
+                                    px: 1.2,
+                                    py: 0.25,
+                                    borderRadius: '6px',
+                                    bgcolor: badgeBg,
+                                    color: badgeColor,
+                                    fontFamily: T.font.family,
+                                    fontSize: 10.5,
+                                    fontWeight: 800,
+                                    letterSpacing: '0.6px',
+                                    textTransform: 'uppercase',
+                                    lineHeight: 1.2,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                  }}
+                                >
+                                  {c.severity}
+                                </Box>
                               </Box>
-                              <Typography sx={{ fontFamily: T.font.family, fontSize: 14, color: T.text.heading, fontWeight: 600, mt: 0.2 }}>
-                                {RECOMMENDATIONS[c.category][c.severity]}
-                              </Typography>
-                            </Box>
 
-                            {c.matchedKeywords.length > 0 && (
-                              <Typography sx={{ fontFamily: T.font.family, fontSize: 12.5, color: T.text.secondary, fontStyle: 'italic', ml: 0.5, mb: 1.5 }}>
-                                <strong>Frequent Category Issue Signals:</strong> {c.matchedKeywords.join('; ')}
+                              {/* Actionable Recommendation Text */}
+                              <Typography sx={{ fontFamily: T.font.family, fontSize: 14, color: '#334155', fontWeight: 600, lineHeight: 1.55, mb: 2 }}>
+                                {RECOMMENDATIONS[c.category]?.[c.severity] || ''}
                               </Typography>
-                            )}
 
-                            {c.topEvidences.length > 0 && (
-                              <Box sx={{ mt: 1.5, p: 2, backgroundColor: T.surface.card, borderRadius: T.radius.input, border: `1px solid ${T.surface.borderLight}`, borderLeft: `4px solid ${T.status.info}` }}>
-                                <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 800, color: T.status.info, textTransform: 'uppercase', letterSpacing: 0.8, mb: 1 }}>
-                                  Supporting Patron Feedback Evidence {c.primaryKw ? `— Top Issue Keyword: "${c.primaryKw}"` : ''} ({c.topEvidences.length})
-                                </Typography>
-                                {c.topEvidences.map((ev, idx) => (
-                                  <Box key={idx} sx={{ py: 0.8, borderBottom: idx < c.topEvidences.length - 1 ? `1px dashed ${T.surface.borderLight}` : 'none' }}>
-                                    <Typography sx={{ fontFamily: T.font.family, fontSize: 13, color: T.text.heading, fontWeight: 500 }}>
+                              {/* Supporting Patron Feedback Evidence Box */}
+                              {c.topEvidences && c.topEvidences.length > 0 && (
+                                <Box
+                                  sx={{
+                                    bgcolor: '#f8fafc',
+                                    borderRadius: '12px',
+                                    border: '1.5px solid #e2e8f0',
+                                    p: { xs: 2, md: 2.2 },
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: 1,
+                                  }}
+                                >
+                                  <Typography
+                                    sx={{
+                                      fontFamily: T.font.family,
+                                      fontSize: 11,
+                                      fontWeight: 800,
+                                      color: '#64748b',
+                                      textTransform: 'uppercase',
+                                      letterSpacing: '0.8px',
+                                    }}
+                                  >
+                                    SUPPORTING PATRON FEEDBACK EVIDENCE — TOP KEYWORD: "{(c.primaryKw || 'GENERAL').toUpperCase()}"
+                                  </Typography>
+
+                                  {c.topEvidences.slice(0, 2).map((ev, idx) => (
+                                    <Typography
+                                      key={idx}
+                                      sx={{
+                                        fontFamily: T.font.family,
+                                        fontSize: 13,
+                                        fontStyle: 'italic',
+                                        color: '#334155',
+                                        fontWeight: 500,
+                                        lineHeight: 1.55,
+                                      }}
+                                    >
                                       "{ev.Message}"
                                     </Typography>
-                                    <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, color: T.text.muted, mt: 0.3, fontWeight: 500 }}>
-                                      {ev.Clientele} — {ev.College} · Word Freq: {ev.termScore || 0}
-                                    </Typography>
-                                  </Box>
-                                ))}
-                              </Box>
-                            )}
-                          </Box>
-                        ))}
+                                  ))}
+                                </Box>
+                              )}
+                            </Box>
+                          );
+                        })}
                       </CardContent>
                     </Card>
 

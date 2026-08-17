@@ -128,14 +128,14 @@ export const CONTROLLED_LEXICON = {
 export const RECOMMENDATIONS = {
   Facilities: {
     moderate: 'Consider a facilities walkthrough to address recurring comfort/accessibility complaints (lighting, seating, temperature, cleanliness).',
-    high: 'Facilities feedback is predominantly negative prioritize an infrastructure audit and budget request for repairs/upgrades this term.',
+    high: 'Facilities feedback is predominantly negative; prioritize an infrastructure audit and budget request for repairs/upgrades this term.',
   },
   Staff: {
     moderate: 'Some patrons report friction with staff interactions, a refresher on frontline service standards may help.',
     high: 'Staff-related complaints are high, recommend a service-quality review with librarians and staffs.',
   },
   Collection: {
-    moderate: 'Patrons are flagging gaps in available materials, review acquisition requests for undersupplied subject areas.',
+    moderate: 'Patrons are flagging gaps in available materials; review acquisition requests for undersupplied subject areas.',
     high: 'Collection dissatisfaction is high, conduct a collection audit and prioritize acquisitions for the most-requested topics and subjects.',
   },
 };
