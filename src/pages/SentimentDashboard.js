@@ -6,7 +6,7 @@ import {
   TableRow, Paper, Button, TextField, CircularProgress,
   MenuItem, Select, FormControl, InputLabel,
   Dialog, DialogTitle, DialogContent, DialogActions, Avatar, Chip,
-  TableSortLabel, Tooltip, Snackbar, Alert,
+  TableSortLabel, Snackbar, Alert,
   Checkbox, ToggleButton, ToggleButtonGroup
 } from '@mui/material';
 import {
@@ -25,7 +25,6 @@ import {
   RestartAlt as RestartAltIcon,
   Inbox as InboxIcon,
   TrendingUp as TrendingUpIcon,
-  BarChart as BarChartIcon,
   PieChart as PieChartIcon,
   Lightbulb as LightbulbIcon,
   RateReview as RateReviewIcon
@@ -37,548 +36,55 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../Components/Header';
 import TopBar from '../Components/TopBar';
 
-// ── Easy on the eyes, soft light pastel palette ──────────────────────────────
-const SENTIMENT_COLORS = {
-  Positive: { bg: '#10b981', light: '#ecfdf5', text: '#047857', dot: '#34d399' },
-  Neutral: { bg: '#f59e0b', light: '#fffbeb', text: '#b45309', dot: '#fbbf24' },
-  Negative: { bg: '#f43f5e', light: '#fff1f2', text: '#be123c', dot: '#f87171' },
-};
+// ── Centralized imports from extracted modules ──────────────────────────────
+import {
+  THEME,
+  sectionHeaderSx,
+  cardShellSx,
+  sectionTitleSx,
+  sectionSubtitleSx,
+  sectionIconSx,
+  selectSx,
+  menuItemSx,
+  datePresetBtnSx,
+  paginationBtnSx,
+  tableHeaderRowSx,
+  tableSortLabelSx,
+} from '../constants/themeTokens';
 
-const CATEGORY_COLORS = {
-  Facilities: { bg: '#0288d1', light: '#e0f2fe', text: '#0369a1', dot: '#38bdf8' },
-  Staff: { bg: '#8b5cf6', light: '#f3e8ff', text: '#6b21a8', dot: '#c084fc' },
-  Collection: { bg: '#f97316', light: '#fff7ed', text: '#c2410c', dot: '#fb923c' },
-  'Other/Uncategorized': { bg: '#64748b', light: '#f8fafc', text: '#475569', dot: '#94a3b8' },
-};
+import {
+  CLIENTELE_OPTIONS,
+  COLLEGE_OPTIONS,
+  CATEGORY_OPTIONS,
+  MONTH_NAMES,
+  ROWS_PER_PAGE,
+  RECOMMENDATIONS,
+  CATEGORY_KEYWORDS,
+} from '../constants/sentimentConstants';
 
-const CHART_COLORS = ['#34d399', '#fbbf24', '#f87171'];
+import {
+  formatRatingShort,
+  getSatisfactionAverage,
+  getSurveyScore,
+  stemWord,
+  buildTermFrequencies,
+  scoreCommentsWithLexicon,
+  selectDiverseTopComments,
+} from '../constants/sentimentUtils';
 
-const VIBRANT_WORD_COLORS = [
-  '#2563eb', // Sapphire Blue
-  '#10b981', // Rich Emerald Green
-  '#8b5cf6', // Electric Purple
-  '#f59e0b', // Amber Gold
-  '#ef4444', // Coral Red
-  '#06b6d4', // Vivid Cyan
-  '#ec4899', // Hot Pink
-  '#6366f1', // Deep Indigo
-  '#f97316', // Bright Orange
-  '#14b8a6', // Dark Teal
-  '#d946ef', // Fuchsia Magenta
-  '#0288d1', // Sky Blue
-];
+import {
+  SentimentChip,
+  CategoryChip,
+  SummaryCard,
+  TopCommentsCard,
+  CustomSentimentStackedTooltip,
+  CustomDonutGaugeTooltip,
+} from '../Components/SentimentCharts';
 
-const CLIENTELE_OPTIONS = ['Student', 'Faculty', 'Staff', 'Researcher', 'CPU Admin', 'Alumnus/Alumni'];
+// Re-export for external consumers (e.g. other pages importing CONTROLLED_LEXICON)
+export { CONTROLLED_LEXICON } from '../constants/sentimentConstants';
 
-const COLLEGE_OPTIONS = [
-  'CARES', 'CAS', 'CBA', 'CCS', 'COED', 'COE', 'CHM',
-  'COL', 'CMLS', 'COM', 'CON', 'COP', 'COT', 'SGS',
-  'SHS', 'JHS', 'ELEM', 'KINDER'
-];
-
-const CATEGORY_OPTIONS = ['Facilities', 'Staff', 'Collection', 'Other/Uncategorized'];
-
-const RATING_SCORES = {
-  very_satisfied: 1.0, satisfied: 0.5, neutral: 0.0,
-  dissatisfied: -0.5, very_dissatisfied: -1.0, na: 0.0,
-};
-
-const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-// ── Plain 1-5 Satisfaction Scale (matches CSAT survey scale) ─────────────────
-const SATISFACTION_SCALE = {
-  very_satisfied: 5, satisfied: 4, neutral: 3,
-  dissatisfied: 2, very_dissatisfied: 1, na: null,
-};
-
-const formatRatingShort = (val) => {
-  if (!val) return 'N/A';
-  const scale = {
-    very_satisfied: '5',
-    satisfied: '4',
-    neutral: '3',
-    dissatisfied: '2',
-    very_dissatisfied: '1',
-    na: 'N/A',
-  };
-  return scale[val] || val;
-};
-
-const getSatisfactionAverage = (s) => {
-  const qList = [
-    s.Question1, s.Question2, s.Question3, s.Question4, s.Question5,
-    s.Question6, s.Question7, s.Question8, s.Question9, s.Question10
-  ].map(q => SATISFACTION_SCALE[q]).filter(v => v != null);
-  return qList.length > 0 ? qList.reduce((a, b) => a + b, 0) / qList.length : 0;
-};
-
-const getSurveyScore = (s) => {
-  if (typeof s.SentimentScore === 'number' && !isNaN(s.SentimentScore)) {
-    return s.SentimentScore;
-  }
-
-  const qList = [
-    s.Question1, s.Question2, s.Question3, s.Question4, s.Question5,
-    s.Question6, s.Question7, s.Question8, s.Question9, s.Question10
-  ].filter(q => q != null && q !== 'na');
-
-  const ratingAvg = qList.length > 0
-    ? qList.reduce((sum, q) => sum + (RATING_SCORES[q] ?? 0), 0) / qList.length
-    : 0;
-
-  if (!s.Message || !s.Message.trim()) {
-    return ratingAvg;
-  }
-
-  return s.SentimentResult === 'Positive' ? 1.0 : s.SentimentResult === 'Negative' ? -1.0 : 0.0;
-};
-
-const STOPWORDS = new Set([
-  'the', 'a', 'an', 'and', 'or', 'but', 'is', 'are', 'was', 'were', 'to', 'of', 'in', 'on',
-  'for', 'it', 'this', 'that', 'i', 'we', 'you', 'my', 'our', 'with', 'be', 'have', 'has',
-  'very', 'so', 'too', 'library', 'cpu', 'student', 'students', 'just', 'also', 'can', 'will',
-  'more', 'get', 'make', 'please', 'really', 'there', 'they', 'their', 'them', 'from', 'all',
-  'would', 'could', 'should', 'about', 'out', 'up', 'been', 'when', 'what', 'which', 'than',
-  // Quantifiers, degree words & generic English fillers (prevents terms like "lot" or "quality" from overriding subject nouns)
-  'lot', 'lots', 'many', 'much', 'few', 'some', 'several', 'every', 'each', 'huge', 'lack',
-  'bad', 'good', 'nice', 'great', 'better', 'best', 'worst', 'poor', 'quality', 'high', 'low',
-  'one', 'two', 'new', 'old', 'big', 'small', 'thing', 'things', 'way', 'ways', 'kind', 'kinds'
-]);
-
-export const CONTROLLED_LEXICON = {
-  Facilities: {
-    'Restroom & Hygiene': [
-      'restroom', 'restrooms', 'comfort room', 'comfort rooms', 'cr', 'toilet', 'toilets',
-      'washroom', 'washrooms', 'lavatory', 'dirty restroom', 'smelly restroom',
-      'unclean', 'foul odor', 'soap', 'tissue', 'tissues', 'paper towel', 'paper towels',
-      'water', 'faucet', 'faucets', 'flush', 'sink', 'sinks', 'bidet'
-    ],
-    'Air Conditioning': [
-      'aircon', 'air condition', 'air conditioning', 'ac unit', 'air-con', 'temperature',
-      'too hot', 'too warm', 'too cold', 'freezing', 'cold temperature', 'hot temperature',
-      'cooling', 'electric fan', 'humid', 'ventilation', 'climate control', 'stuffy'
-    ],
-    'Tables, Seating & Space': [
-      'table', 'tables', 'chair', 'chairs', 'seat', 'seats', 'seating', 'bench', 'benches',
-      'desk', 'desks', 'space', 'crowded', 'full', 'overcrowded', 'cubicle', 'cubicles',
-      'study hall', 'carrel', 'carrels', 'study area', 'reading area'
-    ],
-    'Wi-Fi & Power Outlets': [
-      'wifi', 'wi-fi', 'internet', 'connection', 'wi-fi connection', 'wifi connection',
-      'network', 'signal', 'disconnecting', 'disconnected', 'slow internet', 'fast internet',
-      'no internet', 'outlet', 'outlets', 'power outlet', 'power outlets', 'plug', 'plugs',
-      'socket', 'sockets', 'charging', 'extension cord'
-    ],
-    'Noise Level & Ambience': [
-      'noise', 'noisy', 'loud', 'quiet', 'silent', 'talking', 'chitchat', 'whispering',
-      'distracting', 'distraction', 'peaceful', 'concentration', 'study zone', 'chaotic'
-    ],
-    'Lighting & Cleanliness': [
-      'lighting', 'dim light', 'dark', 'dim', 'bright', 'clean', 'cleanliness',
-      'dust', 'dusty', 'trash', 'garbage', 'litter', 'maintenance', 'smell', 'odor'
-    ],
-    'Equipments': [
-      'equipment', 'equipments', 'scanner', 'scanners', 'barcode scanner', 'barcode',
-      'computer', 'computers', 'desktop', 'computer lab', 'mouse',
-      'keyboard', 'monitor', 'screen', 'printer', 'printing', 'printer machine',
-      'photocopy', 'photocopier', 'scanning', 'cyber library', 'cyberlib'
-    ]
-  },
-  Staff: {
-    'Librarians & Staffs': [
-      'librarian', 'librarians', 'staff', 'staffs', 'library staff', 'assistant', 'assistants',
-      'student assistant', 'student assistants', 'desk staff', 'counter staff', 'personnel',
-      'circulation counter', 'reference counter', 'staff in charge', 'front desk'
-    ],
-    'Security': [
-      'guard', 'guards', 'security', 'security guard', 'security guards', 'entrance guard',
-      'bag check', 'bag deposit', 'sign in', 'entrance lobby', 'lobby guard'
-    ],
-    'Service Quality & Attitude': [
-      'attitude', 'polite', 'impolite', 'rude', 'helpful', 'unhelpful', 'not helpful',
-      'approachable', 'unapproachable', 'accommodating', 'unaccommodating', 'kind',
-      'unkind', 'attentive', 'inattentive', 'ignoring', 'slow service', 'fast service',
-      'snobbish', 'friendly', 'unfriendly', 'courteous', 'discourteous', 'assisted',
-      'assistance', 'annoyed'
-    ]
-  },
-  Collection: {
-    'Digital Resources & E-Books': [
-      'e-book', 'ebook', 'e-books', 'ebooks', 'e-journal', 'e-journals', 'ejournal', 'ejournals',
-      'digital repository', 'repository', 'online database', 'database', 'databases',
-      'digital library', 'online journal', 'online journals', 'e-resource', 'e-resources',
-      'electronic resource', 'electronic resources'
-    ],
-    'Books & Reference Materials': [
-      'book', 'books', 'reference material', 'reference materials', 'reference book',
-      'reference books', 'textbook', 'textbooks', 'journal', 'journals', 'reading material',
-      'reading materials', 'thesis', 'manuscript', 'manuscripts', 'periodical', 'periodicals',
-      'magazine', 'magazines', 'dictionary', 'encyclopedia', 'book collections', 'collection',
-      'outdated', 'old books', 'updated books', 'edition'
-    ],
-    'Catalogue, OPAC & Search': [
-      'catalogue', 'catalog', 'opac', 'online catalog', 'card catalog', 'search system',
-      'index', 'accession number', 'call number', 'location', 'shelf', 'shelving', 'book shelf'
-    ],
-    'Borrowing & Circulation': [
-      'borrow', 'borrowing', 'return', 'returning', 'due date', 'fine', 'fines', 'overdue',
-      'penalty', 'renewal', 'renew', 'library card', 'checkout', 'check out', 'circulation',
-      'stamp card', 'stamp my card', 'stamping'
-    ]
-  }
-};
-
-const stemWord = (word) => {
-  if (!word || word.length <= 3) return word;
-  return word
-    .replace(/(?:ies)$/i, 'y')
-    .replace(/(?:s|es|ing|ed)$/i, '')
-    .toLowerCase();
-};
-
-const RECOMMENDATIONS = {
-  Facilities: {
-    moderate: 'Consider a facilities walkthrough to address recurring comfort/accessibility complaints (lighting, seating, temperature, cleanliness).',
-    high: 'Facilities feedback is predominantly negative prioritize an infrastructure audit and budget request for repairs/upgrades this term.',
-  },
-  Staff: {
-    moderate: 'Some patrons report friction with staff interactions, a refresher on frontline service standards may help.',
-    high: 'Staff-related complaints are high, recommend a service-quality review with librarians and staffs.',
-  },
-  Collection: {
-    moderate: 'Patrons are flagging gaps in available materials, review acquisition requests for undersupplied subject areas.',
-    high: 'Collection dissatisfaction is high, conduct a collection audit and prioritize acquisitions for the most-requested topics and subjects.',
-  },
-};
-
-const CATEGORY_KEYWORDS = {
-  Facilities: {
-    aircon: 'poor air conditioning/temperature control',
-    ac: 'air conditioning issues',
-    temperature: 'temperature control issues',
-    temp: 'temperature issues',
-    lighting: 'insufficient lighting',
-    light: 'lighting issues',
-    wifi: 'unreliable wifi/internet connection',
-    internet: 'unreliable internet connection',
-    seating: 'insufficient or uncomfortable seating',
-    seat: 'seating issues',
-    chair: 'uncomfortable seating/chairs',
-    table: 'workspace/table issues',
-    cleanliness: 'cleanliness/sanitation concerns',
-    clean: 'cleanliness concerns',
-    restroom: 'restroom cleanliness/maintenance',
-    toilet: 'restroom issues',
-    noise: 'high noise levels affecting study',
-    loud: 'noise levels',
-  },
-  Staff: {
-    rude: 'patron friction with staff courtesy/attitude',
-    slow: 'slow service response times',
-    unhelpful: 'unhelpful staff assistance',
-    attitude: 'staff attitude concerns',
-    service: 'frontline service quality',
-    retraining: 'staff retraining needs',
-  },
-  Collection: {
-    outdated: 'outdated books/materials',
-    old: 'outdated materials',
-    missing: 'missing or unlocatable books',
-    textbook: 'insufficient textbook copies',
-    book: 'missing/unavailable books',
-    journal: 'lack of recent research journals/e-resources',
-    database: 'digital database access issues',
-  },
-};
-
-const TopCommentsCard = ({ title, rows, accent, icon, lightBorder }) => (
-  <Card elevation={0} sx={{
-    borderRadius: 3.5,
-    backgroundColor: '#ffffff',
-    border: '1.5px solid #cbd5e1',
-    flex: 1, minWidth: 300,
-    boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.06)',
-    transition: 'all 0.25s ease',
-    overflow: 'hidden',
-    '&:hover': {
-      boxShadow: '0 8px 24px -4px rgba(29, 10, 97, 0.15)'
-    }
-  }}>
-    <Box sx={{
-      bgcolor: '#1d0a61',
-      px: 3, py: 1.8,
-      borderBottom: '3px solid #d49f1e',
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between'
-    }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-        <Box sx={{ color: '#f59e0b', display: 'flex', alignItems: 'center' }}>
-          {icon}
-        </Box>
-        <Typography sx={{
-          fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 15, color: '#ffffff',
-          letterSpacing: 0.3
-        }}>
-          {title}
-        </Typography>
-      </Box>
-      <Typography sx={{
-        fontFamily: 'Poppins, sans-serif', fontSize: 12.5, color: '#fbbf24',
-        fontWeight: 700, bgcolor: 'rgba(255,255,255,0.1)', px: 1.5, py: 0.3, borderRadius: 2
-      }}>
-        {rows.length} {rows.length === 1 ? 'Comment' : 'Comments'}
-      </Typography>
-    </Box>
-    <CardContent sx={{ p: 2.5 }}>
-      {rows.length === 0 ? (
-        <Typography sx={{ fontFamily: 'Poppins, sans-serif', color: '#94a3b8', fontSize: 13, py: 2 }}>No comments yet.</Typography>
-      ) : rows.map((row, i) => (
-        <Box
-          key={i}
-          sx={{
-            p: 1.6, mb: i < rows.length - 1 ? 1.5 : 0,
-            bgcolor: `${accent}06`,
-            border: `1px solid ${accent}22`,
-            borderLeft: `4px solid ${accent}`,
-            borderRadius: 2.5,
-            transition: 'all 0.2s ease',
-            '&:hover': {
-              bgcolor: `${accent}0d`,
-              transform: 'translateX(2px)'
-            }
-          }}
-        >
-          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#1e293b', fontWeight: 500, lineHeight: 1.45 }}>
-            "{row.Message}"
-          </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 1, pt: 0.8, borderTop: `1px dashed ${accent}25` }}>
-            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 11.5, color: '#475569', fontWeight: 600 }}>
-              {row.Clientele} • {row.College}
-            </Typography>
-            <Chip
-              label={row.topTerm ? `Keyword: "${row.topTerm}" (${row.maxTermFreq || row.termScore}×)` : `Freq Score: ${row.termScore || 0}`}
-              size="small"
-              sx={{
-                height: 22, fontSize: 11, fontWeight: 700, fontFamily: 'Poppins, sans-serif',
-                bgcolor: '#ffffff', color: accent, border: `1.5px solid ${accent}40`
-              }}
-            />
-          </Box>
-        </Box>
-      ))}
-    </CardContent>
-  </Card>
-);
-
-const selectSx = {
-  backgroundColor: '#ffffff',
-  borderRadius: 2.5,
-  minWidth: 165,
-  '& .MuiOutlinedInput-root': {
-    borderRadius: 2.5,
-    backgroundColor: '#ffffff',
-    '& fieldset': {
-      borderColor: '#cbd5e1',
-      borderWidth: '1.5px',
-    },
-    '&:hover fieldset': {
-      borderColor: '#1a237e',
-    },
-    '&.Mui-focused fieldset': {
-      borderColor: '#d49f1e',
-      borderWidth: '2px',
-    },
-  },
-  '& .MuiInputBase-root': {
-    height: 46,
-    fontFamily: 'Poppins, sans-serif',
-    fontWeight: 600,
-    fontSize: 14,
-    color: '#1e293b',
-  },
-  '& .MuiInputLabel-root': {
-    fontFamily: 'Poppins, sans-serif',
-    fontWeight: 600,
-    fontSize: 14,
-    color: '#475569',
-    '&.Mui-focused': {
-      color: '#1a237e',
-      fontWeight: 700,
-    }
-  },
-  '& .MuiSelect-select': {
-    fontFamily: 'Poppins, sans-serif',
-    fontWeight: 600,
-    fontSize: 14,
-  }
-};
-
-const SentimentChip = ({ label }) => {
-  const cfg = SENTIMENT_COLORS[label] || SENTIMENT_COLORS.Neutral;
-  return (
-    <Box sx={{
-      display: 'inline-flex', alignItems: 'center', gap: 0.8,
-      px: 1.5, py: 0.4, borderRadius: '20px',
-      backgroundColor: cfg.light, border: `1.5px solid ${cfg.dot}`,
-      boxShadow: `0 2px 6px ${cfg.dot}30`
-    }}>
-      <Box sx={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: cfg.dot }} />
-      <Typography sx={{ fontSize: 12, fontWeight: 700, color: cfg.text, fontFamily: 'Poppins, sans-serif' }}>
-        {label}
-      </Typography>
-    </Box>
-  );
-};
-
-const CategoryChip = ({ label }) => {
-  const norm = label || 'Other/Uncategorized';
-  const cfg = CATEGORY_COLORS[norm] || CATEGORY_COLORS['Other/Uncategorized'];
-  return (
-    <Box sx={{
-      display: 'inline-flex', alignItems: 'center', gap: 0.8,
-      px: 1.5, py: 0.4, borderRadius: '20px',
-      backgroundColor: cfg.light, border: `1.5px solid ${cfg.dot}`,
-      boxShadow: `0 2px 6px ${cfg.dot}30`
-    }}>
-      <Box sx={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: cfg.dot }} />
-      <Typography sx={{ fontSize: 12, fontWeight: 700, color: cfg.text, fontFamily: 'Poppins, sans-serif' }}>
-        {norm}
-      </Typography>
-    </Box>
-  );
-};
-
-const RADIAN = Math.PI / 180;
-const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
-  if (percent < 0.05) return null;
-  const r = innerRadius + (outerRadius - innerRadius) * 0.5;
-  const x = cx + r * Math.cos(-midAngle * RADIAN);
-  const y = cy + r * Math.sin(-midAngle * RADIAN);
-  return (
-    <text x={x} y={y} fill="#1e293b" textAnchor="middle" dominantBaseline="central"
-      style={{ fontSize: 13, fontWeight: 700, fontFamily: 'Poppins, sans-serif' }}>
-      {`${(percent * 100).toFixed(0)}%`}
-    </text>
-  );
-};
-
-const SummaryCard = ({ title, value, subtitle, icon, color = '#3b82f6', tooltipContent = null }) => {
-  const cardContent = (
-    <Card elevation={0} sx={{
-      borderRadius: 3.5,
-      background: `linear-gradient(150deg, #ffffff 0%, ${color}0d 100%)`,
-      border: `1.5px solid ${color}35`,
-      borderTop: `4px solid ${color}`,
-      flex: 1, minWidth: 180,
-      p: 2.5,
-      cursor: tooltipContent ? 'pointer' : 'default',
-      boxShadow: `0 4px 16px -2px ${color}18`,
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      '&:hover': {
-        transform: 'translateY(-4px)',
-        boxShadow: `0 12px 24px -6px ${color}30`,
-        borderColor: color
-      }
-    }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
-        <Avatar sx={{
-          bgcolor: `${color}18`,
-          color: color,
-          width: 48, height: 48,
-          fontSize: 24,
-          border: `1.5px solid ${color}35`,
-          boxShadow: `0 2px 10px ${color}20`
-        }}>
-          {icon}
-        </Avatar>
-      </Box>
-      <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 32, color: '#0f172a', lineHeight: 1.1 }}>
-        {value}
-      </Typography>
-      <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 14, color: '#334155', mt: 1 }}>
-        {title}
-      </Typography>
-      {subtitle && (
-        <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#64748b', mt: 0.5, fontWeight: 500 }}>
-          {subtitle}
-        </Typography>
-      )}
-    </Card>
-  );
-
-  if (tooltipContent) {
-    return (
-      <Tooltip title={tooltipContent} arrow placement="top">
-        <Box sx={{ flex: 1, minWidth: 180, display: 'flex' }}>
-          {cardContent}
-        </Box>
-      </Tooltip>
-    );
-  }
-
-  return cardContent;
-};
-
-// ── Dynamic Custom Tooltip for Sentiment Stacked Bar Chart ─────────────────────
-const CustomSentimentStackedTooltip = ({ active, payload, label }) => {
-  if (active && payload && payload.length) {
-    const total = payload.reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
-    return (
-      <Paper elevation={4} sx={{ p: 2, bgcolor: '#ffffff', border: '1.5px solid #cbd5e1', borderRadius: 3, maxWidth: 320, boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }}>
-        <Typography variant="subtitle2" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, color: '#1e293b', mb: 1, borderBottom: '1px solid #e2e8f0', pb: 0.8, fontSize: 13.5 }}>
-          {label} — {total} Total Response{total !== 1 ? 's' : ''}
-        </Typography>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.8 }}>
-          {payload.map((item, idx) => {
-            const val = Number(item.value) || 0;
-            const pct = total > 0 ? ((val / total) * 100).toFixed(1) : '0.0';
-            const colorObj = SENTIMENT_COLORS[item.name] || { bg: item.color || '#64748b', text: '#1e293b', light: '#f8fafc', dot: item.color || '#64748b' };
-            return (
-              <Box key={idx} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 0.8, px: 1.2, borderRadius: 2, bgcolor: colorObj.light || '#f8fafc', border: `1px solid ${colorObj.dot}40` }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box sx={{ width: 10, height: 10, borderRadius: '3px', bgcolor: colorObj.bg, flexShrink: 0 }} />
-                  <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 700, color: colorObj.text || '#1e293b' }}>
-                    {item.name}
-                  </Typography>
-                </Box>
-                <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 800, color: colorObj.text || '#1e293b' }}>
-                  {val} ({pct}%)
-                </Typography>
-              </Box>
-            );
-          })}
-        </Box>
-      </Paper>
-    );
-  }
-  return null;
-};
-
-// ── Custom Tooltip for Category Donut Gauge (Matches Reference Design) ────────
-const CustomDonutGaugeTooltip = ({ active, payload }) => {
-  if (active && payload && payload.length) {
-    const item = payload[0];
-    const isNoData = item.name === 'No Data';
-    if (isNoData) return null;
-    return (
-      <Paper elevation={4} sx={{ p: 1.5, bgcolor: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: 2.5, boxShadow: '0 8px 24px rgba(0,0,0,0.1)', minWidth: 120 }}>
-        <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 11.5, color: '#64748b', fontWeight: 600 }}>
-          {item.name} Sentiment
-        </Typography>
-        <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 18, fontWeight: 800, color: '#1e293b', my: 0.2 }}>
-          {item.value}%
-        </Typography>
-        {item.payload.count !== undefined && (
-          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>
-            {item.payload.count} response{item.payload.count !== 1 ? 's' : ''}
-          </Typography>
-        )}
-      </Paper>
-    );
-  }
-  return null;
-};
-
-const ROWS_PER_PAGE = 8;
+const T = THEME;
 
 const SentimentDashboard = () => {
   const navigate = useNavigate();
@@ -646,9 +152,6 @@ const SentimentDashboard = () => {
 
   // Stacked Bar Chart states
   const [barChartMode, setBarChartMode] = useState('stacked'); // 'stacked' | 'grouped'
-  const [stackedBreakdownDimension, setStackedBreakdownDimension] = useState('Category'); // 'Category' | 'Clientele' | 'College'
-  const [stackedLayoutMode, setStackedLayoutMode] = useState('stacked'); // 'stacked' | 'grouped'
-  const [stackedValueScale, setStackedValueScale] = useState('count'); // 'count' | 'percentage'
 
   const printRef = useRef();
 
@@ -818,19 +321,6 @@ const SentimentDashboard = () => {
   });
   const total = filtered.length;
 
-  const chartData = [
-    { name: 'Positive', value: counts.Positive },
-    { name: 'Neutral', value: counts.Neutral },
-    { name: 'Negative', value: counts.Negative },
-  ].filter(d => d.value > 0);
-
-  const categoryChartData = [
-    { name: 'Facilities', value: categoryCounts.Facilities, color: CATEGORY_COLORS.Facilities.dot },
-    { name: 'Staff', value: categoryCounts.Staff, color: CATEGORY_COLORS.Staff.dot },
-    { name: 'Collection', value: categoryCounts.Collection, color: CATEGORY_COLORS.Collection.dot },
-    { name: 'Other/Uncategorized', value: categoryCounts['Other/Uncategorized'], color: CATEGORY_COLORS['Other/Uncategorized'].dot },
-  ].filter(d => d.value > 0);
-
   const filteredWithWord = useMemo(() => {
     if (!selectedWordFilter) return filtered;
     const wordLower = selectedWordFilter.toLowerCase();
@@ -937,47 +427,8 @@ const SentimentDashboard = () => {
     });
   }, [filtered, filterYear]);
 
-  // Dynamic Stacked Bar Breakdown Data (Category, Clientele, or College)
-  const stackedBreakdownData = useMemo(() => {
-    const map = {};
 
-    filtered.forEach(s => {
-      let key = 'Other/Uncategorized';
-      if (stackedBreakdownDimension === 'Category') {
-        key = s.Category || 'Other/Uncategorized';
-      } else if (stackedBreakdownDimension === 'Clientele') {
-        key = s.Clientele || 'Unspecified';
-      } else if (stackedBreakdownDimension === 'College') {
-        key = s.College || 'N/A';
-      }
-
-      if (!map[key]) {
-        map[key] = { name: key, Positive: 0, Neutral: 0, Negative: 0, total: 0 };
-      }
-      if (s.SentimentResult === 'Positive') map[key].Positive++;
-      else if (s.SentimentResult === 'Neutral') map[key].Neutral++;
-      else if (s.SentimentResult === 'Negative') map[key].Negative++;
-      map[key].total++;
-    });
-
-    const keys = Object.keys(map).sort((a, b) => map[b].total - map[a].total);
-
-    return keys.map(k => {
-      const item = map[k];
-      if (stackedValueScale === 'percentage' && item.total > 0) {
-        return {
-          name: item.name,
-          Positive: parseFloat(((item.Positive / item.total) * 100).toFixed(1)),
-          Neutral: parseFloat(((item.Neutral / item.total) * 100).toFixed(1)),
-          Negative: parseFloat(((item.Negative / item.total) * 100).toFixed(1)),
-          total: item.total
-        };
-      }
-      return item;
-    });
-  }, [filtered, stackedBreakdownDimension, stackedValueScale]);
-
-  // ── Sentiment Distribution by Category (Multi-Donut Rings matching UI Reference) ───
+  // ── Sentiment Distribution by Category (Multi-Donut Rings) ────────────────
   const categoryDonutData = useMemo(() => {
     const categories = ['Facilities', 'Staff', 'Collection'];
     return categories.map(cat => {
@@ -992,11 +443,11 @@ const SentimentDashboard = () => {
       const negPct = tot > 0 ? Math.max(0, 100 - posPct - neuPct) : 0;
 
       const slices = tot > 0 ? [
-        { name: 'Positive', value: posPct, count: pos, color: 'url(#sentDonutPosGrad)', solidColor: '#2e7d32' },
-        { name: 'Neutral', value: neuPct, count: neu, color: 'url(#sentDonutNeuGrad)', solidColor: '#ed6c02' },
-        { name: 'Negative', value: negPct, count: neg, color: 'url(#sentDonutNegGrad)', solidColor: '#c62828' },
+        { name: 'Positive', value: posPct, count: pos, color: 'url(#sentDonutPosGrad)', solidColor: T.chart.donutGradients.positive.start },
+        { name: 'Neutral', value: neuPct, count: neu, color: 'url(#sentDonutNeuGrad)', solidColor: T.chart.donutGradients.neutral.start },
+        { name: 'Negative', value: negPct, count: neg, color: 'url(#sentDonutNegGrad)', solidColor: T.chart.donutGradients.negative.start },
       ].filter(s => s.value > 0) : [
-        { name: 'No Data', value: 100, count: 0, color: '#e2e8f0', solidColor: '#e2e8f0' }
+        { name: 'No Data', value: 100, count: 0, color: T.surface.borderLight, solidColor: T.surface.borderLight }
       ];
 
       return {
@@ -1008,154 +459,10 @@ const SentimentDashboard = () => {
     });
   }, [filtered]);
 
-  // ── Word/Term Frequency & TF-IDF Ranking for Top Comments (Approach B) ──────
-  const buildTermFrequencies = (pool) => {
-    const freq = {};
-    const origCounts = {};
-    const sentimentCounts = {};
-
-    pool.forEach(s => {
-      if (!s.Message) return;
-      const sent = s.SentimentResult || 'Neutral';
-      const words = s.Message.toLowerCase().match(/[a-z']+/g) || [];
-      words.forEach(rawW => {
-        if (rawW.length < 3 || STOPWORDS.has(rawW)) return;
-        const stem = stemWord(rawW);
-        freq[stem] = (freq[stem] || 0) + 1;
-        if (!origCounts[stem]) origCounts[stem] = {};
-        origCounts[stem][rawW] = (origCounts[stem][rawW] || 0) + 1;
-
-        if (!sentimentCounts[stem]) sentimentCounts[stem] = { Positive: 0, Negative: 0, Neutral: 0 };
-        if (sentimentCounts[stem][sent] !== undefined) {
-          sentimentCounts[stem][sent]++;
-        }
-      });
-    });
-    const displayMap = {};
-    Object.keys(origCounts).forEach(stem => {
-      displayMap[stem] = Object.entries(origCounts[stem]).sort((a, b) => b[1] - a[1])[0][0];
-    });
-    return { freq, displayMap, sentimentCounts };
-  };
-
-  // Dynamic term frequencies for word cloud visualization based on active filters
+  // ── Word/Term Frequency for Word Cloud ────────────────────────────────────
   const { freq: termFrequencies = {}, displayMap: stemToOriginalMap = {} } = useMemo(() => {
     return buildTermFrequencies(filtered.length > 0 ? filtered : surveys);
   }, [filtered, surveys]);
-
-  // ── Controlled Domain Lexicon Keyword Ranking Engine ────────────────────────
-  const scoreCommentsWithLexicon = (commentsPool) => {
-    if (!commentsPool || commentsPool.length === 0) return [];
-
-    const topicPoolCounts = {};
-    const commentTopicMatches = commentsPool.map(s => {
-      if (!s.Message || !s.Message.trim()) return { matchedTopics: [] };
-      const msgLower = s.Message.toLowerCase();
-      const matchedTopics = [];
-
-      Object.entries(CONTROLLED_LEXICON).forEach(([catName, categoryTopics]) => {
-        Object.entries(categoryTopics).forEach(([topic, synonyms]) => {
-          let bestSynLen = 0;
-          for (const syn of synonyms) {
-            const synLower = syn.toLowerCase();
-            const escaped = synLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            // Strict regex using non-word/boundary checks to avoid partial substring collisions (e.g. "ac" matching "academic" or "unapproachable")
-            const regex = new RegExp(`(^|[^a-zA-Z0-9])${escaped}([^a-zA-Z0-9]|$)`, 'i');
-            if (regex.test(msgLower)) {
-              if (synLower.length > bestSynLen) {
-                bestSynLen = synLower.length;
-              }
-            }
-          }
-          if (bestSynLen > 0) {
-            matchedTopics.push({ topic, category: catName, matchLen: bestSynLen });
-          }
-        });
-      });
-
-      matchedTopics.forEach(m => {
-        topicPoolCounts[m.topic] = (topicPoolCounts[m.topic] || 0) + 1;
-      });
-
-      return { matchedTopics };
-    });
-
-    return commentsPool.map((commentObj, idx) => {
-      if (!commentObj || !commentObj.Message) {
-        return { ...commentObj, tfidfScore: 0, termScore: 0, blendedScore: 0, topTerm: '', maxTermFreq: 0 };
-      }
-
-      const { matchedTopics } = commentTopicMatches[idx];
-      let bestTopic = '';
-      let bestTopicScore = -1;
-      let maxTopicFreq = 0;
-      let totalTopicScore = 0;
-
-      matchedTopics.forEach(m => {
-        const count = topicPoolCounts[m.topic] || 0;
-        totalTopicScore += count;
-        if (count > maxTopicFreq) {
-          maxTopicFreq = count;
-        }
-
-        // Scoring weight:
-        // 1. Matches comment's assigned category (+15 points)
-        // 2. Longer, more specific phrase match (m.matchLen * 1.5)
-        // 3. Pool frequency of the topic (count * 0.5)
-        const isSameCategory = commentObj.Category && commentObj.Category === m.category ? 15 : 0;
-        const candidateScore = isSameCategory + (m.matchLen * 1.5) + (count * 0.5);
-
-        if (candidateScore > bestTopicScore) {
-          bestTopicScore = candidateScore;
-          bestTopic = m.topic;
-        }
-      });
-
-      const normalizedTopicScore = matchedTopics.length > 0
-        ? Number((totalTopicScore / Math.sqrt(matchedTopics.length)).toFixed(2))
-        : 0;
-
-      const magnitude = Math.abs(getSurveyScore(commentObj));
-      const blendedScore = Number(((0.7 * normalizedTopicScore) + (0.3 * magnitude * 10)).toFixed(2));
-
-      const assignedTopic = bestTopic || (commentObj.Category ? `${commentObj.Category} Feedback` : 'General Feedback');
-      const assignedFreq = topicPoolCounts[assignedTopic] || maxTopicFreq || 1;
-
-      return {
-        ...commentObj,
-        tfidfScore: normalizedTopicScore,
-        termScore: normalizedTopicScore,
-        blendedScore,
-        topTerm: assignedTopic,
-        maxTermFreq: assignedFreq
-      };
-    });
-  };
-
-  const selectDiverseTopComments = (scoredList, limit = 5) => {
-    const selected = [];
-    const keywordCounts = {};
-
-    for (const comment of scoredList) {
-      const kw = (comment.topTerm || 'general').toLowerCase();
-      if ((keywordCounts[kw] || 0) < 2) {
-        selected.push(comment);
-        keywordCounts[kw] = (keywordCounts[kw] || 0) + 1;
-      }
-      if (selected.length === limit) break;
-    }
-
-    if (selected.length < limit) {
-      for (const comment of scoredList) {
-        if (!selected.includes(comment)) {
-          selected.push(comment);
-          if (selected.length === limit) break;
-        }
-      }
-    }
-
-    return selected;
-  };
 
   const commentsMasterPool = allSurveys.length > 0 ? allSurveys : surveys;
 
@@ -1218,7 +525,7 @@ const SentimentDashboard = () => {
     randomSeed: 'hll-library-wordcloud-v3',
     rotations: 1,
     rotationAngles: [0, 0],
-    fontFamily: 'Poppins, sans-serif',
+    fontFamily: T.font.family,
     fontSizes: [16, 48],
     fontStyle: 'normal',
     fontWeight: '700',
@@ -1232,10 +539,10 @@ const SentimentDashboard = () => {
   const wordCloudCallbacks = useMemo(() => ({
     getWordColor: (word) => {
       if (selectedWordFilter && word.text.toLowerCase() === selectedWordFilter.toLowerCase()) {
-        return '#f57c00';
+        return T.status.wordHighlight;
       }
       const charCodeSum = (word.text || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      return VIBRANT_WORD_COLORS[charCodeSum % VIBRANT_WORD_COLORS.length];
+      return T.wordCloudColors[charCodeSum % T.wordCloudColors.length];
     },
     getWordTooltip: (word) => `"${word.text}" — ${word.value} ${word.value === 1 ? 'mention' : 'mentions'}`,
     onWordClick: (word) => {
@@ -1402,12 +709,12 @@ const SentimentDashboard = () => {
             .summary { display: flex; justify-content: space-around; gap: 10px; margin-bottom: 15px; }
             .summary-box { border: 1px solid #ccc; border-radius: 6px; padding: 8px; text-align: center; flex: 1; }
             .summary-box .value { font-size: 20px; font-weight: bold; }
-            .summary-box.pos .value { color: #047857; }
-            .summary-box.neu .value { color: #b45309; }
-            .summary-box.neg .value { color: #be123c; }
+            .summary-box.pos .value { color: ${T.sentiment.Positive.text}; }
+            .summary-box.neu .value { color: ${T.sentiment.Neutral.text}; }
+            .summary-box.neg .value { color: ${T.sentiment.Negative.text}; }
             .summary-box.tot .value { color: #1e3a8a; }
             .summary-box .label { font-size: 11px; color: #555; margin-top: 2px; font-weight: bold; }
-            .scale-legend { font-size: 10.5px; color: #475569; background: #f8fafc; border: 1px solid #cbd5e1; padding: 6px 10px; border-radius: 4px; margin-bottom: 12px; text-align: center; font-weight: 600; }
+            .scale-legend { font-size: 10.5px; color: ${T.text.secondary}; background: ${T.surface.cardAlt}; border: 1px solid ${T.surface.border}; padding: 6px 10px; border-radius: 4px; margin-bottom: 12px; text-align: center; font-weight: 600; }
             table { width: 100%; border-collapse: collapse; font-size: 10px; margin-top: 10px; }
             th { background-color: #334155; color: white; padding: 6px 4px; text-align: left; font-size: 10px; }
             td { padding: 5px 4px; border-bottom: 1px solid #eee; word-break: break-word; font-size: 9.5px; }
@@ -1427,6 +734,14 @@ const SentimentDashboard = () => {
     }, 500);
   };
 
+  // ── Gradient defs for charts ──────────────────────────────────────────────
+  const gP = T.chart.gradients.positive;
+  const gN = T.chart.gradients.neutral;
+  const gNe = T.chart.gradients.negative;
+  const dP = T.chart.donutGradients.positive;
+  const dNu = T.chart.donutGradients.neutral;
+  const dNe = T.chart.donutGradients.negative;
+
   return (
     <>
       <Header>
@@ -1439,21 +754,21 @@ const SentimentDashboard = () => {
             />
 
             {!showLoginModal && (
-              <Box sx={{ p: { xs: 2, md: 3 }, background: 'linear-gradient(180deg, #f0f4f8 0%, #e6edf5 100%)', minHeight: '100vh' }}>
+              <Box sx={{ p: { xs: 2, md: 3 }, background: T.surface.backgroundGrad, minHeight: '100vh' }}>
                 {/* ── Modern Header Action Bar Banner ───── */}
                 <Paper elevation={0} sx={{
-                  p: 2.5, mb: 3, borderRadius: 3.5,
-                  bgcolor: '#ffffff',
-                  border: '1.5px solid #cbd5e1',
-                  borderLeft: '6px solid #d49f1e',
-                  boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.06)',
+                  p: 2.5, mb: 3, borderRadius: T.radius.card,
+                  bgcolor: T.surface.card,
+                  border: `1.5px solid ${T.surface.border}`,
+                  borderLeft: `6px solid ${T.brand.accent}`,
+                  boxShadow: T.shadow.card,
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2
                 }}>
                   <Box>
-                    <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: { xs: 20, md: 24 }, fontWeight: 800, color: '#0f172a' }}>
+                    <Typography sx={{ fontFamily: T.font.family, fontSize: { xs: 20, md: 24 }, fontWeight: 800, color: T.text.primary }}>
                       Henry Luce III Library Sentiment Analysis Dashboard
                     </Typography>
-                    <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13.5, color: '#475569', fontWeight: 500, mt: 0.5 }}>
+                    <Typography sx={{ fontFamily: T.font.family, fontSize: 13.5, color: T.text.secondary, fontWeight: 500, mt: 0.5 }}>
                       Patron feedback sentiment breakdown, category distribution, and satisfaction analytics
                     </Typography>
                   </Box>
@@ -1464,18 +779,10 @@ const SentimentDashboard = () => {
                       onClick={handlePrint}
                       startIcon={<PrintIcon />}
                       sx={{
-                        borderRadius: 2.5,
-                        height: 44,
-                        px: 3,
-                        fontFamily: 'Poppins, sans-serif',
-                        fontSize: 14,
-                        fontWeight: 700,
-                        textTransform: 'none',
-                        borderColor: '#cbd5e1',
-                        color: '#334155',
-                        bgcolor: '#ffffff',
-                        borderWidth: '1.5px',
-                        '&:hover': { borderColor: '#94a3b8', bgcolor: '#f8fafc', borderWidth: '1.5px' }
+                        borderRadius: T.radius.button, height: 44, px: 3,
+                        fontFamily: T.font.family, fontSize: 14, fontWeight: 700, textTransform: 'none',
+                        borderColor: T.surface.border, color: T.text.body, bgcolor: T.surface.card, borderWidth: '1.5px',
+                        '&:hover': { borderColor: T.surface.borderHover, bgcolor: T.surface.cardAlt, borderWidth: '1.5px' }
                       }}
                     >
                       Print / Save PDF
@@ -1485,16 +792,11 @@ const SentimentDashboard = () => {
                       onClick={handleExportExcel}
                       startIcon={<FileDownloadIcon />}
                       sx={{
-                        borderRadius: 2.5,
-                        height: 44,
-                        px: 3,
-                        fontFamily: 'Poppins, sans-serif',
-                        fontSize: 14,
-                        fontWeight: 700,
-                        textTransform: 'none',
-                        bgcolor: '#059669',
-                        boxShadow: '0 4px 12px rgba(5, 150, 105, 0.25)',
-                        '&:hover': { bgcolor: '#047857' }
+                        borderRadius: T.radius.button, height: 44, px: 3,
+                        fontFamily: T.font.family, fontSize: 14, fontWeight: 700, textTransform: 'none',
+                        bgcolor: T.status.success,
+                        boxShadow: `0 4px 12px ${T.status.successShadow}`,
+                        '&:hover': { bgcolor: T.status.successHover }
                       }}
                     >
                       Export to Excel
@@ -1505,18 +807,11 @@ const SentimentDashboard = () => {
                       onClick={handleLogout}
                       startIcon={<LogoutIcon />}
                       sx={{
-                        borderRadius: 2.5,
-                        height: 44,
-                        px: 2.5,
-                        fontFamily: 'Poppins, sans-serif',
-                        fontSize: 14,
-                        fontWeight: 700,
-                        textTransform: 'none',
-                        borderColor: '#fecdd3',
-                        color: '#e11d48',
-                        bgcolor: '#ffffff',
-                        borderWidth: '1.5px',
-                        '&:hover': { bgcolor: '#fff1f2', borderColor: '#f87171', borderWidth: '1.5px' }
+                        borderRadius: T.radius.button, height: 44, px: 2.5,
+                        fontFamily: T.font.family, fontSize: 14, fontWeight: 700, textTransform: 'none',
+                        borderColor: T.status.errorBorder, color: T.status.errorText,
+                        bgcolor: T.surface.card, borderWidth: '1.5px',
+                        '&:hover': { bgcolor: T.status.errorLight, borderColor: T.sentiment.Negative.dot, borderWidth: '1.5px' }
                       }}
                     >
                       Logout
@@ -1526,128 +821,69 @@ const SentimentDashboard = () => {
 
                 {/* ── Filter Controls Container ───── */}
                 <Paper elevation={0} sx={{
-                  mb: 3, borderRadius: 3.5,
-                  border: '1.5px solid #cbd5e1',
-                  bgcolor: '#ffffff',
-                  boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.06)',
-                  overflow: 'hidden'
+                  mb: 3, ...cardShellSx,
                 }}>
-                  <Box sx={{
-                    bgcolor: '#1d0a61',
-                    px: 3, py: 1.8,
-                    borderBottom: '3px solid #d49f1e',
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between'
-                  }}>
+                  <Box sx={{ ...sectionHeaderSx }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-                      <FilterAltIcon sx={{ fontSize: 22, color: '#f59e0b' }} />
-                      <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 16, color: '#ffffff', letterSpacing: 0.3 }}>
+                      <FilterAltIcon sx={sectionIconSx} />
+                      <Typography sx={{ ...sectionTitleSx }}>
                         Filter & Analytics Controls
                       </Typography>
                     </Box>
-                    <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#fbbf24', fontWeight: 700, bgcolor: 'rgba(255,255,255,0.1)', px: 1.5, py: 0.3, borderRadius: 2 }}>
+                    <Typography sx={{ fontFamily: T.font.family, fontSize: 13, color: T.sentiment.Neutral.dot, fontWeight: 700, bgcolor: 'rgba(255,255,255,0.1)', px: 1.5, py: 0.3, borderRadius: 2 }}>
                       {filtered.length} matching response{filtered.length === 1 ? '' : 's'}
                     </Typography>
                   </Box>
 
                   {/* ── Quick Date Presets Row ───── */}
-                  <Box sx={{ px: 3, pt: 2, pb: 1.5, bgcolor: '#f8fafc', borderBottom: '1.5px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                    <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 700, color: '#475569', mr: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <CalendarTodayIcon sx={{ fontSize: 16, color: '#1a237e' }} /> Quick Date Range:
+                  <Box sx={{ px: 3, pt: 2, pb: 1.5, bgcolor: T.surface.cardAlt, borderBottom: `1.5px solid ${T.surface.borderLight}`, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                    <Typography sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 700, color: T.text.secondary, mr: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <CalendarTodayIcon sx={{ fontSize: 16, color: T.brand.indigo }} /> Quick Date Range:
                     </Typography>
-                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('today')} sx={{ borderRadius: 2, textTransform: 'none', fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 12, borderColor: '#cbd5e1', color: '#1e293b', bgcolor: '#ffffff', '&:hover': { bgcolor: '#f1f5f9', borderColor: '#1a237e' } }}>
-                      Today
-                    </Button>
-                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('week')} sx={{ borderRadius: 2, textTransform: 'none', fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 12, borderColor: '#cbd5e1', color: '#1e293b', bgcolor: '#ffffff', '&:hover': { bgcolor: '#f1f5f9', borderColor: '#1a237e' } }}>
-                      This Week
-                    </Button>
-                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('month')} sx={{ borderRadius: 2, textTransform: 'none', fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 12, borderColor: '#cbd5e1', color: '#1e293b', bgcolor: '#ffffff', '&:hover': { bgcolor: '#f1f5f9', borderColor: '#1a237e' } }}>
-                      This Month
-                    </Button>
-                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('all')} sx={{ borderRadius: 2, textTransform: 'none', fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 12, borderColor: '#cbd5e1', color: '#1e293b', bgcolor: '#ffffff', '&:hover': { bgcolor: '#f1f5f9', borderColor: '#1a237e' } }}>
-                      All Time
-                    </Button>
+                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('today')} sx={datePresetBtnSx}>Today</Button>
+                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('week')} sx={datePresetBtnSx}>This Week</Button>
+                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('month')} sx={datePresetBtnSx}>This Month</Button>
+                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('all')} sx={datePresetBtnSx}>All Time</Button>
                   </Box>
 
                   <Box sx={{ p: 3, display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-                    <TextField
-                      type="date"
-                      label="Start Date"
-                      InputLabelProps={{ shrink: true }}
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      sx={selectSx}
-                    />
-                    <TextField
-                      type="date"
-                      label="End Date"
-                      InputLabelProps={{ shrink: true }}
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                      sx={selectSx}
-                    />
+                    <TextField type="date" label="Start Date" InputLabelProps={{ shrink: true }} value={startDate} onChange={(e) => setStartDate(e.target.value)} sx={selectSx} />
+                    <TextField type="date" label="End Date" InputLabelProps={{ shrink: true }} value={endDate} onChange={(e) => setEndDate(e.target.value)} sx={selectSx} />
                     <FormControl sx={selectSx}>
                       <InputLabel>Clientele</InputLabel>
-                      <Select
-                        value={filterClientele}
-                        label="Clientele"
-                        onChange={(e) => { setFilterClientele(e.target.value); setPage(0); }}
-                      >
-                        <MenuItem value="" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 14 }}>All</MenuItem>
-                        {CLIENTELE_OPTIONS.map(c => (
-                          <MenuItem key={c} value={c.toLowerCase()} sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 14 }}>{c}</MenuItem>
-                        ))}
+                      <Select value={filterClientele} label="Clientele" onChange={(e) => { setFilterClientele(e.target.value); setPage(0); }}>
+                        <MenuItem value="" sx={menuItemSx}>All</MenuItem>
+                        {CLIENTELE_OPTIONS.map(c => (<MenuItem key={c} value={c.toLowerCase()} sx={menuItemSx}>{c}</MenuItem>))}
                       </Select>
                     </FormControl>
                     <FormControl sx={selectSx}>
                       <InputLabel>College</InputLabel>
-                      <Select
-                        value={filterCollege}
-                        label="College"
-                        onChange={(e) => { setFilterCollege(e.target.value); setPage(0); }}
-                      >
-                        <MenuItem value="" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 14 }}>All</MenuItem>
-                        {COLLEGE_OPTIONS.map(c => (
-                          <MenuItem key={c} value={c} sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 14 }}>{c}</MenuItem>
-                        ))}
+                      <Select value={filterCollege} label="College" onChange={(e) => { setFilterCollege(e.target.value); setPage(0); }}>
+                        <MenuItem value="" sx={menuItemSx}>All</MenuItem>
+                        {COLLEGE_OPTIONS.map(c => (<MenuItem key={c} value={c} sx={menuItemSx}>{c}</MenuItem>))}
                       </Select>
                     </FormControl>
                     <FormControl sx={selectSx}>
                       <InputLabel>Sentiment</InputLabel>
-                      <Select
-                        value={filterSentiment}
-                        label="Sentiment"
-                        onChange={(e) => { setFilterSentiment(e.target.value); setPage(0); }}
-                      >
-                        <MenuItem value="" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 14 }}>All</MenuItem>
-                        <MenuItem value="Positive" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 14 }}>Positive</MenuItem>
-                        <MenuItem value="Neutral" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 14 }}>Neutral</MenuItem>
-                        <MenuItem value="Negative" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 14 }}>Negative</MenuItem>
+                      <Select value={filterSentiment} label="Sentiment" onChange={(e) => { setFilterSentiment(e.target.value); setPage(0); }}>
+                        <MenuItem value="" sx={menuItemSx}>All</MenuItem>
+                        <MenuItem value="Positive" sx={menuItemSx}>Positive</MenuItem>
+                        <MenuItem value="Neutral" sx={menuItemSx}>Neutral</MenuItem>
+                        <MenuItem value="Negative" sx={menuItemSx}>Negative</MenuItem>
                       </Select>
                     </FormControl>
                     <FormControl sx={selectSx}>
                       <InputLabel>Category</InputLabel>
-                      <Select
-                        value={filterCategory}
-                        label="Category"
-                        onChange={(e) => { setFilterCategory(e.target.value); setPage(0); }}
-                      >
-                        <MenuItem value="" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 14 }}>All</MenuItem>
-                        {CATEGORY_OPTIONS.map(c => (
-                          <MenuItem key={c} value={c} sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 14 }}>{c}</MenuItem>
-                        ))}
+                      <Select value={filterCategory} label="Category" onChange={(e) => { setFilterCategory(e.target.value); setPage(0); }}>
+                        <MenuItem value="" sx={menuItemSx}>All</MenuItem>
+                        {CATEGORY_OPTIONS.map(c => (<MenuItem key={c} value={c} sx={menuItemSx}>{c}</MenuItem>))}
                       </Select>
                     </FormControl>
                     <FormControl sx={selectSx}>
                       <InputLabel>Year</InputLabel>
-                      <Select
-                        value={filterYear}
-                        label="Year"
-                        onChange={(e) => { setFilterYear(e.target.value); setPage(0); }}
-                      >
-                        <MenuItem value="All" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 14 }}>All Years</MenuItem>
-                        {availableYears.map(yr => (
-                          <MenuItem key={yr} value={yr} sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 14 }}>{yr}</MenuItem>
-                        ))}
+                      <Select value={filterYear} label="Year" onChange={(e) => { setFilterYear(e.target.value); setPage(0); }}>
+                        <MenuItem value="All" sx={menuItemSx}>All Years</MenuItem>
+                        {availableYears.map(yr => (<MenuItem key={yr} value={yr} sx={menuItemSx}>{yr}</MenuItem>))}
                       </Select>
                     </FormControl>
 
@@ -1655,36 +891,22 @@ const SentimentDashboard = () => {
                       variant="contained"
                       onClick={fetchSurveys}
                       sx={{
-                        bgcolor: '#1a237e',
-                        px: 3.5,
-                        height: 46,
-                        borderRadius: 2.5,
-                        textTransform: 'none',
-                        fontFamily: 'Poppins, sans-serif',
-                        fontWeight: 700,
-                        fontSize: 15,
+                        bgcolor: T.brand.indigo, px: 3.5, height: 46, borderRadius: T.radius.button,
+                        textTransform: 'none', fontFamily: T.font.family, fontWeight: 700, fontSize: 15,
                         boxShadow: '0 4px 12px rgba(26, 35, 126, 0.25)',
-                        '&:hover': { bgcolor: '#0d47a1' }
+                        '&:hover': { bgcolor: T.brand.indigoHover }
                       }}
                     >
                       Apply Filters
                     </Button>
                     {hasActiveFilter && (
                       <Button
-                        variant="outlined"
-                        color="inherit"
-                        onClick={handleClear}
+                        variant="outlined" color="inherit" onClick={handleClear}
                         sx={{
-                          height: 46,
-                          px: 3,
-                          borderRadius: 2.5,
-                          textTransform: 'none',
-                          fontFamily: 'Poppins, sans-serif',
-                          fontWeight: 700,
-                          fontSize: 15,
-                          borderColor: '#cbd5e1',
-                          borderWidth: '1.5px',
-                          '&:hover': { borderWidth: '1.5px', borderColor: '#94a3b8' }
+                          height: 46, px: 3, borderRadius: T.radius.button, textTransform: 'none',
+                          fontFamily: T.font.family, fontWeight: 700, fontSize: 15,
+                          borderColor: T.surface.border, borderWidth: '1.5px',
+                          '&:hover': { borderWidth: '1.5px', borderColor: T.surface.borderHover }
                         }}
                       >
                         Reset
@@ -1694,56 +916,32 @@ const SentimentDashboard = () => {
 
                   {/* ── Active Filter Chips Row ───── */}
                   {hasActiveFilter && (
-                    <Box sx={{ px: 3, pb: 2, pt: 1.5, bgcolor: '#f8fafc', display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', borderTop: '1.5px solid #e2e8f0' }}>
-                      <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12.5, fontWeight: 700, color: '#475569' }}>
+                    <Box sx={{ px: 3, pb: 2, pt: 1.5, bgcolor: T.surface.cardAlt, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', borderTop: `1.5px solid ${T.surface.borderLight}` }}>
+                      <Typography sx={{ fontFamily: T.font.family, fontSize: 12.5, fontWeight: 700, color: T.text.secondary }}>
                         Active Filters:
                       </Typography>
                       {(startDate || endDate) && (
-                        <Chip
-                          label={`Date: ${startDate || 'Start'} to ${endDate || 'End'}`}
-                          onDelete={() => handleRemoveFilter('date')}
-                          size="small"
-                          sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 12, bgcolor: '#ffffff', color: '#1e293b', border: '1.5px solid #cbd5e1' }}
-                        />
+                        <Chip label={`Date: ${startDate || 'Start'} to ${endDate || 'End'}`} onDelete={() => handleRemoveFilter('date')} size="small"
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: T.filterChips.date.bg, color: T.filterChips.date.color, border: `1.5px solid ${T.filterChips.date.border}` }} />
                       )}
                       {filterClientele && (
-                        <Chip
-                          label={`Clientele: ${filterClientele}`}
-                          onDelete={() => handleRemoveFilter('clientele')}
-                          size="small"
-                          sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 12, bgcolor: '#f3e8ff', color: '#6b21a8', border: '1.5px solid #c084fc' }}
-                        />
+                        <Chip label={`Clientele: ${filterClientele}`} onDelete={() => handleRemoveFilter('clientele')} size="small"
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: T.filterChips.clientele.bg, color: T.filterChips.clientele.color, border: `1.5px solid ${T.filterChips.clientele.border}` }} />
                       )}
                       {filterCollege && (
-                        <Chip
-                          label={`College: ${filterCollege}`}
-                          onDelete={() => handleRemoveFilter('college')}
-                          size="small"
-                          sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 12, bgcolor: '#e0f2fe', color: '#0369a1', border: '1.5px solid #7dd3fc' }}
-                        />
+                        <Chip label={`College: ${filterCollege}`} onDelete={() => handleRemoveFilter('college')} size="small"
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: T.filterChips.college.bg, color: T.filterChips.college.color, border: `1.5px solid ${T.filterChips.college.border}` }} />
                       )}
                       {filterSentiment && (
-                        <Chip
-                          label={`Sentiment: ${filterSentiment}`}
-                          onDelete={() => handleRemoveFilter('sentiment')}
-                          size="small"
-                          sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 12, bgcolor: '#ecfdf5', color: '#047857', border: '1.5px solid #6ee7b7' }}
-                        />
+                        <Chip label={`Sentiment: ${filterSentiment}`} onDelete={() => handleRemoveFilter('sentiment')} size="small"
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: T.filterChips.sentiment.bg, color: T.filterChips.sentiment.color, border: `1.5px solid ${T.filterChips.sentiment.border}` }} />
                       )}
                       {filterCategory && (
-                        <Chip
-                          label={`Category: ${filterCategory}`}
-                          onDelete={() => handleRemoveFilter('category')}
-                          size="small"
-                          sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 12, bgcolor: '#fffbeb', color: '#b45309', border: '1.5px solid #fcd34d' }}
-                        />
+                        <Chip label={`Category: ${filterCategory}`} onDelete={() => handleRemoveFilter('category')} size="small"
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: T.filterChips.category.bg, color: T.filterChips.category.color, border: `1.5px solid ${T.filterChips.category.border}` }} />
                       )}
-                      <Button
-                        size="small"
-                        onClick={handleClear}
-                        startIcon={<RestartAltIcon sx={{ fontSize: 16 }} />}
-                        sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', fontWeight: 700, fontSize: 12, color: '#ef4444', ml: 'auto' }}
-                      >
+                      <Button size="small" onClick={handleClear} startIcon={<RestartAltIcon sx={{ fontSize: 16 }} />}
+                        sx={{ fontFamily: T.font.family, textTransform: 'none', fontWeight: 700, fontSize: 12, color: '#ef4444', ml: 'auto' }}>
                         Clear All
                       </Button>
                     </Box>
@@ -1756,72 +954,25 @@ const SentimentDashboard = () => {
                   </Box>
                 ) : (
                   <>
-                    {/* ── Top Metric KPI Cards Grid (Clean 5 Summary Cards) ───── */}
+                    {/* ── Top Metric KPI Cards Grid ───── */}
                     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)', md: 'repeat(5, 1fr)' }, gap: 2.5, mb: 3 }}>
-                      <SummaryCard
-                        title="Avg Satisfaction"
-                        value={avgSatisfaction.toFixed(2)}
-                        subtitle="Scale: 1.0 to 5.0"
-                        icon={<StarIcon />}
-                        color="#8b5cf6"
-                        tooltipContent="Average patron score across satisfaction survey questions (1.0 to 5.0 scale)"
-                      />
-                      <SummaryCard
-                        title="Positive"
-                        value={counts.Positive}
-                        subtitle={`${total > 0 ? Math.round((counts.Positive / total) * 100) : 0}% of responses`}
-                        icon={<ThumbUpIcon />}
-                        color="#10b981"
-                        tooltipContent={`Positive Sentiments: ${counts.Positive} responses (${total > 0 ? Math.round((counts.Positive / total) * 100) : 0}% of total)`}
-                      />
-                      <SummaryCard
-                        title="Neutral"
-                        value={counts.Neutral}
-                        subtitle={`${total > 0 ? Math.round((counts.Neutral / total) * 100) : 0}% of responses`}
-                        icon={<SentimentSatisfiedIcon />}
-                        color="#f59e0b"
-                        tooltipContent={`Neutral Sentiments: ${counts.Neutral} responses (${total > 0 ? Math.round((counts.Neutral / total) * 100) : 0}% of total)`}
-                      />
-                      <SummaryCard
-                        title="Negative"
-                        value={counts.Negative}
-                        subtitle={`${total > 0 ? Math.round((counts.Negative / total) * 100) : 0}% of responses`}
-                        icon={<ThumbDownIcon />}
-                        color="#f43f5e"
-                        tooltipContent={`Negative Sentiments: ${counts.Negative} responses (${total > 0 ? Math.round((counts.Negative / total) * 100) : 0}% of total)`}
-                      />
-                      <SummaryCard
-                        title="Total Analyzed"
-                        value={total}
-                        subtitle="Survey responses"
-                        icon={<AssessmentIcon />}
-                        color="#1a237e"
-                        tooltipContent={`Total Filtered Surveys: ${total} responses matching current filters`}
-                      />
+                      <SummaryCard title="Avg Satisfaction" value={avgSatisfaction.toFixed(2)} subtitle="Scale: 1.0 to 5.0" icon={<StarIcon />} color="#8b5cf6" tooltipContent="Average patron score across satisfaction survey questions (1.0 to 5.0 scale)" />
+                      <SummaryCard title="Positive" value={counts.Positive} subtitle={`${total > 0 ? Math.round((counts.Positive / total) * 100) : 0}% of responses`} icon={<ThumbUpIcon />} color={T.sentiment.Positive.bg} tooltipContent={`Positive Sentiments: ${counts.Positive} responses (${total > 0 ? Math.round((counts.Positive / total) * 100) : 0}% of total)`} />
+                      <SummaryCard title="Neutral" value={counts.Neutral} subtitle={`${total > 0 ? Math.round((counts.Neutral / total) * 100) : 0}% of responses`} icon={<SentimentSatisfiedIcon />} color={T.sentiment.Neutral.bg} tooltipContent={`Neutral Sentiments: ${counts.Neutral} responses (${total > 0 ? Math.round((counts.Neutral / total) * 100) : 0}% of total)`} />
+                      <SummaryCard title="Negative" value={counts.Negative} subtitle={`${total > 0 ? Math.round((counts.Negative / total) * 100) : 0}% of responses`} icon={<ThumbDownIcon />} color={T.sentiment.Negative.bg} tooltipContent={`Negative Sentiments: ${counts.Negative} responses (${total > 0 ? Math.round((counts.Negative / total) * 100) : 0}% of total)`} />
+                      <SummaryCard title="Total Analyzed" value={total} subtitle="Survey responses" icon={<AssessmentIcon />} color={T.brand.indigo} tooltipContent={`Total Filtered Surveys: ${total} responses matching current filters`} />
                     </Box>
 
-                    {/* ── 12-Month Calendar View Bar Graph (Stacked Bar / Side-by-Side Toggle) ───── */}
-                    <Card elevation={0} sx={{
-                      border: '1.5px solid #cbd5e1',
-                      borderRadius: 3.5,
-                      mb: 3,
-                      backgroundColor: '#ffffff',
-                      boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.06)',
-                      overflow: 'hidden'
-                    }}>
-                      <Box sx={{
-                        bgcolor: '#1d0a61',
-                        px: 3, py: 1.8,
-                        borderBottom: '3px solid #d49f1e',
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1.5
-                      }}>
+                    {/* ── 12-Month Sentiment Trend Bar Graph ───── */}
+                    <Card elevation={0} sx={{ ...cardShellSx, mb: 3 }}>
+                      <Box sx={{ ...sectionHeaderSx, flexWrap: 'wrap', gap: 1.5 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-                          <TrendingUpIcon sx={{ fontSize: 22, color: '#f59e0b' }} />
+                          <TrendingUpIcon sx={sectionIconSx} />
                           <Box>
-                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 16, color: '#ffffff', letterSpacing: 0.3 }}>
+                            <Typography sx={sectionTitleSx}>
                               Sentiment Trend (12-Month {barChartMode === 'stacked' ? 'Stacked Bar' : 'Side-by-Side'} View) — {filterYear === 'All' ? 'All Batched Years' : `Year ${filterYear}`}
                             </Typography>
-                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12.5, color: '#90caf9', fontWeight: 500, mt: 0.2 }}>
+                            <Typography sx={sectionSubtitleSx}>
                               {barChartMode === 'stacked'
                                 ? 'Stacked breakdown of Positive, Neutral, and Negative responses per month'
                                 : 'Side-by-Side comparison of Positive, Neutral, and Negative responses per month'}
@@ -1830,50 +981,31 @@ const SentimentDashboard = () => {
                         </Box>
 
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-                          {/* Bar Layout Mode Switch (Stacked vs Grouped) */}
                           <ToggleButtonGroup
-                            value={barChartMode}
-                            exclusive
+                            value={barChartMode} exclusive
                             onChange={(e, newMode) => { if (newMode) setBarChartMode(newMode); }}
                             size="small"
                             sx={{
-                              height: 38, borderRadius: 2.5, bgcolor: '#ffffff',
+                              height: 38, borderRadius: T.radius.input, bgcolor: T.surface.card,
                               '& .MuiToggleButton-root': {
-                                fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 700, textTransform: 'none', px: 1.5,
-                                color: '#1d0a61',
-                                '&.Mui-selected': { bgcolor: '#d49f1e', color: '#1d0a61', fontWeight: 800, '&:hover': { bgcolor: '#c49015' } }
+                                fontFamily: T.font.family, fontSize: 12, fontWeight: 700, textTransform: 'none', px: 1.5,
+                                color: T.brand.primary,
+                                '&.Mui-selected': { bgcolor: T.brand.accent, color: T.brand.primary, fontWeight: 800, '&:hover': { bgcolor: T.brand.accentHover } }
                               }
                             }}
                           >
-                            <ToggleButton value="stacked">
-                              Stacked Bar
-                            </ToggleButton>
-                            <ToggleButton value="grouped">
-                              Side-by-Side
-                            </ToggleButton>
+                            <ToggleButton value="stacked">Stacked Bar</ToggleButton>
+                            <ToggleButton value="grouped">Side-by-Side</ToggleButton>
                           </ToggleButtonGroup>
 
-                          {/* Year Selector */}
                           <FormControl size="small" sx={{ minWidth: 120 }}>
-                            <InputLabel sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fontWeight: 700, color: '#ffffff' }}>Year</InputLabel>
+                            <InputLabel sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: T.text.white }}>Year</InputLabel>
                             <Select
-                              value={filterYear}
-                              label="Year"
-                              onChange={(e) => setFilterYear(e.target.value)}
-                              sx={{
-                                height: 38,
-                                borderRadius: 2.5,
-                                fontFamily: 'Poppins, sans-serif',
-                                fontWeight: 700,
-                                fontSize: 13,
-                                bgcolor: '#ffffff',
-                                color: '#0f172a'
-                              }}
+                              value={filterYear} label="Year" onChange={(e) => setFilterYear(e.target.value)}
+                              sx={{ height: 38, borderRadius: T.radius.input, fontFamily: T.font.family, fontWeight: 700, fontSize: 13, bgcolor: T.surface.card, color: T.text.primary }}
                             >
-                              <MenuItem value="All" sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 13 }}>All Years</MenuItem>
-                              {availableYears.map(yr => (
-                                <MenuItem key={yr} value={yr} sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, fontSize: 13 }}>{yr}</MenuItem>
-                              ))}
+                              <MenuItem value="All" sx={{ fontFamily: T.font.family, fontWeight: 600, fontSize: 13 }}>All Years</MenuItem>
+                              {availableYears.map(yr => (<MenuItem key={yr} value={yr} sx={{ fontFamily: T.font.family, fontWeight: 600, fontSize: 13 }}>{yr}</MenuItem>))}
                             </Select>
                           </FormControl>
                         </Box>
@@ -1884,187 +1016,95 @@ const SentimentDashboard = () => {
                           <BarChart data={monthly12MonthData} margin={{ top: 15, right: 30, left: 0, bottom: 5 }}>
                             <defs>
                               <linearGradient id="posGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="#34d399" />
-                                <stop offset="100%" stopColor="#059669" />
+                                <stop offset="0%" stopColor={gP.start} />
+                                <stop offset="100%" stopColor={gP.end} />
                               </linearGradient>
                               <linearGradient id="neuGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="#fbbf24" />
-                                <stop offset="100%" stopColor="#d97706" />
+                                <stop offset="0%" stopColor={gN.start} />
+                                <stop offset="100%" stopColor={gN.end} />
                               </linearGradient>
                               <linearGradient id="negGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="#f87171" />
-                                <stop offset="100%" stopColor="#dc2626" />
+                                <stop offset="0%" stopColor={gNe.start} />
+                                <stop offset="100%" stopColor={gNe.end} />
                               </linearGradient>
                             </defs>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                            <XAxis dataKey="month" tick={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fill: '#475569', fontWeight: 600 }} />
-                            <YAxis allowDecimals={false} tick={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, fill: '#475569' }} />
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={T.surface.borderLight} />
+                            <XAxis dataKey="month" tick={{ fontFamily: T.font.family, fontSize: 12, fill: T.text.secondary, fontWeight: 600 }} />
+                            <YAxis allowDecimals={false} tick={{ fontFamily: T.font.family, fontSize: 12, fill: T.text.secondary }} />
                             <RechartsTooltip content={<CustomSentimentStackedTooltip />} />
-                            <Legend wrapperStyle={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, paddingTop: 12 }} />
-                            <Bar
-                              dataKey="Positive"
-                              stackId={barChartMode === 'stacked' ? 'monthlyStack' : undefined}
-                              fill="url(#posGrad)"
-                              radius={barChartMode === 'stacked' ? [0, 0, 0, 0] : [6, 6, 0, 0]}
-                              maxBarSize={barChartMode === 'stacked' ? 36 : 28}
-                            />
-                            <Bar
-                              dataKey="Neutral"
-                              stackId={barChartMode === 'stacked' ? 'monthlyStack' : undefined}
-                              fill="url(#neuGrad)"
-                              radius={barChartMode === 'stacked' ? [0, 0, 0, 0] : [6, 6, 0, 0]}
-                              maxBarSize={barChartMode === 'stacked' ? 36 : 28}
-                            />
-                            <Bar
-                              dataKey="Negative"
-                              stackId={barChartMode === 'stacked' ? 'monthlyStack' : undefined}
-                              fill="url(#negGrad)"
-                              radius={[6, 6, 0, 0]}
-                              maxBarSize={barChartMode === 'stacked' ? 36 : 28}
-                            />
+                            <Legend wrapperStyle={{ fontFamily: T.font.family, fontSize: 13, paddingTop: 12 }} />
+                            <Bar dataKey="Positive" stackId={barChartMode === 'stacked' ? 'monthlyStack' : undefined} fill="url(#posGrad)" radius={barChartMode === 'stacked' ? [0, 0, 0, 0] : [6, 6, 0, 0]} maxBarSize={barChartMode === 'stacked' ? 36 : 28} />
+                            <Bar dataKey="Neutral" stackId={barChartMode === 'stacked' ? 'monthlyStack' : undefined} fill="url(#neuGrad)" radius={barChartMode === 'stacked' ? [0, 0, 0, 0] : [6, 6, 0, 0]} maxBarSize={barChartMode === 'stacked' ? 36 : 28} />
+                            <Bar dataKey="Negative" stackId={barChartMode === 'stacked' ? 'monthlyStack' : undefined} fill="url(#negGrad)" radius={[6, 6, 0, 0]} maxBarSize={barChartMode === 'stacked' ? 36 : 28} />
                           </BarChart>
                         </ResponsiveContainer>
                       </CardContent>
                     </Card>
 
-                    {/* ── Sentiment Distribution by Category (Design Reference Multi-Donut Card) ───── */}
-                    <Card elevation={0} sx={{
-                      border: '1.5px solid #cbd5e1',
-                      borderRadius: 3.5,
-                      mb: 3,
-                      backgroundColor: '#ffffff',
-                      boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.06)',
-                      overflow: 'hidden'
-                    }}>
-                      <Box sx={{
-                        bgcolor: '#1d0a61',
-                        px: 3, py: 1.8,
-                        borderBottom: '3px solid #d49f1e',
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1
-                      }}>
+                    {/* ── Sentiment Distribution by Category (Donut Rings) ───── */}
+                    <Card elevation={0} sx={{ ...cardShellSx, mb: 3 }}>
+                      <Box sx={{ ...sectionHeaderSx, flexWrap: 'wrap', gap: 1 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-                          <PieChartIcon sx={{ fontSize: 22, color: '#f59e0b' }} />
+                          <PieChartIcon sx={sectionIconSx} />
                           <Box>
-                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 16, color: '#ffffff', letterSpacing: 0.3 }}>
-                              Sentiment Distribution by Category
-                            </Typography>
-                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12.5, color: '#90caf9', fontWeight: 500, mt: 0.2 }}>
-                              Categorical satisfaction distribution across library key service areas
-                            </Typography>
+                            <Typography sx={sectionTitleSx}>Sentiment Distribution by Category</Typography>
+                            <Typography sx={sectionSubtitleSx}>Categorical satisfaction distribution across library key service areas</Typography>
                           </Box>
                         </Box>
 
                         {/* Legend Indicators */}
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, px: 1.4, py: 0.4, bgcolor: 'rgba(255,255,255,0.12)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.2)' }}>
-                            <Box sx={{ width: 9, height: 9, borderRadius: '50%', background: 'linear-gradient(135deg, #2e7d32 0%, #81c784 100%)' }} />
-                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#ffffff', fontWeight: 700 }}>
-                              Positive
-                            </Typography>
-                          </Box>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, px: 1.4, py: 0.4, bgcolor: 'rgba(255,255,255,0.12)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.2)' }}>
-                            <Box sx={{ width: 9, height: 9, borderRadius: '50%', background: 'linear-gradient(135deg, #ed6c02 0%, #ffb74d 100%)' }} />
-                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#ffffff', fontWeight: 700 }}>
-                              Neutral
-                            </Typography>
-                          </Box>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, px: 1.4, py: 0.4, bgcolor: 'rgba(255,255,255,0.12)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.2)' }}>
-                            <Box sx={{ width: 9, height: 9, borderRadius: '50%', background: 'linear-gradient(135deg, #c62828 0%, #ff8a80 100%)' }} />
-                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#ffffff', fontWeight: 700 }}>
-                              Negative
-                            </Typography>
-                          </Box>
+                          {[
+                            { label: 'Positive', grad: `linear-gradient(135deg, ${dP.start} 0%, ${dP.end} 100%)` },
+                            { label: 'Neutral', grad: `linear-gradient(135deg, ${dNu.start} 0%, ${dNu.end} 100%)` },
+                            { label: 'Negative', grad: `linear-gradient(135deg, ${dNe.start} 0%, ${dNe.end} 100%)` },
+                          ].map(item => (
+                            <Box key={item.label} sx={{ display: 'flex', alignItems: 'center', gap: 0.8, px: 1.4, py: 0.4, bgcolor: 'rgba(255,255,255,0.12)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.2)' }}>
+                              <Box sx={{ width: 9, height: 9, borderRadius: '50%', background: item.grad }} />
+                              <Typography sx={{ fontFamily: T.font.family, fontSize: 12, color: T.text.white, fontWeight: 700 }}>{item.label}</Typography>
+                            </Box>
+                          ))}
                         </Box>
                       </Box>
 
                       <CardContent sx={{ p: 3 }}>
-                        {/* 3 Donut Rings Row in Distinct Inner Cards */}
                         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2.5, alignItems: 'stretch', pt: 0.5 }}>
                           {categoryDonutData.map((donut) => {
-                            const categoryColorMap = {
-                              Facilities: '#0288d1',
-                              Staff: '#7b1fa2',
-                              Collection: '#ed6c02'
-                            };
-                            const catColor = categoryColorMap[donut.name] || '#1a237e';
+                            const catColor = T.categoryDonut[donut.name] || T.brand.indigo;
                             return (
-                              <Box
-                                key={donut.name}
-                                sx={{
-                                  position: 'relative',
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  bgcolor: '#f8fafc',
-                                  border: '1.5px solid #e2e8f0',
-                                  borderTop: `3.5px solid ${catColor}`,
-                                  borderRadius: 3,
-                                  p: 2,
-                                  boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
-                                }}
-                              >
-                                <Chip
-                                  label={donut.name}
-                                  size="small"
-                                  sx={{
-                                    fontWeight: 800,
-                                    fontFamily: 'Poppins, sans-serif',
-                                    bgcolor: `${catColor}15`,
-                                    color: catColor,
-                                    border: `1.5px solid ${catColor}35`,
-                                    mb: 0.5
-                                  }}
-                                />
+                              <Box key={donut.name} sx={{
+                                position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                bgcolor: T.surface.cardAlt, border: `1.5px solid ${T.surface.borderLight}`, borderTop: `3.5px solid ${catColor}`,
+                                borderRadius: 3, p: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+                              }}>
+                                <Chip label={donut.name} size="small" sx={{ fontWeight: 800, fontFamily: T.font.family, bgcolor: `${catColor}15`, color: catColor, border: `1.5px solid ${catColor}35`, mb: 0.5 }} />
                                 <ResponsiveContainer width="100%" height={210}>
                                   <PieChart>
                                     <defs>
                                       <linearGradient id="sentDonutPosGrad" x1="0" y1="0" x2="1" y2="1">
-                                        <stop offset="0%" stopColor="#2e7d32" />
-                                        <stop offset="100%" stopColor="#81c784" />
+                                        <stop offset="0%" stopColor={dP.start} />
+                                        <stop offset="100%" stopColor={dP.end} />
                                       </linearGradient>
                                       <linearGradient id="sentDonutNeuGrad" x1="0" y1="0" x2="1" y2="1">
-                                        <stop offset="0%" stopColor="#ed6c02" />
-                                        <stop offset="100%" stopColor="#ffb74d" />
+                                        <stop offset="0%" stopColor={dNu.start} />
+                                        <stop offset="100%" stopColor={dNu.end} />
                                       </linearGradient>
                                       <linearGradient id="sentDonutNegGrad" x1="0" y1="0" x2="1" y2="1">
-                                        <stop offset="0%" stopColor="#c62828" />
-                                        <stop offset="100%" stopColor="#ff8a80" />
+                                        <stop offset="0%" stopColor={dNe.start} />
+                                        <stop offset="100%" stopColor={dNe.end} />
                                       </linearGradient>
                                     </defs>
-                                    <Pie
-                                      data={donut.slices}
-                                      dataKey="value"
-                                      nameKey="name"
-                                      cx="50%"
-                                      cy="50%"
-                                      innerRadius={48}
-                                      outerRadius={72}
-                                      paddingAngle={donut.slices.length > 1 ? 4 : 0}
-                                      cornerRadius={donut.slices.length > 1 ? 4 : 0}
-                                      startAngle={90}
-                                      endAngle={-270}
-                                      stroke="#ffffff"
-                                      strokeWidth={2}
-                                    >
-                                      {donut.slices.map((entry, i) => (
-                                        <Cell key={`cell-${donut.name}-${i}`} fill={entry.color} />
-                                      ))}
+                                    <Pie data={donut.slices} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={48} outerRadius={72} paddingAngle={donut.slices.length > 1 ? 4 : 0} cornerRadius={donut.slices.length > 1 ? 4 : 0} startAngle={90} endAngle={-270} stroke={T.surface.card} strokeWidth={2}>
+                                      {donut.slices.map((entry, i) => (<Cell key={`cell-${donut.name}-${i}`} fill={entry.color} />))}
                                     </Pie>
                                     {donut.total > 0 && <RechartsTooltip content={<CustomDonutGaugeTooltip />} />}
                                   </PieChart>
                                 </ResponsiveContainer>
                                 {/* Centered Label inside the Donut Hole */}
                                 <Box sx={{ position: 'absolute', top: '56%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', pointerEvents: 'none' }}>
-                                  <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 18, color: '#1e293b', lineHeight: 1.1 }}>
-                                    {donut.posPct}%
-                                  </Typography>
-                                  <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#2e7d32' }}>
-                                    Positive
-                                  </Typography>
-                                  <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 500, fontSize: 10, color: '#64748b', mt: 0.2 }}>
-                                    {donut.total} responses
-                                  </Typography>
+                                  <Typography sx={{ fontFamily: T.font.family, fontWeight: 800, fontSize: 18, color: T.text.heading, lineHeight: 1.1 }}>{donut.posPct}%</Typography>
+                                  <Typography sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 11, color: dP.start }}>Positive</Typography>
+                                  <Typography sx={{ fontFamily: T.font.family, fontWeight: 500, fontSize: 10, color: T.text.muted, mt: 0.2 }}>{donut.total} responses</Typography>
                                 </Box>
                               </Box>
                             );
@@ -2075,84 +1115,65 @@ const SentimentDashboard = () => {
 
                     {/* ── Top Positive & Negative Comments Grid ───── */}
                     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2.5, mb: 3 }}>
-                      <TopCommentsCard title="Top 5 Positive Comments" rows={topPositive} accent="#059669" lightBorder="#a7f3d0" icon={<ThumbUpIcon />} />
-                      <TopCommentsCard title="Top 5 Negative Comments" rows={topNegative} accent="#e11d48" lightBorder="#fecdd3" icon={<ThumbDownIcon />} />
+                      <TopCommentsCard title="Top 5 Positive Comments" rows={topPositive} type="positive" icon={<ThumbUpIcon />} />
+                      <TopCommentsCard title="Top 5 Negative Comments" rows={topNegative} type="negative" icon={<ThumbDownIcon />} />
                     </Box>
 
                     {/* ── Service Improvement Recommendations ───── */}
-                    <Card elevation={0} sx={{
-                      border: '1.5px solid #cbd5e1',
-                      borderRadius: 3.5,
-                      mb: 3,
-                      backgroundColor: '#ffffff',
-                      boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.06)',
-                      overflow: 'hidden'
-                    }}>
-                      <Box sx={{
-                        bgcolor: '#1d0a61',
-                        px: 3, py: 1.8,
-                        borderBottom: '3px solid #d49f1e',
-                        display: 'flex', alignItems: 'center', gap: 1.2
-                      }}>
-                        <LightbulbIcon sx={{ fontSize: 22, color: '#f59e0b' }} />
+                    <Card elevation={0} sx={{ ...cardShellSx, mb: 3 }}>
+                      <Box sx={{ ...sectionHeaderSx, justifyContent: 'flex-start', gap: 1.2 }}>
+                        <LightbulbIcon sx={sectionIconSx} />
                         <Box>
-                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 16, color: '#ffffff', letterSpacing: 0.3 }}>
-                            Service Improvement Recommendations
-                          </Typography>
-                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12.5, color: '#90caf9', fontWeight: 500, mt: 0.2 }}>
-                            Actionable priority insights derived from negative patron sentiment signals
-                          </Typography>
+                          <Typography sx={sectionTitleSx}>Service Improvement Recommendations</Typography>
+                          <Typography sx={sectionSubtitleSx}>Actionable priority insights derived from negative patron sentiment signals</Typography>
                         </Box>
                       </Box>
 
                       <CardContent sx={{ p: 3 }}>
                         {categoryStats.length === 0 ? (
-                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', color: '#94a3b8', textAlign: 'center', py: 6 }}>
+                          <Typography sx={{ fontFamily: T.font.family, color: T.text.faint, textAlign: 'center', py: 6 }}>
                             No category is currently above the concern threshold.
                           </Typography>
                         ) : categoryStats.map(c => (
-                          <Box
-                            key={c.category}
-                            sx={{
-                              mb: 2.5, p: 2.5,
-                              bgcolor: c.severity === 'high' ? '#fff1f2' : '#fffbeb',
-                              border: `1.5px solid ${c.severity === 'high' ? '#fecdd3' : '#fde68a'}`,
-                              borderLeft: `5px solid ${c.severity === 'high' ? '#e11d48' : '#d97706'}`,
-                              borderRadius: 3
-                            }}
-                          >
+                          <Box key={c.category} sx={{
+                            mb: 2.5, p: 2.5,
+                            bgcolor: c.severity === 'high' ? T.status.errorLight : T.status.warningLight,
+                            border: `1.5px solid ${c.severity === 'high' ? T.status.errorBorder : T.status.warningBorder}`,
+                            borderLeft: `5px solid ${c.severity === 'high' ? T.status.errorText : T.status.warningText}`,
+                            borderRadius: 3
+                          }}>
                             <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', mb: 1.5, flexWrap: 'wrap' }}>
                               <Box sx={{
-                                px: 1.8, py: 0.5, borderRadius: '20px', flexShrink: 0,
-                                backgroundColor: '#ffffff',
-                                border: `1.5px solid ${c.severity === 'high' ? '#f87171' : '#fbbf24'}`,
+                                px: 1.8, py: 0.5, borderRadius: T.radius.chip, flexShrink: 0,
+                                backgroundColor: T.surface.card,
+                                border: `1.5px solid ${c.severity === 'high' ? T.sentiment.Negative.dot : T.sentiment.Neutral.dot}`,
                               }}>
-                                <Typography sx={{ fontSize: 12, fontWeight: 800, color: c.severity === 'high' ? '#be123c' : '#b45309', fontFamily: 'Poppins, sans-serif' }}>
+                                <Typography sx={{ fontSize: 12, fontWeight: 800, color: c.severity === 'high' ? T.sentiment.Negative.text : T.sentiment.Neutral.text, fontFamily: T.font.family }}>
                                   {c.category} — {c.pct}% negative — {c.severity.toUpperCase()}
                                 </Typography>
                               </Box>
-                              <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 14, color: '#1e293b', fontWeight: 600, mt: 0.2 }}>
+                              <Typography sx={{ fontFamily: T.font.family, fontSize: 14, color: T.text.heading, fontWeight: 600, mt: 0.2 }}>
                                 {RECOMMENDATIONS[c.category][c.severity]}
                               </Typography>
                             </Box>
 
                             {c.matchedKeywords.length > 0 && (
-                              <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12.5, color: '#475569', fontStyle: 'italic', ml: 0.5, mb: 1.5 }}>
+                              <Typography sx={{ fontFamily: T.font.family, fontSize: 12.5, color: T.text.secondary, fontStyle: 'italic', ml: 0.5, mb: 1.5 }}>
                                 <strong>Frequent Category Issue Signals:</strong> {c.matchedKeywords.join('; ')}
                               </Typography>
                             )}
 
                             {c.topEvidences.length > 0 && (
-                              <Box sx={{ mt: 1.5, p: 2, backgroundColor: '#ffffff', borderRadius: 2.5, border: '1px solid #e2e8f0', borderLeft: '4px solid #0288d1' }}>
-                                <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 11, fontWeight: 800, color: '#0288d1', textTransform: 'uppercase', letterSpacing: 0.8, mb: 1 }}>
+                              <Box sx={{ mt: 1.5, p: 2, backgroundColor: T.surface.card, borderRadius: T.radius.input, border: `1px solid ${T.surface.borderLight}`, borderLeft: `4px solid ${T.status.info}` }}>
+                                <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 800, color: T.status.info, textTransform: 'uppercase', letterSpacing: 0.8, mb: 1 }}>
                                   Supporting Patron Feedback Evidence {c.primaryKw ? `— Top Issue Keyword: "${c.primaryKw}"` : ''} ({c.topEvidences.length})
                                 </Typography>
                                 {c.topEvidences.map((ev, idx) => (
-                                  <Box key={idx} sx={{ py: 0.8, borderBottom: idx < c.topEvidences.length - 1 ? '1px dashed #e2e8f0' : 'none' }}>
-                                    <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#1e293b', fontWeight: 500 }}>
+                                  <Box key={idx} sx={{ py: 0.8, borderBottom: idx < c.topEvidences.length - 1 ? `1px dashed ${T.surface.borderLight}` : 'none' }}>
+                                    <Typography sx={{ fontFamily: T.font.family, fontSize: 13, color: T.text.heading, fontWeight: 500 }}>
                                       "{ev.Message}"
                                     </Typography>
-                                    <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 11.5, color: '#64748b', mt: 0.3, fontWeight: 500 }}>
+                                    <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, color: T.text.muted, mt: 0.3, fontWeight: 500 }}>
                                       {ev.Clientele} — {ev.College} · Word Freq: {ev.termScore || 0}
                                     </Typography>
                                   </Box>
@@ -2165,130 +1186,62 @@ const SentimentDashboard = () => {
                     </Card>
 
                     {/* ── Frequently Used Words (Word Cloud) ───── */}
-                    <Card elevation={0} sx={{
-                      border: '1.5px solid #cbd5e1',
-                      borderRadius: 3.5,
-                      mb: 3,
-                      backgroundColor: '#ffffff',
-                      boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.06)',
-                      overflow: 'hidden'
-                    }}>
-                      <Box sx={{
-                        bgcolor: '#1d0a61',
-                        px: 3, py: 1.8,
-                        borderBottom: '3px solid #d49f1e',
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1.5
-                      }}>
+                    <Card elevation={0} sx={{ ...cardShellSx, mb: 3 }}>
+                      <Box sx={{ ...sectionHeaderSx, flexWrap: 'wrap', gap: 1.5 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-                          <AssessmentIcon sx={{ fontSize: 22, color: '#f59e0b' }} />
+                          <AssessmentIcon sx={sectionIconSx} />
                           <Box>
-                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 16, color: '#ffffff', letterSpacing: 0.3 }}>
-                              Frequently Used Words
-                            </Typography>
-                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12.5, color: '#90caf9', mt: 0.2, fontWeight: 500 }}>
-                              Interactive keyword frequency cloud across patron feedback submissions
-                            </Typography>
+                            <Typography sx={sectionTitleSx}>Frequently Used Words</Typography>
+                            <Typography sx={sectionSubtitleSx}>Interactive keyword frequency cloud across patron feedback submissions</Typography>
                           </Box>
                         </Box>
 
                         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
-                          <Chip
-                            label={`${wordCloudWords.length} Words`}
-                            size="small"
-                            sx={{ fontWeight: 700, fontFamily: 'Poppins, sans-serif', bgcolor: 'rgba(255,255,255,0.15)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 1.5 }}
-                          />
+                          <Chip label={`${wordCloudWords.length} Words`} size="small"
+                            sx={{ fontWeight: 700, fontFamily: T.font.family, bgcolor: 'rgba(255,255,255,0.15)', color: T.text.white, border: '1px solid rgba(255,255,255,0.3)', borderRadius: T.radius.pill }} />
                           {selectedWordFilter && (
-                            <Chip
-                              label={`Filter: "${selectedWordFilter}"`}
-                              color="warning"
-                              size="small"
-                              onDelete={() => setSelectedWordFilter('')}
-                              sx={{ fontWeight: 700, fontFamily: 'Poppins, sans-serif', borderRadius: 1.5, bgcolor: '#f57c00', color: 'white' }}
-                            />
+                            <Chip label={`Filter: "${selectedWordFilter}"`} color="warning" size="small" onDelete={() => setSelectedWordFilter('')}
+                              sx={{ fontWeight: 700, fontFamily: T.font.family, borderRadius: T.radius.pill, bgcolor: T.status.wordHighlight, color: 'white' }} />
                           )}
                         </Box>
                       </Box>
 
                       <CardContent sx={{ p: 3 }}>
-                        {/* Word Cloud Canvas */}
                         {wordCloudWords.length === 0 ? (
-                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', color: '#94a3b8', textAlign: 'center', py: 6 }}>
+                          <Typography sx={{ fontFamily: T.font.family, color: T.text.faint, textAlign: 'center', py: 6 }}>
                             No comment text available for the selected filters.
                           </Typography>
                         ) : (
-                          <Box
-                            sx={{
-                              height: 350,
-                              borderRadius: 3,
-                              p: 2,
-                              bgcolor: '#fcfdff',
-                              border: '1.5px solid #e2e8f0',
-                              position: 'relative',
-                              '& svg text': {
-                                cursor: 'pointer',
-                                fontFamily: 'Poppins, sans-serif !important',
-                                transition: 'none !important',
-                              },
-                              '& svg text:hover': {
-                                opacity: '0.8 !important',
-                              }
-                            }}
-                          >
-                            <ReactWordcloud
-                              words={wordCloudWords}
-                              options={wordCloudOptions}
-                              minSize={[300, 300]}
-                              callbacks={wordCloudCallbacks}
-                            />
+                          <Box sx={{
+                            height: 350, borderRadius: 3, p: 2, bgcolor: T.surface.wordCloudBg,
+                            border: `1.5px solid ${T.surface.borderLight}`, position: 'relative',
+                            '& svg text': { cursor: 'pointer', fontFamily: `${T.font.family} !important`, transition: 'none !important' },
+                            '& svg text:hover': { opacity: '0.8 !important' }
+                          }}>
+                            <ReactWordcloud words={wordCloudWords} options={wordCloudOptions} minSize={[300, 300]} callbacks={wordCloudCallbacks} />
                           </Box>
                         )}
                       </CardContent>
                     </Card>
 
                     {/* ── Survey Response Review Table ───── */}
-                    <Paper elevation={0} sx={{
-                      borderRadius: 3.5,
-                      border: '1.5px solid #cbd5e1',
-                      bgcolor: '#ffffff',
-                      boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.06)',
-                      overflow: 'hidden'
-                    }}>
-                      <Box sx={{
-                        bgcolor: '#1d0a61',
-                        px: 3, py: 1.8,
-                        borderBottom: '3px solid #d49f1e',
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1.5
-                      }}>
+                    <Paper elevation={0} sx={{ ...cardShellSx }}>
+                      <Box sx={{ ...sectionHeaderSx, flexWrap: 'wrap', gap: 1.5 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-                          <RateReviewIcon sx={{ fontSize: 22, color: '#f59e0b' }} />
+                          <RateReviewIcon sx={sectionIconSx} />
                           <Box>
-                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 16, color: '#ffffff', letterSpacing: 0.3 }}>
-                              Survey Response Review ({reviewRows.length} Matches)
-                            </Typography>
-                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12.5, color: '#90caf9', fontWeight: 500 }}>
-                              Detailed row-by-row inspection with rating scores and NLP classifications
-                            </Typography>
+                            <Typography sx={sectionTitleSx}>Survey Response Review ({reviewRows.length} Matches)</Typography>
+                            <Typography sx={sectionSubtitleSx}>Detailed row-by-row inspection with rating scores and NLP classifications</Typography>
                           </Box>
                           {selectedWordFilter && (
-                            <Chip
-                              label={`Word Filter: "${selectedWordFilter}"`}
-                              color="warning"
-                              size="small"
-                              onDelete={() => setSelectedWordFilter('')}
-                              sx={{ fontWeight: 700, fontFamily: 'Poppins, sans-serif', borderRadius: 1.5, bgcolor: '#f57c00', color: 'white', ml: 1 }}
-                            />
+                            <Chip label={`Word Filter: "${selectedWordFilter}"`} color="warning" size="small" onDelete={() => setSelectedWordFilter('')}
+                              sx={{ fontWeight: 700, fontFamily: T.font.family, borderRadius: T.radius.pill, bgcolor: T.status.wordHighlight, color: 'white', ml: 1 }} />
                           )}
                         </Box>
                         <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
                           {selectedRowIds.length > 0 && (
-                            <Button
-                              variant="contained"
-                              color="error"
-                              size="small"
-                              onClick={() => openDeleteModal(null)}
-                              startIcon={<DeleteIcon />}
-                              sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 700, fontFamily: 'Poppins, sans-serif', height: 38 }}
-                            >
+                            <Button variant="contained" color="error" size="small" onClick={() => openDeleteModal(null)} startIcon={<DeleteIcon />}
+                              sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 700, fontFamily: T.font.family, height: 38 }}>
                               Delete Selected ({selectedRowIds.length})
                             </Button>
                           )}
@@ -2296,90 +1249,31 @@ const SentimentDashboard = () => {
                       </Box>
 
                       <Box sx={{ p: 3 }}>
-                        <TableContainer component={Paper} elevation={0} sx={{ border: '1.5px solid #cbd5e1', borderRadius: 2.5, overflow: 'hidden' }}>
+                        <TableContainer component={Paper} elevation={0} sx={{ border: `1.5px solid ${T.surface.border}`, borderRadius: T.radius.input, overflow: 'hidden' }}>
                           <Table size="small">
                             <TableHead>
-                              <TableRow sx={{
-                                backgroundColor: '#1d0a61',
-                                borderBottom: '3px solid #d49f1e',
-                                '& th': {
-                                  color: 'white',
-                                  fontWeight: 700,
-                                  fontFamily: 'Poppins, sans-serif',
-                                  fontSize: 13,
-                                  py: 1.5,
-                                  borderRight: '1px solid rgba(255, 255, 255, 0.25)',
-                                  '&:last-child': { borderRight: 'none' }
-                                }
-                              }}>
+                              <TableRow sx={tableHeaderRowSx}>
                                 <TableCell padding="checkbox">
-                                  <Checkbox
-                                    size="small"
-                                    checked={isAllPageSelected}
-                                    indeterminate={isSomePageSelected}
-                                    onChange={handleSelectAllOnPage}
-                                    sx={{ color: 'white', '&.Mui-checked': { color: 'white' }, '&.MuiCheckbox-indeterminate': { color: 'white' } }}
-                                  />
+                                  <Checkbox size="small" checked={isAllPageSelected} indeterminate={isSomePageSelected} onChange={handleSelectAllOnPage}
+                                    sx={{ color: 'white', '&.Mui-checked': { color: 'white' }, '&.MuiCheckbox-indeterminate': { color: 'white' } }} />
                                 </TableCell>
                                 <TableCell sx={{ color: 'white' }}>
-                                  <TableSortLabel
-                                    active={sortField === 'Clientele'}
-                                    direction={sortField === 'Clientele' ? sortOrder : 'asc'}
-                                    onClick={() => handleRequestSort('Clientele')}
-                                    sx={{ color: 'white !important', '& .MuiTableSortLabel-icon': { color: 'white !important' } }}
-                                  >
-                                    Clientele
-                                  </TableSortLabel>
+                                  <TableSortLabel active={sortField === 'Clientele'} direction={sortField === 'Clientele' ? sortOrder : 'asc'} onClick={() => handleRequestSort('Clientele')} sx={tableSortLabelSx}>Clientele</TableSortLabel>
                                 </TableCell>
                                 <TableCell sx={{ color: 'white' }}>
-                                  <TableSortLabel
-                                    active={sortField === 'College'}
-                                    direction={sortField === 'College' ? sortOrder : 'asc'}
-                                    onClick={() => handleRequestSort('College')}
-                                    sx={{ color: 'white !important', '& .MuiTableSortLabel-icon': { color: 'white !important' } }}
-                                  >
-                                    College / Dept
-                                  </TableSortLabel>
+                                  <TableSortLabel active={sortField === 'College'} direction={sortField === 'College' ? sortOrder : 'asc'} onClick={() => handleRequestSort('College')} sx={tableSortLabelSx}>College / Dept</TableSortLabel>
                                 </TableCell>
                                 <TableCell sx={{ color: 'white' }}>
-                                  <TableSortLabel
-                                    active={sortField === 'Message'}
-                                    direction={sortField === 'Message' ? sortOrder : 'asc'}
-                                    onClick={() => handleRequestSort('Message')}
-                                    sx={{ color: 'white !important', '& .MuiTableSortLabel-icon': { color: 'white !important' } }}
-                                  >
-                                    Patron Feedback Response
-                                  </TableSortLabel>
+                                  <TableSortLabel active={sortField === 'Message'} direction={sortField === 'Message' ? sortOrder : 'asc'} onClick={() => handleRequestSort('Message')} sx={tableSortLabelSx}>Patron Feedback Response</TableSortLabel>
                                 </TableCell>
                                 <TableCell sx={{ color: 'white' }}>
-                                  <TableSortLabel
-                                    active={sortField === 'SentimentResult'}
-                                    direction={sortField === 'SentimentResult' ? sortOrder : 'asc'}
-                                    onClick={() => handleRequestSort('SentimentResult')}
-                                    sx={{ color: 'white !important', '& .MuiTableSortLabel-icon': { color: 'white !important' } }}
-                                  >
-                                    Sentiment
-                                  </TableSortLabel>
+                                  <TableSortLabel active={sortField === 'SentimentResult'} direction={sortField === 'SentimentResult' ? sortOrder : 'asc'} onClick={() => handleRequestSort('SentimentResult')} sx={tableSortLabelSx}>Sentiment</TableSortLabel>
                                 </TableCell>
                                 <TableCell sx={{ color: 'white' }}>
-                                  <TableSortLabel
-                                    active={sortField === 'Category'}
-                                    direction={sortField === 'Category' ? sortOrder : 'asc'}
-                                    onClick={() => handleRequestSort('Category')}
-                                    sx={{ color: 'white !important', '& .MuiTableSortLabel-icon': { color: 'white !important' } }}
-                                  >
-                                    Category
-                                  </TableSortLabel>
+                                  <TableSortLabel active={sortField === 'Category'} direction={sortField === 'Category' ? sortOrder : 'asc'} onClick={() => handleRequestSort('Category')} sx={tableSortLabelSx}>Category</TableSortLabel>
                                 </TableCell>
                                 <TableCell sx={{ color: 'white' }}>
-                                  <TableSortLabel
-                                    active={sortField === 'DateSubmitted'}
-                                    direction={sortField === 'DateSubmitted' ? sortOrder : 'asc'}
-                                    onClick={() => handleRequestSort('DateSubmitted')}
-                                    sx={{ color: 'white !important', '& .MuiTableSortLabel-icon': { color: 'white !important' } }}
-                                  >
-                                    Date Submitted
-                                  </TableSortLabel>
+                                  <TableSortLabel active={sortField === 'DateSubmitted'} direction={sortField === 'DateSubmitted' ? sortOrder : 'asc'} onClick={() => handleRequestSort('DateSubmitted')} sx={tableSortLabelSx}>Date Submitted</TableSortLabel>
                                 </TableCell>
                                 <TableCell align="center" sx={{ color: 'white' }}>Actions</TableCell>
                               </TableRow>
@@ -2389,22 +1283,17 @@ const SentimentDashboard = () => {
                                 <TableRow>
                                   <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
                                     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-                                      <Avatar sx={{ bgcolor: '#f1f5f9', color: '#94a3b8', width: 54, height: 54, border: '1.5px solid #cbd5e1' }}>
+                                      <Avatar sx={{ bgcolor: T.surface.cardAltHover, color: T.text.faint, width: 54, height: 54, border: `1.5px solid ${T.surface.border}` }}>
                                         <InboxIcon sx={{ fontSize: 32 }} />
                                       </Avatar>
-                                      <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 16, color: '#334155', mt: 1 }}>
+                                      <Typography sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 16, color: T.text.body, mt: 1 }}>
                                         No survey responses found
                                       </Typography>
-                                      <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#64748b', maxWidth: 360 }}>
+                                      <Typography sx={{ fontFamily: T.font.family, fontSize: 13, color: T.text.muted, maxWidth: 360 }}>
                                         Try adjusting your date range or filter selections to view sentiment feedback.
                                       </Typography>
-                                      <Button
-                                        size="small"
-                                        variant="outlined"
-                                        onClick={handleClear}
-                                        startIcon={<RestartAltIcon />}
-                                        sx={{ mt: 1, borderRadius: 2, textTransform: 'none', fontFamily: 'Poppins, sans-serif', fontWeight: 600, borderColor: '#cbd5e1' }}
-                                      >
+                                      <Button size="small" variant="outlined" onClick={handleClear} startIcon={<RestartAltIcon />}
+                                        sx={{ mt: 1, borderRadius: 2, textTransform: 'none', fontFamily: T.font.family, fontWeight: 600, borderColor: T.surface.border }}>
                                         Clear All Filters
                                       </Button>
                                     </Box>
@@ -2418,80 +1307,47 @@ const SentimentDashboard = () => {
                                     : 'N/A';
 
                                   return (
-                                    <TableRow
-                                      key={row.Id || i}
-                                      hover
-                                      selected={isSelected}
+                                    <TableRow key={row.Id || i} hover selected={isSelected}
                                       sx={{
-                                        bgcolor: i % 2 === 0 ? '#ffffff' : '#f8fafc',
+                                        bgcolor: i % 2 === 0 ? T.surface.card : T.surface.cardAlt,
                                         '&:hover': { bgcolor: 'rgba(26, 35, 126, 0.04) !important' },
                                         '&:last-child td, &:last-child th': { border: 0 }
-                                      }}
-                                    >
+                                      }}>
                                       <TableCell padding="checkbox">
-                                        <Checkbox
-                                          size="small"
-                                          checked={isSelected}
-                                          onChange={() => handleToggleSelectRow(row.Id)}
-                                        />
+                                        <Checkbox size="small" checked={isSelected} onChange={() => handleToggleSelectRow(row.Id)} />
                                       </TableCell>
-                                      <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#334155', fontWeight: 600, textTransform: 'capitalize' }}>
+                                      <TableCell sx={{ fontFamily: T.font.family, fontSize: 13, color: T.text.body, fontWeight: 600, textTransform: 'capitalize' }}>
                                         {row.Clientele || 'N/A'}
                                       </TableCell>
-                                      <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 700, color: '#1a237e' }}>
+                                      <TableCell sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 700, color: T.brand.indigo }}>
                                         <div>{row.College || 'N/A'}</div>
-                                        {row.Course && (
-                                          <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 500 }}>
-                                            {row.Course}
-                                          </div>
-                                        )}
+                                        {row.Course && (<div style={{ fontSize: '11.5px', color: T.text.muted, fontWeight: 500 }}>{row.Course}</div>)}
                                       </TableCell>
-                                      <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 600, color: '#1e293b', py: 1.5, pr: 3, lineHeight: 1.4 }}>
+                                      <TableCell sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 600, color: T.text.heading, py: 1.5, pr: 3, lineHeight: 1.4 }}>
                                         {row.Message && row.Message.trim().length > 0 ? (
                                           row.Message
                                         ) : (
                                           <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
-                                            <Typography component="span" sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12.5, color: '#94a3b8', fontStyle: 'italic' }}>
+                                            <Typography component="span" sx={{ fontFamily: T.font.family, fontSize: 12.5, color: T.text.faint, fontStyle: 'italic' }}>
                                               (No written comment)
                                             </Typography>
-                                            <Box sx={{
-                                              px: 1, py: 0.2, borderRadius: '12px',
-                                              backgroundColor: '#e0e7ff', border: '1px solid #c7d2fe',
-                                              display: 'inline-block'
-                                            }}>
-                                              <Typography component="span" sx={{ fontSize: 10.5, fontWeight: 700, color: '#3730a3', fontFamily: 'Poppins, sans-serif' }}>
+                                            <Box sx={{ px: 1, py: 0.2, borderRadius: '12px', backgroundColor: '#e0e7ff', border: '1px solid #c7d2fe', display: 'inline-block' }}>
+                                              <Typography component="span" sx={{ fontSize: 10.5, fontWeight: 700, color: '#3730a3', fontFamily: T.font.family }}>
                                                 Rating Only
                                               </Typography>
                                             </Box>
                                           </Box>
                                         )}
                                       </TableCell>
-                                      <TableCell sx={{ py: 1.5 }}>
-                                        <SentimentChip label={row.SentimentResult} />
-                                      </TableCell>
-                                      <TableCell sx={{ py: 1.5 }}>
-                                        <CategoryChip label={row.Category} />
-                                      </TableCell>
-                                      <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12.5, color: '#64748b', fontWeight: 500, py: 1.5 }}>
-                                        {submittedDateStr}
-                                      </TableCell>
+                                      <TableCell sx={{ py: 1.5 }}><SentimentChip label={row.SentimentResult} /></TableCell>
+                                      <TableCell sx={{ py: 1.5 }}><CategoryChip label={row.Category} /></TableCell>
+                                      <TableCell sx={{ fontFamily: T.font.family, fontSize: 12.5, color: T.text.muted, fontWeight: 500, py: 1.5 }}>{submittedDateStr}</TableCell>
                                       <TableCell align="center" sx={{ py: 1.5 }}>
-                                        <Button
-                                          variant="contained"
-                                          size="small"
-                                          onClick={() => openDeleteModal(row)}
-                                          startIcon={<DeleteIcon sx={{ fontSize: 16 }} />}
+                                        <Button variant="contained" size="small" onClick={() => openDeleteModal(row)} startIcon={<DeleteIcon sx={{ fontSize: 16 }} />}
                                           sx={{
-                                            borderRadius: 2,
-                                            fontFamily: 'Poppins, sans-serif',
-                                            fontSize: '11px',
-                                            fontWeight: 700,
-                                            textTransform: 'none',
-                                            px: 1.5, py: 0.5,
-                                            bgcolor: '#f43f5e',
-                                            '&:hover': { bgcolor: '#e11d48' }
-                                          }}
-                                        >
+                                            borderRadius: 2, fontFamily: T.font.family, fontSize: '11px', fontWeight: 700, textTransform: 'none',
+                                            px: 1.5, py: 0.5, bgcolor: T.status.error, '&:hover': { bgcolor: T.status.errorText }
+                                          }}>
                                           Delete
                                         </Button>
                                       </TableCell>
@@ -2504,28 +1360,12 @@ const SentimentDashboard = () => {
                         </TableContainer>
 
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2.5 }}>
-                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#64748b', fontWeight: 600 }}>
+                          <Typography sx={{ fontFamily: T.font.family, fontSize: 13, color: T.text.muted, fontWeight: 600 }}>
                             Showing {page * ROWS_PER_PAGE + 1}–{Math.min((page + 1) * ROWS_PER_PAGE, reviewRows.length)} of {reviewRows.length} responses
                           </Typography>
                           <Box sx={{ display: 'flex', gap: 1 }}>
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              disabled={page === 0}
-                              onClick={() => setPage(p => p - 1)}
-                              sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', fontWeight: 700, borderRadius: 2, borderColor: '#cbd5e1', color: '#475569', bgcolor: '#ffffff', '&:hover': { bgcolor: '#f8fafc' } }}
-                            >
-                              &larr; Previous
-                            </Button>
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              disabled={page >= totalPages - 1}
-                              onClick={() => setPage(p => p + 1)}
-                              sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', fontWeight: 700, borderRadius: 2, borderColor: '#cbd5e1', color: '#475569', bgcolor: '#ffffff', '&:hover': { bgcolor: '#f8fafc' } }}
-                            >
-                              Next &rarr;
-                            </Button>
+                            <Button size="small" variant="outlined" disabled={page === 0} onClick={() => setPage(p => p - 1)} sx={paginationBtnSx}>&larr; Previous</Button>
+                            <Button size="small" variant="outlined" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)} sx={paginationBtnSx}>Next &rarr;</Button>
                           </Box>
                         </Box>
                       </Box>
@@ -2536,32 +1376,32 @@ const SentimentDashboard = () => {
             )}
 
             {/* ── Custom Deletion Confirmation Dialog ───── */}
-            <Dialog open={deleteConfirmOpen} onClose={() => !deleting && setDeleteConfirmOpen(false)} PaperProps={{ sx: { borderRadius: 3.5, p: 1, maxWidth: 440 } }}>
-              <DialogTitle sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 18, color: '#0f172a' }}>
+            <Dialog open={deleteConfirmOpen} onClose={() => !deleting && setDeleteConfirmOpen(false)} PaperProps={{ sx: { borderRadius: T.radius.card, p: 1, maxWidth: 440 } }}>
+              <DialogTitle sx={{ fontFamily: T.font.family, fontWeight: 800, fontSize: 18, color: T.text.primary }}>
                 {recordToDelete ? 'Confirm Review Deletion' : `Confirm Batch Deletion (${selectedRowIds.length} Records)`}
               </DialogTitle>
               <DialogContent>
-                <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 14, color: '#475569', lineHeight: 1.5 }}>
+                <Typography sx={{ fontFamily: T.font.family, fontSize: 14, color: T.text.secondary, lineHeight: 1.5 }}>
                   {recordToDelete
                     ? 'Are you sure you want to delete this sentiment review from the dashboard? This action cannot be undone.'
                     : `Are you sure you want to delete ${selectedRowIds.length} selected review entries? This action cannot be undone.`}
                 </Typography>
                 {recordToDelete && recordToDelete.Message && (
-                  <Box sx={{ mt: 2, p: 1.8, bgcolor: '#f8fafc', borderRadius: 2.5, border: '1px solid #e2e8f0' }}>
-                    <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12.5, fontStyle: 'italic', color: '#1e293b' }}>
+                  <Box sx={{ mt: 2, p: 1.8, bgcolor: T.surface.cardAlt, borderRadius: T.radius.input, border: `1px solid ${T.surface.borderLight}` }}>
+                    <Typography sx={{ fontFamily: T.font.family, fontSize: 12.5, fontStyle: 'italic', color: T.text.heading }}>
                       "{recordToDelete.Message}"
                     </Typography>
-                    <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 11, color: '#64748b', mt: 0.5, fontWeight: 600 }}>
+                    <Typography sx={{ fontFamily: T.font.family, fontSize: 11, color: T.text.muted, mt: 0.5, fontWeight: 600 }}>
                       {recordToDelete.Clientele} • {recordToDelete.College}
                     </Typography>
                   </Box>
                 )}
               </DialogContent>
               <DialogActions sx={{ px: 3, pb: 2 }}>
-                <Button onClick={() => setDeleteConfirmOpen(false)} disabled={deleting} sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', fontWeight: 700, color: '#64748b' }}>
+                <Button onClick={() => setDeleteConfirmOpen(false)} disabled={deleting} sx={{ fontFamily: T.font.family, textTransform: 'none', fontWeight: 700, color: T.text.muted }}>
                   Cancel
                 </Button>
-                <Button onClick={confirmDeleteRecord} disabled={deleting} variant="contained" color="error" sx={{ fontFamily: 'Poppins, sans-serif', textTransform: 'none', fontWeight: 700, borderRadius: 2 }}>
+                <Button onClick={confirmDeleteRecord} disabled={deleting} variant="contained" color="error" sx={{ fontFamily: T.font.family, textTransform: 'none', fontWeight: 700, borderRadius: 2 }}>
                   {deleting ? <CircularProgress size={20} color="inherit" /> : 'Delete Review'}
                 </Button>
               </DialogActions>
@@ -2569,7 +1409,7 @@ const SentimentDashboard = () => {
 
             {/* ── Snackbar Alert Toasts ───── */}
             <Snackbar open={Boolean(snackbarMsg)} autoHideDuration={4000} onClose={() => setSnackbarMsg('')} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
-              <Alert onClose={() => setSnackbarMsg('')} severity="info" sx={{ width: '100%', fontFamily: 'Poppins, sans-serif', fontWeight: 600, borderRadius: 3 }}>
+              <Alert onClose={() => setSnackbarMsg('')} severity="info" sx={{ width: '100%', fontFamily: T.font.family, fontWeight: 600, borderRadius: 3 }}>
                 {snackbarMsg}
               </Alert>
             </Snackbar>
@@ -2649,65 +1489,35 @@ const SentimentDashboard = () => {
       </Header>
 
       {showLoginModal && (
-        <Dialog open={true} PaperProps={{ sx: { borderRadius: 4, p: 1.5, maxWidth: 420, border: '1.5px solid #e2e8f0' } }}>
+        <Dialog open={true} PaperProps={{ sx: { borderRadius: 4, p: 1.5, maxWidth: 420, border: `1.5px solid ${T.surface.borderLight}` } }}>
           <DialogTitle sx={{ textAlign: 'center', pt: 3, pb: 1 }}>
-            <Avatar sx={{ bgcolor: '#4f46e5', color: '#ffffff', width: 56, height: 56, mx: 'auto', mb: 1.5 }}>
+            <Avatar sx={{ bgcolor: T.brand.violet, color: T.text.white, width: 56, height: 56, mx: 'auto', mb: 1.5 }}>
               <AdminIcon sx={{ fontSize: 30 }} />
             </Avatar>
-            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 20, color: '#0f172a' }}>
+            <Typography sx={{ fontFamily: T.font.family, fontWeight: 800, fontSize: 20, color: T.text.primary }}>
               Admin Access Required
             </Typography>
-            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: '#64748b', mt: 0.5 }}>
+            <Typography sx={{ fontFamily: T.font.family, fontSize: 13, color: T.text.muted, mt: 0.5 }}>
               Please login with administrative credentials to access Sentiment Dashboard
             </Typography>
           </DialogTitle>
           <DialogContent sx={{ px: 3, pb: 3 }}>
             <Box component="form" onSubmit={handleLogin} sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-              <TextField
-                fullWidth
-                label="Username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                sx={{
-                  '& .MuiInputBase-root': { height: 48, borderRadius: 2.5, fontFamily: 'Poppins, sans-serif', fontWeight: 600 }
-                }}
-              />
-              <TextField
-                fullWidth
-                label="Password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                sx={{
-                  '& .MuiInputBase-root': { height: 48, borderRadius: 2.5, fontFamily: 'Poppins, sans-serif', fontWeight: 600 }
-                }}
-              />
+              <TextField fullWidth label="Username" value={username} onChange={(e) => setUsername(e.target.value)}
+                sx={{ '& .MuiInputBase-root': { height: 48, borderRadius: T.radius.input, fontFamily: T.font.family, fontWeight: 600 } }} />
+              <TextField fullWidth label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+                sx={{ '& .MuiInputBase-root': { height: 48, borderRadius: T.radius.input, fontFamily: T.font.family, fontWeight: 600 } }} />
               {loginError && (
-                <Typography color="error" fontSize={13} sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 600, textAlign: 'center' }}>
+                <Typography color="error" fontSize={13} sx={{ fontFamily: T.font.family, fontWeight: 600, textAlign: 'center' }}>
                   {loginError}
                 </Typography>
               )}
-              <Button
-                type="submit"
-                variant="contained"
-                fullWidth
-                sx={{
-                  mt: 1, height: 48, borderRadius: 2.5, bgcolor: '#4f46e5',
-                  fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 15, textTransform: 'none',
-                  '&:hover': { bgcolor: '#4338ca' }
-                }}
-              >
+              <Button type="submit" variant="contained" fullWidth
+                sx={{ mt: 1, height: 48, borderRadius: T.radius.input, bgcolor: T.brand.violet, fontFamily: T.font.family, fontWeight: 700, fontSize: 15, textTransform: 'none', '&:hover': { bgcolor: T.brand.violetHover } }}>
                 Login
               </Button>
-              <Button
-                variant="outlined"
-                fullWidth
-                onClick={() => navigate('/')}
-                sx={{
-                  height: 44, borderRadius: 2.5, borderColor: '#cbd5e1', color: '#475569',
-                  fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 14, textTransform: 'none'
-                }}
-              >
+              <Button variant="outlined" fullWidth onClick={() => navigate('/')}
+                sx={{ height: 44, borderRadius: T.radius.input, borderColor: T.surface.border, color: T.text.secondary, fontFamily: T.font.family, fontWeight: 700, fontSize: 14, textTransform: 'none' }}>
                 Return to Home
               </Button>
             </Box>
