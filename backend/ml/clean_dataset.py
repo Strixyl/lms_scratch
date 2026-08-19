@@ -22,11 +22,11 @@ _spell = SpellChecker()
 
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-RAW_XLSX_PATH = os.path.abspath(os.path.join(THIS_DIR, "..", "..", "dataset_10k.xlsx"))
+RAW_XLSX_PATH = os.path.abspath(os.path.join(THIS_DIR, "..", "..", "dataset_11k.xlsx"))
 if not os.path.exists(RAW_XLSX_PATH):
-    RAW_XLSX_PATH = os.path.abspath(os.path.join(THIS_DIR, "..", "dataset_10k.xlsx"))
+    RAW_XLSX_PATH = os.path.abspath(os.path.join(THIS_DIR, "..", "dataset_11k.xlsx"))
 if not os.path.exists(RAW_XLSX_PATH):
-    RAW_XLSX_PATH = os.path.abspath(os.path.join(THIS_DIR, "dataset_10k.xlsx"))
+    RAW_XLSX_PATH = os.path.abspath(os.path.join(THIS_DIR, "dataset_11k.xlsx"))
 
 DATA_DIR = os.path.join(THIS_DIR, "data")
 TEST_DIR = os.path.join(DATA_DIR, "test")
