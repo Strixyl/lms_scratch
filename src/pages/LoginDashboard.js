@@ -912,7 +912,7 @@ const LoginDashboard = () => {
   }, [visualizerMode, selectedCollege, mainChartData.length]);
 
   // Section distribution for Section Pie Chart & Donut Visualizer (Filtered strictly by selected College, Course, Date Range)
-  const { sectionChartData, donutSlices, collegeSectionTotal } = useMemo(() => {
+  const { sectionChartData, donutSlices, collegeSectionTotal, internalSections } = useMemo(() => {
     const sectionCounts = {};
 
     let listToCount = rawLogins;
@@ -979,10 +979,12 @@ const LoginDashboard = () => {
       ...slices
     ];
 
-    return { sectionChartData: fullList, donutSlices: slices, collegeSectionTotal: collegeTotal };
+    return { sectionChartData: fullList, donutSlices: slices, collegeSectionTotal: collegeTotal, internalSections: internalList };
   }, [rawLogins, startDate, endDate, selectedCollege, selectedCourse]);
 
-  const peakSection = sectionChartData.length > 0 ? sectionChartData[0].name : 'N/A';
+  const topInternalSection = internalSections && internalSections.length > 0 ? internalSections[0] : null;
+  const peakSection = topInternalSection ? topInternalSection.name : 'N/A';
+  const peakSectionCount = topInternalSection ? topInternalSection.value : 0;
 
   // Gender Distribution for Sidebar Widget
   const genderCounts = useMemo(() => {
@@ -1115,7 +1117,7 @@ const LoginDashboard = () => {
     const summaryKPIs = [
       { 'Analytics Metric': 'Total Filtered Library Visits', 'Count': totalEntries },
       { 'Analytics Metric': 'Top Visiting College / Dept', 'Count': `${topCollege} (${topCollegeCount} entries)` },
-      { 'Analytics Metric': 'Peak Visited Library Section', 'Count': peakSection },
+      { 'Analytics Metric': 'Peak Visited Library Section', 'Count': topInternalSection ? `${peakSection} (${peakSectionCount} entries)` : 'N/A' },
       { 'Analytics Metric': 'Date Range Filter Applied', 'Count': startDate && endDate ? `${startDate} to ${endDate}` : 'All Dates' },
       { 'Analytics Metric': 'College Filter Applied', 'Count': selectedCollege },
       { 'Analytics Metric': 'Course Filter Applied', 'Count': selectedCourse },
@@ -1465,7 +1467,7 @@ const LoginDashboard = () => {
                       <SummaryCard
                         title="Peak Library Section"
                         value={peakSection}
-                        subtitle="Highest Foot Traffic Location"
+                        subtitle={topInternalSection ? `${peakSectionCount} Logged Section Visits` : 'No section entries recorded'}
                         icon={<LocationOnIcon sx={{ fontSize: 28 }} />}
                         color="#ed6c02"
                       />
