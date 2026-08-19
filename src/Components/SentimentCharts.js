@@ -6,6 +6,7 @@ import {
   Box, Typography, Card, CardContent, Avatar, Paper,
   Tooltip,
 } from '@mui/material';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { THEME, cardShellSx, sectionHeaderSx, sectionTitleSx } from '../constants/themeTokens';
 
 const T = THEME;
@@ -277,3 +278,87 @@ export const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, 
     </text>
   );
 };
+
+// ── Custom Tooltip for Diverging Sentiment Balance Trend Chart ─────────────
+export const CustomDivergingTrendTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    const dataObj = payload[0]?.payload || {};
+    const pos = Number(dataObj.Positive) || 0;
+    const rawNeg = Number(dataObj.rawNegative) !== undefined && dataObj.rawNegative !== null
+      ? Number(dataObj.rawNegative)
+      : Math.abs(Number(dataObj.Negative) || 0);
+    const neu = Number(dataObj.Neutral) || 0;
+    const total = Number(dataObj.Total) || (pos + rawNeg + neu);
+    const avgScore = dataObj.avgSatisfaction !== null && dataObj.avgSatisfaction !== undefined
+      ? Number(dataObj.avgSatisfaction)
+      : null;
+    const posPct = total > 0 ? ((pos / total) * 100).toFixed(1) : '0.0';
+    const negPct = total > 0 ? ((rawNeg / total) * 100).toFixed(1) : '0.0';
+
+    return (
+      <Paper elevation={4} sx={{ p: 2, bgcolor: T.surface.card, border: `1.5px solid ${T.surface.borderLight}`, borderRadius: 3, maxWidth: 320, boxShadow: T.shadow.elevated }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${T.surface.borderLight}`, pb: 1, mb: 1.2 }}>
+          <Typography sx={{ fontFamily: T.font.family, fontWeight: 800, color: T.text.heading, fontSize: 14 }}>
+            {label} Sentiment Summary
+          </Typography>
+          <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, fontWeight: 700, color: T.text.muted }}>
+            {total} {total === 1 ? 'Response' : 'Responses'}
+          </Typography>
+        </Box>
+
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.8 }}>
+          {/* Positive Balance Inflow */}
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 0.8, px: 1.2, borderRadius: 2, bgcolor: T.sentiment.Positive.light, border: `1px solid ${T.sentiment.Positive.dot}60` }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box sx={{ width: 10, height: 10, borderRadius: '3px', bgcolor: T.sentiment.Positive.bg }} />
+              <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: T.sentiment.Positive.text }}>
+                Positive (▲)
+              </Typography>
+            </Box>
+            <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 800, color: T.sentiment.Positive.text }}>
+              +{pos} ({posPct}%)
+            </Typography>
+          </Box>
+
+          {/* Negative Balance Outflow */}
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 0.8, px: 1.2, borderRadius: 2, bgcolor: T.sentiment.Negative.light, border: `1px solid ${T.sentiment.Negative.dot}60` }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box sx={{ width: 10, height: 10, borderRadius: '3px', bgcolor: T.sentiment.Negative.bg }} />
+              <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: T.sentiment.Negative.text }}>
+                Negative (▼)
+              </Typography>
+            </Box>
+            <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 800, color: T.sentiment.Negative.text }}>
+              -{rawNeg} ({negPct}%)
+            </Typography>
+          </Box>
+
+          {/* Neutral count if any */}
+          {neu > 0 && (
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 0.6, px: 1.2, borderRadius: 2, bgcolor: T.sentiment.Neutral.light, border: `1px solid ${T.sentiment.Neutral.dot}40` }}>
+              <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, fontWeight: 700, color: T.sentiment.Neutral.text }}>
+                Neutral
+              </Typography>
+              <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, fontWeight: 800, color: T.sentiment.Neutral.text }}>
+                {neu}
+              </Typography>
+            </Box>
+          )}
+
+          {/* Average Satisfaction Score */}
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 0.5, pt: 0.8, borderTop: `1px dashed ${T.surface.borderLight}` }}>
+            <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, color: T.text.secondary, fontWeight: 600 }}>
+              Avg Satisfaction Score:
+            </Typography>
+            <Typography sx={{ fontFamily: T.font.family, fontSize: 13, color: '#6d28d9', fontWeight: 800 }}>
+              {avgScore !== null && avgScore > 0 ? `⭐ ${avgScore.toFixed(1)} / 5.0` : 'N/A'}
+            </Typography>
+          </Box>
+        </Box>
+      </Paper>
+    );
+  }
+  return null;
+};
+
+

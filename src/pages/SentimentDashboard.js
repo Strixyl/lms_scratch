@@ -29,7 +29,7 @@ import {
   Lightbulb as LightbulbIcon,
   RateReview as RateReviewIcon
 } from '@mui/icons-material';
-import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, ReferenceLine } from 'recharts';
 import ReactWordcloud from 'react-wordcloud';
 import * as XLSX from 'xlsx';
 import { useNavigate } from 'react-router-dom';
@@ -77,6 +77,7 @@ import {
   CategoryChip,
   SummaryCard,
   TopCommentsCard,
+  CustomDivergingTrendTooltip,
   CustomSentimentStackedTooltip,
   CustomDonutGaugeTooltip,
 } from '../Components/SentimentCharts';
@@ -150,8 +151,8 @@ const SentimentDashboard = () => {
   const [deleting, setDeleting] = useState(false);
   const [snackbarMsg, setSnackbarMsg] = useState('');
 
-  // Stacked Bar Chart states
-  const [barChartMode, setBarChartMode] = useState('stacked'); // 'stacked' | 'grouped'
+  // Trend Container Scale state ('percent' = Symmetric 100% | 'count' = Volume Counts)
+  const [trendScaleMode, setTrendScaleMode] = useState('percent');
 
   const printRef = useRef();
 
@@ -388,18 +389,21 @@ const SentimentDashboard = () => {
     return arr;
   }, [surveys]);
 
-  const monthly12MonthData = useMemo(() => {
+  // ── Diverging Sentiment Balance & Monthly Trend Data ────────────────────────
+  const divergingTrendData = useMemo(() => {
     const targetYear = filterYear === 'All' ? null : (filterYear || '2026');
 
     const monthsMap = {};
     MONTH_NAMES.forEach((m, idx) => {
       monthsMap[idx] = {
         month: m,
+        monthIndex: idx,
         Positive: 0,
+        Negative: 0,     // Plotted <= 0 for the downward bar
+        rawNegative: 0,  // Positive magnitude for display/labels
         Neutral: 0,
-        Negative: 0,
         Total: 0,
-        scoresSum: 0
+        scoresSum: 0,
       };
     });
 
@@ -414,7 +418,10 @@ const SentimentDashboard = () => {
       if (monthsMap[mIdx]) {
         if (s.SentimentResult === 'Positive') monthsMap[mIdx].Positive++;
         else if (s.SentimentResult === 'Neutral') monthsMap[mIdx].Neutral++;
-        else if (s.SentimentResult === 'Negative') monthsMap[mIdx].Negative++;
+        else if (s.SentimentResult === 'Negative') {
+          monthsMap[mIdx].rawNegative++;
+          monthsMap[mIdx].Negative--;
+        }
         monthsMap[mIdx].Total++;
         monthsMap[mIdx].scoresSum += getSatisfactionAverage(s);
       }
@@ -422,10 +429,30 @@ const SentimentDashboard = () => {
 
     return MONTH_NAMES.map((m, idx) => {
       const item = monthsMap[idx];
-      const avg = item.Total > 0 ? (item.scoresSum / item.Total).toFixed(1) : '0.0';
-      return { ...item, avgSatisfaction: parseFloat(avg) };
+      const avg = item.Total > 0 ? parseFloat((item.scoresSum / item.Total).toFixed(2)) : null;
+      const net = item.Positive - item.rawNegative;
+      const posPct = item.Total > 0 ? Math.round((item.Positive / item.Total) * 100) : 0;
+      const negPct = item.Total > 0 ? Math.round((item.rawNegative / item.Total) * 100) : 0;
+      return {
+        ...item,
+        posPct,
+        negPct,
+        negPctDiverging: -negPct, // Plotted below 0 for symmetric percentage bar
+        avgSatisfaction: avg,
+        netScore: net,
+      };
     });
   }, [filtered, filterYear]);
+
+  // Dynamic Y-Axis scale for balanced positive and negative headroom
+  const maxVolume = useMemo(() => {
+    let maxVal = 5;
+    divergingTrendData.forEach(d => {
+      if (d.Positive > maxVal) maxVal = d.Positive;
+      if (d.rawNegative > maxVal) maxVal = d.rawNegative;
+    });
+    return Math.ceil(maxVal * 1.2);
+  }, [divergingTrendData]);
 
 
   // ── Sentiment Distribution by Category (Multi-Donut Rings) ────────────────
@@ -963,27 +990,28 @@ const SentimentDashboard = () => {
                       <SummaryCard title="Total Analyzed" value={total} subtitle="Survey responses" icon={<AssessmentIcon />} color={T.brand.indigo} tooltipContent={`Total Filtered Surveys: ${total} responses matching current filters`} />
                     </Box>
 
-                    {/* ── 12-Month Sentiment Trend Bar Graph ───── */}
+                    {/* ── Monthly Sentiment Balance & Bar Comparison ───── */}
                     <Card elevation={0} sx={{ ...cardShellSx, mb: 3 }}>
                       <Box sx={{ ...sectionHeaderSx, flexWrap: 'wrap', gap: 1.5 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
                           <TrendingUpIcon sx={sectionIconSx} />
                           <Box>
                             <Typography sx={sectionTitleSx}>
-                              Sentiment Trend (12-Month {barChartMode === 'stacked' ? 'Stacked Bar' : 'Side-by-Side'} View) — {filterYear === 'All' ? 'All Batched Years' : `Year ${filterYear}`}
+                              Monthly Sentiment Balance & Comparison — {filterYear === 'All' ? 'All Batched Years' : `Year ${filterYear}`}
                             </Typography>
                             <Typography sx={sectionSubtitleSx}>
-                              {barChartMode === 'stacked'
-                                ? 'Stacked breakdown of Positive, Neutral, and Negative responses per month'
-                                : 'Side-by-Side comparison of Positive, Neutral, and Negative responses per month'}
+                              {trendScaleMode === 'percent'
+                                ? 'Symmetric 100% monthly sentiment distribution (▲ Positive on top / ▼ Negative on bottom)'
+                                : 'Monthly sentiment volume flow (▲ Positive Inflow / ▼ Negative Outflow)'}
                             </Typography>
                           </Box>
                         </Box>
 
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                          {/* Scale Selector: Symmetric % Share vs Raw Volume */}
                           <ToggleButtonGroup
-                            value={barChartMode} exclusive
-                            onChange={(e, newMode) => { if (newMode) setBarChartMode(newMode); }}
+                            value={trendScaleMode} exclusive
+                            onChange={(e, newScale) => { if (newScale) setTrendScaleMode(newScale); }}
                             size="small"
                             sx={{
                               height: 38, borderRadius: T.radius.input, bgcolor: T.surface.card,
@@ -994,8 +1022,8 @@ const SentimentDashboard = () => {
                               }
                             }}
                           >
-                            <ToggleButton value="stacked">Stacked Bar</ToggleButton>
-                            <ToggleButton value="grouped">Side-by-Side</ToggleButton>
+                            <ToggleButton value="percent">📊 % Share (Symmetric)</ToggleButton>
+                            <ToggleButton value="count">🔢 Volume (Counts)</ToggleButton>
                           </ToggleButtonGroup>
 
                           <FormControl size="small" sx={{ minWidth: 120 }}>
@@ -1012,30 +1040,83 @@ const SentimentDashboard = () => {
                       </Box>
 
                       <CardContent sx={{ p: 3 }}>
-                        <ResponsiveContainer width="100%" height={320}>
-                          <BarChart data={monthly12MonthData} margin={{ top: 15, right: 30, left: 0, bottom: 5 }}>
+                        <ResponsiveContainer width="100%" height={360}>
+                          <BarChart data={divergingTrendData} margin={{ top: 20, right: 30, left: 10, bottom: 5 }} stackOffset="sign">
                             <defs>
-                              <linearGradient id="posGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor={gP.start} />
-                                <stop offset="100%" stopColor={gP.end} />
+                              <linearGradient id="divPosGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#86efac" stopOpacity={0.95} />
+                                <stop offset="100%" stopColor="#4ade80" stopOpacity={0.9} />
                               </linearGradient>
-                              <linearGradient id="neuGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor={gN.start} />
-                                <stop offset="100%" stopColor={gN.end} />
-                              </linearGradient>
-                              <linearGradient id="negGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor={gNe.start} />
-                                <stop offset="100%" stopColor={gNe.end} />
+                              <linearGradient id="divNegGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#fca5a5" stopOpacity={0.9} />
+                                <stop offset="100%" stopColor="#f87171" stopOpacity={0.95} />
                               </linearGradient>
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={T.surface.borderLight} />
-                            <XAxis dataKey="month" tick={{ fontFamily: T.font.family, fontSize: 12, fill: T.text.secondary, fontWeight: 600 }} />
-                            <YAxis allowDecimals={false} tick={{ fontFamily: T.font.family, fontSize: 12, fill: T.text.secondary }} />
-                            <RechartsTooltip content={<CustomSentimentStackedTooltip />} />
-                            <Legend wrapperStyle={{ fontFamily: T.font.family, fontSize: 13, paddingTop: 12 }} />
-                            <Bar dataKey="Positive" stackId={barChartMode === 'stacked' ? 'monthlyStack' : undefined} fill="url(#posGrad)" radius={barChartMode === 'stacked' ? [0, 0, 0, 0] : [6, 6, 0, 0]} maxBarSize={barChartMode === 'stacked' ? 36 : 28} />
-                            <Bar dataKey="Neutral" stackId={barChartMode === 'stacked' ? 'monthlyStack' : undefined} fill="url(#neuGrad)" radius={barChartMode === 'stacked' ? [0, 0, 0, 0] : [6, 6, 0, 0]} maxBarSize={barChartMode === 'stacked' ? 36 : 28} />
-                            <Bar dataKey="Negative" stackId={barChartMode === 'stacked' ? 'monthlyStack' : undefined} fill="url(#negGrad)" radius={[6, 6, 0, 0]} maxBarSize={barChartMode === 'stacked' ? 36 : 28} />
+                            <XAxis dataKey="month" tick={{ fontFamily: T.font.family, fontSize: 12, fill: T.text.secondary, fontWeight: 700 }} />
+
+                            {/* Single Y-Axis: Symmetric Percentage (Default) or Absolute Counts */}
+                            {trendScaleMode === 'percent' ? (
+                              <YAxis
+                                domain={[-100, 100]}
+                                ticks={[-100, -75, -50, -25, 0, 25, 50, 75, 100]}
+                                tickFormatter={(val) => `${Math.abs(val)}%`}
+                                tick={{ fontFamily: T.font.family, fontSize: 11, fill: T.text.secondary, fontWeight: 600 }}
+                                allowDecimals={false}
+                                label={{
+                                  value: '▲ % Positive Share / ▼ % Negative Share',
+                                  angle: -90,
+                                  position: 'insideLeft',
+                                  style: { textAnchor: 'middle', fontFamily: T.font.family, fontSize: 11, fill: T.text.muted, fontWeight: 600 }
+                                }}
+                              />
+                            ) : (
+                              <YAxis
+                                domain={[-maxVolume, maxVolume]}
+                                tickFormatter={(val) => Math.abs(val)}
+                                tick={{ fontFamily: T.font.family, fontSize: 11, fill: T.text.secondary, fontWeight: 600 }}
+                                allowDecimals={false}
+                                label={{
+                                  value: '▲ Positive Count / ▼ Negative Count',
+                                  angle: -90,
+                                  position: 'insideLeft',
+                                  style: { textAnchor: 'middle', fontFamily: T.font.family, fontSize: 11, fill: T.text.muted, fontWeight: 600 }
+                                }}
+                              />
+                            )}
+
+                            {/* Zero Baseline separating positive (top) from negative (bottom) */}
+                            <ReferenceLine y={0} stroke="#64748b" strokeWidth={1.8} />
+
+                            <RechartsTooltip content={<CustomDivergingTrendTooltip />} />
+                            <Legend
+                              wrapperStyle={{ fontFamily: T.font.family, fontSize: 12.5, paddingTop: 12 }}
+                              formatter={(value) => <span style={{ color: T.text.heading, fontWeight: 600 }}>{value}</span>}
+                            />
+
+                            {/* Positive Sentiment Bar (Top portion of the unified column, going UP from 0) */}
+                            <Bar
+                              dataKey={trendScaleMode === 'percent' ? 'posPct' : 'Positive'}
+                              stackId="sentimentPillar"
+                              name={trendScaleMode === 'percent' ? 'Positive Sentiment Share (%)' : 'Positive Sentiments (▲ Inflow)'}
+                              fill="url(#divPosGrad)"
+                              stroke="#22c55e"
+                              strokeWidth={1}
+                              radius={[4, 4, 0, 0]}
+                              maxBarSize={38}
+                            />
+
+                            {/* Negative Sentiment Bar (Bottom portion of the unified column, going DOWN from 0) */}
+                            <Bar
+                              dataKey={trendScaleMode === 'percent' ? 'negPctDiverging' : 'Negative'}
+                              stackId="sentimentPillar"
+                              name={trendScaleMode === 'percent' ? 'Negative Sentiment Share (%)' : 'Negative Sentiments (▼ Outflow)'}
+                              fill="url(#divNegGrad)"
+                              stroke="#ef4444"
+                              strokeWidth={1}
+                              radius={[0, 0, 4, 4]}
+                              maxBarSize={38}
+                            />
                           </BarChart>
                         </ResponsiveContainer>
                       </CardContent>
@@ -1129,59 +1210,117 @@ const SentimentDashboard = () => {
                         </Box>
                       </Box>
 
-                      <CardContent sx={{ p: 3 }}>
+                      <CardContent sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
                         {categoryStats.length === 0 ? (
-                          <Typography sx={{ fontFamily: T.font.family, color: T.text.faint, textAlign: 'center', py: 6 }}>
-                            No category is currently above the concern threshold.
-                          </Typography>
-                        ) : categoryStats.map(c => (
-                          <Box key={c.category} sx={{
-                            mb: 2.5, p: 2.5,
-                            bgcolor: c.severity === 'high' ? T.status.errorLight : T.status.warningLight,
-                            border: `1.5px solid ${c.severity === 'high' ? T.status.errorBorder : T.status.warningBorder}`,
-                            borderLeft: `5px solid ${c.severity === 'high' ? T.status.errorText : T.status.warningText}`,
-                            borderRadius: 3
-                          }}>
-                            <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', mb: 1.5, flexWrap: 'wrap' }}>
-                              <Box sx={{
-                                px: 1.8, py: 0.5, borderRadius: T.radius.chip, flexShrink: 0,
-                                backgroundColor: T.surface.card,
-                                border: `1.5px solid ${c.severity === 'high' ? T.sentiment.Negative.dot : T.sentiment.Neutral.dot}`,
-                              }}>
-                                <Typography sx={{ fontSize: 12, fontWeight: 800, color: c.severity === 'high' ? T.sentiment.Negative.text : T.sentiment.Neutral.text, fontFamily: T.font.family }}>
-                                  {c.category} — {c.pct}% negative — {c.severity.toUpperCase()}
+                          <Box sx={{ textAlign: 'center', py: 6, bgcolor: T.surface.cardAlt, borderRadius: 3, border: `1.5px dashed ${T.surface.border}` }}>
+                            <LightbulbIcon sx={{ fontSize: 44, color: T.text.faint, mb: 1 }} />
+                            <Typography sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 16, color: T.text.heading }}>
+                              No Category Concern Flags
+                            </Typography>
+                            <Typography sx={{ fontFamily: T.font.family, fontSize: 13, color: T.text.muted, mt: 0.5 }}>
+                              All library service categories are currently performing below the negative sentiment threshold.
+                            </Typography>
+                          </Box>
+                        ) : categoryStats.map((c) => {
+                          const isHigh = c.severity === 'high';
+                          const leftAccentColor = isHigh ? '#dc2626' : '#f87171';
+                          const badgeBg = isHigh ? '#7f1d1d' : '#ffe4e6';
+                          const badgeColor = isHigh ? '#ffffff' : '#e11d48';
+
+                          return (
+                            <Box
+                              key={c.category}
+                              sx={{
+                                position: 'relative',
+                                bgcolor: '#ffffff',
+                                borderRadius: '16px',
+                                border: '1.5px solid #e2e8f0',
+                                borderLeft: `5px solid ${leftAccentColor}`,
+                                p: { xs: 2.5, md: 3 },
+                                boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+                                transition: 'all 0.2s ease',
+                                '&:hover': {
+                                  boxShadow: '0 4px 14px rgba(0,0,0,0.05)',
+                                }
+                              }}
+                            >
+                              {/* Title & Priority Badge */}
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1, flexWrap: 'wrap' }}>
+                                <Typography sx={{ fontFamily: T.font.family, fontSize: 16, fontWeight: 800, color: '#0f172a' }}>
+                                  {c.category} — {c.pct}% negative
                                 </Typography>
+                                <Box
+                                  sx={{
+                                    px: 1.2,
+                                    py: 0.25,
+                                    borderRadius: '6px',
+                                    bgcolor: badgeBg,
+                                    color: badgeColor,
+                                    fontFamily: T.font.family,
+                                    fontSize: 10.5,
+                                    fontWeight: 800,
+                                    letterSpacing: '0.6px',
+                                    textTransform: 'uppercase',
+                                    lineHeight: 1.2,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                  }}
+                                >
+                                  {c.severity}
+                                </Box>
                               </Box>
-                              <Typography sx={{ fontFamily: T.font.family, fontSize: 14, color: T.text.heading, fontWeight: 600, mt: 0.2 }}>
-                                {RECOMMENDATIONS[c.category][c.severity]}
-                              </Typography>
-                            </Box>
 
-                            {c.matchedKeywords.length > 0 && (
-                              <Typography sx={{ fontFamily: T.font.family, fontSize: 12.5, color: T.text.secondary, fontStyle: 'italic', ml: 0.5, mb: 1.5 }}>
-                                <strong>Frequent Category Issue Signals:</strong> {c.matchedKeywords.join('; ')}
+                              {/* Actionable Recommendation Text */}
+                              <Typography sx={{ fontFamily: T.font.family, fontSize: 14, color: '#334155', fontWeight: 600, lineHeight: 1.55, mb: 2 }}>
+                                {RECOMMENDATIONS[c.category]?.[c.severity] || ''}
                               </Typography>
-                            )}
 
-                            {c.topEvidences.length > 0 && (
-                              <Box sx={{ mt: 1.5, p: 2, backgroundColor: T.surface.card, borderRadius: T.radius.input, border: `1px solid ${T.surface.borderLight}`, borderLeft: `4px solid ${T.status.info}` }}>
-                                <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 800, color: T.status.info, textTransform: 'uppercase', letterSpacing: 0.8, mb: 1 }}>
-                                  Supporting Patron Feedback Evidence {c.primaryKw ? `— Top Issue Keyword: "${c.primaryKw}"` : ''} ({c.topEvidences.length})
-                                </Typography>
-                                {c.topEvidences.map((ev, idx) => (
-                                  <Box key={idx} sx={{ py: 0.8, borderBottom: idx < c.topEvidences.length - 1 ? `1px dashed ${T.surface.borderLight}` : 'none' }}>
-                                    <Typography sx={{ fontFamily: T.font.family, fontSize: 13, color: T.text.heading, fontWeight: 500 }}>
+                              {/* Supporting Patron Feedback Evidence Box */}
+                              {c.topEvidences && c.topEvidences.length > 0 && (
+                                <Box
+                                  sx={{
+                                    bgcolor: '#f8fafc',
+                                    borderRadius: '12px',
+                                    border: '1.5px solid #e2e8f0',
+                                    p: { xs: 2, md: 2.2 },
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: 1,
+                                  }}
+                                >
+                                  <Typography
+                                    sx={{
+                                      fontFamily: T.font.family,
+                                      fontSize: 11,
+                                      fontWeight: 800,
+                                      color: '#64748b',
+                                      textTransform: 'uppercase',
+                                      letterSpacing: '0.8px',
+                                    }}
+                                  >
+                                    SUPPORTING PATRON FEEDBACK EVIDENCE — TOP KEYWORD: "{(c.primaryKw || 'GENERAL').toUpperCase()}"
+                                  </Typography>
+
+                                  {c.topEvidences.slice(0, 2).map((ev, idx) => (
+                                    <Typography
+                                      key={idx}
+                                      sx={{
+                                        fontFamily: T.font.family,
+                                        fontSize: 13,
+                                        fontStyle: 'italic',
+                                        color: '#334155',
+                                        fontWeight: 500,
+                                        lineHeight: 1.55,
+                                      }}
+                                    >
                                       "{ev.Message}"
                                     </Typography>
-                                    <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, color: T.text.muted, mt: 0.3, fontWeight: 500 }}>
-                                      {ev.Clientele} — {ev.College} · Word Freq: {ev.termScore || 0}
-                                    </Typography>
-                                  </Box>
-                                ))}
-                              </Box>
-                            )}
-                          </Box>
-                        ))}
+                                  ))}
+                                </Box>
+                              )}
+                            </Box>
+                          );
+                        })}
                       </CardContent>
                     </Card>
 
