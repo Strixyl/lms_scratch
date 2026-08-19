@@ -6,8 +6,7 @@ import {
   Box, Typography, Card, CardContent, Avatar, Paper,
   Tooltip,
 } from '@mui/material';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
-import { THEME, cardShellSx, sectionHeaderSx, sectionTitleSx } from '../constants/themeTokens';
+import { THEME, cardShellSx, sectionHeaderSx } from '../constants/themeTokens';
 
 const T = THEME;
 
@@ -110,27 +109,30 @@ export const SummaryCard = ({ title, value, subtitle, icon, color = '#3b82f6', t
 export const TopCommentsCard = ({ title, rows, type = 'positive', icon }) => {
   const isPositive = type === 'positive';
   const theme = isPositive ? {
-    iconColor: '#34d399',
-    badgeBg: '#34d399',
-    badgeText: '#064e3b',
-    borderLeft: '#34d399',
-    chipBg: '#f0fdf4',
-    chipBorder: '#a7f3d0',
-    chipText: '#059669',
+    iconColor: '#10b981',
+    badgeBg: '#10b981',
+    badgeText: '#ffffff',
+    borderLeft: '#10b981',
+    chipBg: '#ecfdf5',
+    chipBorder: '#6ee7b7',
+    chipText: '#047857',
   } : {
-    iconColor: '#fb7185',
-    badgeBg: '#540d1a',
-    badgeText: '#fecdd3',
-    borderLeft: '#f87171',
-    chipBg: T.status.errorLight,
-    chipBorder: T.status.errorBorder,
-    chipText: T.status.errorText,
+    iconColor: '#f43f5e',
+    badgeBg: '#f43f5e',
+    badgeText: '#ffffff',
+    borderLeft: '#f43f5e',
+    chipBg: '#fff1f2',
+    chipBorder: '#fecdd3',
+    chipText: '#be123c',
   };
 
   return (
     <Card elevation={0} sx={{
       ...cardShellSx,
-      flex: 1, minWidth: 300,
+      flex: 1,
+      minWidth: 300,
+      display: 'flex',
+      flexDirection: 'column',
       transition: 'all 0.25s ease',
       '&:hover': {
         boxShadow: T.shadow.cardHover
@@ -138,63 +140,139 @@ export const TopCommentsCard = ({ title, rows, type = 'positive', icon }) => {
     }}>
       <Box sx={{
         ...sectionHeaderSx,
+        py: 1.6, px: 2.2
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-          <Box sx={{ color: theme.iconColor, display: 'flex', alignItems: 'center', '& svg': { fontSize: 20 } }}>
+          <Box sx={{
+            color: '#ffffff',
+            bgcolor: theme.iconColor,
+            p: 0.6,
+            borderRadius: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: `0 2px 6px ${theme.iconColor}35`,
+            '& svg': { fontSize: 18 }
+          }}>
             {icon}
           </Box>
           <Typography sx={{
-            ...sectionTitleSx,
+            fontFamily: T.font.family,
+            fontWeight: 800,
+            fontSize: 15,
+            color: T.text.white,
+            letterSpacing: '-0.2px'
           }}>
             {title}
           </Typography>
         </Box>
         <Typography sx={{
-          fontFamily: T.font.family, fontSize: 12,
+          fontFamily: T.font.family,
+          fontSize: 11.5,
           color: theme.badgeText,
-          bgcolor: theme.badgeBg,
+          bgcolor: 'rgba(255,255,255,0.2)',
           fontWeight: 800,
-          px: 1.6, py: 0.4, borderRadius: 3
+          px: 1.4, py: 0.35, borderRadius: 2,
+          border: '1px solid rgba(255,255,255,0.3)'
         }}>
           {rows.length} {rows.length === 1 ? 'Comment' : 'Comments'}
         </Typography>
       </Box>
-      <CardContent sx={{ p: 2.5, display: 'flex', flexDirection: 'column', gap: 1.8 }}>
+      <CardContent sx={{
+        p: 2,
+        maxHeight: 330,
+        overflowY: 'auto',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 1.2,
+        '&::-webkit-scrollbar': { width: '5px' },
+        '&::-webkit-scrollbar-track': { background: '#f8fafc' },
+        '&::-webkit-scrollbar-thumb': { background: '#cbd5e1', borderRadius: '4px' },
+        '&::-webkit-scrollbar-thumb:hover': { background: '#94a3b8' }
+      }}>
         {rows.length === 0 ? (
-          <Typography sx={{ fontFamily: T.font.family, color: T.text.faint, fontSize: 13, py: 2 }}>No comments yet.</Typography>
+          <Typography sx={{ fontFamily: T.font.family, color: T.text.faint, fontSize: 13, py: 3, textAlign: 'center' }}>
+            No comments available for the active filter selection.
+          </Typography>
         ) : rows.map((row, i) => (
           <Box
             key={i}
             sx={{
-              p: 2,
+              p: 1.5,
               bgcolor: T.surface.card,
               border: `1px solid ${T.surface.borderLight}`,
-              borderLeft: `4.5px solid ${theme.borderLeft}`,
-              borderRadius: T.radius.input,
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)',
-              transition: 'all 0.2s ease',
+              borderLeft: `4px solid ${theme.borderLeft}`,
+              borderRadius: '8px',
+              boxShadow: '0 1px 4px rgba(0, 0, 0, 0.02)',
+              transition: 'all 0.15s ease',
               '&:hover': {
-                transform: 'translateX(2px)',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)'
+                boxShadow: '0 3px 10px rgba(0, 0, 0, 0.05)'
               }
             }}
           >
-            <Typography sx={{ fontFamily: T.font.family, fontSize: 13, color: T.text.heading, fontWeight: 500, lineHeight: 1.45 }}>
+            <Typography sx={{
+              fontFamily: T.font.family,
+              fontSize: 13.5,
+              color: '#0f172a',
+              fontWeight: 500,
+              lineHeight: 1.45,
+              mb: 0.8
+            }}>
               "{row.Message}"
             </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 1.4, pt: 1, borderTop: `1px dashed ${T.surface.borderLight}` }}>
-              <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, color: T.text.muted, fontWeight: 500 }}>
-                {row.Clientele || 'student'}{row.College ? ` • ${row.College}` : ' •'}
+            <Box sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              pt: 0.8,
+              borderTop: `1px dashed ${T.surface.borderLight}`,
+              flexWrap: 'wrap',
+              gap: 0.6
+            }}>
+              <Typography sx={{
+                fontFamily: T.font.family,
+                fontSize: 11.5,
+                color: '#64748b',
+                fontWeight: 500
+              }}>
+                <span style={{ textTransform: 'uppercase', color: '#0f172a', fontWeight: 700 }}>
+                  {row.Clientele || 'STUDENT'}
+                </span>
+                {row.College ? (
+                  <>
+                    {' • '}
+                    <span style={{ color: T.brand.indigo, fontWeight: 700 }}>
+                      {row.College}
+                    </span>
+                  </>
+                ) : ''}
+                {row.Course ? (
+                  <span style={{ color: '#64748b', fontWeight: 500 }}>
+                    {` (${row.Course})`}
+                  </span>
+                ) : ''}
+                {row.DateSubmitted ? (
+                  <span style={{ color: '#94a3b8', fontSize: 11 }}>
+                    {` • ${row.DateSubmitted.slice(0, 10)}`}
+                  </span>
+                ) : ''}
               </Typography>
               <Box
                 sx={{
-                  display: 'inline-flex', alignItems: 'center',
-                  px: 1.2, py: 0.35, borderRadius: T.radius.pill,
-                  fontSize: 11, fontWeight: 700, fontFamily: T.font.family,
-                  bgcolor: theme.chipBg, color: theme.chipText, border: `1px solid ${theme.chipBorder}`
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  px: 1.1,
+                  py: 0.25,
+                  borderRadius: T.radius.pill,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  fontFamily: T.font.family,
+                  bgcolor: theme.chipBg,
+                  color: theme.chipText,
+                  border: `1px solid ${theme.chipBorder}`
                 }}
               >
-                {row.topTerm ? `Keyword: "${row.topTerm}" (${row.maxTermFreq || row.termScore}x)` : `Freq Score: ${row.termScore || 0}`}
+                {row.topTerm ? `Keyword: "${row.topTerm}" (${row.maxTermFreq || row.termScore}x)` : `Freq: ${row.termScore || 0}`}
               </Box>
             </Box>
           </Box>

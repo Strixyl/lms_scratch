@@ -1337,7 +1337,7 @@ const SentimentDashboard = () => {
                     </Card>
 
                     {/* ── Top Positive & Negative Comments Grid ───── */}
-                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2.5, mb: 3 }}>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3, mb: 3 }}>
                       <TopCommentsCard title="Top 5 Positive Comments" rows={topPositive} type="positive" icon={<ThumbUpIcon />} />
                       <TopCommentsCard title="Top 5 Negative Comments" rows={topNegative} type="negative" icon={<ThumbDownIcon />} />
                     </Box>
@@ -1413,7 +1413,7 @@ const SentimentDashboard = () => {
                               </Box>
 
                               {/* Actionable Recommendation Text */}
-                              <Typography sx={{ fontFamily: T.font.family, fontSize: 14, color: '#334155', fontWeight: 600, lineHeight: 1.55, mb: 2 }}>
+                              <Typography sx={{ fontFamily: T.font.family, fontSize: 15.5, color: '#1e293b', fontWeight: 600, lineHeight: 1.6, mb: 2 }}>
                                 {RECOMMENDATIONS[c.category]?.[c.severity] || ''}
                               </Typography>
 
@@ -1424,18 +1424,18 @@ const SentimentDashboard = () => {
                                     bgcolor: '#f8fafc',
                                     borderRadius: '12px',
                                     border: '1.5px solid #e2e8f0',
-                                    p: { xs: 2, md: 2.2 },
+                                    p: { xs: 2.2, md: 2.5 },
                                     display: 'flex',
                                     flexDirection: 'column',
-                                    gap: 1,
+                                    gap: 1.2,
                                   }}
                                 >
                                   <Typography
                                     sx={{
                                       fontFamily: T.font.family,
-                                      fontSize: 11,
+                                      fontSize: 12,
                                       fontWeight: 800,
-                                      color: '#64748b',
+                                      color: '#475569',
                                       textTransform: 'uppercase',
                                       letterSpacing: '0.8px',
                                     }}
@@ -1448,11 +1448,11 @@ const SentimentDashboard = () => {
                                       key={idx}
                                       sx={{
                                         fontFamily: T.font.family,
-                                        fontSize: 13,
+                                        fontSize: 15,
                                         fontStyle: 'italic',
-                                        color: '#334155',
+                                        color: '#0f172a',
                                         fontWeight: 500,
-                                        lineHeight: 1.55,
+                                        lineHeight: 1.6,
                                       }}
                                     >
                                       "{ev.Message}"
@@ -1590,11 +1590,11 @@ const SentimentDashboard = () => {
                                   ...(isSelected
                                     ? { bgcolor: T.brand.indigo, color: '#fff', '&:hover': { bgcolor: T.brand.indigoHover } }
                                     : {
-                                        borderColor: c > 0 ? T.surface.border : 'rgba(0,0,0,0.06)',
-                                        color: c > 0 ? T.text.body : T.text.faint,
-                                        bgcolor: c > 0 ? T.surface.card : 'transparent',
-                                        '&:hover': { borderColor: T.brand.indigo, bgcolor: T.surface.cardAltHover }
-                                      }
+                                      borderColor: c > 0 ? T.surface.border : 'rgba(0,0,0,0.06)',
+                                      color: c > 0 ? T.text.body : T.text.faint,
+                                      bgcolor: c > 0 ? T.surface.card : 'transparent',
+                                      '&:hover': { borderColor: T.brand.indigo, bgcolor: T.surface.cardAltHover }
+                                    }
                                   )
                                 }}
                               >
@@ -1697,16 +1697,16 @@ const SentimentDashboard = () => {
                                         <div>{row.College || 'N/A'}</div>
                                         {row.Course && (<div style={{ fontSize: '11.5px', color: T.text.muted, fontWeight: 500 }}>{row.Course}</div>)}
                                       </TableCell>
-                                      <TableCell sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 600, color: T.text.heading, py: 1.5, pr: 3, lineHeight: 1.4 }}>
+                                      <TableCell sx={{ fontFamily: T.font.family, fontSize: 14.5, fontWeight: 500, color: '#0f172a', py: 1.8, pr: 3, lineHeight: 1.55 }}>
                                         {row.Message && row.Message.trim().length > 0 ? (
                                           row.Message
                                         ) : (
                                           <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
-                                            <Typography component="span" sx={{ fontFamily: T.font.family, fontSize: 12.5, color: T.text.faint, fontStyle: 'italic' }}>
+                                            <Typography component="span" sx={{ fontFamily: T.font.family, fontSize: 13, color: T.text.faint, fontStyle: 'italic' }}>
                                               (No written comment)
                                             </Typography>
-                                            <Box sx={{ px: 1, py: 0.2, borderRadius: '12px', backgroundColor: '#e0e7ff', border: '1px solid #c7d2fe', display: 'inline-block' }}>
-                                              <Typography component="span" sx={{ fontSize: 10.5, fontWeight: 700, color: '#3730a3', fontFamily: T.font.family }}>
+                                            <Box sx={{ px: 1.2, py: 0.3, borderRadius: '12px', backgroundColor: '#e0e7ff', border: '1px solid #c7d2fe', display: 'inline-block' }}>
+                                              <Typography component="span" sx={{ fontSize: 11, fontWeight: 700, color: '#3730a3', fontFamily: T.font.family }}>
                                                 Rating Only
                                               </Typography>
                                             </Box>
