@@ -27,7 +27,8 @@ import {
   TrendingUp as TrendingUpIcon,
   PieChart as PieChartIcon,
   Lightbulb as LightbulbIcon,
-  RateReview as RateReviewIcon
+  RateReview as RateReviewIcon,
+  CheckCircle as CheckCircleIcon,
 } from '@mui/icons-material';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, ReferenceLine } from 'recharts';
 import ReactWordcloud from 'react-wordcloud';
@@ -77,6 +78,7 @@ import {
   CategoryChip,
   SummaryCard,
   TopCommentsCard,
+  RecommendationCard,
   CustomDivergingTrendTooltip,
   CustomDonutGaugeTooltip,
 } from '../Components/SentimentCharts';
@@ -1337,132 +1339,102 @@ const SentimentDashboard = () => {
                     </Card>
 
                     {/* ── Top Positive & Negative Comments Grid ───── */}
-                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3, mb: 3 }}>
+                    <Box sx={{
+                      display: 'grid',
+                      gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' },
+                      gap: 3,
+                      mb: 3.5,
+                      alignItems: 'stretch',
+                    }}>
                       <TopCommentsCard title="Top 5 Positive Comments" rows={topPositive} type="positive" icon={<ThumbUpIcon />} />
                       <TopCommentsCard title="Top 5 Negative Comments" rows={topNegative} type="negative" icon={<ThumbDownIcon />} />
                     </Box>
 
                     {/* ── Service Improvement Recommendations ───── */}
-                    <Card elevation={0} sx={{ ...cardShellSx, mb: 3 }}>
-                      <Box sx={{ ...sectionHeaderSx, justifyContent: 'flex-start', gap: 1.2 }}>
-                        <LightbulbIcon sx={sectionIconSx} />
-                        <Box>
-                          <Typography sx={sectionTitleSx}>Service Improvement Recommendations</Typography>
-                          <Typography sx={sectionSubtitleSx}>Actionable priority insights derived from negative patron sentiment signals</Typography>
+                    <Card elevation={0} sx={{ ...cardShellSx, mb: 3.5 }}>
+                      <Box sx={{
+                        ...sectionHeaderSx,
+                        flexWrap: 'wrap',
+                        gap: 1.5,
+                        py: 1.8,
+                        px: { xs: 2, md: 2.8 },
+                      }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.4 }}>
+                          <Box sx={{
+                            color: '#ffffff',
+                            bgcolor: '#f59e0b',
+                            p: 0.8,
+                            borderRadius: '10px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxShadow: '0 2px 8px rgba(245, 158, 11, 0.45)',
+                            '& svg': { fontSize: 20 }
+                          }}>
+                            <LightbulbIcon />
+                          </Box>
+                          <Box>
+                            <Typography sx={sectionTitleSx}>Service Improvement Recommendations</Typography>
+                            <Typography sx={sectionSubtitleSx}>Actionable priority insights derived from negative patron sentiment signals</Typography>
+                          </Box>
+                        </Box>
+
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography sx={{
+                            fontFamily: T.font.family,
+                            fontSize: 11.5,
+                            color: '#ffffff',
+                            bgcolor: 'rgba(255,255,255,0.18)',
+                            fontWeight: 800,
+                            px: 1.6,
+                            py: 0.45,
+                            borderRadius: T.radius.pill,
+                            border: '1px solid rgba(255,255,255,0.3)',
+                            letterSpacing: '0.3px',
+                          }}>
+                            {categoryStats.length} {categoryStats.length === 1 ? 'Category Flagged' : 'Categories Flagged'}
+                          </Typography>
                         </Box>
                       </Box>
 
-                      <CardContent sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+                      <CardContent sx={{ p: { xs: 2, sm: 2.5, md: 3 } }}>
                         {categoryStats.length === 0 ? (
-                          <Box sx={{ textAlign: 'center', py: 6, bgcolor: T.surface.cardAlt, borderRadius: 3, border: `1.5px dashed ${T.surface.border}` }}>
-                            <LightbulbIcon sx={{ fontSize: 44, color: T.text.faint, mb: 1 }} />
-                            <Typography sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 16, color: T.text.heading }}>
-                              No Category Concern Flags
+                          <Box sx={{
+                            textAlign: 'center',
+                            py: 6,
+                            px: 3,
+                            bgcolor: '#f0fdf4',
+                            borderRadius: 3,
+                            border: '1.5px dashed #86efac',
+                          }}>
+                            <CheckCircleIcon sx={{ fontSize: 48, color: '#10b981', mb: 1 }} />
+                            <Typography sx={{ fontFamily: T.font.family, fontWeight: 800, fontSize: 17, color: '#065f46' }}>
+                              All Library Service Categories Performing Optimally
                             </Typography>
-                            <Typography sx={{ fontFamily: T.font.family, fontSize: 13, color: T.text.muted, mt: 0.5 }}>
-                              All library service categories are currently performing below the negative sentiment threshold.
+                            <Typography sx={{ fontFamily: T.font.family, fontSize: 13.5, color: '#047857', mt: 0.5, maxWidth: 600, mx: 'auto' }}>
+                              Negative patron sentiment is currently below the concern threshold across Facilities, Staff, and Collection services.
                             </Typography>
                           </Box>
-                        ) : categoryStats.map((c) => {
-                          const isHigh = c.severity === 'high';
-                          const leftAccentColor = isHigh ? '#dc2626' : '#f87171';
-                          const badgeBg = isHigh ? '#7f1d1d' : '#ffe4e6';
-                          const badgeColor = isHigh ? '#ffffff' : '#e11d48';
-
-                          return (
-                            <Box
-                              key={c.category}
-                              sx={{
-                                position: 'relative',
-                                bgcolor: '#ffffff',
-                                borderRadius: '16px',
-                                border: '1.5px solid #e2e8f0',
-                                borderLeft: `5px solid ${leftAccentColor}`,
-                                p: { xs: 2.5, md: 3 },
-                                boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
-                                transition: 'all 0.2s ease',
-                                '&:hover': {
-                                  boxShadow: '0 4px 14px rgba(0,0,0,0.05)',
-                                }
-                              }}
-                            >
-                              {/* Title & Priority Badge */}
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1, flexWrap: 'wrap' }}>
-                                <Typography sx={{ fontFamily: T.font.family, fontSize: 16, fontWeight: 800, color: '#0f172a' }}>
-                                  {c.category} — {c.pct}% negative
-                                </Typography>
-                                <Box
-                                  sx={{
-                                    px: 1.2,
-                                    py: 0.25,
-                                    borderRadius: '6px',
-                                    bgcolor: badgeBg,
-                                    color: badgeColor,
-                                    fontFamily: T.font.family,
-                                    fontSize: 10.5,
-                                    fontWeight: 800,
-                                    letterSpacing: '0.6px',
-                                    textTransform: 'uppercase',
-                                    lineHeight: 1.2,
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                  }}
-                                >
-                                  {c.severity}
-                                </Box>
-                              </Box>
-
-                              {/* Actionable Recommendation Text */}
-                              <Typography sx={{ fontFamily: T.font.family, fontSize: 15.5, color: '#1e293b', fontWeight: 600, lineHeight: 1.6, mb: 2 }}>
-                                {RECOMMENDATIONS[c.category]?.[c.severity] || ''}
-                              </Typography>
-
-                              {/* Supporting Patron Feedback Evidence Box */}
-                              {c.topEvidences && c.topEvidences.length > 0 && (
-                                <Box
-                                  sx={{
-                                    bgcolor: '#f8fafc',
-                                    borderRadius: '12px',
-                                    border: '1.5px solid #e2e8f0',
-                                    p: { xs: 2.2, md: 2.5 },
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: 1.2,
-                                  }}
-                                >
-                                  <Typography
-                                    sx={{
-                                      fontFamily: T.font.family,
-                                      fontSize: 12,
-                                      fontWeight: 800,
-                                      color: '#475569',
-                                      textTransform: 'uppercase',
-                                      letterSpacing: '0.8px',
-                                    }}
-                                  >
-                                    SUPPORTING PATRON FEEDBACK EVIDENCE — TOP KEYWORD: "{(c.primaryKw || 'GENERAL').toUpperCase()}"
-                                  </Typography>
-
-                                  {c.topEvidences.slice(0, 2).map((ev, idx) => (
-                                    <Typography
-                                      key={idx}
-                                      sx={{
-                                        fontFamily: T.font.family,
-                                        fontSize: 15,
-                                        fontStyle: 'italic',
-                                        color: '#0f172a',
-                                        fontWeight: 500,
-                                        lineHeight: 1.6,
-                                      }}
-                                    >
-                                      "{ev.Message}"
-                                    </Typography>
-                                  ))}
-                                </Box>
-                              )}
-                            </Box>
-                          );
-                        })}
+                        ) : (
+                          <Box sx={{
+                            display: 'grid',
+                            gridTemplateColumns: categoryStats.length === 1
+                              ? '1fr'
+                              : categoryStats.length === 2
+                                ? { xs: '1fr', lg: '1fr 1fr' }
+                                : { xs: '1fr', md: '1fr 1fr', xl: 'repeat(3, 1fr)' },
+                            gap: 3,
+                            alignItems: 'stretch',
+                          }}>
+                            {categoryStats.map((c) => (
+                              <RecommendationCard
+                                key={c.category}
+                                stat={c}
+                                recommendationText={RECOMMENDATIONS[c.category]?.[c.severity]}
+                              />
+                            ))}
+                          </Box>
+                        )}
                       </CardContent>
                     </Card>
 
