@@ -78,12 +78,16 @@ import {
   SummaryCard,
   TopCommentsCard,
   CustomDivergingTrendTooltip,
-  CustomSentimentStackedTooltip,
   CustomDonutGaugeTooltip,
 } from '../Components/SentimentCharts';
 
 // Re-export for external consumers (e.g. other pages importing CONTROLLED_LEXICON)
 export { CONTROLLED_LEXICON } from '../constants/sentimentConstants';
+
+const MONTH_CODE_MAP = {
+  Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06',
+  Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12'
+};
 
 const T = THEME;
 
@@ -124,7 +128,6 @@ const SentimentDashboard = () => {
   };
 
   const [surveys, setSurveys] = useState([]);
-  const [allSurveys, setAllSurveys] = useState([]);
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -133,6 +136,7 @@ const SentimentDashboard = () => {
   const [filterSentiment, setFilterSentiment] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterYear, setFilterYear] = useState('2026');
+  const [filterMonth, setFilterMonth] = useState('All');
   const [page, setPage] = useState(0);
 
   // Word Cloud interactive states & filters
@@ -156,16 +160,11 @@ const SentimentDashboard = () => {
 
   const printRef = useRef();
 
-  const fetchSurveys = async (sDate = startDate, eDate = endDate) => {
+  const fetchSurveys = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('http://localhost:5000/api/surveys', {
-        params: { startDate: sDate, endDate: eDate },
-      });
-      setSurveys(response.data);
-      if (!sDate && !eDate) {
-        setAllSurveys(response.data);
-      }
+      const response = await axios.get('http://localhost:5000/api/surveys');
+      setSurveys(response.data || []);
       setPage(0);
       setSelectedRowIds([]);
     } catch (err) {
@@ -177,10 +176,6 @@ const SentimentDashboard = () => {
 
   useEffect(() => {
     fetchSurveys();
-    // Pre-fetch all surveys to guarantee stable, fixed Top 5 comments regardless of active date filters
-    axios.get('http://localhost:5000/api/surveys')
-      .then(res => setAllSurveys(res.data))
-      .catch(err => console.error('Error prefetching all surveys:', err));
   }, []); // eslint-disable-line
 
   const handleDatePreset = (presetKey) => {
@@ -194,6 +189,8 @@ const SentimentDashboard = () => {
 
     let newStart = '';
     let newEnd = '';
+    let newMonth = 'All';
+    let newYear = filterYear || '2026';
 
     if (presetKey === 'today') {
       const dateStr = formatISO(today);
@@ -205,18 +202,34 @@ const SentimentDashboard = () => {
       const startOfWeek = new Date(today.getFullYear(), today.getMonth(), diff);
       newStart = formatISO(startOfWeek);
       newEnd = formatISO(new Date());
-    } else if (presetKey === 'month') {
-      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-      newStart = formatISO(startOfMonth);
-      newEnd = formatISO(new Date());
+    } else if (presetKey === 'jan') {
+      newStart = '2026-01-01';
+      newEnd = '2026-01-31';
+      newMonth = 'Jan';
+    } else if (presetKey === 'feb') {
+      newStart = '2026-02-01';
+      newEnd = '2026-02-28';
+      newMonth = 'Feb';
+    } else if (presetKey === 'mar') {
+      newStart = '2026-03-01';
+      newEnd = '2026-03-31';
+      newMonth = 'Mar';
+    } else if (presetKey === 'q1') {
+      newStart = '2026-01-01';
+      newEnd = '2026-03-31';
+      newMonth = 'All';
     } else if (presetKey === 'all') {
       newStart = '';
       newEnd = '';
+      newMonth = 'All';
+      newYear = 'All';
     }
+
     setStartDate(newStart);
     setEndDate(newEnd);
+    setFilterMonth(newMonth);
+    setFilterYear(newYear);
     setPage(0);
-    fetchSurveys(newStart, newEnd);
   };
 
   const handleToggleSelectRow = (id) => {
@@ -237,7 +250,6 @@ const SentimentDashboard = () => {
         const response = await axios.delete(`http://localhost:5000/api/surveys/${recordToDelete.Id}`);
         if (response.data.success) {
           setSurveys(prev => prev.filter(s => s.Id !== recordToDelete.Id));
-          setAllSurveys(prev => prev.filter(s => s.Id !== recordToDelete.Id));
           setSelectedRowIds(prev => prev.filter(id => id !== recordToDelete.Id));
           setSnackbarMsg('Review entry deleted successfully.');
         }
@@ -245,7 +257,6 @@ const SentimentDashboard = () => {
         const deletePromises = selectedRowIds.map(id => axios.delete(`http://localhost:5000/api/surveys/${id}`));
         await Promise.all(deletePromises);
         setSurveys(prev => prev.filter(s => !selectedRowIds.includes(s.Id)));
-        setAllSurveys(prev => prev.filter(s => !selectedRowIds.includes(s.Id)));
         setSnackbarMsg(`${selectedRowIds.length} review entries deleted successfully.`);
         setSelectedRowIds([]);
       }
@@ -263,7 +274,10 @@ const SentimentDashboard = () => {
     if (key === 'date') {
       setStartDate('');
       setEndDate('');
-      fetchSurveys('', '');
+    } else if (key === 'month') {
+      setFilterMonth('All');
+    } else if (key === 'year') {
+      setFilterYear('All');
     } else if (key === 'clientele') {
       setFilterClientele('');
     } else if (key === 'college') {
@@ -279,6 +293,8 @@ const SentimentDashboard = () => {
   const handleClear = () => {
     setStartDate('');
     setEndDate('');
+    setFilterMonth('All');
+    setFilterYear('2026');
     setFilterClientele('');
     setFilterCollege('');
     setFilterSentiment('');
@@ -288,7 +304,7 @@ const SentimentDashboard = () => {
     setWcSentimentFilter('All');
     setSortField('DateSubmitted');
     setSortOrder('desc');
-    fetchSurveys('', '');
+    setPage(0);
   };
 
   const handleRequestSort = (field) => {
@@ -298,28 +314,56 @@ const SentimentDashboard = () => {
     setPage(0);
   };
 
-  const filtered = surveys.filter(s => {
-    if (!s.SentimentResult) return false;
-    if (filterClientele && s.Clientele?.toLowerCase() !== filterClientele.toLowerCase()) return false;
-    if (filterCollege && s.College !== filterCollege) return false;
-    if (filterSentiment && s.SentimentResult !== filterSentiment) return false;
-    if (filterCategory && (s.Category || 'Other/Uncategorized') !== filterCategory) return false;
+  const filtered = useMemo(() => {
+    return surveys.filter(s => {
+      if (!s.SentimentResult) return false;
+      if (filterClientele && s.Clientele?.toLowerCase() !== filterClientele.toLowerCase()) return false;
+      if (filterCollege && s.College !== filterCollege) return false;
+      if (filterSentiment && s.SentimentResult !== filterSentiment) return false;
+      if (filterCategory && (s.Category || 'Other/Uncategorized') !== filterCategory) return false;
 
-    return true;
-  });
+      if (!s.DateSubmitted) return false;
+      const str = typeof s.DateSubmitted === 'string' ? s.DateSubmitted.trim() : '';
+      const dayStr = str.slice(0, 10);
+      const yr = str.slice(0, 4);
+      const mo = str.slice(5, 7);
 
-  const counts = { Positive: 0, Neutral: 0, Negative: 0 };
-  const categoryCounts = { Facilities: 0, Staff: 0, Collection: 0, 'Other/Uncategorized': 0 };
+      if (filterYear && filterYear !== 'All' && yr !== filterYear) return false;
+      if (filterMonth && filterMonth !== 'All' && mo !== MONTH_CODE_MAP[filterMonth]) return false;
 
-  filtered.forEach(s => {
-    if (counts[s.SentimentResult] !== undefined) counts[s.SentimentResult]++;
-    const cat = s.Category || 'Other/Uncategorized';
-    if (categoryCounts[cat] !== undefined) {
-      categoryCounts[cat]++;
-    } else {
-      categoryCounts['Other/Uncategorized']++;
-    }
-  });
+      if (startDate && endDate) {
+        if (dayStr < startDate || dayStr > endDate) return false;
+      } else if (startDate) {
+        if (dayStr < startDate) return false;
+      } else if (endDate) {
+        if (dayStr > endDate) return false;
+      }
+
+      return true;
+    });
+  }, [surveys, filterClientele, filterCollege, filterSentiment, filterCategory, filterYear, filterMonth, startDate, endDate]);
+
+  const counts = useMemo(() => {
+    const c = { Positive: 0, Neutral: 0, Negative: 0 };
+    filtered.forEach(s => {
+      if (c[s.SentimentResult] !== undefined) c[s.SentimentResult]++;
+    });
+    return c;
+  }, [filtered]);
+
+  const categoryCounts = useMemo(() => {
+    const cc = { Facilities: 0, Staff: 0, Collection: 0, 'Other/Uncategorized': 0 };
+    filtered.forEach(s => {
+      const cat = s.Category || 'Other/Uncategorized';
+      if (cc[cat] !== undefined) {
+        cc[cat]++;
+      } else {
+        cc['Other/Uncategorized']++;
+      }
+    });
+    return cc;
+  }, [filtered]);
+
   const total = filtered.length;
 
   const filteredWithWord = useMemo(() => {
@@ -333,14 +377,40 @@ const SentimentDashboard = () => {
     });
   }, [filtered, selectedWordFilter]);
 
-  const reviewRows = [...filteredWithWord]
-    .sort((a, b) => {
+  const tableMonthCounts = useMemo(() => {
+    const counts = { All: 0 };
+    MONTH_NAMES.forEach(m => (counts[m] = 0));
+    surveys.forEach(s => {
+      if (!s.SentimentResult) return;
+      if (filterClientele && s.Clientele?.toLowerCase() !== filterClientele.toLowerCase()) return;
+      if (filterCollege && s.College !== filterCollege) return;
+      if (filterSentiment && s.SentimentResult !== filterSentiment) return;
+      if (filterCategory && (s.Category || 'Other/Uncategorized') !== filterCategory) return;
+      if (s.DateSubmitted && typeof s.DateSubmitted === 'string') {
+        const yr = s.DateSubmitted.slice(0, 4);
+        if (filterYear && filterYear !== 'All' && yr !== filterYear) return;
+        const mNum = parseInt(s.DateSubmitted.slice(5, 7), 10);
+        if (mNum >= 1 && mNum <= 12) {
+          const mName = MONTH_NAMES[mNum - 1];
+          counts[mName] = (counts[mName] || 0) + 1;
+          counts.All++;
+        }
+      }
+    });
+    return counts;
+  }, [surveys, filterClientele, filterCollege, filterSentiment, filterCategory, filterYear]);
+
+  const reviewRows = useMemo(() => {
+    return [...filteredWithWord].sort((a, b) => {
       let valA = a[sortField];
       let valB = b[sortField];
 
       if (sortField === 'DateSubmitted') {
-        valA = a.DateSubmitted ? new Date(a.DateSubmitted).getTime() : 0;
-        valB = b.DateSubmitted ? new Date(b.DateSubmitted).getTime() : 0;
+        const strA = a.DateSubmitted || '';
+        const strB = b.DateSubmitted || '';
+        if (strA < strB) return sortOrder === 'asc' ? -1 : 1;
+        if (strA > strB) return sortOrder === 'asc' ? 1 : -1;
+        return 0;
       } else if (typeof valA === 'string') {
         valA = (valA || '').toLowerCase();
         valB = (valB || '').toLowerCase();
@@ -353,6 +423,7 @@ const SentimentDashboard = () => {
       if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
       return 0;
     });
+  }, [filteredWithWord, sortField, sortOrder]);
   const totalPages = Math.ceil(reviewRows.length / ROWS_PER_PAGE);
   const pageRows = reviewRows.slice(page * ROWS_PER_PAGE, (page + 1) * ROWS_PER_PAGE);
 
@@ -369,7 +440,16 @@ const SentimentDashboard = () => {
     }
   };
 
-  const hasActiveFilter = Boolean(startDate || endDate || filterClientele || filterCollege || filterSentiment || filterCategory);
+  const hasActiveFilter = Boolean(
+    startDate ||
+    endDate ||
+    filterClientele ||
+    filterCollege ||
+    filterSentiment ||
+    filterCategory ||
+    (filterMonth && filterMonth !== 'All') ||
+    (filterYear && filterYear !== 'All' && filterYear !== '2026')
+  );
 
   // Overall Satisfaction Average (plain 1-5 scale from survey questions)
   const avgSatisfaction = filtered.length
@@ -379,9 +459,9 @@ const SentimentDashboard = () => {
   const availableYears = useMemo(() => {
     const yearsSet = new Set();
     surveys.forEach(s => {
-      if (s.DateSubmitted) {
-        const d = new Date(s.DateSubmitted.replace ? s.DateSubmitted.replace(' ', 'T') : s.DateSubmitted);
-        if (!isNaN(d.getFullYear())) yearsSet.add(d.getFullYear().toString());
+      if (s.DateSubmitted && typeof s.DateSubmitted === 'string') {
+        const y = s.DateSubmitted.slice(0, 4);
+        if (y && !isNaN(y)) yearsSet.add(y);
       }
     });
     const arr = Array.from(yearsSet).sort((a, b) => b - a);
@@ -399,22 +479,29 @@ const SentimentDashboard = () => {
         month: m,
         monthIndex: idx,
         Positive: 0,
-        Negative: 0,     // Plotted <= 0 for the downward bar
-        rawNegative: 0,  // Positive magnitude for display/labels
+        Negative: 0,
+        rawNegative: 0,
         Neutral: 0,
         Total: 0,
         scoresSum: 0,
       };
     });
 
-    filtered.forEach(s => {
-      if (!s.DateSubmitted) return;
-      const d = new Date(s.DateSubmitted.replace ? s.DateSubmitted.replace(' ', 'T') : s.DateSubmitted);
-      if (isNaN(d.getTime())) return;
-      const yr = d.getFullYear().toString();
+    surveys.forEach(s => {
+      if (!s.SentimentResult) return;
+      if (filterClientele && s.Clientele?.toLowerCase() !== filterClientele.toLowerCase()) return;
+      if (filterCollege && s.College !== filterCollege) return;
+      if (filterSentiment && s.SentimentResult !== filterSentiment) return;
+      if (filterCategory && (s.Category || 'Other/Uncategorized') !== filterCategory) return;
+
+      if (!s.DateSubmitted || typeof s.DateSubmitted !== 'string') return;
+      const yr = s.DateSubmitted.slice(0, 4);
       if (targetYear && yr !== targetYear) return;
 
-      const mIdx = d.getMonth();
+      const mNum = parseInt(s.DateSubmitted.slice(5, 7), 10);
+      if (isNaN(mNum) || mNum < 1 || mNum > 12) return;
+      const mIdx = mNum - 1;
+
       if (monthsMap[mIdx]) {
         if (s.SentimentResult === 'Positive') monthsMap[mIdx].Positive++;
         else if (s.SentimentResult === 'Neutral') monthsMap[mIdx].Neutral++;
@@ -437,12 +524,13 @@ const SentimentDashboard = () => {
         ...item,
         posPct,
         negPct,
-        negPctDiverging: -negPct, // Plotted below 0 for symmetric percentage bar
+        negPctDiverging: -negPct,
         avgSatisfaction: avg,
         netScore: net,
+        isSelectedMonth: filterMonth === m,
       };
     });
-  }, [filtered, filterYear]);
+  }, [surveys, filterYear, filterClientele, filterCollege, filterSentiment, filterCategory, filterMonth]);
 
   // Dynamic Y-Axis scale for balanced positive and negative headroom
   const maxVolume = useMemo(() => {
@@ -491,7 +579,7 @@ const SentimentDashboard = () => {
     return buildTermFrequencies(filtered.length > 0 ? filtered : surveys);
   }, [filtered, surveys]);
 
-  const commentsMasterPool = allSurveys.length > 0 ? allSurveys : surveys;
+  const commentsMasterPool = filtered;
 
   const positivePool = commentsMasterPool.filter(s => {
     if (s.SentimentResult !== 'Positive' || !s.Message?.trim()) return false;
@@ -761,10 +849,7 @@ const SentimentDashboard = () => {
     }, 500);
   };
 
-  // ── Gradient defs for charts ──────────────────────────────────────────────
-  const gP = T.chart.gradients.positive;
-  const gN = T.chart.gradients.neutral;
-  const gNe = T.chart.gradients.negative;
+  // Donut chart gradient shortcuts
   const dP = T.chart.donutGradients.positive;
   const dNu = T.chart.donutGradients.neutral;
   const dNe = T.chart.donutGradients.negative;
@@ -867,15 +952,40 @@ const SentimentDashboard = () => {
                     <Typography sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 700, color: T.text.secondary, mr: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
                       <CalendarTodayIcon sx={{ fontSize: 16, color: T.brand.indigo }} /> Quick Date Range:
                     </Typography>
+                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('jan')} sx={datePresetBtnSx}>Jan 2026</Button>
+                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('feb')} sx={datePresetBtnSx}>Feb 2026</Button>
+                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('mar')} sx={datePresetBtnSx}>Mar 2026</Button>
+                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('q1')} sx={datePresetBtnSx}>Q1 (Jan–Mar 2026)</Button>
                     <Button size="small" variant="outlined" onClick={() => handleDatePreset('today')} sx={datePresetBtnSx}>Today</Button>
                     <Button size="small" variant="outlined" onClick={() => handleDatePreset('week')} sx={datePresetBtnSx}>This Week</Button>
-                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('month')} sx={datePresetBtnSx}>This Month</Button>
                     <Button size="small" variant="outlined" onClick={() => handleDatePreset('all')} sx={datePresetBtnSx}>All Time</Button>
                   </Box>
 
                   <Box sx={{ p: 3, display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-                    <TextField type="date" label="Start Date" InputLabelProps={{ shrink: true }} value={startDate} onChange={(e) => setStartDate(e.target.value)} sx={selectSx} />
-                    <TextField type="date" label="End Date" InputLabelProps={{ shrink: true }} value={endDate} onChange={(e) => setEndDate(e.target.value)} sx={selectSx} />
+                    <TextField
+                      type="date"
+                      label="Start Date"
+                      InputLabelProps={{ shrink: true }}
+                      value={startDate}
+                      onChange={(e) => {
+                        setStartDate(e.target.value);
+                        if (e.target.value) setFilterMonth('All');
+                        setPage(0);
+                      }}
+                      sx={selectSx}
+                    />
+                    <TextField
+                      type="date"
+                      label="End Date"
+                      InputLabelProps={{ shrink: true }}
+                      value={endDate}
+                      onChange={(e) => {
+                        setEndDate(e.target.value);
+                        if (e.target.value) setFilterMonth('All');
+                        setPage(0);
+                      }}
+                      sx={selectSx}
+                    />
                     <FormControl sx={selectSx}>
                       <InputLabel>Clientele</InputLabel>
                       <Select value={filterClientele} label="Clientele" onChange={(e) => { setFilterClientele(e.target.value); setPage(0); }}>
@@ -907,6 +1017,26 @@ const SentimentDashboard = () => {
                       </Select>
                     </FormControl>
                     <FormControl sx={selectSx}>
+                      <InputLabel>Month</InputLabel>
+                      <Select
+                        value={filterMonth}
+                        label="Month"
+                        onChange={(e) => {
+                          setFilterMonth(e.target.value);
+                          if (e.target.value !== 'All') {
+                            setStartDate('');
+                            setEndDate('');
+                          }
+                          setPage(0);
+                        }}
+                      >
+                        <MenuItem value="All" sx={menuItemSx}>All Months</MenuItem>
+                        {MONTH_NAMES.map(m => (
+                          <MenuItem key={m} value={m} sx={menuItemSx}>{m}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    <FormControl sx={selectSx}>
                       <InputLabel>Year</InputLabel>
                       <Select value={filterYear} label="Year" onChange={(e) => { setFilterYear(e.target.value); setPage(0); }}>
                         <MenuItem value="All" sx={menuItemSx}>All Years</MenuItem>
@@ -915,30 +1045,23 @@ const SentimentDashboard = () => {
                     </FormControl>
 
                     <Button
-                      variant="contained"
-                      onClick={fetchSurveys}
+                      variant="outlined"
+                      color="error"
+                      onClick={handleClear}
+                      startIcon={<RestartAltIcon />}
+                      disabled={!hasActiveFilter}
                       sx={{
-                        bgcolor: T.brand.indigo, px: 3.5, height: 46, borderRadius: T.radius.button,
-                        textTransform: 'none', fontFamily: T.font.family, fontWeight: 700, fontSize: 15,
-                        boxShadow: '0 4px 12px rgba(26, 35, 126, 0.25)',
-                        '&:hover': { bgcolor: T.brand.indigoHover }
+                        height: 46, px: 3, borderRadius: T.radius.button, textTransform: 'none',
+                        fontFamily: T.font.family, fontWeight: 700, fontSize: 14,
+                        borderColor: hasActiveFilter ? '#ef4444' : T.surface.border,
+                        color: hasActiveFilter ? '#ef4444' : T.text.muted,
+                        borderWidth: '1.5px',
+                        bgcolor: hasActiveFilter ? 'rgba(239, 68, 68, 0.05)' : 'transparent',
+                        '&:hover': { borderWidth: '1.5px', borderColor: '#dc2626', bgcolor: 'rgba(239, 68, 68, 0.1)' }
                       }}
                     >
-                      Apply Filters
+                      Clear Filters
                     </Button>
-                    {hasActiveFilter && (
-                      <Button
-                        variant="outlined" color="inherit" onClick={handleClear}
-                        sx={{
-                          height: 46, px: 3, borderRadius: T.radius.button, textTransform: 'none',
-                          fontFamily: T.font.family, fontWeight: 700, fontSize: 15,
-                          borderColor: T.surface.border, borderWidth: '1.5px',
-                          '&:hover': { borderWidth: '1.5px', borderColor: T.surface.borderHover }
-                        }}
-                      >
-                        Reset
-                      </Button>
-                    )}
                   </Box>
 
                   {/* ── Active Filter Chips Row ───── */}
@@ -949,6 +1072,14 @@ const SentimentDashboard = () => {
                       </Typography>
                       {(startDate || endDate) && (
                         <Chip label={`Date: ${startDate || 'Start'} to ${endDate || 'End'}`} onDelete={() => handleRemoveFilter('date')} size="small"
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: T.filterChips.date.bg, color: T.filterChips.date.color, border: `1.5px solid ${T.filterChips.date.border}` }} />
+                      )}
+                      {filterMonth && filterMonth !== 'All' && (
+                        <Chip label={`Month: ${filterMonth}`} onDelete={() => handleRemoveFilter('month')} size="small"
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: T.filterChips.date.bg, color: T.filterChips.date.color, border: `1.5px solid ${T.filterChips.date.border}` }} />
+                      )}
+                      {filterYear && filterYear !== 'All' && filterYear !== '2026' && (
+                        <Chip label={`Year: ${filterYear}`} onDelete={() => handleRemoveFilter('year')} size="small"
                           sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: T.filterChips.date.bg, color: T.filterChips.date.color, border: `1.5px solid ${T.filterChips.date.border}` }} />
                       )}
                       {filterClientele && (
@@ -1041,7 +1172,18 @@ const SentimentDashboard = () => {
 
                       <CardContent sx={{ p: 3 }}>
                         <ResponsiveContainer width="100%" height={360}>
-                          <BarChart data={divergingTrendData} margin={{ top: 20, right: 30, left: 10, bottom: 5 }} stackOffset="sign">
+                          <BarChart
+                            data={divergingTrendData}
+                            margin={{ top: 20, right: 30, left: 10, bottom: 5 }}
+                            stackOffset="sign"
+                            style={{ cursor: 'pointer' }}
+                            onClick={(state) => {
+                              if (state && state.activeLabel) {
+                                setFilterMonth(prev => prev === state.activeLabel ? 'All' : state.activeLabel);
+                                setPage(0);
+                              }
+                            }}
+                          >
                             <defs>
                               <linearGradient id="divPosGrad" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="0%" stopColor="#86efac" stopOpacity={0.95} />
@@ -1372,6 +1514,10 @@ const SentimentDashboard = () => {
                             <Typography sx={sectionTitleSx}>Survey Response Review ({reviewRows.length} Matches)</Typography>
                             <Typography sx={sectionSubtitleSx}>Detailed row-by-row inspection with rating scores and NLP classifications</Typography>
                           </Box>
+                          {filterMonth !== 'All' && (
+                            <Chip label={`Month: ${filterMonth}`} size="small" onDelete={() => { setFilterMonth('All'); setPage(0); }}
+                              sx={{ fontWeight: 700, fontFamily: T.font.family, borderRadius: T.radius.pill, bgcolor: T.brand.indigo, color: 'white', ml: 1 }} />
+                          )}
                           {selectedWordFilter && (
                             <Chip label={`Word Filter: "${selectedWordFilter}"`} color="warning" size="small" onDelete={() => setSelectedWordFilter('')}
                               sx={{ fontWeight: 700, fontFamily: T.font.family, borderRadius: T.radius.pill, bgcolor: T.status.wordHighlight, color: 'white', ml: 1 }} />
@@ -1385,6 +1531,95 @@ const SentimentDashboard = () => {
                             </Button>
                           )}
                         </Box>
+                      </Box>
+
+                      {/* ── Table Month Filter Buttons Bar ───── */}
+                      <Box sx={{
+                        px: 3, py: 1.5,
+                        bgcolor: T.surface.cardAlt,
+                        borderBottom: `1.5px solid ${T.surface.borderLight}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 1.5,
+                        flexWrap: 'wrap'
+                      }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, flexWrap: 'wrap' }}>
+                          <Typography sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 700, color: T.text.secondary, mr: 0.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <CalendarTodayIcon sx={{ fontSize: 16, color: T.brand.indigo }} /> Filter Month:
+                          </Typography>
+                          <Button
+                            size="small"
+                            variant={filterMonth === 'All' ? 'contained' : 'outlined'}
+                            onClick={() => { setFilterMonth('All'); setPage(0); }}
+                            sx={{
+                              borderRadius: T.radius.pill,
+                              textTransform: 'none',
+                              fontFamily: T.font.family,
+                              fontWeight: 700,
+                              fontSize: 12,
+                              px: 1.8,
+                              py: 0.35,
+                              minWidth: 'auto',
+                              ...(filterMonth === 'All'
+                                ? { bgcolor: T.brand.indigo, color: '#fff', '&:hover': { bgcolor: T.brand.indigoHover } }
+                                : { borderColor: T.surface.border, color: T.text.body, bgcolor: T.surface.card, '&:hover': { borderColor: T.brand.indigo, bgcolor: T.surface.cardAltHover } }
+                              )
+                            }}
+                          >
+                            All ({tableMonthCounts.All || 0})
+                          </Button>
+                          {MONTH_NAMES.map(m => {
+                            const c = tableMonthCounts[m] || 0;
+                            const isSelected = filterMonth === m;
+                            return (
+                              <Button
+                                key={m}
+                                size="small"
+                                variant={isSelected ? 'contained' : 'outlined'}
+                                onClick={() => { setFilterMonth(isSelected ? 'All' : m); setPage(0); }}
+                                sx={{
+                                  borderRadius: T.radius.pill,
+                                  textTransform: 'none',
+                                  fontFamily: T.font.family,
+                                  fontWeight: 700,
+                                  fontSize: 12,
+                                  px: 1.5,
+                                  py: 0.35,
+                                  minWidth: 'auto',
+                                  ...(isSelected
+                                    ? { bgcolor: T.brand.indigo, color: '#fff', '&:hover': { bgcolor: T.brand.indigoHover } }
+                                    : {
+                                        borderColor: c > 0 ? T.surface.border : 'rgba(0,0,0,0.06)',
+                                        color: c > 0 ? T.text.body : T.text.faint,
+                                        bgcolor: c > 0 ? T.surface.card : 'transparent',
+                                        '&:hover': { borderColor: T.brand.indigo, bgcolor: T.surface.cardAltHover }
+                                      }
+                                  )
+                                }}
+                              >
+                                {m} {c > 0 ? `(${c})` : ''}
+                              </Button>
+                            );
+                          })}
+                        </Box>
+
+                        {filterMonth !== 'All' && (
+                          <Button
+                            size="small"
+                            onClick={() => { setFilterMonth('All'); setPage(0); }}
+                            startIcon={<RestartAltIcon sx={{ fontSize: 15 }} />}
+                            sx={{
+                              fontFamily: T.font.family,
+                              textTransform: 'none',
+                              fontWeight: 700,
+                              fontSize: 12,
+                              color: '#ef4444'
+                            }}
+                          >
+                            Reset Month
+                          </Button>
+                        )}
                       </Box>
 
                       <Box sx={{ p: 3 }}>
