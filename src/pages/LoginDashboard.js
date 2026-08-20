@@ -38,7 +38,7 @@ import {
 } from '@mui/icons-material';
 import {
   PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer,
-  BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, ComposedChart, Scatter
+  BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid
 } from 'recharts';
 import * as XLSX from 'xlsx';
 import { useNavigate } from 'react-router-dom';
@@ -397,48 +397,6 @@ const ItemChipsView = ({ data = [], totalVisits = 0, isCollegeLevel = false, sel
   );
 };
 
-// ── Suggestion 2: Lollipop / Dot Plot View ───────
-const LollipopChartView = ({ data = [], selectedCollege = 'All' }) => {
-  if (!data || data.length === 0) {
-    return (
-      <Box sx={{ p: 4, height: 340, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-        <Typography color="textSecondary" sx={{ fontFamily: T.font.family, fontSize: 13.5 }}>
-          No data available for Lollipop Chart view.
-        </Typography>
-      </Box>
-    );
-  }
-
-  return (
-    <Box sx={{ py: 1, height: 340 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-        <Chip
-          icon={<ShowChartIcon sx={{ fontSize: '15px !important', color: '#b45309 !important' }} />}
-          label={selectedCollege === 'All' ? "Colleges Stem Dot Plot" : `Courses in ${selectedCollege} (Lollipop Chart)`}
-          size="small"
-          sx={{ fontWeight: 700, fontFamily: T.font.family, fontSize: 12, bgcolor: '#fef3c7', color: '#b45309', borderRadius: '9999px' }}
-        />
-      </Box>
-      <ResponsiveContainer width="100%" height={300}>
-        <ComposedChart
-          data={data}
-          margin={{ top: 20, right: 30, left: 0, bottom: 25 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-          <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b', fontFamily: T.font.family }} interval={0} angle={-25} textAnchor="end" height={65} />
-          <YAxis tick={{ fontSize: 12, fill: '#64748b', fontFamily: T.font.family }} />
-          <RechartsTooltip content={<CustomBarTooltip />} />
-          <Bar dataKey="total" barSize={4} radius={[4, 4, 0, 0]}>
-            {data.map((entry, index) => (
-              <Cell key={`cell-lolly-${index}`} fill={COURSE_COLORS[index % COURSE_COLORS.length]} />
-            ))}
-          </Bar>
-          <Scatter dataKey="total" fill="#4f46e5" shape="circle" />
-        </ComposedChart>
-      </ResponsiveContainer>
-    </Box>
-  );
-};
 
 // ── Dynamic Custom Tooltip for Stacked Bar Chart ──────────────────────────
 const CustomBarTooltip = ({ active, payload, label }) => {
@@ -1644,9 +1602,6 @@ const LoginDashboard = () => {
                               <MenuItem value="chips" sx={{ ...menuItemSx, display: 'flex', alignItems: 'center', gap: 1, fontSize: 13 }}>
                                 <CategoryIcon sx={{ fontSize: 17, color: '#4f46e5' }} /> Item Chips View
                               </MenuItem>
-                              <MenuItem value="lollipop" sx={{ ...menuItemSx, display: 'flex', alignItems: 'center', gap: 1, fontSize: 13 }}>
-                                <ShowChartIcon sx={{ fontSize: 17, color: '#4f46e5' }} /> Lollipop View
-                              </MenuItem>
                             </Select>
                           </FormControl>
                         </Box>
@@ -1657,11 +1612,6 @@ const LoginDashboard = () => {
                               data={mainChartData}
                               totalVisits={totalEntries}
                               isCollegeLevel={selectedCollege === 'All'}
-                              selectedCollege={selectedCollege}
-                            />
-                          ) : effectiveMode === 'lollipop' ? (
-                            <LollipopChartView
-                              data={mainChartData}
                               selectedCollege={selectedCollege}
                             />
                           ) : (
