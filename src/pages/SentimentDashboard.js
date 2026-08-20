@@ -73,6 +73,7 @@ import {
 import {
   CLIENTELE_OPTIONS,
   COLLEGE_OPTIONS,
+  COLLEGE_COURSES,
   CATEGORY_OPTIONS,
   MONTH_NAMES,
   QUARTER_OPTIONS,
@@ -155,12 +156,26 @@ const SentimentDashboard = () => {
   const [endDate, setEndDate] = useState('');
   const [filterClientele, setFilterClientele] = useState('');
   const [filterCollege, setFilterCollege] = useState('');
+  const [filterCourse, setFilterCourse] = useState('');
   const [filterSentiment, setFilterSentiment] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterYear, setFilterYear] = useState('2026');
   const [filterQuarter, setFilterQuarter] = useState('All');
   const [filterMonth, setFilterMonth] = useState('All');
   const [page, setPage] = useState(0);
+
+  const availableCourses = useMemo(() => {
+    if (filterCollege && COLLEGE_COURSES[filterCollege]) {
+      return COLLEGE_COURSES[filterCollege];
+    }
+    return [];
+  }, [filterCollege]);
+
+  const handleCollegeChange = (col) => {
+    setFilterCollege(col);
+    setFilterCourse('');
+    setPage(0);
+  };
 
   // Word Cloud interactive states & filters
   const [, setWcSearch] = useState('');
@@ -318,6 +333,9 @@ const SentimentDashboard = () => {
       setFilterClientele('');
     } else if (key === 'college') {
       setFilterCollege('');
+      setFilterCourse('');
+    } else if (key === 'course') {
+      setFilterCourse('');
     } else if (key === 'sentiment') {
       setFilterSentiment('');
     } else if (key === 'category') {
@@ -334,6 +352,7 @@ const SentimentDashboard = () => {
     setFilterYear('2026');
     setFilterClientele('');
     setFilterCollege('');
+    setFilterCourse('');
     setFilterSentiment('');
     setFilterCategory('');
     setSelectedWordFilter('');
@@ -356,6 +375,7 @@ const SentimentDashboard = () => {
       if (!s.SentimentResult) return false;
       if (filterClientele && s.Clientele?.toLowerCase() !== filterClientele.toLowerCase()) return false;
       if (filterCollege && s.College !== filterCollege) return false;
+      if (filterCourse && s.Course !== filterCourse) return false;
       if (filterSentiment && s.SentimentResult !== filterSentiment) return false;
       if (filterCategory && (s.Category || 'Other/Uncategorized') !== filterCategory) return false;
 
@@ -385,7 +405,7 @@ const SentimentDashboard = () => {
 
       return true;
     });
-  }, [surveys, filterClientele, filterCollege, filterSentiment, filterCategory, filterYear, filterQuarter, filterMonth, startDate, endDate]);
+  }, [surveys, filterClientele, filterCollege, filterCourse, filterSentiment, filterCategory, filterYear, filterQuarter, filterMonth, startDate, endDate]);
 
   const counts = useMemo(() => {
     const c = { Positive: 0, Neutral: 0, Negative: 0 };
@@ -428,6 +448,7 @@ const SentimentDashboard = () => {
       if (!s.SentimentResult) return;
       if (filterClientele && s.Clientele?.toLowerCase() !== filterClientele.toLowerCase()) return;
       if (filterCollege && s.College !== filterCollege) return;
+      if (filterCourse && s.Course !== filterCourse) return;
       if (filterSentiment && s.SentimentResult !== filterSentiment) return;
       if (filterCategory && (s.Category || 'Other/Uncategorized') !== filterCategory) return;
       if (s.DateSubmitted && typeof s.DateSubmitted === 'string') {
@@ -442,7 +463,7 @@ const SentimentDashboard = () => {
       }
     });
     return counts;
-  }, [surveys, filterClientele, filterCollege, filterSentiment, filterCategory, filterYear]);
+  }, [surveys, filterClientele, filterCollege, filterCourse, filterSentiment, filterCategory, filterYear]);
 
   const reviewRows = useMemo(() => {
     return [...filteredWithWord].sort((a, b) => {
@@ -489,6 +510,7 @@ const SentimentDashboard = () => {
     endDate ||
     filterClientele ||
     filterCollege ||
+    filterCourse ||
     filterSentiment ||
     filterCategory ||
     (filterQuarter && filterQuarter !== 'All') ||
@@ -536,6 +558,7 @@ const SentimentDashboard = () => {
       if (!s.SentimentResult) return;
       if (filterClientele && s.Clientele?.toLowerCase() !== filterClientele.toLowerCase()) return;
       if (filterCollege && s.College !== filterCollege) return;
+      if (filterCourse && s.Course !== filterCourse) return;
       if (filterSentiment && s.SentimentResult !== filterSentiment) return;
       if (filterCategory && (s.Category || 'Other/Uncategorized') !== filterCategory) return;
 
@@ -762,7 +785,10 @@ const SentimentDashboard = () => {
         const totalMatches = sortedKwEntries.reduce((acc, [, c]) => acc + c, 0);
         if (totalMatches === 0 && poolNegItems.length > 0) return;
 
-        const finalKeywords = sortedKwEntries.slice(0, 3).map(([word, count]) => ({ word, count }));
+        const finalKeywords = sortedKwEntries.slice(0, 3).map(([word, count]) => ({
+          word: word ? (word.charAt(0).toUpperCase() + word.slice(1)) : '',
+          count,
+        }));
         const scoredEvs = scoreCommentsWithLexicon(matchedItems);
         const topEvidences = scoredEvs
           .sort((a, b) => (b.blendedScore || 0) - (a.blendedScore || 0))
@@ -778,7 +804,9 @@ const SentimentDashboard = () => {
           category: catName,
           severity,
           action,
-          keywords: finalKeywords.length > 0 ? finalKeywords : synonyms.slice(0, 3).map(w => ({ word: w, count: 1 })),
+          keywords: finalKeywords.length > 0
+            ? finalKeywords
+            : synonyms.slice(0, 3).map(w => ({ word: w ? (w.charAt(0).toUpperCase() + w.slice(1)) : '', count: 1 })),
           evidences: topEvidences,
           matchCount: totalMatches,
         });
@@ -802,7 +830,10 @@ const SentimentDashboard = () => {
           category: cat,
           severity: catItems.length >= 5 ? 'HIGH' : 'MODERATE',
           action: RECOMMENDATIONS[cat]?.high || RECOMMENDATIONS[cat]?.moderate || 'Review patron feedback and prioritize operational adjustments.',
-          keywords: (CATEGORY_KEYWORDS[cat] ? Object.keys(CATEGORY_KEYWORDS[cat]).slice(0, 3) : ['feedback']).map(w => ({ word: w, count: 1 })),
+          keywords: (CATEGORY_KEYWORDS[cat] ? Object.keys(CATEGORY_KEYWORDS[cat]).slice(0, 3) : ['Feedback']).map(w => ({
+            word: w ? (w.charAt(0).toUpperCase() + w.slice(1)) : '',
+            count: 1,
+          })),
           evidences: scored.slice(0, 3),
           matchCount: catItems.length,
         };
@@ -1090,9 +1121,49 @@ const SentimentDashboard = () => {
                     </FormControl>
                     <FormControl sx={selectSx}>
                       <InputLabel>College</InputLabel>
-                      <Select value={filterCollege} label="College" onChange={(e) => { setFilterCollege(e.target.value); setPage(0); }}>
+                      <Select value={filterCollege} label="College" onChange={(e) => handleCollegeChange(e.target.value)}>
                         <MenuItem value="" sx={menuItemSx}>All</MenuItem>
                         {COLLEGE_OPTIONS.map(c => (<MenuItem key={c} value={c} sx={menuItemSx}>{c}</MenuItem>))}
+                      </Select>
+                    </FormControl>
+                    <FormControl
+                      sx={{
+                        ...selectSx,
+                        minWidth: 190,
+                        ...(!filterCollege ? {
+                          bgcolor: '#f1f5f9',
+                          borderRadius: '10px',
+                          cursor: 'not-allowed',
+                          '& .MuiOutlinedInput-notchedOutline': {
+                            borderColor: '#e2e8f0 !important',
+                          },
+                          '& .MuiInputLabel-root': {
+                            color: '#94a3b8 !important',
+                          },
+                        } : {}),
+                      }}
+                      disabled={!filterCollege}
+                    >
+                      <InputLabel>
+                        {!filterCollege ? 'Course (Select College)' : 'Course'}
+                      </InputLabel>
+                      <Select
+                        value={filterCollege ? filterCourse : ''}
+                        label={!filterCollege ? 'Course (Select College)' : 'Course'}
+                        onChange={(e) => { setFilterCourse(e.target.value); setPage(0); }}
+                        disabled={!filterCollege}
+                        sx={!filterCollege ? {
+                          bgcolor: '#f1f5f9',
+                          borderRadius: '10px',
+                          color: '#94a3b8',
+                          '& .MuiSelect-select': { cursor: 'not-allowed' },
+                          '&.Mui-disabled .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' }
+                        } : {}}
+                      >
+                        <MenuItem value="" sx={menuItemSx}>All</MenuItem>
+                        {availableCourses.map(crs => (
+                          <MenuItem key={crs} value={crs} sx={menuItemSx}>{crs}</MenuItem>
+                        ))}
                       </Select>
                     </FormControl>
                     <FormControl sx={selectSx}>
@@ -1188,6 +1259,10 @@ const SentimentDashboard = () => {
                       {filterCollege && (
                         <Chip label={`College: ${filterCollege}`} onDelete={() => handleRemoveFilter('college')} size="small"
                           sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#ede9fe', color: '#4f46e5', borderRadius: '9999px' }} />
+                      )}
+                      {filterCourse && (
+                        <Chip label={`Course: ${filterCourse}`} onDelete={() => handleRemoveFilter('course')} size="small"
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#e0f2fe', color: '#0369a1', borderRadius: '9999px' }} />
                       )}
                       {filterSentiment && (
                         <Chip label={`Sentiment: ${filterSentiment}`} onDelete={() => handleRemoveFilter('sentiment')} size="small"
@@ -1742,7 +1817,13 @@ const SentimentDashboard = () => {
                     </Card>
 
                     {/* ── Frequently Used Words (Word Cloud) Container ───── */}
-                    <Card elevation={0} sx={{ ...cardShellSx, mb: 3.5 }}>
+                    <Card elevation={0} sx={{
+                      ...cardShellSx,
+                      mb: 3.5,
+                      border: '1.5px solid rgba(79, 70, 229, 0.22)',
+                      borderTop: '3.5px solid #4f46e5',
+                      boxShadow: '0 2px 12px rgba(79, 70, 229, 0.04)',
+                    }}>
                       <Box sx={{ ...sectionHeaderSx, flexWrap: 'wrap', gap: 1.5 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
                           <Box sx={{
@@ -1795,8 +1876,10 @@ const SentimentDashboard = () => {
                     <Paper elevation={0} sx={{
                       borderRadius: 3.5,
                       bgcolor: '#ffffff',
-                      border: `1.5px solid ${T.surface.borderLight}`,
-                      boxShadow: '0 2px 12px rgba(0,0,0,0.03)',
+                      border: '1.5px solid rgba(79, 70, 229, 0.22)',
+                      borderTop: '3.5px solid #4f46e5',
+                      boxShadow: '0 2px 12px rgba(79, 70, 229, 0.04)',
+                      overflow: 'hidden',
                       p: { xs: 2, md: 3 },
                       mb: 3,
                     }}>

@@ -1,10 +1,10 @@
 // ── Sentiment Dashboard — Reusable Sub-Components ───────────────────────────
 // Chart components, chips, tooltips, and cards extracted from SentimentDashboard.
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box, Typography, Card, Avatar, Paper,
-  Tooltip,
+  Tooltip, ButtonBase,
 } from '@mui/material';
 import {
   ArrowDropUp as ArrowDropUpIcon,
@@ -13,6 +13,11 @@ import {
   Star as StarIcon,
   ThumbUp as ThumbUpIcon,
   ThumbDown as ThumbDownIcon,
+  LocalOffer as LocalOfferIcon,
+  FormatQuote as FormatQuoteIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
+  Bolt as BoltIcon,
 } from '@mui/icons-material';
 import { THEME } from '../constants/themeTokens';
 
@@ -252,6 +257,9 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
     }
     let term = row.topTerm || (row.Category ? row.Category.toLowerCase() : 'general');
     term = term.replace(/^"|"$/g, '').trim();
+    if (term) {
+      term = term.charAt(0).toUpperCase() + term.slice(1);
+    }
     const freq = row.maxTermFreq || 1;
     return `"${term}" (${freq}x)`;
   };
@@ -446,6 +454,8 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
 
 // ── Recommendation Card for a specific flagged category / topic ───────────
 export const RecommendationCard = ({ stat }) => {
+  const [expandedQuotes, setExpandedQuotes] = useState({});
+
   if (!stat) return null;
   const isHigh = (stat.severity || '').toUpperCase() === 'HIGH';
   const accentColor = isHigh ? '#ef4444' : '#f59e0b';
@@ -457,6 +467,10 @@ export const RecommendationCard = ({ stat }) => {
       str = str.slice(1, -1).trim();
     }
     return str;
+  };
+
+  const toggleQuoteExpand = (idx) => {
+    setExpandedQuotes(prev => ({ ...prev, [idx]: !prev[idx] }));
   };
 
   const keywords = stat.keywords || [];
@@ -484,78 +498,117 @@ export const RecommendationCard = ({ stat }) => {
       }}
     >
       {/* Header: Severity Badge + Topic Title */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, mb: 1.8 }}>
-        <Box sx={{
-          bgcolor: isHigh ? '#ef4444' : '#f59e0b',
-          color: '#ffffff',
-          px: 1.2,
-          py: 0.35,
-          borderRadius: '5px',
-          fontFamily: T.font.family,
-          fontSize: 11,
-          fontWeight: 800,
-          letterSpacing: '0.4px',
-          textTransform: 'uppercase',
-          lineHeight: 1.2,
-          flexShrink: 0,
-        }}>
-          {isHigh ? 'HIGH' : 'MODERATE'}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1.2, mb: 1.8 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, minWidth: 0 }}>
+          <Box sx={{
+            bgcolor: isHigh ? '#ef4444' : '#f59e0b',
+            color: '#ffffff',
+            px: 1.2,
+            py: 0.35,
+            borderRadius: '5px',
+            fontFamily: T.font.family,
+            fontSize: 11,
+            fontWeight: 800,
+            letterSpacing: '0.4px',
+            textTransform: 'uppercase',
+            lineHeight: 1.2,
+            flexShrink: 0,
+          }}>
+            {isHigh ? 'HIGH' : 'MODERATE'}
+          </Box>
+          <Typography sx={{
+            fontFamily: T.font.family,
+            fontWeight: 800,
+            fontSize: { xs: 14, sm: 15 },
+            color: '#0f172a',
+            letterSpacing: '-0.2px',
+            lineHeight: 1.3,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}>
+            {stat.title}
+          </Typography>
+        </Box>
+        {stat.category && (
+          <Typography sx={{
+            fontFamily: T.font.family,
+            fontSize: 11.5,
+            fontWeight: 700,
+            color: '#64748b',
+            bgcolor: '#f1f5f9',
+            px: 1.2,
+            py: 0.3,
+            borderRadius: '9999px',
+            flexShrink: 0,
+          }}>
+            {stat.category}
+          </Typography>
+        )}
+      </Box>
+
+      {/* Priority Action Box (Hero High-Contrast Callout) */}
+      <Box sx={{
+        background: 'linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%)',
+        borderRadius: 2.5,
+        p: { xs: 1.8, sm: 2 },
+        mb: 2.4,
+        border: '1.5px solid #c7d2fe',
+        borderLeft: '5px solid #4f46e5',
+        boxShadow: '0 3px 12px rgba(79, 70, 229, 0.08)',
+      }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, mb: 0.8 }}>
+          <Box sx={{
+            bgcolor: '#4338ca',
+            color: '#ffffff',
+            px: 1,
+            py: 0.3,
+            borderRadius: '5px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 0.4,
+          }}>
+            <BoltIcon sx={{ fontSize: 13 }} />
+            <Typography sx={{
+              fontFamily: T.font.family,
+              fontSize: 10.5,
+              fontWeight: 900,
+              letterSpacing: '0.6px',
+              textTransform: 'uppercase',
+              lineHeight: 1,
+            }}>
+              PRIORITY ACTION
+            </Typography>
+          </Box>
         </Box>
         <Typography sx={{
           fontFamily: T.font.family,
+          fontSize: { xs: 13.5, sm: 14.5 },
           fontWeight: 800,
-          fontSize: { xs: 14, sm: 15 },
-          color: '#0f172a',
-          letterSpacing: '-0.2px',
-          lineHeight: 1.3,
-        }}>
-          {stat.title}
-        </Typography>
-      </Box>
-
-      {/* Priority Action Box */}
-      <Box sx={{
-        bgcolor: '#f1f4fe',
-        borderRadius: '8px',
-        p: 1.8,
-        mb: 2,
-      }}>
-        <Typography sx={{
-          fontFamily: T.font.family,
-          fontSize: 11.5,
-          fontWeight: 800,
-          color: '#4338ca',
-          letterSpacing: '0.5px',
-          textTransform: 'uppercase',
-          lineHeight: 1.2,
-          mb: 0.6,
-        }}>
-          PRIORITY ACTION
-        </Typography>
-        <Typography sx={{
-          fontFamily: T.font.family,
-          fontSize: 13.5,
-          fontWeight: 500,
-          color: '#1e293b',
-          lineHeight: 1.55,
+          color: '#1e1b4b',
+          lineHeight: 1.5,
+          letterSpacing: '-0.1px',
         }}>
           {stat.action}
         </Typography>
       </Box>
 
       {/* Pain-Point Keywords Section */}
-      <Box sx={{ mb: 2 }}>
-        <Typography sx={{
-          fontFamily: T.font.family,
-          fontSize: 11.5,
-          fontWeight: 800,
-          color: '#64748b',
-          letterSpacing: '0.5px',
-          textTransform: 'uppercase',
-          mb: 1,
-        }}>
-          PAIN-POINT KEYWORDS
-        </Typography>
+      <Box sx={{ mb: 2.2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, mb: 1 }}>
+          <LocalOfferIcon sx={{ fontSize: 13, color: '#64748b' }} />
+          <Typography sx={{
+            fontFamily: T.font.family,
+            fontSize: 11,
+            fontWeight: 800,
+            color: '#64748b',
+            letterSpacing: '0.5px',
+            textTransform: 'uppercase',
+          }}>
+            PAIN-POINT KEYWORDS
+          </Typography>
+        </Box>
+
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, flexWrap: 'wrap' }}>
           {keywords.map((kw, i) => (
             <Box
@@ -563,77 +616,164 @@ export const RecommendationCard = ({ stat }) => {
               sx={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 0.6,
+                gap: 0.7,
                 bgcolor: '#ffffff',
-                border: '1.5px solid #e2e8f0',
+                border: isHigh ? '1.5px solid #fecaca' : '1.5px solid #fed7aa',
                 borderRadius: '9999px',
                 px: 1.4,
-                py: 0.4,
+                py: 0.45,
+                boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
               }}
             >
               <Typography sx={{
                 fontFamily: T.font.family,
                 fontSize: 12.5,
-                fontWeight: 600,
-                color: '#334155',
+                fontWeight: 700,
+                color: isHigh ? '#991b1b' : '#9a3412',
                 lineHeight: 1.2,
+                textTransform: 'capitalize',
               }}>
                 {kw.word}
               </Typography>
-              <Typography sx={{
-                fontFamily: T.font.family,
-                fontSize: 12.5,
-                fontWeight: 800,
-                color: isHigh ? '#ef4444' : '#ea580c',
-                lineHeight: 1.2,
+              <Box sx={{
+                bgcolor: isHigh ? '#ef4444' : '#ea580c',
+                color: '#ffffff',
+                borderRadius: '9999px',
+                px: 0.8,
+                py: 0.15,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}>
-                {kw.count}x
-              </Typography>
+                <Typography sx={{
+                  fontFamily: T.font.family,
+                  fontSize: 11,
+                  fontWeight: 800,
+                  color: '#ffffff',
+                  lineHeight: 1,
+                }}>
+                  {kw.count}x
+                </Typography>
+              </Box>
             </Box>
           ))}
         </Box>
       </Box>
 
-      {/* Patron Evidence Section */}
-      <Box sx={{ mt: 0 }}>
-        <Typography sx={{
-          fontFamily: T.font.family,
-          fontSize: 11.5,
-          fontWeight: 800,
-          color: '#64748b',
-          letterSpacing: '0.5px',
-          textTransform: 'uppercase',
-          mb: 1.1,
-        }}>
-          PATRON EVIDENCE
-        </Typography>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.1 }}>
+      {/* Patron Evidence Section (Clean Supporting Quotes) */}
+      <Box sx={{ mt: 'auto', pt: 1.8, borderTop: '1px solid #f1f5f9' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
+            <FormatQuoteIcon sx={{ fontSize: 15, color: '#94a3b8' }} />
+            <Typography sx={{
+              fontFamily: T.font.family,
+              fontSize: 11,
+              fontWeight: 800,
+              color: '#64748b',
+              letterSpacing: '0.5px',
+              textTransform: 'uppercase',
+            }}>
+              PATRON EVIDENCE
+            </Typography>
+          </Box>
+          <Typography sx={{
+            fontFamily: T.font.family,
+            fontSize: 11,
+            fontWeight: 700,
+            color: '#64748b',
+            bgcolor: '#f1f5f9',
+            px: 0.9,
+            py: 0.2,
+            borderRadius: '9999px',
+          }}>
+            {evidences.length} {evidences.length === 1 ? 'quote' : 'quotes'}
+          </Typography>
+        </Box>
+
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
           {evidences.slice(0, 3).map((ev, idx) => {
-            const quoteText = typeof ev === 'string' ? ev : (ev.Message || '');
+            const rawQuote = typeof ev === 'string' ? ev : (ev.Message || '');
+            const cleaned = cleanQuote(rawQuote);
+            const isExpanded = !!expandedQuotes[idx];
+            const isLong = cleaned.length > 95;
+
             return (
-              <Box key={idx} sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.8 }}>
-                <Typography sx={{
-                  fontFamily: T.font.family,
-                  fontSize: 12.5,
-                  fontWeight: 800,
-                  color: '#d97706',
-                  minWidth: 20,
-                  lineHeight: 1.5,
-                  flexShrink: 0,
-                }}>
-                  #{idx + 1}
-                </Typography>
-                <Typography sx={{
-                  fontFamily: T.font.family,
-                  fontSize: 13.5,
-                  fontWeight: 500,
-                  color: '#334155',
-                  fontStyle: 'italic',
-                  lineHeight: 1.5,
-                  wordBreak: 'break-word',
-                }}>
-                  "{cleanQuote(quoteText)}"
-                </Typography>
+              <Box
+                key={idx}
+                sx={{
+                  p: 1.3,
+                  borderRadius: 2,
+                  bgcolor: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  transition: 'background-color 0.15s ease',
+                  '&:hover': {
+                    bgcolor: '#f1f5f9',
+                  },
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                  <Box sx={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: '50%',
+                    bgcolor: '#e2e8f0',
+                    color: '#64748b',
+                    fontFamily: T.font.family,
+                    fontSize: 10.5,
+                    fontWeight: 800,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    mt: 0.15,
+                  }}>
+                    #{idx + 1}
+                  </Box>
+
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography
+                      sx={{
+                        fontFamily: T.font.family,
+                        fontSize: 12.5,
+                        fontWeight: 500,
+                        color: '#334155',
+                        fontStyle: 'italic',
+                        lineHeight: 1.5,
+                        wordBreak: 'break-word',
+                        display: isExpanded || !isLong ? 'block' : '-webkit-box',
+                        WebkitLineClamp: isExpanded || !isLong ? 'unset' : 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: isExpanded || !isLong ? 'visible' : 'hidden',
+                      }}
+                    >
+                      "{cleaned}"
+                    </Typography>
+
+                    {isLong && (
+                      <ButtonBase
+                        onClick={() => toggleQuoteExpand(idx)}
+                        sx={{
+                          mt: 0.4,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 0.2,
+                          color: '#4f46e5',
+                          fontFamily: T.font.family,
+                          fontSize: 11.5,
+                          fontWeight: 700,
+                          '&:hover': { textDecoration: 'underline' },
+                        }}
+                      >
+                        <span>{isExpanded ? 'Show less' : 'View full quote'}</span>
+                        {isExpanded ? (
+                          <ExpandLessIcon sx={{ fontSize: 14 }} />
+                        ) : (
+                          <ExpandMoreIcon sx={{ fontSize: 14 }} />
+                        )}
+                      </ButtonBase>
+                    )}
+                  </Box>
+                </Box>
               </Box>
             );
           })}
