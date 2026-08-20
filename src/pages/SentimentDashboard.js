@@ -38,7 +38,20 @@ import {
   ArrowDropDown as ArrowDropDownIcon,
   FiberManualRecord as FiberManualRecordIcon,
 } from '@mui/icons-material';
-import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, ReferenceLine } from 'recharts';
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip as RechartsTooltip,
+  Legend,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ReferenceLine
+} from 'recharts';
 import ReactWordcloud from 'react-wordcloud';
 import * as XLSX from 'xlsx';
 import { useNavigate } from 'react-router-dom';
@@ -62,6 +75,7 @@ import {
   COLLEGE_OPTIONS,
   CATEGORY_OPTIONS,
   MONTH_NAMES,
+  QUARTER_OPTIONS,
   ROWS_PER_PAGE,
   CONTROLLED_LEXICON,
   LEXICON_TOPIC_ACTIONS,
@@ -144,6 +158,7 @@ const SentimentDashboard = () => {
   const [filterSentiment, setFilterSentiment] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterYear, setFilterYear] = useState('2026');
+  const [filterQuarter, setFilterQuarter] = useState('All');
   const [filterMonth, setFilterMonth] = useState('All');
   const [page, setPage] = useState(0);
 
@@ -197,44 +212,55 @@ const SentimentDashboard = () => {
 
     let newStart = '';
     let newEnd = '';
+    let newQuarter = 'All';
     let newMonth = 'All';
-    let newYear = filterYear || '2026';
+    let newYear = filterYear === 'All' ? '2026' : (filterYear || '2026');
+    const targetYear = newYear === 'All' ? '2026' : newYear;
 
     if (presetKey === 'today') {
       const dateStr = formatISO(today);
       newStart = dateStr;
       newEnd = dateStr;
+      newQuarter = 'All';
     } else if (presetKey === 'week') {
       const day = today.getDay();
       const diff = today.getDate() - day + (day === 0 ? -6 : 1);
       const startOfWeek = new Date(today.getFullYear(), today.getMonth(), diff);
       newStart = formatISO(startOfWeek);
-      newEnd = formatISO(new Date());
-    } else if (presetKey === 'jan') {
-      newStart = '2026-01-01';
-      newEnd = '2026-01-31';
-      newMonth = 'Jan';
-    } else if (presetKey === 'feb') {
-      newStart = '2026-02-01';
-      newEnd = '2026-02-28';
-      newMonth = 'Feb';
-    } else if (presetKey === 'mar') {
-      newStart = '2026-03-01';
-      newEnd = '2026-03-31';
-      newMonth = 'Mar';
+      newEnd = formatISO(today);
+      newQuarter = 'All';
+    } else if (presetKey === 'month') {
+      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      newStart = formatISO(startOfMonth);
+      newEnd = formatISO(endOfMonth);
+      newQuarter = 'All';
     } else if (presetKey === 'q1') {
-      newStart = '2026-01-01';
-      newEnd = '2026-03-31';
-      newMonth = 'All';
+      newStart = `${targetYear}-01-01`;
+      newEnd = `${targetYear}-03-31`;
+      newQuarter = 'Q1';
+    } else if (presetKey === 'q2') {
+      newStart = `${targetYear}-04-01`;
+      newEnd = `${targetYear}-06-30`;
+      newQuarter = 'Q2';
+    } else if (presetKey === 'q3') {
+      newStart = `${targetYear}-07-01`;
+      newEnd = `${targetYear}-09-30`;
+      newQuarter = 'Q3';
+    } else if (presetKey === 'q4') {
+      newStart = `${targetYear}-10-01`;
+      newEnd = `${targetYear}-12-31`;
+      newQuarter = 'Q4';
     } else if (presetKey === 'all') {
       newStart = '';
       newEnd = '';
-      newMonth = 'All';
+      newQuarter = 'All';
       newYear = 'All';
     }
 
     setStartDate(newStart);
     setEndDate(newEnd);
+    setFilterQuarter(newQuarter);
     setFilterMonth(newMonth);
     setFilterYear(newYear);
     setPage(0);
@@ -282,6 +308,8 @@ const SentimentDashboard = () => {
     if (key === 'date') {
       setStartDate('');
       setEndDate('');
+    } else if (key === 'quarter') {
+      setFilterQuarter('All');
     } else if (key === 'month') {
       setFilterMonth('All');
     } else if (key === 'year') {
@@ -301,6 +329,7 @@ const SentimentDashboard = () => {
   const handleClear = () => {
     setStartDate('');
     setEndDate('');
+    setFilterQuarter('All');
     setFilterMonth('All');
     setFilterYear('2026');
     setFilterClientele('');
@@ -334,10 +363,17 @@ const SentimentDashboard = () => {
       const str = typeof s.DateSubmitted === 'string' ? s.DateSubmitted.trim() : '';
       const dayStr = str.slice(0, 10);
       const yr = str.slice(0, 4);
-      const mo = str.slice(5, 7);
+      const mo = parseInt(str.slice(5, 7), 10);
+      const moStr = str.slice(5, 7);
 
       if (filterYear && filterYear !== 'All' && yr !== filterYear) return false;
-      if (filterMonth && filterMonth !== 'All' && mo !== MONTH_CODE_MAP[filterMonth]) return false;
+      if (filterQuarter && filterQuarter !== 'All') {
+        if (filterQuarter === 'Q1' && (mo < 1 || mo > 3)) return false;
+        if (filterQuarter === 'Q2' && (mo < 4 || mo > 6)) return false;
+        if (filterQuarter === 'Q3' && (mo < 7 || mo > 9)) return false;
+        if (filterQuarter === 'Q4' && (mo < 10 || mo > 12)) return false;
+      }
+      if (filterMonth && filterMonth !== 'All' && moStr !== MONTH_CODE_MAP[filterMonth]) return false;
 
       if (startDate && endDate) {
         if (dayStr < startDate || dayStr > endDate) return false;
@@ -349,7 +385,7 @@ const SentimentDashboard = () => {
 
       return true;
     });
-  }, [surveys, filterClientele, filterCollege, filterSentiment, filterCategory, filterYear, filterMonth, startDate, endDate]);
+  }, [surveys, filterClientele, filterCollege, filterSentiment, filterCategory, filterYear, filterQuarter, filterMonth, startDate, endDate]);
 
   const counts = useMemo(() => {
     const c = { Positive: 0, Neutral: 0, Negative: 0 };
@@ -455,6 +491,7 @@ const SentimentDashboard = () => {
     filterCollege ||
     filterSentiment ||
     filterCategory ||
+    (filterQuarter && filterQuarter !== 'All') ||
     (filterMonth && filterMonth !== 'All') ||
     (filterYear && filterYear !== 'All' && filterYear !== '2026')
   );
@@ -1009,12 +1046,13 @@ const SentimentDashboard = () => {
                     <Typography sx={{ fontFamily: T.font.family, fontSize: 12.5, fontWeight: 700, color: '#64748b', mr: 0.8, display: 'flex', alignItems: 'center', gap: 0.5 }}>
                       <CalendarTodayIcon sx={{ fontSize: 15, color: '#4f46e5' }} /> Quick Date Range:
                     </Typography>
-                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('jan')} sx={datePresetBtnSx}>Jan 2026</Button>
-                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('feb')} sx={datePresetBtnSx}>Feb 2026</Button>
-                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('mar')} sx={datePresetBtnSx}>Mar 2026</Button>
-                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('q1')} sx={datePresetBtnSx}>Q1 (Jan–Mar 2026)</Button>
+                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('q1')} sx={datePresetBtnSx}>Q1</Button>
+                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('q2')} sx={datePresetBtnSx}>Q2</Button>
+                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('q3')} sx={datePresetBtnSx}>Q3</Button>
+                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('q4')} sx={datePresetBtnSx}>Q4</Button>
                     <Button size="small" variant="outlined" onClick={() => handleDatePreset('today')} sx={datePresetBtnSx}>Today</Button>
                     <Button size="small" variant="outlined" onClick={() => handleDatePreset('week')} sx={datePresetBtnSx}>This Week</Button>
+                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('month')} sx={datePresetBtnSx}>This Month</Button>
                     <Button size="small" variant="outlined" onClick={() => handleDatePreset('all')} sx={datePresetBtnSx}>All Time</Button>
                   </Box>
 
@@ -1026,7 +1064,7 @@ const SentimentDashboard = () => {
                       value={startDate}
                       onChange={(e) => {
                         setStartDate(e.target.value);
-                        if (e.target.value) setFilterMonth('All');
+                        if (e.target.value) setFilterQuarter('All');
                         setPage(0);
                       }}
                       sx={selectSx}
@@ -1038,7 +1076,7 @@ const SentimentDashboard = () => {
                       value={endDate}
                       onChange={(e) => {
                         setEndDate(e.target.value);
-                        if (e.target.value) setFilterMonth('All');
+                        if (e.target.value) setFilterQuarter('All');
                         setPage(0);
                       }}
                       sx={selectSx}
@@ -1074,12 +1112,12 @@ const SentimentDashboard = () => {
                       </Select>
                     </FormControl>
                     <FormControl sx={selectSx}>
-                      <InputLabel>Month</InputLabel>
+                      <InputLabel>Quarter</InputLabel>
                       <Select
-                        value={filterMonth}
-                        label="Month"
+                        value={filterQuarter}
+                        label="Quarter"
                         onChange={(e) => {
-                          setFilterMonth(e.target.value);
+                          setFilterQuarter(e.target.value);
                           if (e.target.value !== 'All') {
                             setStartDate('');
                             setEndDate('');
@@ -1087,9 +1125,9 @@ const SentimentDashboard = () => {
                           setPage(0);
                         }}
                       >
-                        <MenuItem value="All" sx={menuItemSx}>All Months</MenuItem>
-                        {MONTH_NAMES.map(m => (
-                          <MenuItem key={m} value={m} sx={menuItemSx}>{m}</MenuItem>
+                        <MenuItem value="All" sx={menuItemSx}>All Quarters</MenuItem>
+                        {QUARTER_OPTIONS.map(q => (
+                          <MenuItem key={q.value} value={q.value} sx={menuItemSx}>{q.label}</MenuItem>
                         ))}
                       </Select>
                     </FormControl>
@@ -1129,6 +1167,10 @@ const SentimentDashboard = () => {
                       </Typography>
                       {(startDate || endDate) && (
                         <Chip label={`Date: ${startDate || 'Start'} to ${endDate || 'End'}`} onDelete={() => handleRemoveFilter('date')} size="small"
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#ffffff', color: '#1e293b', border: `1px solid ${T.surface.borderLight}`, borderRadius: '9999px' }} />
+                      )}
+                      {filterQuarter && filterQuarter !== 'All' && (
+                        <Chip label={`Quarter: ${filterQuarter}`} onDelete={() => handleRemoveFilter('quarter')} size="small"
                           sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#ffffff', color: '#1e293b', border: `1px solid ${T.surface.borderLight}`, borderRadius: '9999px' }} />
                       )}
                       {filterMonth && filterMonth !== 'All' && (
@@ -1182,11 +1224,11 @@ const SentimentDashboard = () => {
                         footnote={
                           startDate && endDate
                             ? `${startDate} to ${endDate}`
-                            : filterMonth !== 'All'
-                              ? `${filterMonth} ${filterYear !== 'All' ? filterYear : '2026'}`
+                            : filterQuarter !== 'All'
+                              ? `${filterQuarter} ${filterYear !== 'All' ? filterYear : '2026'}`
                               : filterYear !== 'All'
                                 ? `Year ${filterYear}`
-                                : 'Q1 2026 · Jan–Mar'
+                                : 'All Quarters'
                         }
                         icon={<BarChartIcon />}
                         isFeatured={true}
@@ -1272,8 +1314,24 @@ const SentimentDashboard = () => {
                             style={{ cursor: 'pointer' }}
                             onClick={(state) => {
                               if (state && state.activeLabel) {
-                                setFilterMonth(prev => prev === state.activeLabel ? 'All' : state.activeLabel);
-                                setPage(0);
+                                const monthName = state.activeLabel;
+                                const mIdx = MONTH_NAMES.indexOf(monthName);
+                                if (mIdx !== -1) {
+                                  const targetYr = filterYear === 'All' ? '2026' : (filterYear || '2026');
+                                  const mm = String(mIdx + 1).padStart(2, '0');
+                                  const startD = `${targetYr}-${mm}-01`;
+                                  const lastDay = new Date(parseInt(targetYr, 10), mIdx + 1, 0).getDate();
+                                  const endD = `${targetYr}-${mm}-${String(lastDay).padStart(2, '0')}`;
+                                  if (startDate === startD && endDate === endD) {
+                                    setStartDate('');
+                                    setEndDate('');
+                                  } else {
+                                    setStartDate(startD);
+                                    setEndDate(endD);
+                                    setFilterQuarter('All');
+                                  }
+                                  setPage(0);
+                                }
                               }
                             }}
                           >
@@ -1450,7 +1508,7 @@ const SentimentDashboard = () => {
                                     </Typography>
                                   </Box>
                                   <Chip
-                                    label={`${donut.total} resp`}
+                                    label={`${donut.total} Responses`}
                                     size="small"
                                     sx={{
                                       fontWeight: 700,

@@ -25,6 +25,13 @@ export const SATISFACTION_SCALE = {
 
 export const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+export const QUARTER_OPTIONS = [
+  { value: 'Q1', label: 'Q1 (Jan–Mar)' },
+  { value: 'Q2', label: 'Q2 (Apr–Jun)' },
+  { value: 'Q3', label: 'Q3 (Jul–Sep)' },
+  { value: 'Q4', label: 'Q4 (Oct–Dec)' },
+];
+
 export const ROWS_PER_PAGE = 10;
 
 // ── Stopwords (filtered from word cloud) ────────────────────────────────────
@@ -147,11 +154,11 @@ export const RECOMMENDATIONS = {
 // ── Category Keywords for Analytics ─────────────────────────────────────────
 export const CATEGORY_KEYWORDS = {
   Facilities: {
-    aircon: 'poor air conditioning/temperature control',
-    ac: 'air conditioning issues',
-    temperature: 'temperature control issues',
-    temp: 'temperature issues',
-    lighting: 'insufficient lighting',
+    Aircon: 'poor air conditioning/temperature control',
+    AC: 'air conditioning issues',
+    Temperature: 'temperature control issues',
+    Temp: 'temperature issues',
+    Lighting: 'insufficient lighting',
     light: 'lighting issues',
     wifi: 'unreliable wifi/internet connection',
     internet: 'unreliable internet connection',
