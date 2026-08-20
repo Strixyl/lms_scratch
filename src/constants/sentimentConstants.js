@@ -25,7 +25,7 @@ export const SATISFACTION_SCALE = {
 
 export const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-export const ROWS_PER_PAGE = 8;
+export const ROWS_PER_PAGE = 10;
 
 // ── Stopwords (filtered from word cloud) ────────────────────────────────────
 export const STOPWORDS = new Set([
