@@ -135,23 +135,23 @@ export const THEME = {
 
 // ── Reusable MUI sx Presets ─────────────────────────────────────────────────
 
-/** Standard section header bar (dark purple with gold border-bottom) */
+/** Standard clean minimalist section header bar */
 export const sectionHeaderSx = {
-  bgcolor: THEME.brand.primary,
-  px: 3,
-  py: 1.8,
-  borderBottom: `3px solid ${THEME.brand.accent}`,
+  bgcolor: '#ffffff',
+  px: { xs: 2, md: 3 },
+  py: 1.6,
+  borderBottom: `1px solid ${THEME.surface.borderLight}`,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
 };
 
-/** Standard card shell (white card with gray border and subtle shadow) */
+/** Standard card shell (white card with subtle light border and soft shadow) */
 export const cardShellSx = {
-  border: `1.5px solid ${THEME.surface.border}`,
+  border: `1.5px solid ${THEME.surface.borderLight}`,
   borderRadius: THEME.radius.card,
   backgroundColor: THEME.surface.card,
-  boxShadow: THEME.shadow.card,
+  boxShadow: '0 2px 12px rgba(0,0,0,0.03)',
   overflow: 'hidden',
 };
 
@@ -160,23 +160,23 @@ export const sectionTitleSx = {
   fontFamily: THEME.font.family,
   fontWeight: 800,
   fontSize: 16,
-  color: THEME.text.white,
-  letterSpacing: 0.3,
+  color: THEME.text.primary,
+  letterSpacing: '-0.2px',
 };
 
 /** Section header subtitle text */
 export const sectionSubtitleSx = {
   fontFamily: THEME.font.family,
   fontSize: 12.5,
-  color: THEME.text.link,
+  color: THEME.text.muted,
   fontWeight: 500,
   mt: 0.2,
 };
 
 /** Section header icon style */
 export const sectionIconSx = {
-  fontSize: 22,
-  color: '#f59e0b',
+  fontSize: 20,
+  color: '#4f46e5',
 };
 
 /** Standard select/text field styling */
@@ -188,38 +188,38 @@ export const selectSx = {
     borderRadius: THEME.radius.input,
     backgroundColor: THEME.surface.card,
     '& fieldset': {
-      borderColor: THEME.surface.border,
+      borderColor: THEME.surface.borderLight,
       borderWidth: '1.5px',
     },
     '&:hover fieldset': {
-      borderColor: THEME.brand.indigo,
+      borderColor: '#94a3b8',
     },
     '&.Mui-focused fieldset': {
-      borderColor: THEME.brand.accent,
+      borderColor: '#4f46e5',
       borderWidth: '2px',
     },
   },
   '& .MuiInputBase-root': {
-    height: 46,
+    height: 44,
     fontFamily: THEME.font.family,
     fontWeight: 600,
-    fontSize: 14,
+    fontSize: 13.5,
     color: THEME.text.heading,
   },
   '& .MuiInputLabel-root': {
     fontFamily: THEME.font.family,
     fontWeight: 600,
-    fontSize: 14,
+    fontSize: 13.5,
     color: THEME.text.secondary,
     '&.Mui-focused': {
-      color: THEME.brand.indigo,
+      color: '#4f46e5',
       fontWeight: 700,
     },
   },
   '& .MuiSelect-select': {
     fontFamily: THEME.font.family,
     fontWeight: 600,
-    fontSize: 14,
+    fontSize: 13.5,
   },
 };
 
@@ -227,22 +227,27 @@ export const selectSx = {
 export const menuItemSx = {
   fontFamily: THEME.font.family,
   fontWeight: 600,
-  fontSize: 14,
+  fontSize: 13.5,
 };
 
-/** Standard date preset / quick-action button style */
+/** Standard date preset / quick-action button style (soft pill) */
 export const datePresetBtnSx = {
-  borderRadius: 2,
+  borderRadius: '9999px',
   textTransform: 'none',
   fontFamily: THEME.font.family,
-  fontWeight: 700,
+  fontWeight: 600,
   fontSize: 12,
-  borderColor: THEME.surface.border,
-  color: THEME.text.heading,
-  bgcolor: THEME.surface.card,
+  borderColor: 'transparent',
+  color: THEME.text.body,
+  bgcolor: '#f1f5f9',
+  boxShadow: 'none',
+  px: 1.6,
+  py: 0.35,
+  minWidth: 'auto',
+  height: 28,
   '&:hover': {
-    bgcolor: THEME.surface.cardAltHover,
-    borderColor: THEME.brand.indigo,
+    bgcolor: '#e2e8f0',
+    borderColor: 'transparent',
   },
 };
 
@@ -250,31 +255,36 @@ export const datePresetBtnSx = {
 export const paginationBtnSx = {
   fontFamily: THEME.font.family,
   textTransform: 'none',
-  fontWeight: 700,
-  borderRadius: 2,
-  borderColor: THEME.surface.border,
+  fontWeight: 600,
+  borderRadius: '8px',
+  borderColor: '#e2e8f0',
   color: THEME.text.secondary,
-  bgcolor: THEME.surface.card,
-  '&:hover': { bgcolor: THEME.surface.cardAlt },
+  bgcolor: 'transparent',
+  fontSize: 12,
+  px: 1.5,
+  py: 0.35,
+  '&:hover': { bgcolor: '#f8fafc', borderColor: '#cbd5e1' },
 };
 
 /** Table header row sx */
 export const tableHeaderRowSx = {
-  backgroundColor: THEME.brand.primary,
-  borderBottom: `3px solid ${THEME.brand.accent}`,
+  backgroundColor: '#ffffff',
+  borderBottom: `1px solid ${THEME.surface.borderLight}`,
   '& th': {
-    color: 'white',
+    color: THEME.text.muted,
     fontWeight: 700,
     fontFamily: THEME.font.family,
-    fontSize: 13,
-    py: 1.5,
-    borderRight: '1px solid rgba(255, 255, 255, 0.25)',
-    '&:last-child': { borderRight: 'none' },
+    fontSize: 11,
+    py: 1.4,
+    px: 1.5,
+    letterSpacing: '0.4px',
+    textTransform: 'uppercase',
+    borderBottom: `1px solid ${THEME.surface.borderLight}`,
   },
 };
 
-/** Table sort label on white-on-dark header */
+/** Table sort label on light header */
 export const tableSortLabelSx = {
-  color: 'white !important',
-  '& .MuiTableSortLabel-icon': { color: 'white !important' },
+  color: `${THEME.text.muted} !important`,
+  '& .MuiTableSortLabel-icon': { color: `${THEME.text.faint} !important` },
 };

@@ -10,6 +10,55 @@ export const COLLEGE_OPTIONS = [
   'SHS', 'JHS', 'ELEM', 'KINDER'
 ];
 
+export const COLLEGE_COURSES = {
+  CARES: ['Agriculture', 'Agricultural and Biosystems Engineering', 'Environmental Management'],
+  CAS: ['English Language Studies', 'Biology with specialization in Medical Biology', 'Biology with specialization in Microbiology', 'Chemistry', 'Psychology', 'Social Work'],
+  CBA: ['Accountancy', 'Management Accounting', 'Business Administration major in Human Resource Management', 'Business Administration major in Financial Management', 'Business Administration major in Marketing Management', 'Entrepreneurship'],
+  CCS: ['Computer Science', 'Digital Media and Interactive Arts', 'Information Technology', 'Library and Information Science'],
+  COED: ['Early Childhood Education', 'Elementary Education', 'Physical Education', 'Secondary Education major in English', 'Secondary Education major in Filipino', 'Secondary Education major in Mathematics', 'Secondary Education major in Science', 'Secondary Education major in Special Needs Education'],
+  COE: ['Chemical Engineering', 'Civil Engineering', 'Electrical Engineering', 'Electronics Engineering', 'Mechanical Engineering', 'Packaging Engineering', 'Software Engineering', 'Diploma in Packaging Technology'],
+  CHM: ['Hospitality Management', 'Tourism Management'],
+  CMLS: ['Medical Laboratory Science'],
+  CON: ['Nursing'],
+  COP: ['Pharmacy'],
+  COL: ['Juris Doctor'],
+  COM: ['Respiratory Therapy', 'Doctor of Medicine'],
+  COT: ['Theology', 'Certificate in Christian Ministry', 'Diploma in Christian Ministry'],
+  SGS: [
+    'Doctor of Education major in Curriculum and Instruction',
+    'Doctor of Education major in Educational Administration and Supervision',
+    'Doctor of Education major in Guidance and Counseling',
+    'Doctor of Management major in Business Management',
+    'Doctor of Management major in Public Management',
+    'Doctor of Management major in Development Management',
+    'Doctor of Management major in Tourism and Hospitality Management',
+    'Doctor of Ministry major in Pastoral Counseling & Pastoral Supervision',
+    'Doctor of Ministry major in Church Management and Practical Ministries',
+    'Master of Divinity',
+    'Master of Theology',
+    'Master of Ministry',
+    'Master of Arts in Pastoral Counseling',
+    'Master of Arts in Education major in Educational Administration and Supervision',
+    'Master of Arts in Education major in Guidance and Counseling',
+    'Master of Arts in Education major in Mathematics',
+    'Master of Arts in Education major in Filipino',
+    'Master of Arts in Education major in English Language and Literature',
+    'Master of Science in Agriculture',
+    'Master in Business Administration with Thesis',
+    'Master in Business Administration major in Tourism and Hospitality Management',
+    'Master of Arts in Nursing major in Nursing Service Administration',
+    'Master of Arts in Nursing major in Adult Health Nursing',
+    'Master of Arts in Nursing major in Women and Child Health Nursing',
+    'Master in Public Administration',
+    'Master of Science in Guidance and Counseling',
+    'Master of Science in Teaching Biology'
+  ],
+  SHS: ['ABM', 'HUMSS', 'STEM'],
+  JHS: ['Grade 7', 'Grade 8', 'Grade 9', 'Grade 10'],
+  ELEM: ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6'],
+  KINDER: ['Kinder', 'Pre Kinder', 'Junior Kinder']
+};
+
 export const CATEGORY_OPTIONS = ['Facilities', 'Staff', 'Collection', 'Other/Uncategorized'];
 
 // ── Rating Scores & Satisfaction Scale ───────────────────────────────────────
@@ -25,7 +74,14 @@ export const SATISFACTION_SCALE = {
 
 export const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-export const ROWS_PER_PAGE = 8;
+export const QUARTER_OPTIONS = [
+  { value: 'Q1', label: 'Q1 (Jan–Mar)' },
+  { value: 'Q2', label: 'Q2 (Apr–Jun)' },
+  { value: 'Q3', label: 'Q3 (Jul–Sep)' },
+  { value: 'Q4', label: 'Q4 (Oct–Dec)' },
+];
+
+export const ROWS_PER_PAGE = 10;
 
 // ── Stopwords (filtered from word cloud) ────────────────────────────────────
 export const STOPWORDS = new Set([
@@ -72,6 +128,10 @@ export const CONTROLLED_LEXICON = {
     'Lighting & Cleanliness': [
       'lighting', 'dim light', 'dark', 'dim', 'bright', 'clean', 'cleanliness',
       'dust', 'dusty', 'trash', 'garbage', 'litter', 'maintenance', 'smell', 'odor'
+    ],
+    'Hours & Operating Schedule': [
+      'hours', 'operating hours', 'open hours', 'schedule', 'extended hours', 'closing time',
+      'opening time', 'finals week', 'finals'
     ],
     'Equipments': [
       'equipment', 'equipments', 'scanner', 'scanners', 'barcode scanner', 'barcode',
@@ -143,40 +203,104 @@ export const RECOMMENDATIONS = {
 // ── Category Keywords for Analytics ─────────────────────────────────────────
 export const CATEGORY_KEYWORDS = {
   Facilities: {
-    aircon: 'poor air conditioning/temperature control',
-    ac: 'air conditioning issues',
-    temperature: 'temperature control issues',
-    temp: 'temperature issues',
-    lighting: 'insufficient lighting',
-    light: 'lighting issues',
-    wifi: 'unreliable wifi/internet connection',
-    internet: 'unreliable internet connection',
-    seating: 'insufficient or uncomfortable seating',
-    seat: 'seating issues',
-    chair: 'uncomfortable seating/chairs',
-    table: 'workspace/table issues',
-    cleanliness: 'cleanliness/sanitation concerns',
-    clean: 'cleanliness concerns',
-    restroom: 'restroom cleanliness/maintenance',
-    toilet: 'restroom issues',
-    noise: 'high noise levels affecting study',
-    loud: 'noise levels',
+    Aircon: 'Poor air conditioning/temperature control',
+    AC: 'Air conditioning issues',
+    Temperature: 'Temperature control issues',
+    Temp: 'Temperature issues',
+    Lighting: 'Insufficient lighting',
+    Light: 'Lighting issues',
+    Wifi: 'Unreliable wifi/internet connection',
+    Internet: 'Unreliable internet connection',
+    Seating: 'Insufficient or uncomfortable seating',
+    Seat: 'Seating issues',
+    Chair: 'Uncomfortable seating/chairs',
+    Table: 'Workspace/table issues',
+    Cleanliness: 'Cleanliness/sanitation concerns',
+    Clean: 'Cleanliness concerns',
+    Restroom: 'Restroom cleanliness/maintenance',
+    Toilet: 'Restroom issues',
+    Noise: 'High noise levels affecting study',
+    Loud: 'Noise levels',
   },
   Staff: {
-    rude: 'patron friction with staff courtesy/attitude',
-    slow: 'slow service response times',
-    unhelpful: 'unhelpful staff assistance',
-    attitude: 'staff attitude concerns',
-    service: 'frontline service quality',
-    retraining: 'staff retraining needs',
+    Rude: 'Patron friction with staff courtesy/attitude',
+    Slow: 'Slow service response times',
+    Unhelpful: 'Unhelpful staff assistance',
+    Attitude: 'Staff attitude concerns',
+    Service: 'Frontline service quality',
+    Retraining: 'Staff retraining needs',
   },
   Collection: {
-    outdated: 'outdated books/materials',
-    old: 'outdated materials',
-    missing: 'missing or unlocatable books',
-    textbook: 'insufficient textbook copies',
-    book: 'missing/unavailable books',
-    journal: 'lack of recent research journals/e-resources',
-    database: 'digital database access issues',
+    Outdated: 'Outdated books/materials',
+    Old: 'Outdated materials',
+    Missing: 'Missing or unlocatable books',
+    Textbook: 'Insufficient textbook copies',
+    Book: 'Missing/unavailable books',
+    Journal: 'Lack of recent research journals/e-resources',
+    Database: 'Digital database access issues',
+  },
+};
+
+// ── Lexicon Topic Priority Action Recommendations ──────────────────────────
+export const LEXICON_TOPIC_ACTIONS = {
+  'Restroom & Hygiene': {
+    action: 'Increase custodial sanitation frequency and maintain consistent supplies of soap, tissues, and paper towels.',
+    defaultSeverity: 'HIGH',
+  },
+  'Air Conditioning': {
+    action: 'Conduct HVAC system inspection and temperature regulation to maintain comfortable study and reading conditions.',
+    defaultSeverity: 'HIGH',
+  },
+  'Tables, Seating & Space': {
+    action: 'Reconfigure study layouts, repair damaged chairs, and expand quiet individual carrel seating capacity.',
+    defaultSeverity: 'MODERATE',
+  },
+  'Wi-Fi & Power Outlets': {
+    action: 'Upgrade Wi-Fi bandwidth access points and install additional electrical outlets/charging stations at study tables.',
+    defaultSeverity: 'HIGH',
+  },
+  'Noise Level & Ambience': {
+    action: 'Enforce tiered noise policies in reading areas and install acoustic partitions to minimize study disruptions.',
+    defaultSeverity: 'MODERATE',
+  },
+  'Lighting & Cleanliness': {
+    action: 'Replace dim fixtures with high-lumen LEDs and establish regular dusting and trash removal routines.',
+    defaultSeverity: 'MODERATE',
+  },
+  'Hours & Operating Schedule': {
+    action: 'Evaluate patron demand for extended evening and weekend hours during midterm and final examination weeks.',
+    defaultSeverity: 'MODERATE',
+  },
+  'Equipments': {
+    action: 'Service library computers, barcode scanners, and printer machines to ensure smooth technical operations.',
+    defaultSeverity: 'MODERATE',
+  },
+  'Librarians & Staffs': {
+    action: 'Conduct refresher workshops for librarians and desk staff to reinforce courteous, prompt patron assistance.',
+    defaultSeverity: 'MODERATE',
+  },
+  'Security': {
+    action: 'Review entrance protocols with security personnel to ensure polite, efficient bag inspections and lobby security.',
+    defaultSeverity: 'MODERATE',
+  },
+  'Service Quality & Attitude': {
+    action: 'Address patron customer service feedback and promote approachable, helpful frontline service standards.',
+    defaultSeverity: 'HIGH',
+  },
+  'Digital Resources & E-Books': {
+    action: 'Expand subscriptions to academic databases/e-journals and resolve off-campus login authentication issues.',
+    defaultSeverity: 'MODERATE',
+  },
+  'Books & Reference Materials': {
+    action: 'Acquire latest editions for high-demand textbooks and conduct collection audits for missing reference materials.',
+    defaultSeverity: 'HIGH',
+  },
+  'Catalogue, OPAC & Search': {
+    action: 'Update OPAC catalog indexing and refine shelf call-number signage to help patrons locate titles effortlessly.',
+    defaultSeverity: 'MODERATE',
+  },
+  'Borrowing & Circulation': {
+    action: 'Streamline the borrowing/return workflow, clarify overdue policy rules, and enable easy online renewals.',
+    defaultSeverity: 'MODERATE',
   },
 };
