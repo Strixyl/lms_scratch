@@ -73,6 +73,10 @@ export const CONTROLLED_LEXICON = {
       'lighting', 'dim light', 'dark', 'dim', 'bright', 'clean', 'cleanliness',
       'dust', 'dusty', 'trash', 'garbage', 'litter', 'maintenance', 'smell', 'odor'
     ],
+    'Hours & Operating Schedule': [
+      'hours', 'operating hours', 'open hours', 'schedule', 'extended hours', 'closing time',
+      'opening time', 'finals week', 'finals'
+    ],
     'Equipments': [
       'equipment', 'equipments', 'scanner', 'scanners', 'barcode scanner', 'barcode',
       'computer', 'computers', 'desktop', 'computer lab', 'mouse',
@@ -178,5 +182,69 @@ export const CATEGORY_KEYWORDS = {
     book: 'missing/unavailable books',
     journal: 'lack of recent research journals/e-resources',
     database: 'digital database access issues',
+  },
+};
+
+// ── Lexicon Topic Priority Action Recommendations ──────────────────────────
+export const LEXICON_TOPIC_ACTIONS = {
+  'Restroom & Hygiene': {
+    action: 'Increase custodial sanitation frequency and maintain consistent supplies of soap, tissues, and paper towels.',
+    defaultSeverity: 'HIGH',
+  },
+  'Air Conditioning': {
+    action: 'Conduct HVAC system inspection and temperature regulation to maintain comfortable study and reading conditions.',
+    defaultSeverity: 'HIGH',
+  },
+  'Tables, Seating & Space': {
+    action: 'Reconfigure study layouts, repair damaged chairs, and expand quiet individual carrel seating capacity.',
+    defaultSeverity: 'MODERATE',
+  },
+  'Wi-Fi & Power Outlets': {
+    action: 'Upgrade Wi-Fi bandwidth access points and install additional electrical outlets/charging stations at study tables.',
+    defaultSeverity: 'HIGH',
+  },
+  'Noise Level & Ambience': {
+    action: 'Enforce tiered noise policies in reading areas and install acoustic partitions to minimize study disruptions.',
+    defaultSeverity: 'MODERATE',
+  },
+  'Lighting & Cleanliness': {
+    action: 'Replace dim fixtures with high-lumen LEDs and establish regular dusting and trash removal routines.',
+    defaultSeverity: 'MODERATE',
+  },
+  'Hours & Operating Schedule': {
+    action: 'Evaluate patron demand for extended evening and weekend hours during midterm and final examination weeks.',
+    defaultSeverity: 'MODERATE',
+  },
+  'Equipments': {
+    action: 'Service library computers, barcode scanners, and printer machines to ensure smooth technical operations.',
+    defaultSeverity: 'MODERATE',
+  },
+  'Librarians & Staffs': {
+    action: 'Conduct refresher workshops for librarians and desk staff to reinforce courteous, prompt patron assistance.',
+    defaultSeverity: 'MODERATE',
+  },
+  'Security': {
+    action: 'Review entrance protocols with security personnel to ensure polite, efficient bag inspections and lobby security.',
+    defaultSeverity: 'MODERATE',
+  },
+  'Service Quality & Attitude': {
+    action: 'Address patron customer service feedback and promote approachable, helpful frontline service standards.',
+    defaultSeverity: 'HIGH',
+  },
+  'Digital Resources & E-Books': {
+    action: 'Expand subscriptions to academic databases/e-journals and resolve off-campus login authentication issues.',
+    defaultSeverity: 'MODERATE',
+  },
+  'Books & Reference Materials': {
+    action: 'Acquire latest editions for high-demand textbooks and conduct collection audits for missing reference materials.',
+    defaultSeverity: 'HIGH',
+  },
+  'Catalogue, OPAC & Search': {
+    action: 'Update OPAC catalog indexing and refine shelf call-number signage to help patrons locate titles effortlessly.',
+    defaultSeverity: 'MODERATE',
+  },
+  'Borrowing & Circulation': {
+    action: 'Streamline the borrowing/return workflow, clarify overdue policy rules, and enable easy online renewals.',
+    defaultSeverity: 'MODERATE',
   },
 };

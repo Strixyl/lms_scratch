@@ -3,21 +3,18 @@
 
 import React from 'react';
 import {
-  Box, Typography, Card, CardContent, Avatar, Paper,
+  Box, Typography, Card, Avatar, Paper,
   Tooltip,
 } from '@mui/material';
 import {
-  Apartment as ApartmentIcon,
-  People as PeopleIcon,
-  MenuBook as MenuBookIcon,
-  Lightbulb as LightbulbIcon,
-  CheckCircle as CheckCircleIcon,
   ArrowDropUp as ArrowDropUpIcon,
   ArrowDropDown as ArrowDropDownIcon,
   FiberManualRecord as FiberManualRecordIcon,
   Star as StarIcon,
+  ThumbUp as ThumbUpIcon,
+  ThumbDown as ThumbDownIcon,
 } from '@mui/icons-material';
-import { THEME, cardShellSx, sectionHeaderSx } from '../constants/themeTokens';
+import { THEME } from '../constants/themeTokens';
 
 const T = THEME;
 
@@ -236,531 +233,412 @@ export const SummaryCard = ({
 };
 
 // ── Top Comments Card (Positive / Negative) ─────────────────────────────────
-export const TopCommentsCard = ({ title, rows = [], type = 'positive', icon }) => {
+export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
   const isPositive = type === 'positive';
-  const theme = isPositive ? {
-    iconColor: '#15803d',
-    iconBg: '#dcfce7',
-    borderLeft: '#22c55e',
-    rankBg: '#15803d',
-    rankText: '#ffffff',
-    cardHoverBorder: '#86efac',
-    chipBg: '#dcfce7',
-    chipColor: '#15803d',
-  } : {
-    iconColor: '#dc2626',
-    iconBg: '#fee2e2',
-    borderLeft: '#ef4444',
-    rankBg: '#dc2626',
-    rankText: '#ffffff',
-    cardHoverBorder: '#fca5a5',
-    chipBg: '#fee2e2',
-    chipColor: '#dc2626',
+  const borderColor = isPositive ? '#10b981' : '#ef4444';
+
+  const cleanQuote = (msg) => {
+    if (!msg) return '';
+    let str = msg.trim();
+    if (str.startsWith('"') && str.endsWith('"')) {
+      str = str.slice(1, -1).trim();
+    }
+    return str;
+  };
+
+  const getKeywordBadgeText = (row) => {
+    if (row.topTerm && /\(\d+x\)/.test(row.topTerm)) {
+      return row.topTerm;
+    }
+    let term = row.topTerm || (row.Category ? row.Category.toLowerCase() : 'general');
+    term = term.replace(/^"|"$/g, '').trim();
+    const freq = row.maxTermFreq || 1;
+    return `"${term}" (${freq}x)`;
   };
 
   return (
     <Card
       elevation={0}
       sx={{
-        ...cardShellSx,
+        bgcolor: '#ffffff',
+        borderRadius: 3.5,
+        border: '1.5px solid #e2e8f0',
+        borderTop: `4px solid ${borderColor}`,
+        p: { xs: 2, sm: 2.5 },
         display: 'flex',
         flexDirection: 'column',
-        height: '100%',
+        boxShadow: '0 2px 12px rgba(0,0,0,0.02)',
+        overflow: 'hidden',
         transition: 'all 0.2s ease',
         '&:hover': {
-          boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
-          borderColor: theme.cardHoverBorder,
+          boxShadow: '0 6px 20px rgba(0,0,0,0.05)',
+          borderColor: '#cbd5e1',
+          borderTopColor: borderColor,
         }
       }}
     >
-      {/* Clean Card Header */}
-      <Box sx={{
-        py: 1.4,
-        px: { xs: 1.8, md: 2.2 },
-        bgcolor: '#ffffff',
-        borderBottom: `1px solid ${T.surface.borderLight}`,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: 1,
-      }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box sx={{
-            color: theme.iconColor,
-            bgcolor: theme.iconBg,
-            p: 0.55,
-            borderRadius: '8px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            '& svg': { fontSize: 17 }
-          }}>
-            {icon}
-          </Box>
-          <Typography sx={{
-            fontFamily: T.font.family,
-            fontWeight: 800,
-            fontSize: 15,
-            color: '#0f172a',
-            letterSpacing: '-0.2px',
-            lineHeight: 1.2,
-          }}>
-            {title}
-          </Typography>
-        </Box>
-
+      {/* Card Header: Icon + Title */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, mb: 2 }}>
+        {isPositive ? (
+          <ThumbUpIcon sx={{ fontSize: 22, color: '#10b981' }} />
+        ) : (
+          <ThumbDownIcon sx={{ fontSize: 22, color: '#ef4444' }} />
+        )}
         <Typography sx={{
           fontFamily: T.font.family,
-          fontSize: 11.5,
-          color: '#475569',
-          bgcolor: '#f1f5f9',
-          fontWeight: 700,
-          px: 1.4,
-          py: 0.35,
-          borderRadius: '9999px',
-          letterSpacing: '0.2px',
+          fontWeight: 800,
+          fontSize: { xs: 15, sm: 16 },
+          color: '#0f172a',
+          letterSpacing: '-0.2px',
+          lineHeight: 1.2,
         }}>
-          {rows.length} of 5 Comments
+          {title}
         </Typography>
       </Box>
 
-      {/* Compressed Card Content */}
-      <CardContent sx={{
-        p: { xs: 1.2, sm: 1.6 },
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 1,
-        flex: 1,
-        bgcolor: '#ffffff',
-      }}>
-        {rows.length === 0 ? (
-          <Box sx={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            py: 4,
-            px: 2,
-            bgcolor: '#f8fafc',
-            borderRadius: 2.5,
-            border: `1.5px dashed ${T.surface.borderLight}`,
+      {/* Card Content */}
+      {rows.length === 0 ? (
+        <Box sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          py: 4,
+          px: 2,
+          bgcolor: '#f8fafc',
+          borderRadius: 2.5,
+          border: `1.5px dashed ${T.surface.borderLight}`,
+        }}>
+          <Typography sx={{
+            fontFamily: T.font.family,
+            fontWeight: 600,
+            color: T.text.secondary,
+            fontSize: 13,
+            textAlign: 'center',
           }}>
-            <Typography sx={{
-              fontFamily: T.font.family,
-              fontWeight: 600,
-              color: T.text.secondary,
-              fontSize: 13,
-              textAlign: 'center',
-            }}>
-              No {isPositive ? 'positive' : 'negative'} comments recorded for current filters.
-            </Typography>
-          </Box>
-        ) : (
-          rows.map((row, i) => (
-            <Box
-              key={i}
-              sx={{
-                p: 1.2,
-                px: 1.4,
-                bgcolor: '#f8fafc',
-                border: `1px solid ${T.surface.borderLight}`,
-                borderLeft: `4px solid ${theme.borderLeft}`,
-                borderRadius: '8px',
-                transition: 'all 0.15s ease',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                gap: 0.6,
-                '&:hover': {
-                  bgcolor: '#ffffff',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
-                  borderColor: theme.cardHoverBorder,
-                }
-              }}
-            >
-              {/* Header row: Rank + Patron tags + Keyword badge */}
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 0.6 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.7 }}>
+            No {isPositive ? 'positive' : 'negative'} comments recorded for current filters.
+          </Typography>
+        </Box>
+      ) : (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.3 }}>
+          {rows.map((row, i) => {
+            const clientele = (row.Clientele || 'STUDENT').toUpperCase();
+            const isFacultyOrStaff = clientele === 'FACULTY' || clientele === 'STAFF' || clientele === 'ADMIN' || clientele === 'CPU ADMIN';
+            const college = (row.College || 'CCS').toUpperCase();
+
+            return (
+              <Box
+                key={i}
+                sx={{
+                  bgcolor: '#f8fafc',
+                  border: '1.5px solid #e2e8f0',
+                  borderLeft: `4px solid ${borderColor}`,
+                  borderRadius: '8px',
+                  p: 1.5,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 0.8,
+                  transition: 'all 0.15s ease',
+                  '&:hover': {
+                    bgcolor: '#ffffff',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                    borderColor: '#cbd5e1',
+                    borderLeftColor: borderColor,
+                  }
+                }}
+              >
+                {/* Badge Row */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.9, flexWrap: 'wrap' }}>
+                  {/* Dark Circular Number Badge */}
                   <Box sx={{
-                    bgcolor: theme.rankBg,
-                    color: theme.rankText,
-                    px: 0.7,
-                    py: 0.1,
+                    width: 20,
+                    height: 20,
+                    minWidth: 20,
+                    borderRadius: '50%',
+                    bgcolor: '#0f172a',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontFamily: T.font.family,
+                    fontSize: 11,
+                    fontWeight: 800,
+                    lineHeight: 1,
+                  }}>
+                    {i + 1}
+                  </Box>
+
+                  {/* Clientele Role Badge */}
+                  <Box sx={{
+                    px: 1,
+                    py: 0.2,
                     borderRadius: '4px',
+                    bgcolor: isFacultyOrStaff ? '#0f172a' : '#ede9fe',
+                    color: isFacultyOrStaff ? '#ffffff' : '#4f46e5',
                     fontFamily: T.font.family,
                     fontSize: 10.5,
                     fontWeight: 800,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.3px',
                     lineHeight: 1.2,
                   }}>
-                    #{i + 1}
+                    {clientele}
                   </Box>
-                  <Box sx={{
-                    px: 0.7,
-                    py: 0.1,
-                    borderRadius: '4px',
-                    bgcolor: '#e2e8f0',
-                    fontFamily: T.font.family,
-                    fontSize: 10,
-                    fontWeight: 800,
-                    color: '#334155',
-                    textTransform: 'uppercase',
-                  }}>
-                    {row.Clientele || 'STUDENT'}
-                  </Box>
-                  {row.College && (
+
+                  {/* College Badge */}
+                  {college && (
                     <Box sx={{
-                      px: 0.8,
-                      py: 0.1,
-                      borderRadius: '9999px',
+                      px: 1,
+                      py: 0.2,
+                      borderRadius: '4px',
                       bgcolor: '#ede9fe',
+                      color: '#4f46e5',
                       fontFamily: T.font.family,
                       fontSize: 10.5,
                       fontWeight: 700,
-                      color: '#4f46e5',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.3px',
+                      lineHeight: 1.2,
                     }}>
-                      {row.College}
+                      {college}
                     </Box>
                   )}
-                </Box>
 
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                  {/* Keyword & Frequency Badge */}
                   <Box sx={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    px: 1,
-                    py: 0.15,
+                    px: 1.1,
+                    py: 0.2,
                     borderRadius: '9999px',
                     fontSize: 11,
                     fontWeight: 700,
                     fontFamily: T.font.family,
-                    bgcolor: theme.chipBg,
-                    color: theme.chipColor,
+                    bgcolor: '#fef3c7',
+                    color: '#92400e',
+                    border: '1px solid #fde68a',
+                    lineHeight: 1.2,
                   }}>
-                    {row.topTerm ? `"${row.topTerm}" (${row.maxTermFreq || row.termScore}x)` : `Score: ${Math.round(row.blendedScore || 0)}`}
+                    {getKeywordBadgeText(row)}
                   </Box>
-                  {row.DateSubmitted && (
-                    <Typography sx={{
-                      fontFamily: T.font.family,
-                      fontSize: 11,
-                      color: '#94a3b8',
-                      fontWeight: 500,
-                    }}>
-                      {row.DateSubmitted.slice(0, 10)}
-                    </Typography>
-                  )}
                 </Box>
-              </Box>
 
-              {/* Verbatim Comment Text */}
-              <Typography sx={{
-                fontFamily: T.font.family,
-                fontSize: 13.5,
-                color: '#1e293b',
-                fontWeight: 500,
-                lineHeight: 1.45,
-              }}>
-                "{row.Message}"
-              </Typography>
-            </Box>
-          ))
-        )}
-      </CardContent>
+                {/* Verbatim Comment Text */}
+                <Typography sx={{
+                  fontFamily: T.font.family,
+                  fontSize: 13,
+                  color: '#334155',
+                  fontWeight: 500,
+                  fontStyle: 'italic',
+                  lineHeight: 1.5,
+                  wordBreak: 'break-word',
+                }}>
+                  "{cleanQuote(row.Message)}"
+                </Typography>
+              </Box>
+            );
+          })}
+        </Box>
+      )}
     </Card>
   );
 };
 
-// ── Recommendation Card for a specific flagged category ───────────────────
-export const RecommendationCard = ({ stat, recommendationText }) => {
-  const isHigh = stat.severity === 'high';
+// ── Recommendation Card for a specific flagged category / topic ───────────
+export const RecommendationCard = ({ stat }) => {
+  if (!stat) return null;
+  const isHigh = (stat.severity || '').toUpperCase() === 'HIGH';
+  const accentColor = isHigh ? '#ef4444' : '#f59e0b';
 
-  const catTheme = {
-    Facilities: {
-      accent: isHigh ? '#dc2626' : '#0288d1',
-      badgeBg: isHigh ? '#7f1d1d' : '#e0f2fe',
-      badgeColor: isHigh ? '#ffffff' : '#0369a1',
-      icon: <ApartmentIcon sx={{ fontSize: 18 }} />,
-    },
-    Staff: {
-      accent: isHigh ? '#dc2626' : '#7c3aed',
-      badgeBg: isHigh ? '#7f1d1d' : '#f3e8ff',
-      badgeColor: isHigh ? '#ffffff' : '#6b21a8',
-      icon: <PeopleIcon sx={{ fontSize: 18 }} />,
-    },
-    Collection: {
-      accent: isHigh ? '#dc2626' : '#ea580c',
-      badgeBg: isHigh ? '#7f1d1d' : '#ffedd5',
-      badgeColor: isHigh ? '#ffffff' : '#c2410c',
-      icon: <MenuBookIcon sx={{ fontSize: 18 }} />,
-    },
-    'Other/Uncategorized': {
-      accent: isHigh ? '#dc2626' : '#475569',
-      badgeBg: isHigh ? '#7f1d1d' : '#f1f5f9',
-      badgeColor: isHigh ? '#ffffff' : '#475569',
-      icon: <LightbulbIcon sx={{ fontSize: 18 }} />,
+  const cleanQuote = (msg) => {
+    if (!msg) return '';
+    let str = typeof msg === 'string' ? msg.trim() : (msg.Message || '').trim();
+    if (str.startsWith('"') && str.endsWith('"')) {
+      str = str.slice(1, -1).trim();
     }
-  }[stat.category] || {
-    accent: isHigh ? '#dc2626' : '#f59e0b',
-    badgeBg: isHigh ? '#7f1d1d' : '#fffbeb',
-    badgeColor: isHigh ? '#ffffff' : '#b45309',
-    icon: <LightbulbIcon sx={{ fontSize: 18 }} />,
+    return str;
   };
 
-  const severityBadge = isHigh ? {
-    label: 'HIGH PRIORITY',
-    bg: '#ef4444',
-    text: '#ffffff',
-    border: '#dc2626',
-  } : {
-    label: 'MODERATE PRIORITY',
-    bg: '#fef3c7',
-    text: '#92400e',
-    border: '#fde68a',
-  };
+  const keywords = stat.keywords || [];
+  const evidences = stat.evidences || stat.topEvidences || [];
 
   return (
     <Card
       elevation={0}
       sx={{
-        ...cardShellSx,
+        bgcolor: '#ffffff',
+        borderRadius: 3.5,
+        border: '1.5px solid #e2e8f0',
+        borderTop: `4px solid ${accentColor}`,
+        p: { xs: 2, sm: 2.5 },
         display: 'flex',
         flexDirection: 'column',
-        height: '100%',
-        borderRadius: 2.5,
-        border: `1.5px solid ${T.surface.border}`,
-        borderTop: `3.5px solid ${catTheme.accent}`,
-        transition: 'all 0.25s ease',
+        boxShadow: '0 2px 12px rgba(0,0,0,0.02)',
+        overflow: 'hidden',
+        transition: 'all 0.2s ease',
         '&:hover': {
-          boxShadow: T.shadow.cardHover,
-          borderColor: catTheme.accent,
+          boxShadow: '0 6px 20px rgba(0,0,0,0.05)',
+          borderColor: '#cbd5e1',
+          borderTopColor: accentColor,
         }
       }}
     >
-      {/* Category Header Bar - Compact */}
-      <Box sx={{
-        py: 1.1,
-        px: { xs: 1.5, md: 2 },
-        bgcolor: '#ffffff',
-        borderBottom: `1px solid ${T.surface.borderLight}`,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: 1,
-      }}>
-        {/* Category Identity */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box sx={{
-            bgcolor: `${catTheme.accent}15`,
-            color: catTheme.accent,
-            p: 0.6,
-            borderRadius: '7px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            border: `1px solid ${catTheme.accent}30`,
-          }}>
-            {catTheme.icon}
-          </Box>
-          <Box>
-            <Typography sx={{
-              fontFamily: T.font.family,
-              fontWeight: 800,
-              fontSize: 14,
-              color: '#0f172a',
-              lineHeight: 1.2,
-            }}>
-              {stat.category} Service
-            </Typography>
-            <Typography sx={{
-              fontFamily: T.font.family,
-              fontSize: 11,
-              fontWeight: 700,
-              color: isHigh ? '#dc2626' : '#d97706',
-              mt: 0.1,
-            }}>
-              {stat.pct}% Negative ({stat.negative}/{stat.total})
-            </Typography>
-          </Box>
-        </Box>
-
-        {/* Priority Badge */}
+      {/* Header: Severity Badge + Topic Title */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, mb: 1.8 }}>
         <Box sx={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          px: 1.1,
-          py: 0.25,
-          borderRadius: T.radius.pill,
-          bgcolor: severityBadge.bg,
-          color: severityBadge.text,
-          border: `1px solid ${severityBadge.border}`,
+          bgcolor: isHigh ? '#ef4444' : '#f59e0b',
+          color: '#ffffff',
+          px: 1.2,
+          py: 0.35,
+          borderRadius: '5px',
           fontFamily: T.font.family,
-          fontSize: 10,
+          fontSize: 11,
           fontWeight: 800,
           letterSpacing: '0.4px',
           textTransform: 'uppercase',
+          lineHeight: 1.2,
+          flexShrink: 0,
         }}>
-          {severityBadge.label}
+          {isHigh ? 'HIGH' : 'MODERATE'}
+        </Box>
+        <Typography sx={{
+          fontFamily: T.font.family,
+          fontWeight: 800,
+          fontSize: { xs: 14, sm: 15 },
+          color: '#0f172a',
+          letterSpacing: '-0.2px',
+          lineHeight: 1.3,
+        }}>
+          {stat.title}
+        </Typography>
+      </Box>
+
+      {/* Priority Action Box */}
+      <Box sx={{
+        bgcolor: '#f1f4fe',
+        borderRadius: '8px',
+        p: 1.8,
+        mb: 2,
+      }}>
+        <Typography sx={{
+          fontFamily: T.font.family,
+          fontSize: 11.5,
+          fontWeight: 800,
+          color: '#4338ca',
+          letterSpacing: '0.5px',
+          textTransform: 'uppercase',
+          lineHeight: 1.2,
+          mb: 0.6,
+        }}>
+          PRIORITY ACTION
+        </Typography>
+        <Typography sx={{
+          fontFamily: T.font.family,
+          fontSize: 13.5,
+          fontWeight: 500,
+          color: '#1e293b',
+          lineHeight: 1.55,
+        }}>
+          {stat.action}
+        </Typography>
+      </Box>
+
+      {/* Pain-Point Keywords Section */}
+      <Box sx={{ mb: 2 }}>
+        <Typography sx={{
+          fontFamily: T.font.family,
+          fontSize: 11.5,
+          fontWeight: 800,
+          color: '#64748b',
+          letterSpacing: '0.5px',
+          textTransform: 'uppercase',
+          mb: 1,
+        }}>
+          PAIN-POINT KEYWORDS
+        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, flexWrap: 'wrap' }}>
+          {keywords.map((kw, i) => (
+            <Box
+              key={i}
+              sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 0.6,
+                bgcolor: '#ffffff',
+                border: '1.5px solid #e2e8f0',
+                borderRadius: '9999px',
+                px: 1.4,
+                py: 0.4,
+              }}
+            >
+              <Typography sx={{
+                fontFamily: T.font.family,
+                fontSize: 12.5,
+                fontWeight: 600,
+                color: '#334155',
+                lineHeight: 1.2,
+              }}>
+                {kw.word}
+              </Typography>
+              <Typography sx={{
+                fontFamily: T.font.family,
+                fontSize: 12.5,
+                fontWeight: 800,
+                color: isHigh ? '#ef4444' : '#ea580c',
+                lineHeight: 1.2,
+              }}>
+                {kw.count}x
+              </Typography>
+            </Box>
+          ))}
         </Box>
       </Box>
 
-      {/* Card Body - Compressed */}
-      <CardContent sx={{
-        p: { xs: 1.2, sm: 1.5 },
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 1,
-        flex: 1,
-        bgcolor: '#f8fafc',
-      }}>
-        {/* Actionable Recommendation Box */}
-        <Box sx={{
-          p: 1.1,
-          px: 1.3,
-          bgcolor: '#ffffff',
-          borderRadius: '7px',
-          border: `1px solid ${isHigh ? '#fecdd3' : '#fed7aa'}`,
-          borderLeft: `4px solid ${isHigh ? '#dc2626' : '#f59e0b'}`,
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)',
+      {/* Patron Evidence Section */}
+      <Box sx={{ mt: 0 }}>
+        <Typography sx={{
+          fontFamily: T.font.family,
+          fontSize: 11.5,
+          fontWeight: 800,
+          color: '#64748b',
+          letterSpacing: '0.5px',
+          textTransform: 'uppercase',
+          mb: 1.1,
         }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, mb: 0.3 }}>
-            <LightbulbIcon sx={{ fontSize: 14, color: isHigh ? '#dc2626' : '#d97706' }} />
-            <Typography sx={{
-              fontFamily: T.font.family,
-              fontSize: 10.5,
-              fontWeight: 800,
-              color: isHigh ? '#be123c' : '#b45309',
-              textTransform: 'uppercase',
-              letterSpacing: '0.4px',
-            }}>
-              Improvement Recommendations
-            </Typography>
-          </Box>
-          <Typography sx={{
-            fontFamily: T.font.family,
-            fontSize: 12.6,
-            fontWeight: 600,
-            color: '#1e293b',
-            lineHeight: 1.45,
-          }}>
-            {recommendationText || 'Review patron feedback and assess operational adjustments.'}
-          </Typography>
-        </Box>
-
-        {/* Supporting Patron Feedback Evidence */}
-        <Box sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 0.6,
-          flex: 1,
-        }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 0.6 }}>
-            <Typography sx={{
-              fontFamily: T.font.family,
-              fontSize: 10.5,
-              fontWeight: 800,
-              color: '#475569',
-              textTransform: 'uppercase',
-              letterSpacing: '0.4px',
-            }}>
-              Patron Evidence
-            </Typography>
-            <Box sx={{
-              px: 0.8,
-              py: 0.1,
-              borderRadius: '4px',
-              bgcolor: '#e2e8f0',
-              color: '#334155',
-              fontFamily: T.font.family,
-              fontSize: 9.5,
-              fontWeight: 700,
-            }}>
-              Keyword: "{(stat.primaryKw || 'General').toUpperCase()}"
-            </Box>
-          </Box>
-
-          {/* Evidence Quotes - Compressed */}
-          {stat.topEvidences && stat.topEvidences.length > 0 ? (
-            stat.topEvidences.slice(0, 2).map((ev, idx) => (
-              <Box
-                key={idx}
-                sx={{
-                  p: 0.9,
-                  px: 1.1,
-                  bgcolor: '#ffffff',
-                  borderRadius: '6px',
-                  border: '1px solid #e2e8f0',
-                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.02)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 0.3,
-                }}
-              >
+          PATRON EVIDENCE
+        </Typography>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.1 }}>
+          {evidences.slice(0, 3).map((ev, idx) => {
+            const quoteText = typeof ev === 'string' ? ev : (ev.Message || '');
+            return (
+              <Box key={idx} sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.8 }}>
                 <Typography sx={{
                   fontFamily: T.font.family,
-                  fontSize: 12,
-                  fontWeight: 500,
-                  color: '#0f172a',
-                  lineHeight: 1.4,
+                  fontSize: 12.5,
+                  fontWeight: 800,
+                  color: '#d97706',
+                  minWidth: 20,
+                  lineHeight: 1.5,
+                  flexShrink: 0,
                 }}>
-                  "{ev.Message}"
+                  #{idx + 1}
                 </Typography>
-                <Box sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  pt: 0.3,
-                  borderTop: '1px dashed #f1f5f9',
+                <Typography sx={{
+                  fontFamily: T.font.family,
+                  fontSize: 13.5,
+                  fontWeight: 500,
+                  color: '#334155',
+                  fontStyle: 'italic',
+                  lineHeight: 1.5,
+                  wordBreak: 'break-word',
                 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Typography sx={{
-                      fontFamily: T.font.family,
-                      fontSize: 9.5,
-                      fontWeight: 800,
-                      color: '#475569',
-                      textTransform: 'uppercase',
-                    }}>
-                      {ev.Clientele || 'STUDENT'}
-                    </Typography>
-                    {ev.College && (
-                      <Typography sx={{
-                        fontFamily: T.font.family,
-                        fontSize: 9.5,
-                        fontWeight: 700,
-                        color: T.brand.indigo,
-                      }}>
-                        • {ev.College}
-                      </Typography>
-                    )}
-                  </Box>
-                  {ev.DateSubmitted && (
-                    <Typography sx={{
-                      fontFamily: T.font.family,
-                      fontSize: 9.5,
-                      color: '#94a3b8',
-                      fontWeight: 500,
-                    }}>
-                      {ev.DateSubmitted.slice(0, 10)}
-                    </Typography>
-                  )}
-                </Box>
+                  "{cleanQuote(quoteText)}"
+                </Typography>
               </Box>
-            ))
-          ) : (
-            <Typography sx={{
-              fontFamily: T.font.family,
-              fontSize: 11,
-              color: T.text.faint,
-              fontStyle: 'italic',
-              p: 1,
-              textAlign: 'center',
-            }}>
-              No specific patron quote available for this category.
-            </Typography>
-          )}
+            );
+          })}
         </Box>
-      </CardContent>
+      </Box>
     </Card>
   );
 };

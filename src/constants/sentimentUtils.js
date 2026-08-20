@@ -98,6 +98,7 @@ export const scoreCommentsWithLexicon = (commentsPool) => {
   if (!commentsPool || commentsPool.length === 0) return [];
 
   const topicPoolCounts = {};
+  const kwPoolCounts = {};
   const commentTopicMatches = commentsPool.map(s => {
     if (!s.Message || !s.Message.trim()) return { matchedTopics: [] };
     const msgLower = s.Message.toLowerCase();
@@ -106,25 +107,30 @@ export const scoreCommentsWithLexicon = (commentsPool) => {
     Object.entries(CONTROLLED_LEXICON).forEach(([catName, categoryTopics]) => {
       Object.entries(categoryTopics).forEach(([topic, synonyms]) => {
         let bestSynLen = 0;
+        let matchedSyn = '';
         for (const syn of synonyms) {
           const synLower = syn.toLowerCase();
           const escaped = synLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          // Strict regex using non-word/boundary checks to avoid partial substring collisions (e.g. "ac" matching "academic" or "unapproachable")
+          // Strict regex using non-word/boundary checks to avoid partial substring collisions
           const regex = new RegExp(`(^|[^a-zA-Z0-9])${escaped}([^a-zA-Z0-9]|$)`, 'i');
           if (regex.test(msgLower)) {
             if (synLower.length > bestSynLen) {
               bestSynLen = synLower.length;
+              matchedSyn = synLower;
             }
           }
         }
         if (bestSynLen > 0) {
-          matchedTopics.push({ topic, category: catName, matchLen: bestSynLen });
+          matchedTopics.push({ topic, category: catName, matchLen: bestSynLen, keyword: matchedSyn });
         }
       });
     });
 
     matchedTopics.forEach(m => {
       topicPoolCounts[m.topic] = (topicPoolCounts[m.topic] || 0) + 1;
+      if (m.keyword) {
+        kwPoolCounts[m.keyword] = (kwPoolCounts[m.keyword] || 0) + 1;
+      }
     });
 
     return { matchedTopics };
@@ -137,6 +143,7 @@ export const scoreCommentsWithLexicon = (commentsPool) => {
 
     const { matchedTopics } = commentTopicMatches[idx];
     let bestTopic = '';
+    let bestKw = '';
     let bestTopicScore = -1;
     let maxTopicFreq = 0;
     let totalTopicScore = 0;
@@ -158,6 +165,7 @@ export const scoreCommentsWithLexicon = (commentsPool) => {
       if (candidateScore > bestTopicScore) {
         bestTopicScore = candidateScore;
         bestTopic = m.topic;
+        bestKw = m.keyword;
       }
     });
 
@@ -168,15 +176,15 @@ export const scoreCommentsWithLexicon = (commentsPool) => {
     const magnitude = Math.abs(getSurveyScore(commentObj));
     const blendedScore = Number(((0.7 * normalizedTopicScore) + (0.3 * magnitude * 10)).toFixed(2));
 
-    const assignedTopic = bestTopic || (commentObj.Category ? `${commentObj.Category} Feedback` : 'General Feedback');
-    const assignedFreq = topicPoolCounts[assignedTopic] || maxTopicFreq || 1;
+    const assignedKeyword = bestKw || (commentObj.Category ? commentObj.Category.toLowerCase() : 'general');
+    const assignedFreq = (bestKw && kwPoolCounts[bestKw]) || topicPoolCounts[bestTopic] || maxTopicFreq || 1;
 
     return {
       ...commentObj,
       tfidfScore: normalizedTopicScore,
       termScore: normalizedTopicScore,
       blendedScore,
-      topTerm: assignedTopic,
+      topTerm: assignedKeyword,
       maxTermFreq: assignedFreq
     };
   });

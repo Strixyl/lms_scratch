@@ -14,12 +14,13 @@ import {
   FileDownload as FileDownloadIcon,
   FilterAlt as FilterAltIcon,
   Logout as LogoutIcon,
-  Delete as DeleteIcon,
   DeleteOutline as DeleteOutlineIcon,
   Star as StarIcon,
   ThumbUp as ThumbUpIcon,
   ThumbDown as ThumbDownIcon,
   SentimentSatisfied as SentimentSatisfiedIcon,
+  RateReview as RateReviewIcon,
+  Lightbulb as LightbulbIcon,
   Assessment as AssessmentIcon,
   AdminPanelSettings as AdminIcon,
   CalendarToday as CalendarTodayIcon,
@@ -27,9 +28,6 @@ import {
   Inbox as InboxIcon,
   TrendingUp as TrendingUpIcon,
   PieChart as PieChartIcon,
-  Lightbulb as LightbulbIcon,
-  RateReview as RateReviewIcon,
-  CheckCircle as CheckCircleIcon,
   BarChart as BarChartIcon,
   FormatListNumbered as FormatListNumberedIcon,
   Apartment as ApartmentIcon,
@@ -54,13 +52,9 @@ import {
   cardShellSx,
   sectionTitleSx,
   sectionSubtitleSx,
-  sectionIconSx,
   selectSx,
   menuItemSx,
   datePresetBtnSx,
-  paginationBtnSx,
-  tableHeaderRowSx,
-  tableSortLabelSx,
 } from '../constants/themeTokens';
 
 import {
@@ -69,6 +63,8 @@ import {
   CATEGORY_OPTIONS,
   MONTH_NAMES,
   ROWS_PER_PAGE,
+  CONTROLLED_LEXICON,
+  LEXICON_TOPIC_ACTIONS,
   RECOMMENDATIONS,
   CATEGORY_KEYWORDS,
 } from '../constants/sentimentConstants';
@@ -690,67 +686,94 @@ const SentimentDashboard = () => {
     },
   }), [selectedWordFilter, wordCloudWords]);
 
-  const categoryStats = (() => {
-    const cats = {};
-    filtered.forEach(s => {
-      const cat = s.Category || 'Other/Uncategorized';
-      if (!RECOMMENDATIONS[cat]) return;
-      if (!cats[cat]) cats[cat] = { total: 0, negative: 0, items: [] };
-      cats[cat].total++;
-      cats[cat].items.push(s);
-      if (s.SentimentResult === 'Negative') cats[cat].negative++;
-    });
+  const categoryStats = useMemo(() => {
+    const negItems = filtered.filter(s => s.SentimentResult === 'Negative' && s.Message?.trim());
+    const poolNegItems = negItems.length > 0 ? negItems : surveys.filter(s => s.SentimentResult === 'Negative' && s.Message?.trim());
+    const categoryFilter = filterCategory;
 
-    return Object.entries(cats).map(([category, { total, negative, items }]) => {
-      const pct = total ? Math.round((negative / total) * 100) : 0;
-      let severity = null;
-      if (pct >= 50) severity = 'high';
-      else if (pct >= 30) severity = 'moderate';
+    const scoredTopics = [];
 
-      if (!severity) return null;
+    Object.entries(CONTROLLED_LEXICON).forEach(([catName, categoryTopics]) => {
+      if (categoryFilter && catName !== categoryFilter) return;
 
-      const negativeItems = items.filter(s => s.SentimentResult === 'Negative');
+      Object.entries(categoryTopics).forEach(([topicName, synonyms]) => {
+        const kwCounts = {};
+        const matchedItems = [];
 
-      const kwCounts = {};
-      const kwToKeyword = {};
-      const dict = CATEGORY_KEYWORDS[category] || {};
-      negativeItems.forEach(s => {
-        if (!s.Message) return;
-        const msgLower = s.Message.toLowerCase();
-        Object.entries(dict).forEach(([kw, phrase]) => {
-          if (msgLower.includes(kw)) {
-            kwCounts[phrase] = (kwCounts[phrase] || 0) + 1;
-            kwToKeyword[phrase] = kw;
+        poolNegItems.forEach(item => {
+          const msgLower = (item.Message || '').toLowerCase();
+          let itemMatched = false;
+
+          synonyms.forEach(syn => {
+            const synLower = syn.toLowerCase();
+            const escaped = synLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(`(^|[^a-zA-Z0-9])${escaped}([^a-zA-Z0-9]|$)`, 'i');
+            if (regex.test(msgLower)) {
+              kwCounts[synLower] = (kwCounts[synLower] || 0) + 1;
+              itemMatched = true;
+            }
+          });
+
+          if (itemMatched && item.Message) {
+            matchedItems.push(item);
           }
         });
+
+        const sortedKwEntries = Object.entries(kwCounts)
+          .sort((a, b) => b[1] - a[1]);
+
+        const totalMatches = sortedKwEntries.reduce((acc, [, c]) => acc + c, 0);
+        if (totalMatches === 0 && poolNegItems.length > 0) return;
+
+        const finalKeywords = sortedKwEntries.slice(0, 3).map(([word, count]) => ({ word, count }));
+        const scoredEvs = scoreCommentsWithLexicon(matchedItems);
+        const topEvidences = scoredEvs
+          .sort((a, b) => (b.blendedScore || 0) - (a.blendedScore || 0))
+          .slice(0, 3);
+
+        const topicActionConfig = LEXICON_TOPIC_ACTIONS[topicName] || {};
+        const severity = totalMatches >= 4 || topicActionConfig.defaultSeverity === 'HIGH' ? 'HIGH' : 'MODERATE';
+        const action = topicActionConfig.action || RECOMMENDATIONS[catName]?.[severity.toLowerCase()] || 'Review patron feedback and assess operational adjustments.';
+
+        scoredTopics.push({
+          id: topicName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+          title: topicName,
+          category: catName,
+          severity,
+          action,
+          keywords: finalKeywords.length > 0 ? finalKeywords : synonyms.slice(0, 3).map(w => ({ word: w, count: 1 })),
+          evidences: topEvidences,
+          matchCount: totalMatches,
+        });
       });
+    });
 
-      const sortedKws = Object.entries(kwCounts).sort((a, b) => b[1] - a[1]);
-      const matchedKeywords = sortedKws
-        .slice(0, 3)
-        .map(([phrase, count]) => `${phrase} (${count} mention${count > 1 ? 's' : ''})`);
+    scoredTopics.sort((a, b) => b.matchCount - a.matchCount);
 
-      // Top Keyword Match (Panelist preference: base comments on top word frequency keyword)
-      const primaryPhrase = sortedKws.length > 0 ? sortedKws[0][0] : '';
-      const primaryKw = primaryPhrase ? (kwToKeyword[primaryPhrase] || '') : '';
+    if (scoredTopics.length >= 3) {
+      return scoredTopics.slice(0, 3);
+    }
 
-      let matchingEvidences = [];
-      if (primaryKw) {
-        matchingEvidences = negativeItems.filter(s => s.Message && s.Message.toLowerCase().includes(primaryKw));
-      }
-      if (matchingEvidences.length < 3) {
-        const remaining = negativeItems.filter(s => !matchingEvidences.includes(s));
-        matchingEvidences = [...matchingEvidences, ...remaining];
-      }
+    if (scoredTopics.length === 0) {
+      const fallbackCats = categoryFilter ? [categoryFilter] : ['Facilities', 'Staff', 'Collection'];
+      return fallbackCats.map(cat => {
+        const catItems = poolNegItems.filter(s => (s.Category || '') === cat);
+        const scored = scoreCommentsWithLexicon(catItems);
+        return {
+          id: cat.toLowerCase(),
+          title: `${cat} Service`,
+          category: cat,
+          severity: catItems.length >= 5 ? 'HIGH' : 'MODERATE',
+          action: RECOMMENDATIONS[cat]?.high || RECOMMENDATIONS[cat]?.moderate || 'Review patron feedback and prioritize operational adjustments.',
+          keywords: (CATEGORY_KEYWORDS[cat] ? Object.keys(CATEGORY_KEYWORDS[cat]).slice(0, 3) : ['feedback']).map(w => ({ word: w, count: 1 })),
+          evidences: scored.slice(0, 3),
+          matchCount: catItems.length,
+        };
+      });
+    }
 
-      const scoredEvidences = scoreCommentsWithLexicon(matchingEvidences);
-      const topEvidences = scoredEvidences
-        .sort((a, b) => b.blendedScore - a.blendedScore)
-        .slice(0, 3);
-
-      return { category, total, negative, pct, severity, matchedKeywords, primaryKw, topEvidences };
-    }).filter(Boolean);
-  })();
+    return scoredTopics.slice(0, 3);
+  }, [filtered, surveys, filterCategory]);
 
   const handleExportExcel = () => {
     if (filtered.length === 0) {
@@ -869,11 +892,6 @@ const SentimentDashboard = () => {
       document.body.removeChild(iframe);
     }, 500);
   };
-
-  // Donut chart gradient shortcuts
-  const dP = T.chart.donutGradients.positive;
-  const dNu = T.chart.donutGradients.neutral;
-  const dNe = T.chart.donutGradients.negative;
 
   return (
     <>
@@ -1485,19 +1503,75 @@ const SentimentDashboard = () => {
                                   </Box>
                                 </Box>
 
-                                {/* Bottom Stat Breakdown Strip */}
-                                <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center', gap: 1.2, mt: 'auto', pt: 1 }}>
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3, px: 1.4, py: 0.4, bgcolor: '#dcfce7', borderRadius: '8px' }}>
-                                    <ArrowDropUpIcon sx={{ fontSize: 18, color: '#15803d', ml: -0.3, mr: -0.3 }} />
-                                    <Typography sx={{ fontSize: 12, fontWeight: 800, color: '#15803d', fontFamily: T.font.family }}>{posVal}</Typography>
+                                {/* Bottom Stat Breakdown Strip with Text Labels & Percentages */}
+                                <Box sx={{ width: '100%', display: 'flex', justifyContent: 'space-between', gap: 1, mt: 'auto', pt: 1.5 }}>
+                                  {/* Positive */}
+                                  <Box sx={{
+                                    flex: 1,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    px: 0.8,
+                                    py: 0.6,
+                                    bgcolor: '#f0fdf4',
+                                    border: '1px solid #dcfce7',
+                                    borderRadius: '8px'
+                                  }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.2 }}>
+                                      <ArrowDropUpIcon sx={{ fontSize: 16, color: '#15803d', ml: -0.4, mr: -0.3 }} />
+                                      <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#15803d', fontFamily: T.font.family }}>
+                                        Positive
+                                      </Typography>
+                                    </Box>
+                                    <Typography sx={{ fontSize: 12.5, fontWeight: 800, color: '#15803d', fontFamily: T.font.family, mt: 0.1 }}>
+                                      {posVal} <Typography component="span" sx={{ fontSize: 11, fontWeight: 600, color: '#16a34a' }}>({donut.total > 0 ? Math.round((posVal / donut.total) * 100) : 0}%)</Typography>
+                                    </Typography>
                                   </Box>
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, px: 1.4, py: 0.4, bgcolor: '#fef3c7', borderRadius: '8px' }}>
-                                    <FiberManualRecordIcon sx={{ fontSize: 7, color: '#b45309' }} />
-                                    <Typography sx={{ fontSize: 12, fontWeight: 800, color: '#b45309', fontFamily: T.font.family }}>{neuVal}</Typography>
+
+                                  {/* Neutral */}
+                                  <Box sx={{
+                                    flex: 1,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    px: 0.8,
+                                    py: 0.6,
+                                    bgcolor: '#fffbeb',
+                                    border: '1px solid #fef3c7',
+                                    borderRadius: '8px'
+                                  }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
+                                      <FiberManualRecordIcon sx={{ fontSize: 6, color: '#b45309' }} />
+                                      <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#b45309', fontFamily: T.font.family }}>
+                                        Neutral
+                                      </Typography>
+                                    </Box>
+                                    <Typography sx={{ fontSize: 12.5, fontWeight: 800, color: '#b45309', fontFamily: T.font.family, mt: 0.1 }}>
+                                      {neuVal} <Typography component="span" sx={{ fontSize: 11, fontWeight: 600, color: '#b45309' }}>({donut.total > 0 ? Math.round((neuVal / donut.total) * 100) : 0}%)</Typography>
+                                    </Typography>
                                   </Box>
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3, px: 1.4, py: 0.4, bgcolor: '#fee2e2', borderRadius: '8px' }}>
-                                    <ArrowDropDownIcon sx={{ fontSize: 18, color: '#dc2626', ml: -0.3, mr: -0.3 }} />
-                                    <Typography sx={{ fontSize: 12, fontWeight: 800, color: '#dc2626', fontFamily: T.font.family }}>{negVal}</Typography>
+
+                                  {/* Negative */}
+                                  <Box sx={{
+                                    flex: 1,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    px: 0.8,
+                                    py: 0.6,
+                                    bgcolor: '#fef2f2',
+                                    border: '1px solid #fee2e2',
+                                    borderRadius: '8px'
+                                  }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.2 }}>
+                                      <ArrowDropDownIcon sx={{ fontSize: 16, color: '#dc2626', ml: -0.4, mr: -0.3 }} />
+                                      <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#dc2626', fontFamily: T.font.family }}>
+                                        Negative
+                                      </Typography>
+                                    </Box>
+                                    <Typography sx={{ fontSize: 12.5, fontWeight: 800, color: '#dc2626', fontFamily: T.font.family, mt: 0.1 }}>
+                                      {negVal} <Typography component="span" sx={{ fontSize: 11, fontWeight: 600, color: '#dc2626' }}>({donut.total > 0 ? Math.round((negVal / donut.total) * 100) : 0}%)</Typography>
+                                    </Typography>
                                   </Box>
                                 </Box>
                               </Paper>
@@ -1507,43 +1581,72 @@ const SentimentDashboard = () => {
                       </CardContent>
                     </Card>
 
-                    {/* ── Top Positive & Negative Comments Grid ───── */}
-                    <Box sx={{
-                      display: 'grid',
-                      gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' },
-                      gap: 2.2,
-                      mb: 2.5,
-                      alignItems: 'stretch',
-                    }}>
-                      <TopCommentsCard title="Top 5 Positive Comments" rows={topPositive} type="positive" icon={<ThumbUpIcon />} />
-                      <TopCommentsCard title="Top 5 Negative Comments" rows={topNegative} type="negative" icon={<ThumbDownIcon />} />
-                    </Box>
-
-                    {/* ── Service Improvement Recommendations ───── */}
-                    <Card elevation={0} sx={{ ...cardShellSx, mb: 2.5 }}>
-                      <Box sx={{
-                        ...sectionHeaderSx,
-                        flexWrap: 'wrap',
-                        gap: 1,
-                        py: 1.3,
-                        px: { xs: 1.8, md: 2.2 },
-                      }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {/* ── Top Positive & Negative Comments Container ───── */}
+                    <Card elevation={0} sx={{ ...cardShellSx, mb: 3.5 }}>
+                      <Box sx={{ ...sectionHeaderSx, flexWrap: 'wrap', gap: 1.5 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
                           <Box sx={{
-                            color: '#d97706',
-                            bgcolor: '#fef3c7',
+                            bgcolor: '#ede9fe',
+                            color: '#4f46e5',
                             p: 0.55,
                             borderRadius: '8px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            '& svg': { fontSize: 17 }
+                            '& svg': { fontSize: 18 }
+                          }}>
+                            <RateReviewIcon />
+                          </Box>
+                          <Box>
+                            <Typography sx={sectionTitleSx}>Top Patron Comments</Typography>
+                            <Typography sx={sectionSubtitleSx}>Top 5 high-impact positive commendations and critical negative feedback</Typography>
+                          </Box>
+                        </Box>
+
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, px: 1.2, py: 0.35, bgcolor: '#dcfce7', borderRadius: '9999px' }}>
+                            <ThumbUpIcon sx={{ fontSize: 14, color: '#15803d' }} />
+                            <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, color: '#15803d', fontWeight: 700 }}>5 Positive</Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, px: 1.2, py: 0.35, bgcolor: '#fee2e2', borderRadius: '9999px' }}>
+                            <ThumbDownIcon sx={{ fontSize: 14, color: '#dc2626' }} />
+                            <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, color: '#dc2626', fontWeight: 700 }}>5 Negative</Typography>
+                          </Box>
+                        </Box>
+                      </Box>
+
+                      <CardContent sx={{ p: { xs: 2, sm: 2.5 } }}>
+                        <Box sx={{
+                          display: 'grid',
+                          gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' },
+                          gap: 2.5,
+                          alignItems: 'stretch',
+                        }}>
+                          <TopCommentsCard title="Top 5 Positive Comments" rows={topPositive} type="positive" icon={<ThumbUpIcon />} />
+                          <TopCommentsCard title="Top 5 Negative Comments" rows={topNegative} type="negative" icon={<ThumbDownIcon />} />
+                        </Box>
+                      </CardContent>
+                    </Card>
+
+                    {/* ── Service Improvement Recommendations Container ───── */}
+                    <Card elevation={0} sx={{ ...cardShellSx, mb: 3.5 }}>
+                      <Box sx={{ ...sectionHeaderSx, flexWrap: 'wrap', gap: 1.5 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+                          <Box sx={{
+                            bgcolor: '#fef3c7',
+                            color: '#d97706',
+                            p: 0.55,
+                            borderRadius: '8px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            '& svg': { fontSize: 18 }
                           }}>
                             <LightbulbIcon />
                           </Box>
                           <Box>
-                            <Typography sx={{ ...sectionTitleSx, fontSize: 15 }}>Service Improvement Recommendations</Typography>
-                            <Typography sx={{ ...sectionSubtitleSx, fontSize: 12 }}>Actionable priority insights derived from negative patron sentiment signals</Typography>
+                            <Typography sx={sectionTitleSx}>Service Improvement Recommendations</Typography>
+                            <Typography sx={sectionSubtitleSx}>Actionable priority insights derived from negative patron sentiment signals</Typography>
                           </Box>
                         </Box>
 
@@ -1554,7 +1657,7 @@ const SentimentDashboard = () => {
                             color: '#475569',
                             bgcolor: '#f1f5f9',
                             fontWeight: 700,
-                            px: 1.4,
+                            px: 1.5,
                             py: 0.35,
                             borderRadius: '9999px',
                           }}>
@@ -1563,49 +1666,25 @@ const SentimentDashboard = () => {
                         </Box>
                       </Box>
 
-                      <CardContent sx={{ p: { xs: 1.2, sm: 1.8 } }}>
-                        {categoryStats.length === 0 ? (
-                          <Box sx={{
-                            textAlign: 'center',
-                            py: 3.5,
-                            px: 2,
-                            bgcolor: '#f0fdf4',
-                            borderRadius: 2.5,
-                            border: '1.5px dashed #86efac',
-                          }}>
-                            <CheckCircleIcon sx={{ fontSize: 36, color: '#10b981', mb: 0.5 }} />
-                            <Typography sx={{ fontFamily: T.font.family, fontWeight: 800, fontSize: 15, color: '#065f46' }}>
-                              All Library Service Categories Performing Optimally
-                            </Typography>
-                            <Typography sx={{ fontFamily: T.font.family, fontSize: 12.5, color: '#047857', mt: 0.3, maxWidth: 600, mx: 'auto' }}>
-                              Negative patron sentiment is currently below the concern threshold across Facilities, Staff, and Collection services.
-                            </Typography>
-                          </Box>
-                        ) : (
-                          <Box sx={{
-                            display: 'grid',
-                            gridTemplateColumns: categoryStats.length === 1
-                              ? '1fr'
-                              : categoryStats.length === 2
-                                ? { xs: '1fr', lg: '1fr 1fr' }
-                                : { xs: '1fr', md: '1fr 1fr', xl: 'repeat(3, 1fr)' },
-                            gap: 2.2,
-                            alignItems: 'stretch',
-                          }}>
-                            {categoryStats.map((c) => (
-                              <RecommendationCard
-                                key={c.category}
-                                stat={c}
-                                recommendationText={RECOMMENDATIONS[c.category]?.[c.severity]}
-                              />
-                            ))}
-                          </Box>
-                        )}
+                      <CardContent sx={{ p: { xs: 2, sm: 2.5 } }}>
+                        <Box sx={{
+                          display: 'grid',
+                          gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
+                          gap: 2.5,
+                          alignItems: 'stretch',
+                        }}>
+                          {categoryStats.map((c, idx) => (
+                            <RecommendationCard
+                              key={c.id || idx}
+                              stat={c}
+                            />
+                          ))}
+                        </Box>
                       </CardContent>
                     </Card>
 
-                    {/* ── Frequently Used Words (Word Cloud) ───── */}
-                    <Card elevation={0} sx={{ ...cardShellSx, mb: 3 }}>
+                    {/* ── Frequently Used Words (Word Cloud) Container ───── */}
+                    <Card elevation={0} sx={{ ...cardShellSx, mb: 3.5 }}>
                       <Box sx={{ ...sectionHeaderSx, flexWrap: 'wrap', gap: 1.5 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
                           <Box sx={{
@@ -1636,7 +1715,7 @@ const SentimentDashboard = () => {
                         </Box>
                       </Box>
 
-                      <CardContent sx={{ p: 3 }}>
+                      <CardContent sx={{ p: { xs: 2, sm: 2.5 } }}>
                         {wordCloudWords.length === 0 ? (
                           <Typography sx={{ fontFamily: T.font.family, color: T.text.faint, textAlign: 'center', py: 6 }}>
                             No comment text available for the selected filters.
@@ -1711,14 +1790,14 @@ const SentimentDashboard = () => {
                               return (
                                 <Button
                                   key={m}
-                                  size="small"
+                                  size="medium"
                                   onClick={() => { setFilterMonth(isSelected ? 'All' : m); setPage(0); }}
                                   sx={{
                                     borderRadius: '9999px',
                                     textTransform: 'none',
                                     fontFamily: T.font.family,
                                     fontWeight: isSelected ? 700 : 600,
-                                    fontSize: 12,
+                                    fontSize: 13,
                                     px: 1.5,
                                     py: 0.4,
                                     minWidth: 'auto',
