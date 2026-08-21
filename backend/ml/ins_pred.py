@@ -17,3 +17,5 @@ for idx in X.nonzero()[1]:
 probs = model.predict_proba(text)
 for cls, p in zip(nb.classes_, probs):
     print(cls, round(p, 4))
+
+print("predict_with_fallback:", model.predict_with_fallback(text))
