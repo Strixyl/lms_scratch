@@ -45,6 +45,7 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../Components/Header';
 import TopBar from '../Components/TopBar';
 import { COLLEGE_OPTIONS, SECTION_OPTIONS, getCollegeGroup, formatDate } from '../constants/collegeMap';
+import { MONTH_NAMES, QUARTER_OPTIONS } from '../constants/sentimentConstants';
 
 // ── Centralized theme design tokens ──────────────────────────────────────────
 import {
@@ -59,6 +60,11 @@ import {
   tableHeaderRowSx,
   tableSortLabelSx,
 } from '../constants/themeTokens';
+
+const MONTH_CODE_MAP = {
+  Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06',
+  Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12'
+};
 
 const T = THEME;
 
@@ -455,6 +461,77 @@ const CustomBarTooltip = ({ active, payload, label }) => {
   return null;
 };
 
+// ── Dynamic Custom Tooltip for Monthly Foot Traffic Trend Bar Chart ────────
+const CustomMonthlyTrendTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    const total = data.total || 0;
+    const pct = data.pct || 0;
+    const males = data.males || 0;
+    const females = data.females || 0;
+    const otherGender = data.otherGender || 0;
+    const isSelected = data.isSelectedMonth;
+
+    return (
+      <Paper elevation={4} sx={{ p: 2, bgcolor: '#ffffff', border: '1.5px solid #cbd5e1', borderRadius: 3, minWidth: 250, maxWidth: 330, boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1, borderBottom: '1px solid #e2e8f0', pb: 1 }}>
+          <Typography variant="subtitle2" sx={{ fontFamily: T.font.family, fontWeight: 800, color: '#4f46e5', fontSize: 14 }}>
+            {label}
+          </Typography>
+          {isSelected && (
+            <Chip label="Selected" size="small" sx={{ fontFamily: T.font.family, fontWeight: 800, fontSize: 10.5, bgcolor: '#1e293b', color: '#ffffff', height: 20 }} />
+          )}
+        </Box>
+
+        <Box sx={{ mb: 1.5, p: 1.2, borderRadius: 2, bgcolor: '#f8fafc', border: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 600, color: '#64748b' }}>
+            Total Visits:
+          </Typography>
+          <Typography sx={{ fontFamily: T.font.family, fontSize: 14, fontWeight: 800, color: '#0f172a' }}>
+            {total} <Typography component="span" sx={{ fontSize: 11.5, color: '#64748b', fontWeight: 600 }}>({pct}% of Year)</Typography>
+          </Typography>
+        </Box>
+
+        <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 700, color: '#64748b', mb: 0.8, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+          Gender Distribution:
+        </Typography>
+
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.6 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
+              <MaleIcon sx={{ fontSize: 16, color: '#0288d1' }} />
+              <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 600, color: '#334155' }}>Male</Typography>
+            </Box>
+            <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#0288d1' }}>
+              {males} {total > 0 ? `(${Math.round((males / total) * 100)}%)` : ''}
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
+              <FemaleIcon sx={{ fontSize: 16, color: '#7b1fa2' }} />
+              <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 600, color: '#334155' }}>Female</Typography>
+            </Box>
+            <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#7b1fa2' }}>
+              {females} {total > 0 ? `(${Math.round((females / total) * 100)}%)` : ''}
+            </Typography>
+          </Box>
+          {otherGender > 0 && (
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
+              <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 600, color: '#64748b', ml: 2.6 }}>Unspecified</Typography>
+              <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#64748b' }}>{otherGender}</Typography>
+            </Box>
+          )}
+        </Box>
+
+        <Typography sx={{ fontFamily: T.font.family, fontSize: 10.5, color: '#94a3b8', mt: 1.2, pt: 0.8, borderTop: '1px dashed #e2e8f0', textAlign: 'center' }}>
+          Click bar to filter / toggle this month
+        </Typography>
+      </Paper>
+    );
+  }
+  return null;
+};
+
 const ROWS_PER_PAGE = 10;
 
 const COURSE_ACRONYMS_MAP = {
@@ -607,6 +684,9 @@ const LoginDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [filterQuarter, setFilterQuarter] = useState('All');
+  const [filterMonth, setFilterMonth] = useState('All');
+  const [filterYear, setFilterYear] = useState('2026');
   const [selectedCollege, setSelectedCollege] = useState('All');
   const [selectedSection, setSelectedSection] = useState('All');
   const [selectedCourse, setSelectedCourse] = useState('All');
@@ -663,32 +743,75 @@ const LoginDashboard = () => {
       return `${yyyy}-${mm}-${dd}`;
     };
 
+    let newStart = '';
+    let newEnd = '';
+    let newQuarter = 'All';
+    let newMonth = 'All';
+    let newYear = filterYear === 'All' ? '2026' : (filterYear || '2026');
+    const targetYear = newYear === 'All' ? '2026' : newYear;
+
     if (presetKey === 'today') {
       const dateStr = formatISO(today);
-      setStartDate(dateStr);
-      setEndDate(dateStr);
+      newStart = dateStr;
+      newEnd = dateStr;
+      newQuarter = 'All';
     } else if (presetKey === 'week') {
       const day = today.getDay();
       const diff = today.getDate() - day + (day === 0 ? -6 : 1);
       const startOfWeek = new Date(today.getFullYear(), today.getMonth(), diff);
-      setStartDate(formatISO(startOfWeek));
-      setEndDate(formatISO(new Date()));
+      newStart = formatISO(startOfWeek);
+      newEnd = formatISO(today);
+      newQuarter = 'All';
     } else if (presetKey === 'month') {
       const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-      setStartDate(formatISO(startOfMonth));
-      setEndDate(formatISO(new Date()));
+      const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      newStart = formatISO(startOfMonth);
+      newEnd = formatISO(endOfMonth);
+      newQuarter = 'All';
+    } else if (presetKey === 'q1') {
+      newStart = `${targetYear}-01-01`;
+      newEnd = `${targetYear}-03-31`;
+      newQuarter = 'Q1';
+    } else if (presetKey === 'q2') {
+      newStart = `${targetYear}-04-01`;
+      newEnd = `${targetYear}-06-30`;
+      newQuarter = 'Q2';
+    } else if (presetKey === 'q3') {
+      newStart = `${targetYear}-07-01`;
+      newEnd = `${targetYear}-09-30`;
+      newQuarter = 'Q3';
+    } else if (presetKey === 'q4') {
+      newStart = `${targetYear}-10-01`;
+      newEnd = `${targetYear}-12-31`;
+      newQuarter = 'Q4';
     } else if (presetKey === 'all') {
-      setStartDate('');
-      setEndDate('');
+      newStart = '';
+      newEnd = '';
+      newQuarter = 'All';
+      newYear = 'All';
     }
+
+    setStartDate(newStart);
+    setEndDate(newEnd);
+    setFilterQuarter(newQuarter);
+    setFilterMonth(newMonth);
+    setFilterYear(newYear);
+    setPage(0);
   };
 
   const handleRemoveFilter = (key) => {
     if (key === 'date') {
       setStartDate('');
       setEndDate('');
+    } else if (key === 'quarter') {
+      setFilterQuarter('All');
+    } else if (key === 'month') {
+      setFilterMonth('All');
+    } else if (key === 'year') {
+      setFilterYear('All');
     } else if (key === 'college') {
       setSelectedCollege('All');
+      setSelectedCourse('All');
     } else if (key === 'course') {
       setSelectedCourse('All');
     } else if (key === 'section') {
@@ -696,6 +819,7 @@ const LoginDashboard = () => {
     } else if (key === 'search') {
       setSearchTerm('');
     }
+    setPage(0);
   };
 
   const handleRequestSort = (field) => {
@@ -723,15 +847,43 @@ const LoginDashboard = () => {
     }
   };
 
-  const handleClearFilters = async () => {
+  const handleClearFilters = () => {
     setStartDate('');
     setEndDate('');
+    setFilterQuarter('All');
+    setFilterMonth('All');
+    setFilterYear('2026');
     setSelectedCollege('All');
     setSelectedSection('All');
     setSelectedCourse('All');
     setSearchTerm('');
-    fetchLogins();
+    setPage(0);
   };
+
+  const hasActiveFilter = Boolean(
+    startDate ||
+    endDate ||
+    (filterQuarter && filterQuarter !== 'All') ||
+    (filterMonth && filterMonth !== 'All') ||
+    (filterYear && filterYear !== 'All' && filterYear !== '2026') ||
+    (selectedCollege && selectedCollege !== 'All') ||
+    (selectedCourse && selectedCourse !== 'All') ||
+    (selectedSection && selectedSection !== 'All') ||
+    searchTerm
+  );
+
+  const availableYears = useMemo(() => {
+    const yearsSet = new Set();
+    rawLogins.forEach(item => {
+      if (item.TimeLogged) {
+        const y = String(item.TimeLogged).slice(0, 4);
+        if (y && !isNaN(y)) yearsSet.add(y);
+      }
+    });
+    const arr = Array.from(yearsSet).sort((a, b) => b - a);
+    if (arr.length === 0) arr.push('2026');
+    return arr;
+  }, [rawLogins]);
 
   useEffect(() => {
     fetchLogins();
@@ -753,7 +905,42 @@ const LoginDashboard = () => {
         const itemDate = new Date(datePart);
         return itemDate >= start && itemDate <= end;
       });
+    } else if (startDate) {
+      const start = new Date(startDate);
+      filtered = filtered.filter((item) => {
+        if (!item.TimeLogged) return false;
+        const [datePart] = String(item.TimeLogged).split(' ');
+        return new Date(datePart) >= start;
+      });
+    } else if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      filtered = filtered.filter((item) => {
+        if (!item.TimeLogged) return false;
+        const [datePart] = String(item.TimeLogged).split(' ');
+        return new Date(datePart) <= end;
+      });
     }
+
+    // Filter by Year, Quarter, Month
+    filtered = filtered.filter((item) => {
+      if (!item.TimeLogged) return false;
+      const str = String(item.TimeLogged).trim();
+      const yr = str.slice(0, 4);
+      const mo = parseInt(str.slice(5, 7), 10);
+      const moStr = str.slice(5, 7);
+
+      if (filterYear && filterYear !== 'All' && yr !== filterYear) return false;
+      if (filterQuarter && filterQuarter !== 'All') {
+        if (filterQuarter === 'Q1' && (mo < 1 || mo > 3)) return false;
+        if (filterQuarter === 'Q2' && (mo < 4 || mo > 6)) return false;
+        if (filterQuarter === 'Q3' && (mo < 7 || mo > 9)) return false;
+        if (filterQuarter === 'Q4' && (mo < 10 || mo > 12)) return false;
+      }
+      if (filterMonth && filterMonth !== 'All' && moStr !== MONTH_CODE_MAP[filterMonth]) return false;
+
+      return true;
+    });
 
     // Filter by College
     if (selectedCollege && selectedCollege !== 'All') {
@@ -774,12 +961,86 @@ const LoginDashboard = () => {
 
     // Apply Henry Luce III Main Library entrance & section deduplication
     return deduplicateLogins(filtered);
-  }, [rawLogins, startDate, endDate, selectedCollege, selectedSection, selectedCourse]);
+  }, [rawLogins, startDate, endDate, filterYear, filterQuarter, filterMonth, selectedCollege, selectedSection, selectedCourse]);
+
+  // ── Monthly Foot Traffic Trend & Table Month Counter Data ──────────────
+  const monthlyTrendData = useMemo(() => {
+    const targetYear = filterYear === 'All' ? null : (filterYear || '2026');
+    const monthsMap = {};
+    MONTH_NAMES.forEach((m, idx) => {
+      monthsMap[idx] = {
+        month: m,
+        monthIndex: idx,
+        total: 0,
+        males: 0,
+        females: 0,
+        otherGender: 0,
+      };
+    });
+
+    // Base list filtered by College, Section, Course, Year
+    const baseList = rawLogins.filter(item => {
+      if (selectedCollege && selectedCollege !== 'All') {
+        if (getCollegeGroup(item.studCollege, item.studCourse, item.studLogType) !== selectedCollege) return false;
+      }
+      if (selectedSection && selectedSection !== 'All') {
+        if (item.Section !== selectedSection) return false;
+      }
+      if (selectedCourse && selectedCourse !== 'All') {
+        if (!isCourseMatch(item.studCourse, selectedCourse)) return false;
+      }
+      if (item.TimeLogged) {
+        const dateStr = String(item.TimeLogged).trim();
+        const yr = dateStr.slice(0, 4);
+        if (targetYear && yr !== targetYear) return false;
+      }
+      return true;
+    });
+
+    const deduped = deduplicateLogins(baseList);
+
+    deduped.forEach(item => {
+      if (!item.TimeLogged) return;
+      const dateStr = String(item.TimeLogged).trim();
+      const mNum = parseInt(dateStr.slice(5, 7), 10);
+      if (isNaN(mNum) || mNum < 1 || mNum > 12) return;
+      const mIdx = mNum - 1;
+      if (monthsMap[mIdx]) {
+        monthsMap[mIdx].total += 1;
+        const g = (item.studGender || '').toLowerCase();
+        if (g.includes('m') && !g.includes('fe')) monthsMap[mIdx].males += 1;
+        else if (g.includes('f')) monthsMap[mIdx].females += 1;
+        else monthsMap[mIdx].otherGender += 1;
+      }
+    });
+
+    const grandTotal = deduped.length;
+
+    return MONTH_NAMES.map((m, idx) => {
+      const item = monthsMap[idx];
+      const pct = grandTotal > 0 ? parseFloat(((item.total / grandTotal) * 100).toFixed(1)) : 0;
+      return {
+        ...item,
+        pct,
+        isSelectedMonth: filterMonth === m,
+      };
+    });
+  }, [rawLogins, selectedCollege, selectedSection, selectedCourse, filterYear, filterMonth]);
+
+  const tableMonthCounts = useMemo(() => {
+    const counts = { All: 0 };
+    MONTH_NAMES.forEach(m => (counts[m] = 0));
+    monthlyTrendData.forEach(item => {
+      counts[item.month] = item.total;
+      counts.All += item.total;
+    });
+    return counts;
+  }, [monthlyTrendData]);
 
   // Reset pagination to Page 1 when any filter or search changes
   useEffect(() => {
     setPage(0);
-  }, [startDate, endDate, selectedCollege, selectedSection, selectedCourse, searchTerm]);
+  }, [startDate, endDate, filterYear, filterQuarter, filterMonth, selectedCollege, selectedSection, selectedCourse, searchTerm]);
 
   // ── Dynamic Available Courses Options (Strict College Isolation) ─────────
   const availableCourses = useMemo(() => {
@@ -889,7 +1150,7 @@ const LoginDashboard = () => {
     const sectionCounts = {};
     let listToCount = rawLogins;
 
-    // Apply Date Filter
+    // Apply Date, Year, Quarter, Month Filter
     if (startDate && endDate) {
       const start = new Date(startDate);
       const end = new Date(endDate);
@@ -901,7 +1162,41 @@ const LoginDashboard = () => {
         const itemDate = new Date(datePart);
         return itemDate >= start && itemDate <= end;
       });
+    } else if (startDate) {
+      const start = new Date(startDate);
+      listToCount = listToCount.filter((item) => {
+        if (!item.TimeLogged) return false;
+        const [datePart] = String(item.TimeLogged).split(' ');
+        return new Date(datePart) >= start;
+      });
+    } else if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      listToCount = listToCount.filter((item) => {
+        if (!item.TimeLogged) return false;
+        const [datePart] = String(item.TimeLogged).split(' ');
+        return new Date(datePart) <= end;
+      });
     }
+
+    listToCount = listToCount.filter((item) => {
+      if (!item.TimeLogged) return false;
+      const str = String(item.TimeLogged).trim();
+      const yr = str.slice(0, 4);
+      const mo = parseInt(str.slice(5, 7), 10);
+      const moStr = str.slice(5, 7);
+
+      if (filterYear && filterYear !== 'All' && yr !== filterYear) return false;
+      if (filterQuarter && filterQuarter !== 'All') {
+        if (filterQuarter === 'Q1' && (mo < 1 || mo > 3)) return false;
+        if (filterQuarter === 'Q2' && (mo < 4 || mo > 6)) return false;
+        if (filterQuarter === 'Q3' && (mo < 7 || mo > 9)) return false;
+        if (filterQuarter === 'Q4' && (mo < 10 || mo > 12)) return false;
+      }
+      if (filterMonth && filterMonth !== 'All' && moStr !== MONTH_CODE_MAP[filterMonth]) return false;
+
+      return true;
+    });
 
     // Apply College Filter
     if (selectedCollege && selectedCollege !== 'All') {
@@ -951,7 +1246,7 @@ const LoginDashboard = () => {
     ];
 
     return { sectionChartData: fullList, donutSlices: slices, collegeSectionTotal: collegeTotal, internalSections: internalList };
-  }, [rawLogins, startDate, endDate, selectedCollege, selectedCourse]);
+  }, [rawLogins, startDate, endDate, filterYear, filterQuarter, filterMonth, selectedCollege, selectedCourse]);
 
   const topInternalSection = internalSections && internalSections.length > 0 ? internalSections[0] : null;
   const peakSection = topInternalSection ? topInternalSection.name : 'N/A';
@@ -1090,6 +1385,9 @@ const LoginDashboard = () => {
       { 'Analytics Metric': 'Top Visiting College / Dept', 'Count': `${topCollege} (${topCollegeCount} entries)` },
       { 'Analytics Metric': 'Peak Visited Library Section', 'Count': topInternalSection ? `${peakSection} (${peakSectionCount} entries)` : 'N/A' },
       { 'Analytics Metric': 'Date Range Filter Applied', 'Count': startDate && endDate ? `${startDate} to ${endDate}` : 'All Dates' },
+      { 'Analytics Metric': 'Quarter Filter Applied', 'Count': filterQuarter !== 'All' ? filterQuarter : 'All Quarters' },
+      { 'Analytics Metric': 'Month Filter Applied', 'Count': filterMonth !== 'All' ? filterMonth : 'All Months' },
+      { 'Analytics Metric': 'Year Filter Applied', 'Count': filterYear !== 'All' ? filterYear : 'All Years' },
       { 'Analytics Metric': 'College Filter Applied', 'Count': selectedCollege },
       { 'Analytics Metric': 'Course Filter Applied', 'Count': selectedCourse },
       { 'Analytics Metric': 'Section Filter Applied', 'Count': selectedSection }
@@ -1302,6 +1600,10 @@ const LoginDashboard = () => {
                     <Typography sx={{ fontFamily: T.font.family, fontSize: 12.5, fontWeight: 700, color: '#64748b', mr: 0.8, display: 'flex', alignItems: 'center', gap: 0.5 }}>
                       <CalendarTodayIcon sx={{ fontSize: 15, color: '#4f46e5' }} /> Quick Date Range:
                     </Typography>
+                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('q1')} sx={datePresetBtnSx}>Q1</Button>
+                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('q2')} sx={datePresetBtnSx}>Q2</Button>
+                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('q3')} sx={datePresetBtnSx}>Q3</Button>
+                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('q4')} sx={datePresetBtnSx}>Q4</Button>
                     <Button size="small" variant="outlined" onClick={() => handleDatePreset('today')} sx={datePresetBtnSx}>Today</Button>
                     <Button size="small" variant="outlined" onClick={() => handleDatePreset('week')} sx={datePresetBtnSx}>This Week</Button>
                     <Button size="small" variant="outlined" onClick={() => handleDatePreset('month')} sx={datePresetBtnSx}>This Month</Button>
@@ -1314,7 +1616,11 @@ const LoginDashboard = () => {
                       label="Start Date"
                       InputLabelProps={{ shrink: true }}
                       value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
+                      onChange={(e) => {
+                        setStartDate(e.target.value);
+                        if (e.target.value) setFilterQuarter('All');
+                        setPage(0);
+                      }}
                       sx={selectSx}
                     />
                     <TextField
@@ -1322,7 +1628,11 @@ const LoginDashboard = () => {
                       label="End Date"
                       InputLabelProps={{ shrink: true }}
                       value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
+                      onChange={(e) => {
+                        setEndDate(e.target.value);
+                        if (e.target.value) setFilterQuarter('All');
+                        setPage(0);
+                      }}
                       sx={selectSx}
                     />
                     <FormControl sx={selectSx}>
@@ -1330,7 +1640,10 @@ const LoginDashboard = () => {
                       <Select
                         value={selectedCollege}
                         label="College/Dept"
-                        onChange={(e) => setSelectedCollege(e.target.value)}
+                        onChange={(e) => {
+                          setSelectedCollege(e.target.value);
+                          setPage(0);
+                        }}
                       >
                         {COLLEGE_OPTIONS.map((c) => (
                           <MenuItem key={c} value={c} sx={menuItemSx}>{c}</MenuItem>
@@ -1361,7 +1674,10 @@ const LoginDashboard = () => {
                       <Select
                         value={selectedCourse}
                         label={selectedCollege === 'All' ? 'Course (Select College)' : 'Course'}
-                        onChange={(e) => setSelectedCourse(e.target.value)}
+                        onChange={(e) => {
+                          setSelectedCourse(e.target.value);
+                          setPage(0);
+                        }}
                         disabled={selectedCollege === 'All'}
                         sx={selectedCollege === 'All' ? {
                           bgcolor: '#f1f5f9',
@@ -1381,37 +1697,59 @@ const LoginDashboard = () => {
                       <Select
                         value={selectedSection}
                         label="Library Section"
-                        onChange={(e) => setSelectedSection(e.target.value)}
+                        onChange={(e) => {
+                          setSelectedSection(e.target.value);
+                          setPage(0);
+                        }}
                       >
                         {SECTION_OPTIONS.map((s) => (
                           <MenuItem key={s} value={s} sx={menuItemSx}>{s}</MenuItem>
                         ))}
                       </Select>
                     </FormControl>
+                    <FormControl sx={selectSx}>
+                      <InputLabel>Quarter</InputLabel>
+                      <Select
+                        value={filterQuarter}
+                        label="Quarter"
+                        onChange={(e) => {
+                          setFilterQuarter(e.target.value);
+                          if (e.target.value !== 'All') {
+                            setStartDate('');
+                            setEndDate('');
+                          }
+                          setPage(0);
+                        }}
+                      >
+                        <MenuItem value="All" sx={menuItemSx}>All Quarters</MenuItem>
+                        {QUARTER_OPTIONS.map((q) => (
+                          <MenuItem key={q.value} value={q.value} sx={menuItemSx}>{q.label}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    <FormControl sx={selectSx}>
+                      <InputLabel>Year</InputLabel>
+                      <Select
+                        value={filterYear}
+                        label="Year"
+                        onChange={(e) => {
+                          setFilterYear(e.target.value);
+                          setPage(0);
+                        }}
+                      >
+                        <MenuItem value="All" sx={menuItemSx}>All Years</MenuItem>
+                        {availableYears.map((yr) => (
+                          <MenuItem key={yr} value={yr} sx={menuItemSx}>{yr}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
 
-                    <Button
-                      variant="contained"
-                      onClick={fetchLogins}
-                      sx={{
-                        bgcolor: '#1a237e',
-                        px: 3,
-                        height: 44,
-                        borderRadius: '10px',
-                        textTransform: 'none',
-                        fontFamily: T.font.family,
-                        fontWeight: 700,
-                        fontSize: 13.5,
-                        boxShadow: '0 2px 8px rgba(26, 35, 126, 0.25)',
-                        '&:hover': { bgcolor: '#0d47a1' }
-                      }}
-                    >
-                      Apply Filters
-                    </Button>
                     <Button
                       variant="outlined"
                       color="error"
                       onClick={handleClearFilters}
                       startIcon={<RestartAltIcon sx={{ fontSize: 18 }} />}
+                      disabled={!hasActiveFilter}
                       sx={{
                         height: 44,
                         px: 2.5,
@@ -1420,9 +1758,9 @@ const LoginDashboard = () => {
                         fontFamily: T.font.family,
                         fontWeight: 700,
                         fontSize: 13.5,
-                        borderColor: '#fecdd3',
-                        color: '#e11d48',
-                        bgcolor: '#ffffff',
+                        borderColor: hasActiveFilter ? '#fecdd3' : '#e2e8f0',
+                        color: hasActiveFilter ? '#e11d48' : '#94a3b8',
+                        bgcolor: hasActiveFilter ? 'rgba(239, 68, 68, 0.05)' : 'transparent',
                         borderWidth: '1.5px',
                         '&:hover': { bgcolor: '#fff1f2', borderColor: '#f43f5e', borderWidth: '1.5px' }
                       }}
@@ -1432,7 +1770,7 @@ const LoginDashboard = () => {
                   </Box>
 
                   {/* ── Active Filter Badges Bar (Removable Tags) ───── */}
-                  {(startDate || endDate || selectedCollege !== 'All' || selectedCourse !== 'All' || selectedSection !== 'All' || searchTerm) && (
+                  {hasActiveFilter && (
                     <Box sx={{ px: 3, pb: 2, pt: 1.5, bgcolor: '#f8fafc', borderTop: `1px solid ${T.surface.borderLight}`, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                       <Typography sx={{ fontFamily: T.font.family, fontSize: 12.5, fontWeight: 700, color: '#64748b' }}>
                         Active Filters:
@@ -1443,6 +1781,30 @@ const LoginDashboard = () => {
                           onDelete={() => handleRemoveFilter('date')}
                           size="small"
                           sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#ffffff', color: '#1e293b', border: `1px solid ${T.surface.borderLight}`, borderRadius: '9999px' }}
+                        />
+                      )}
+                      {filterQuarter !== 'All' && (
+                        <Chip
+                          label={`Quarter: ${filterQuarter}`}
+                          onDelete={() => handleRemoveFilter('quarter')}
+                          size="small"
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#e0e7ff', color: '#3730a3', borderRadius: '9999px' }}
+                        />
+                      )}
+                      {filterMonth !== 'All' && (
+                        <Chip
+                          label={`Month: ${filterMonth}`}
+                          onDelete={() => handleRemoveFilter('month')}
+                          size="small"
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#ede9fe', color: '#4f46e5', borderRadius: '9999px' }}
+                        />
+                      )}
+                      {filterYear !== 'All' && filterYear !== '2026' && (
+                        <Chip
+                          label={`Year: ${filterYear}`}
+                          onDelete={() => handleRemoveFilter('year')}
+                          size="small"
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#f1f5f9', color: '#334155', borderRadius: '9999px' }}
                         />
                       )}
                       {selectedCollege !== 'All' && (
@@ -1500,7 +1862,15 @@ const LoginDashboard = () => {
                       <SummaryCard
                         title="Total Patron Visits"
                         value={totalEntries}
-                        subtitle={selectedCollege !== 'All' ? `Filtered by ${selectedCollege}` : 'All departments included'}
+                        subtitle={
+                          filterMonth !== 'All'
+                            ? `${filterMonth} ${filterYear !== 'All' ? filterYear : ''} · ${selectedCollege !== 'All' ? selectedCollege : 'All Depts'}`
+                            : filterQuarter !== 'All'
+                              ? `${filterQuarter} ${filterYear !== 'All' ? filterYear : ''} · ${selectedCollege !== 'All' ? selectedCollege : 'All Depts'}`
+                              : selectedCollege !== 'All'
+                                ? `Filtered by ${selectedCollege}`
+                                : 'All departments included'
+                        }
                         icon={<GroupIcon sx={{ fontSize: 24 }} />}
                         color="#4f46e5"
                         isFeatured={true}
@@ -1562,20 +1932,24 @@ const LoginDashboard = () => {
                             </Box>
                             <Box>
                               <Typography sx={sectionTitleSx}>
-                                {selectedCollege === 'All'
-                                  ? 'Visits by College & Course Breakdown'
-                                  : `Available Course Foot Traffic (${selectedCollege})`}
+                                {effectiveMode === 'monthly'
+                                  ? `Monthly Foot Traffic Trend (${filterYear === 'All' ? 'All Years' : filterYear})`
+                                  : selectedCollege === 'All'
+                                    ? 'Visits by College & Course Breakdown'
+                                    : `Available Course Foot Traffic (${selectedCollege})`}
                               </Typography>
                               <Typography sx={sectionSubtitleSx}>
-                                {selectedCollege === 'All'
-                                  ? 'Hover over any bar or switch view modes'
-                                  : `Comparing student foot traffic across available courses in ${selectedCollege}`}
+                                {effectiveMode === 'monthly'
+                                  ? 'Comparing entrance traffic volume across months (Click any bar to filter)'
+                                  : selectedCollege === 'All'
+                                    ? 'Hover over any bar or switch view modes'
+                                    : `Comparing student foot traffic across available courses in ${selectedCollege}`}
                               </Typography>
                             </Box>
                           </Box>
 
                           {/* Visualizer Mode Select Dropdown */}
-                          <FormControl size="small" sx={{ minWidth: 200 }}>
+                          <FormControl size="small" sx={{ minWidth: 210 }}>
                             <InputLabel id="visualizer-mode-select-label" sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#4f46e5' }}>
                               Visualization View
                             </InputLabel>
@@ -1599,6 +1973,9 @@ const LoginDashboard = () => {
                               <MenuItem value="bar" sx={{ ...menuItemSx, display: 'flex', alignItems: 'center', gap: 1, fontSize: 13 }}>
                                 <BarChartIcon sx={{ fontSize: 17, color: '#4f46e5' }} /> Standard Bar Chart
                               </MenuItem>
+                              <MenuItem value="monthly" sx={{ ...menuItemSx, display: 'flex', alignItems: 'center', gap: 1, fontSize: 13 }}>
+                                <ShowChartIcon sx={{ fontSize: 17, color: '#4f46e5' }} /> Monthly Traffic Trend
+                              </MenuItem>
                               <MenuItem value="chips" sx={{ ...menuItemSx, display: 'flex', alignItems: 'center', gap: 1, fontSize: 13 }}>
                                 <CategoryIcon sx={{ fontSize: 17, color: '#4f46e5' }} /> Item Chips View
                               </MenuItem>
@@ -1614,6 +1991,73 @@ const LoginDashboard = () => {
                               isCollegeLevel={selectedCollege === 'All'}
                               selectedCollege={selectedCollege}
                             />
+                          ) : effectiveMode === 'monthly' ? (
+                            <ResponsiveContainer width="100%" height={360}>
+                              <RechartsBarChart
+                                data={monthlyTrendData}
+                                maxBarSize={45}
+                                style={{ cursor: 'pointer' }}
+                                onClick={(state) => {
+                                  if (state && state.activeLabel) {
+                                    const monthName = state.activeLabel;
+                                    const isSelected = filterMonth === monthName;
+                                    setFilterMonth(isSelected ? 'All' : monthName);
+                                    setPage(0);
+                                  }
+                                }}
+                                onMouseMove={(state) => {
+                                  if (state && state.activeLabel) {
+                                    setHoveredCollege(state.activeLabel);
+                                  } else {
+                                    setHoveredCollege(null);
+                                  }
+                                }}
+                                onMouseLeave={() => setHoveredCollege(null)}
+                              >
+                                <defs>
+                                  <linearGradient id="monthBarGradDefault" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#4f46e5" stopOpacity={0.95} />
+                                    <stop offset="100%" stopColor="#818cf8" stopOpacity={0.8} />
+                                  </linearGradient>
+                                  <linearGradient id="monthBarGradActive" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#0f172a" stopOpacity={1} />
+                                    <stop offset="100%" stopColor="#334155" stopOpacity={0.9} />
+                                  </linearGradient>
+                                  <linearGradient id="monthBarGradHover" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#0288d1" stopOpacity={0.95} />
+                                    <stop offset="100%" stopColor="#38bdf8" stopOpacity={0.85} />
+                                  </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748b', fontFamily: T.font.family, fontWeight: 700 }} />
+                                <YAxis tick={{ fontSize: 12, fill: '#64748b', fontFamily: T.font.family }} allowDecimals={false} />
+                                <RechartsTooltip content={<CustomMonthlyTrendTooltip />} />
+                                <Bar
+                                  dataKey="total"
+                                  name="Total Visits"
+                                  maxBarSize={45}
+                                  radius={[6, 6, 0, 0]}
+                                >
+                                  {monthlyTrendData.map((entry, index) => {
+                                    const isSelected = filterMonth === entry.month;
+                                    const isHovered = hoveredCollege === entry.month;
+                                    const fill = isSelected
+                                      ? 'url(#monthBarGradActive)'
+                                      : isHovered
+                                        ? 'url(#monthBarGradHover)'
+                                        : 'url(#monthBarGradDefault)';
+                                    return (
+                                      <Cell
+                                        key={`month-cell-${index}`}
+                                        fill={fill}
+                                        stroke={isSelected ? '#0f172a' : 'none'}
+                                        strokeWidth={isSelected ? 1.5 : 0}
+                                      />
+                                    );
+                                  })}
+                                </Bar>
+                              </RechartsBarChart>
+                            </ResponsiveContainer>
                           ) : (
                             <ResponsiveContainer width="100%" height={360}>
                               <RechartsBarChart
@@ -1848,24 +2292,81 @@ const LoginDashboard = () => {
                         flex: 3,
                         minWidth: 480
                       }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexWrap: 'wrap', gap: 1.5 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-                            <Box sx={{
-                              bgcolor: '#ede9fe',
-                              color: '#4f46e5',
-                              p: 0.55,
-                              borderRadius: '8px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              border: '1px solid #ddd6fe',
-                              '& svg': { fontSize: 18 }
-                            }}>
-                              <FormatListNumberedIcon />
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', md: 'center' }, mb: 2.5, flexWrap: 'wrap', gap: 1.5 }}>
+                          <Box>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+                              <Box sx={{
+                                bgcolor: '#ede9fe',
+                                color: '#4f46e5',
+                                p: 0.55,
+                                borderRadius: '8px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                border: '1px solid #ddd6fe',
+                                '& svg': { fontSize: 18 }
+                              }}>
+                                <FormatListNumberedIcon />
+                              </Box>
+                              <Typography sx={{ fontFamily: T.font.family, fontWeight: 800, fontSize: { xs: 16, md: 18 }, color: '#0f172a', letterSpacing: '-0.2px' }}>
+                                Detailed Visitor Entry Records ({processedLogins.length} Matches)
+                              </Typography>
                             </Box>
-                            <Typography sx={{ fontFamily: T.font.family, fontWeight: 800, fontSize: { xs: 16, md: 18 }, color: '#0f172a', letterSpacing: '-0.2px' }}>
-                              Detailed Visitor Entry Records ({processedLogins.length} Matches)
-                            </Typography>
+
+                            {/* ── Month Pill Strip (Table-Top 1-Click Monthly Review) ── */}
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, flexWrap: 'wrap', mt: 1.5 }}>
+                              <Button
+                                size="small"
+                                onClick={() => { setFilterMonth('All'); setPage(0); }}
+                                sx={{
+                                  borderRadius: '9999px',
+                                  textTransform: 'none',
+                                  fontFamily: T.font.family,
+                                  fontWeight: 700,
+                                  fontSize: 12,
+                                  px: 1.8,
+                                  py: 0.4,
+                                  minWidth: 'auto',
+                                  height: 28,
+                                  boxShadow: 'none',
+                                  ...(filterMonth === 'All'
+                                    ? { bgcolor: '#1e293b', color: '#ffffff', '&:hover': { bgcolor: '#0f172a' } }
+                                    : { bgcolor: '#f1f5f9', color: '#475569', border: 'none', '&:hover': { bgcolor: '#e2e8f0' } }
+                                  )
+                                }}
+                              >
+                                All ({tableMonthCounts.All || 0})
+                              </Button>
+                              {MONTH_NAMES.map(m => {
+                                const c = tableMonthCounts[m] || 0;
+                                const isSelected = filterMonth === m;
+                                return (
+                                  <Button
+                                    key={m}
+                                    size="small"
+                                    onClick={() => { setFilterMonth(isSelected ? 'All' : m); setPage(0); }}
+                                    sx={{
+                                      borderRadius: '9999px',
+                                      textTransform: 'none',
+                                      fontFamily: T.font.family,
+                                      fontWeight: isSelected ? 700 : 600,
+                                      fontSize: 12,
+                                      px: 1.5,
+                                      py: 0.4,
+                                      minWidth: 'auto',
+                                      height: 28,
+                                      boxShadow: 'none',
+                                      ...(isSelected
+                                        ? { bgcolor: '#1e293b', color: '#ffffff', '&:hover': { bgcolor: '#0f172a' } }
+                                        : { bgcolor: '#f1f5f9', color: c > 0 ? '#334155' : '#94a3b8', border: 'none', '&:hover': { bgcolor: '#e2e8f0' } }
+                                      )
+                                    }}
+                                  >
+                                    {m} ({c})
+                                  </Button>
+                                );
+                              })}
+                            </Box>
                           </Box>
 
                           <Box sx={{ display: 'flex', gap: 1.2, alignItems: 'center', flexWrap: 'wrap' }}>
