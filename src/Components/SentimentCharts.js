@@ -23,42 +23,68 @@ import { THEME } from '../constants/themeTokens';
 
 const T = THEME;
 
-// ── Sentiment Status Chip (Plain Colored Text with Indicator Icon) ──────────
+// ── Sentiment Status Pill Chip (Soft Rounded Badge with Indicator Icon) ───
 export const SentimentChip = ({ label }) => {
   const norm = label || 'Neutral';
   const isPos = norm === 'Positive';
   const isNeg = norm === 'Negative';
 
   const config = isPos
-    ? { text: '#16a34a', icon: <ArrowDropUpIcon sx={{ fontSize: 20, my: -0.4, ml: -0.3, mr: -0.2 }} /> }
+    ? {
+        bg: '#dcfce7',
+        border: '#86efac',
+        text: '#059669',
+        icon: <ArrowDropUpIcon sx={{ fontSize: 20, my: -0.4, ml: -0.3, mr: 0.1, color: '#059669' }} />
+      }
     : isNeg
-      ? { text: '#dc2626', icon: <ArrowDropDownIcon sx={{ fontSize: 20, my: -0.4, ml: -0.3, mr: -0.2 }} /> }
-      : { text: '#d97706', icon: <FiberManualRecordIcon sx={{ fontSize: 8, mr: 0.3 }} /> };
+      ? {
+          bg: '#fee2e2',
+          border: '#fca5a5',
+          text: '#dc2626',
+          icon: <ArrowDropDownIcon sx={{ fontSize: 20, my: -0.4, ml: -0.3, mr: 0.1, color: '#dc2626' }} />
+        }
+      : {
+          bg: '#fef3c7',
+          border: '#fde68a',
+          text: '#b45309',
+          icon: <FiberManualRecordIcon sx={{ fontSize: 8, mr: 0.4, color: '#b45309' }} />
+        };
 
   return (
     <Box sx={{
       display: 'inline-flex',
       alignItems: 'center',
-      gap: 0.4,
-      color: config.text,
+      gap: 0.3,
+      bgcolor: config.bg,
+      border: `1.5px solid ${config.border}`,
+      borderRadius: '9999px',
+      px: 1.4,
+      py: 0.35,
+      lineHeight: 1,
     }}>
       {config.icon}
-      <Typography sx={{ fontSize: 13.5, fontWeight: 700, color: config.text, fontFamily: T.font.family, lineHeight: 1.2 }}>
+      <Typography sx={{
+        fontSize: 12.5,
+        fontWeight: 700,
+        color: config.text,
+        fontFamily: T.font.family,
+        lineHeight: 1.2,
+      }}>
         {norm}
       </Typography>
     </Box>
   );
 };
 
-// ── Category Status Chip (Plain Colored Text, No Pill Border/Background) ────
+
 export const CategoryChip = ({ label }) => {
   const norm = label || 'Other/Uncategorized';
 
   const catStyles = {
-    Staff: { text: '#0284c7' },
-    Facilities: { text: '#7c3aed' },
-    Collection: { text: '#db2777' },
-    'Other/Uncategorized': { text: '#64748b' },
+    Staff: { bg: '#dbeafe', border: '#bfdbfe', text: '#2563eb' },
+    Facilities: { bg: '#f3e8ff', border: '#e9d5ff', text: '#7c3aed' },
+    Collection: { bg: '#fce7f3', border: '#fbcfe8', text: '#db2777' },
+    'Other/Uncategorized': { bg: '#f1f5f9', border: '#e2e8f0', text: '#475569' },
   };
 
   const config = catStyles[norm] || catStyles['Other/Uncategorized'];
@@ -67,8 +93,21 @@ export const CategoryChip = ({ label }) => {
     <Box sx={{
       display: 'inline-flex',
       alignItems: 'center',
+      justifyContent: 'center',
+      bgcolor: config.bg,
+      border: `1.5px solid ${config.border}`,
+      borderRadius: '9999px',
+      px: 1.6,
+      py: 0.35,
+      lineHeight: 1,
     }}>
-      <Typography sx={{ fontSize: 13.5, fontWeight: 700, color: config.text, fontFamily: T.font.family, lineHeight: 1.2 }}>
+      <Typography sx={{
+        fontSize: 12.5,
+        fontWeight: 700,
+        color: config.text,
+        fontFamily: T.font.family,
+        lineHeight: 1.2,
+      }}>
         {norm}
       </Typography>
     </Box>
@@ -997,5 +1036,3 @@ export const CustomDivergingTrendTooltip = ({ active, payload, label }) => {
   }
   return null;
 };
-
-
