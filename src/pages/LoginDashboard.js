@@ -3001,7 +3001,7 @@ const LoginDashboard = () => {
         </table>
 
         <div className="footer">
-          Generated on {new Date().toLocaleString('en-PH', { timeZone: 'Asia/Manila' })} — Henry Luce III Library Entry Analytics System
+          Generated on {new Date().toLocaleString('en-PH', { timeZone: 'Asia/Manila' })}  Henry Luce III Library Log-in data
         </div>
       </div>
     </>

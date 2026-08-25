@@ -13,7 +13,8 @@ _stemmer = PorterStemmer()
 DOMAIN_KEYWORDS = {
     "Staff": {
         "librarian", "librarians", "staff", "staffs", "personnel", "guard", "guards", 
-        "assistant", "assistants", "attendant", "attendants", "cashier", "admin"
+        "assistant", "assistants", "attendant", "attendants", "cashier", "admin",
+        "professors", "teacher", "teachers", 
     },
     "Facilities": {
         "wifi", "aircon", "ac", "restroom", "restrooms", "toilet", "toilets", 
@@ -25,7 +26,8 @@ DOMAIN_KEYWORDS = {
         "monitor", "monitors", "screen", "screens", "keyboard", "keyboards", "mouse",
         "desk", "desks", "chair", "chairs", "table", "tables", "cubicle", "cubicles",
         "carrel", "carrels", "bench", "benches", "seat", "seats", "seating",
-        "kiosk", "kiosks", "elibrary", "cyberlib", "equipment", "equipments"
+        "kiosk", "kiosks", "elibrary", "cyberlib", "equipment", "equipments", "tissue","tissue paper",
+        "pillow",
     },
     "Collection": {
         "book", "books", "textbook", "textbooks", "journal", "journals", 
@@ -163,4 +165,4 @@ class CategoryClassifier:
         return top_label
 
     def score(self, X, y) -> float:
-        return self.pipeline.score(X, y)
+        return self.pipeline.score(X, y)

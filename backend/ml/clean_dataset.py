@@ -22,16 +22,17 @@ _spell = SpellChecker()
 
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-RAW_XLSX_PATH = os.path.abspath(os.path.join(THIS_DIR, "..", "..", "dataset_11k.xlsx"))
+RAW_XLSX_PATH = os.path.abspath(os.path.join(THIS_DIR, "..", "..", "11k_ds_updated.xlsx"))
 if not os.path.exists(RAW_XLSX_PATH):
-    RAW_XLSX_PATH = os.path.abspath(os.path.join(THIS_DIR, "..", "dataset_11k.xlsx"))
+    RAW_XLSX_PATH = os.path.abspath(os.path.join(THIS_DIR, "..", "11k_ds_updated.xlsx"))
 if not os.path.exists(RAW_XLSX_PATH):
-    RAW_XLSX_PATH = os.path.abspath(os.path.join(THIS_DIR, "dataset_11k.xlsx"))
+    RAW_XLSX_PATH = os.path.abspath(os.path.join(THIS_DIR, "11k_ds_updated.xlsx"))
 
 DATA_DIR = os.path.join(THIS_DIR, "data")
 TEST_DIR = os.path.join(DATA_DIR, "test")
 
 TRAIN_OUTPUT_CSV_PATH = os.path.join(DATA_DIR, "clean_category_dataset.csv")
+TEST_OUTPUT_CSV_PATH = os.path.join(TEST_DIR, "clean_category_dataset_test.csv")
 
 SHEET_NAME = "All_Data"
 
@@ -46,11 +47,26 @@ NON_INFORMATIVE_TEXTS = {
     "nan", "null", "baby", "miss", "utut", "wioe", 
 }
 
-# Local Tagalog & library domain whitelist so legitimate patron feedback isn't flagged by English spellchecker
-LOCAL_DOMAIN_WHITELIST = {
-    "wala", "sana", "meron", "may", "din", "rin", "opo", "po", "cr", "wifi", "aircon", 
-    "mabait", "maganda", "pangit", "tahimik", "maingay", "books", "book", "lib", "library"
+# Local Tagalog/Hiligaynon words. Used to exempt noise/gibberish checks so
+# legitimate code-switched feedback isn't flagged as gibberish, but these
+# are deliberately NOT exempted from the English-scope filter below --
+# their presence is exactly the signal that a comment is non-English.
+LOCAL_LANGUAGE_WHITELIST = {
+    "wala", "sana", "meron", "may", "din", "rin", "opo", "po",
+    "mabait", "maganda", "pangit", "tahimik", "maingay",
 }
+
+# English-context library/technical jargon that a general English
+# spellchecker dictionary won't recognize (e.g. "wifi"). These ARE
+# exempted from the English-scope filter, since using them doesn't make
+# a comment non-English.
+DOMAIN_JARGON_WHITELIST = {
+    "cr", "wifi", "aircon", "books", "book", "lib", "library",
+}
+
+# Combined set used by the gibberish/noise checks (both kinds of terms
+# should not be flagged as keyboard-mashing).
+LOCAL_DOMAIN_WHITELIST = LOCAL_LANGUAGE_WHITELIST | DOMAIN_JARGON_WHITELIST
 
 MIN_CHAR_LENGTH = 3
 
@@ -170,7 +186,7 @@ def clean(df: pd.DataFrame) -> pd.DataFrame:
                 return True
             # Spellchecker dictionary verification
             unknown = _spell.unknown([clean_w])
-            if len(unknown) == 1 and not clean_w.isupper() and len(clean_w) >= 6:
+            if len(unknown) == 1 and not clean_w.isupper():
                 return True
 
         return False
@@ -180,7 +196,7 @@ def clean(df: pd.DataFrame) -> pd.DataFrame:
         real English or whitelisted word (e.g. "asdf jkl qwerty lorem ipsum dolor").
         """
         tokens = [t.lower() for t in val.split() if t.isalpha() and len(t) >= 2]
-        if len(tokens) < 3:
+        if len(tokens) < 2:
             return False
         
         # Filter out local domain whitelisted words before calculating unknown ratio
@@ -190,6 +206,26 @@ def clean(df: pd.DataFrame) -> pd.DataFrame:
 
         unknown = _spell.unknown(non_whitelisted)
         return (len(unknown) / len(tokens)) >= 0.60
+
+    def is_out_of_scope_language(val: str) -> bool:
+        """Scope limitation: this study focuses on English-language patron
+        feedback only (see Chapter 1 scope & limitations). Flags comments
+        where the majority of tokens are not recognized English words,
+        independent of coherence — this includes Hiligaynon/Tagalog
+        feedback, which is intentionally out of scope rather than treated
+        as noise. Unlike is_gibberish_multiword, this does NOT exempt
+        LOCAL_DOMAIN_WHITELIST tokens, since whitelisted local-language
+        words are exactly what should be excluded here.
+        """
+        tokens = [t.lower() for t in val.split() if t.isalpha() and len(t) >= 2]
+        if len(tokens) < 2:
+            return False
+        # exempt English domain jargon only -- NOT local-language words
+        checkable = [t for t in tokens if t not in DOMAIN_JARGON_WHITELIST]
+        if not checkable:
+            return False
+        unknown = _spell.unknown(checkable)
+        return (len(unknown) / len(checkable)) >= 0.5
 
     def is_noise(val: str) -> bool:
         lower_val = val.lower()
@@ -209,6 +245,13 @@ def clean(df: pd.DataFrame) -> pd.DataFrame:
     noise_mask = df["comment"].apply(is_noise)
     dropped_noise = df[noise_mask]
     df = df[~noise_mask]
+
+    # Scope limitation: English-only submissions (see Chapter 1 scope &
+    # limitations). Applied as a separate step from noise filtering so the
+    # cleaning summary reports it distinctly from gibberish/duplicates.
+    lang_mask = df["comment"].apply(is_out_of_scope_language)
+    dropped_non_english = df[lang_mask]
+    df = df[~lang_mask]
 
 
     df["category"] = df["category"].astype(str).str.strip().str.title()
@@ -238,6 +281,7 @@ def clean(df: pd.DataFrame) -> pd.DataFrame:
     print("=" * 60)
     print(f"Rows before cleaning:                 {before}")
     print(f"Rows dropped (non-informative/short): {len(dropped_noise)}")
+    print(f"Rows dropped (non-English/out-of-scope): {len(dropped_non_english)}")
     print(f"Rows dropped (bad labels):             {len(dropped_bad_labels)}")
     print(f"Rows dropped (duplicates):             {dupes_dropped}")
     print(f"Rows after cleaning:                   {after}")
@@ -249,6 +293,10 @@ def clean(df: pd.DataFrame) -> pd.DataFrame:
     if len(dropped_noise) > 0:
         print("\nSample of dropped non-informative noise rows:")
         print(dropped_noise[["comment"]].head(10).to_string())
+
+    if len(dropped_non_english) > 0:
+        print("\nSample of dropped non-English / out-of-scope rows:")
+        print(dropped_non_english[["comment"]].head(10).to_string())
 
     if len(dropped_bad_labels) > 0:
         print("\nSample of dropped bad-label rows:")

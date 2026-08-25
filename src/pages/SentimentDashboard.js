@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import axios from 'axios';
 import {
   Box, Typography, Card, CardContent,
@@ -52,7 +52,6 @@ import {
   CartesianGrid,
   ReferenceLine
 } from 'recharts';
-import ReactWordcloud from 'react-wordcloud';
 import * as XLSX from 'xlsx';
 import { useNavigate } from 'react-router-dom';
 import Header from '../Components/Header';
@@ -102,6 +101,7 @@ import {
   RecommendationCard,
   CustomDivergingTrendTooltip,
   CustomDonutGaugeTooltip,
+  WordCloudSection,
 } from '../Components/SentimentCharts';
 
 // Re-export for external consumers (e.g. other pages importing CONTROLLED_LEXICON)
@@ -181,6 +181,16 @@ const SentimentDashboard = () => {
   const [, setWcSearch] = useState('');
   const [, setWcSentimentFilter] = useState('All');
   const [selectedWordFilter, setSelectedWordFilter] = useState('');
+
+  const handleSelectWord = useCallback((wordText) => {
+    setSelectedWordFilter(prev => (prev && prev.toLowerCase() === wordText.toLowerCase() ? '' : wordText));
+    setPage(0);
+  }, []);
+
+  const handleClearWordFilter = useCallback(() => {
+    setSelectedWordFilter('');
+    setPage(0);
+  }, []);
 
   // Live Search & Sort states
   const [sortField, setSortField] = useState('DateSubmitted');
@@ -703,49 +713,6 @@ const SentimentDashboard = () => {
       .slice(0, 65);
   }, [termFrequencies, stemToOriginalMap]);
 
-  const wordCloudOptions = useMemo(() => ({
-    deterministic: true,
-    randomSeed: 'hll-library-wordcloud-v4',
-    rotations: 1,
-    rotationAngles: [0, 0],
-    fontFamily: T.font.family,
-    fontSizes: [14, 68],
-    fontStyle: 'normal',
-    fontWeight: '800',
-    padding: 1,
-    enableTooltip: true,
-    transitionDuration: 0,
-    scale: 'sqrt',
-    spiral: 'archimedean',
-  }), []);
-
-  const wordCloudCallbacks = useMemo(() => ({
-    getWordColor: (word) => {
-      if (selectedWordFilter && word.text.toLowerCase() === selectedWordFilter.toLowerCase()) {
-        return '#ea580c';
-      }
-      if (wordCloudWords.length > 0 && word.text === wordCloudWords[0]?.text) {
-        return '#1e3a8a'; // prominent deep navy for the #1 center word like the reference image
-      }
-      if (wordCloudWords.length > 1 && word.text === wordCloudWords[1]?.text) {
-        return '#854d0e'; // rich warm amber/brown for #2
-      }
-      if (wordCloudWords.length > 2 && word.text === wordCloudWords[2]?.text) {
-        return '#9d174d'; // rich raspberry for #3
-      }
-      const charCodeSum = (word.text || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      return T.wordCloudColors[charCodeSum % T.wordCloudColors.length];
-    },
-    getWordTooltip: (word) => `"${word.text}" — ${word.value} ${word.value === 1 ? 'mention' : 'mentions'}`,
-    onWordClick: (word) => {
-      if (selectedWordFilter && selectedWordFilter.toLowerCase() === word.text.toLowerCase()) {
-        setSelectedWordFilter('');
-      } else {
-        setSelectedWordFilter(word.text);
-      }
-    },
-  }), [selectedWordFilter, wordCloudWords]);
-
   const categoryStats = useMemo(() => {
     const negItems = filtered.filter(s => s.SentimentResult === 'Negative' && s.Message?.trim());
     const poolNegItems = negItems.length > 0 ? negItems : surveys.filter(s => s.SentimentResult === 'Negative' && s.Message?.trim());
@@ -967,7 +934,7 @@ const SentimentDashboard = () => {
         {(toggleDrawer) => (
           <>
             <TopBar
-              title="Sentiment Dashboard"
+              title="Sentiment Dashboard Analysis"
               onMenuClick={toggleDrawer}
               subtitle="PATRON SATISFACTION — SENTIMENT ANALYSIS"
             />
@@ -1817,60 +1784,12 @@ const SentimentDashboard = () => {
                     </Card>
 
                     {/* ── Frequently Used Words (Word Cloud) Container ───── */}
-                    <Card elevation={0} sx={{
-                      ...cardShellSx,
-                      mb: 3.5,
-                      border: '1.5px solid rgba(79, 70, 229, 0.22)',
-                      borderTop: '3.5px solid #4f46e5',
-                      boxShadow: '0 2px 12px rgba(79, 70, 229, 0.04)',
-                    }}>
-                      <Box sx={{ ...sectionHeaderSx, flexWrap: 'wrap', gap: 1.5 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-                          <Box sx={{
-                            bgcolor: '#ede9fe',
-                            color: '#4f46e5',
-                            p: 0.55,
-                            borderRadius: '8px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            '& svg': { fontSize: 18 }
-                          }}>
-                            <AssessmentIcon />
-                          </Box>
-                          <Box>
-                            <Typography sx={sectionTitleSx}>Frequently Used Words</Typography>
-                            <Typography sx={sectionSubtitleSx}>Interactive keyword frequency cloud across patron feedback submissions</Typography>
-                          </Box>
-                        </Box>
-
-                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
-                          <Chip label={`${wordCloudWords.length} Words`} size="small"
-                            sx={{ fontWeight: 700, fontFamily: T.font.family, bgcolor: '#f1f5f9', color: '#475569', borderRadius: '9999px' }} />
-                          {selectedWordFilter && (
-                            <Chip label={`Filter: "${selectedWordFilter}"`} size="small" onDelete={() => setSelectedWordFilter('')}
-                              sx={{ fontWeight: 700, fontFamily: T.font.family, borderRadius: '9999px', bgcolor: '#fef3c7', color: '#b45309' }} />
-                          )}
-                        </Box>
-                      </Box>
-
-                      <CardContent sx={{ p: { xs: 2, sm: 2.5 } }}>
-                        {wordCloudWords.length === 0 ? (
-                          <Typography sx={{ fontFamily: T.font.family, color: T.text.faint, textAlign: 'center', py: 6 }}>
-                            No comment text available for the selected filters.
-                          </Typography>
-                        ) : (
-                          <Box sx={{
-                            height: 350, borderRadius: 3, p: 2, bgcolor: T.surface.wordCloudBg,
-                            border: `1.5px solid ${T.surface.borderLight}`, position: 'relative',
-                            '& svg text': { cursor: 'pointer', fontFamily: `${T.font.family} !important`, transition: 'none !important' },
-                            '& svg text:hover': { opacity: '0.8 !important' }
-                          }}>
-                            <ReactWordcloud words={wordCloudWords} options={wordCloudOptions} minSize={[300, 300]} callbacks={wordCloudCallbacks} />
-                          </Box>
-                        )}
-                      </CardContent>
-                    </Card>
+                    <WordCloudSection
+                      words={wordCloudWords}
+                      selectedWordFilter={selectedWordFilter}
+                      onSelectWord={handleSelectWord}
+                      onClearWordFilter={handleClearWordFilter}
+                    />
 
                     {/* ── Granular Survey Review Table (Stitch Clean Minimalist Design) ───── */}
                     <Paper elevation={0} sx={{

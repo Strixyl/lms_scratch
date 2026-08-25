@@ -128,6 +128,8 @@ backend/
     │   └── test/
     │       └── real_patron_comments_clean.csv # Held-out test set (pending collection)
     ├── manual_boundary_cases.csv# 163+ hand-curated edge cases and disambiguation pairs
+    ├── visualize_laplace_smoothing.py # Laplace smoothing zero-frequency visualizer
+    ├── laplace_smoothing_visualization.png # Exported high-res comparison figure
     ├── clean_dataset.py         # Step 1: Dataset cleaner & router (--role=train / --role=test)
     ├── naive_bayes.py           # Step 2: CategoryClassifier pipeline wrapper with NLTK stemmer
     ├── train_category_model.py  # Step 3: Stratified split, hard test guard, grid search & model exporter
@@ -140,9 +142,10 @@ backend/
 | Step | Script / Artifact | Key Functionality |
 |---|---|---|
 | **Step 1** | [`clean_dataset.py`](file:///C:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/ml/clean_dataset.py) | Dynamic column mapping (2 columns: `comment`, `category`), `clean-text` normalization, noise & gibberish filtering ($\ge 20$-char mashing, $\ge 60\%$ unknown words with `LOCAL_DOMAIN_WHITELIST`), tuple-based deduplication `(comment, category)`, and routing via `--role=train` or `--role=test`. |
-| **Step 2** | [`naive_bayes.py`](file:///C:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/ml/naive_bayes.py) | Implements `CategoryClassifier` class wrapping `TfidfVectorizer` + `MultinomialNB(alpha=0.01)`. Includes NLTK `PorterStemmer` preprocessing, confidence threshold fallback (`predict_with_fallback`, $\tau = 0.45$), and domain keyword overrides. |
+| **Step 2** | [`naive_bayes.py`](file:///C:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/ml/naive_bayes.py) | Implements `CategoryClassifier` class wrapping `TfidfVectorizer` + `MultinomialNB(alpha=1.0)`. Includes NLTK `PorterStemmer` preprocessing, confidence threshold fallback (`predict_with_fallback`, $\tau = 0.45$), and domain keyword overrides. |
 | **Step 3** | [`train_category_model.py`](file:///C:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/ml/train_category_model.py) | Enforces hard test-isolation assertions, merges `manual_boundary_cases.csv` (163+ cases), injects 6% simulated annotator ambiguity (`apply_annotator_ambiguity`), executes 80/20 stratified split, grid searches hyperparameters, and serializes best model to `category_model.pkl`. |
 | **Step 3.5** | [`evaluate_on_test_set.py`](file:///C:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/ml/evaluate_on_test_set.py) | Scores `category_model.pkl` against `data/test/real_patron_comments_clean.csv` (contains no `.fit()` call; execution pending real data collection). |
+| **Visualizer** | [`visualize_laplace_smoothing.py`](file:///C:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/ml/visualize_laplace_smoothing.py) | Simulates Zero-Frequency Problem and generates high-resolution word & sentence likelihood comparison plot (`laplace_smoothing_visualization.png`). |
 | **Artifact** | [`category_model.pkl`](file:///C:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/ml/category_model.pkl) | Binary model artifact unpickled by `sentiment_service.py` at microservice initialization. |
 
 ---
