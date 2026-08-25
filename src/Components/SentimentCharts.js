@@ -23,42 +23,68 @@ import { THEME } from '../constants/themeTokens';
 
 const T = THEME;
 
-// ── Sentiment Status Chip (Plain Colored Text with Indicator Icon) ──────────
+// ── Sentiment Status Pill Chip (Soft Rounded Badge with Indicator Icon) ───
 export const SentimentChip = ({ label }) => {
   const norm = label || 'Neutral';
   const isPos = norm === 'Positive';
   const isNeg = norm === 'Negative';
 
   const config = isPos
-    ? { text: '#16a34a', icon: <ArrowDropUpIcon sx={{ fontSize: 20, my: -0.4, ml: -0.3, mr: -0.2 }} /> }
+    ? {
+        bg: '#dcfce7',
+        border: '#86efac',
+        text: '#059669',
+        icon: <ArrowDropUpIcon sx={{ fontSize: 20, my: -0.4, ml: -0.3, mr: 0.1, color: '#059669' }} />
+      }
     : isNeg
-      ? { text: '#dc2626', icon: <ArrowDropDownIcon sx={{ fontSize: 20, my: -0.4, ml: -0.3, mr: -0.2 }} /> }
-      : { text: '#d97706', icon: <FiberManualRecordIcon sx={{ fontSize: 8, mr: 0.3 }} /> };
+      ? {
+          bg: '#fee2e2',
+          border: '#fca5a5',
+          text: '#dc2626',
+          icon: <ArrowDropDownIcon sx={{ fontSize: 20, my: -0.4, ml: -0.3, mr: 0.1, color: '#dc2626' }} />
+        }
+      : {
+          bg: '#fef3c7',
+          border: '#fde68a',
+          text: '#b45309',
+          icon: <FiberManualRecordIcon sx={{ fontSize: 8, mr: 0.4, color: '#b45309' }} />
+        };
 
   return (
     <Box sx={{
       display: 'inline-flex',
       alignItems: 'center',
-      gap: 0.4,
-      color: config.text,
+      gap: 0.3,
+      bgcolor: config.bg,
+      border: `1.5px solid ${config.border}`,
+      borderRadius: '9999px',
+      px: 1.4,
+      py: 0.35,
+      lineHeight: 1,
     }}>
       {config.icon}
-      <Typography sx={{ fontSize: 13.5, fontWeight: 700, color: config.text, fontFamily: T.font.family, lineHeight: 1.2 }}>
+      <Typography sx={{
+        fontSize: 12.5,
+        fontWeight: 700,
+        color: config.text,
+        fontFamily: T.font.family,
+        lineHeight: 1.2,
+      }}>
         {norm}
       </Typography>
     </Box>
   );
 };
 
-// ── Category Status Chip (Plain Colored Text, No Pill Border/Background) ────
+
 export const CategoryChip = ({ label }) => {
   const norm = label || 'Other/Uncategorized';
 
   const catStyles = {
-    Staff: { text: '#0284c7' },
-    Facilities: { text: '#7c3aed' },
-    Collection: { text: '#db2777' },
-    'Other/Uncategorized': { text: '#64748b' },
+    Staff: { bg: '#dbeafe', border: '#bfdbfe', text: '#2563eb' },
+    Facilities: { bg: '#f3e8ff', border: '#e9d5ff', text: '#7c3aed' },
+    Collection: { bg: '#fce7f3', border: '#fbcfe8', text: '#db2777' },
+    'Other/Uncategorized': { bg: '#f1f5f9', border: '#e2e8f0', text: '#475569' },
   };
 
   const config = catStyles[norm] || catStyles['Other/Uncategorized'];
@@ -67,8 +93,21 @@ export const CategoryChip = ({ label }) => {
     <Box sx={{
       display: 'inline-flex',
       alignItems: 'center',
+      justifyContent: 'center',
+      bgcolor: config.bg,
+      border: `1.5px solid ${config.border}`,
+      borderRadius: '9999px',
+      px: 1.6,
+      py: 0.35,
+      lineHeight: 1,
     }}>
-      <Typography sx={{ fontSize: 13.5, fontWeight: 700, color: config.text, fontFamily: T.font.family, lineHeight: 1.2 }}>
+      <Typography sx={{
+        fontSize: 12.5,
+        fontWeight: 700,
+        color: config.text,
+        fontFamily: T.font.family,
+        lineHeight: 1.2,
+      }}>
         {norm}
       </Typography>
     </Box>
@@ -244,7 +283,7 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
 
   const cleanQuote = (msg) => {
     if (!msg) return '';
-    let str = msg.trim();
+    let str = typeof msg === 'string' ? msg.trim() : (msg.Message || '').trim();
     if (str.startsWith('"') && str.endsWith('"')) {
       str = str.slice(1, -1).trim();
     }
@@ -285,22 +324,72 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
         }
       }}
     >
-      {/* Card Header: Icon + Title */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, mb: 2 }}>
-        {isPositive ? (
-          <ThumbUpIcon sx={{ fontSize: 22, color: '#10b981' }} />
-        ) : (
-          <ThumbDownIcon sx={{ fontSize: 22, color: '#ef4444' }} />
-        )}
+      {/* Header Container (Styled like Priority Action Container with border, borderLeft, gradient & badge) */}
+      <Box sx={{
+        background: isPositive
+          ? 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'
+          : 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
+        borderRadius: 2.5,
+        p: { xs: 1.5, sm: 1.8 },
+        mb: 2.2,
+        border: isPositive ? '1.5px solid #bbf7d0' : '1.5px solid #fecaca',
+        borderLeft: isPositive ? '5px solid #16a34a' : '5px solid #dc2626',
+        boxShadow: isPositive ? '0 3px 12px rgba(22, 163, 74, 0.08)' : '0 3px 12px rgba(220, 38, 38, 0.08)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: 1.2,
+      }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, minWidth: 0 }}>
+          <Box sx={{
+            bgcolor: isPositive ? '#15803d' : '#b91c1c',
+            color: '#ffffff',
+            px: 1.1,
+            py: 0.35,
+            borderRadius: '5px',
+            fontFamily: T.font.family,
+            fontSize: 10.5,
+            fontWeight: 900,
+            letterSpacing: '0.6px',
+            textTransform: 'uppercase',
+            lineHeight: 1,
+            flexShrink: 0,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 0.4,
+          }}>
+            {isPositive ? <ThumbUpIcon sx={{ fontSize: 13 }} /> : <ThumbDownIcon sx={{ fontSize: 13 }} />}
+            {isPositive ? 'POSITIVE' : 'NEGATIVE'}
+          </Box>
+          <Typography sx={{
+            fontFamily: T.font.family,
+            fontWeight: 800,
+            fontSize: { xs: 14, sm: 15.5 },
+            color: isPositive ? '#14532d' : '#7f1d1d',
+            letterSpacing: '-0.2px',
+            lineHeight: 1.3,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}>
+            {title}
+          </Typography>
+        </Box>
         <Typography sx={{
           fontFamily: T.font.family,
-          fontWeight: 800,
-          fontSize: { xs: 15, sm: 16 },
-          color: '#0f172a',
-          letterSpacing: '-0.2px',
-          lineHeight: 1.2,
+          fontSize: 11.5,
+          fontWeight: 700,
+          color: isPositive ? '#166534' : '#991b1b',
+          bgcolor: '#ffffff',
+          border: isPositive ? '1.5px solid #bbf7d0' : '1.5px solid #fecaca',
+          px: 1.2,
+          py: 0.3,
+          borderRadius: '9999px',
+          flexShrink: 0,
+          boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
         }}>
-          {title}
+          {rows.length} {rows.length === 1 ? 'Comment' : 'Comments'}
         </Typography>
       </Box>
 
@@ -947,5 +1036,3 @@ export const CustomDivergingTrendTooltip = ({ active, payload, label }) => {
   }
   return null;
 };
-
-

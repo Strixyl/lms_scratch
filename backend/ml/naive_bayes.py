@@ -12,18 +12,27 @@ _stemmer = PorterStemmer()
 
 DOMAIN_KEYWORDS = {
     "Staff": {
-        "librarian", "librarians", "staff", "personnel", "guard", "guards", 
+        "librarian", "librarians", "staff", "staffs", "personnel", "guard", "guards", 
         "assistant", "assistants", "attendant", "attendants", "cashier", "admin"
     },
     "Facilities": {
         "wifi", "aircon", "ac", "restroom", "restrooms", "toilet", "toilets", 
-        "elevator", "socket", "sockets", "outlet", "outlets", "lighting", "ventilation"
+        "elevator", "elevators", "lift", "socket", "sockets", "outlet", "outlets",
+        "plug", "plugs", "charging", "lighting", "lights", "ventilation", "temperature",
+        "terminal", "terminals", "printer", "printers", "printing", "photocopier",
+        "photocopy", "photocopying", "scanner", "scanners", "scanning",
+        "computer", "computers", "desktop", "station", "stations", "hardware",
+        "monitor", "monitors", "screen", "screens", "keyboard", "keyboards", "mouse",
+        "desk", "desks", "chair", "chairs", "table", "tables", "cubicle", "cubicles",
+        "carrel", "carrels", "bench", "benches", "seat", "seats", "seating",
+        "kiosk", "kiosks", "elibrary", "cyberlib", "equipment", "equipments"
     },
     "Collection": {
         "book", "books", "textbook", "textbooks", "journal", "journals", 
-        "thesis", "catalog", "ebook", "ebooks", "periodical", "periodicals",
+        "thesis", "catalog", "catalogue", "ebook", "ebooks", "periodical", "periodicals",
         "novel", "novels", "fiction", "literature", "manga", "author", "authors",
-        "reference", "references", "bestseller", "bestsellers", "reviewer", "reviewers"
+        "reference", "references", "bestseller", "bestsellers", "reviewer", "reviewers",
+        "dictionary", "encyclopedia", "magazine", "magazines", "opac", "manuscript", "manuscripts"
     }
 }
 
@@ -135,9 +144,20 @@ class CategoryClassifier:
 
         if top_label == FALLBACK_LABEL or top_confidence < threshold:
             # Check domain keywords before defaulting to Other/Uncategorized
+            matching_cats = {}
             for category, keywords in DOMAIN_KEYWORDS.items():
-                if text_words.intersection(keywords):
-                    return category
+                matches = text_words.intersection(keywords)
+                if matches:
+                    matching_cats[category] = len(matches)
+            if matching_cats:
+                classes_list = list(self.classes_) if self.classes_ is not None else []
+                return max(
+                    matching_cats.keys(),
+                    key=lambda cat: (
+                        matching_cats[cat],
+                        probs[classes_list.index(cat)] if cat in classes_list else 0.0
+                    )
+                )
             return FALLBACK_LABEL
 
         return top_label

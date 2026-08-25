@@ -498,7 +498,7 @@ const SatisfactionSurvey = () => {
   );
 
   const handleCollegeChange = (e) => {
-    const college = e.target.value;
+    const college = (typeof e === 'object' && e !== null && 'target' in e) ? e.target.value : (e || '');
     setSelectedCollege(college);
     setSelectedCourse('');
     setAvailableCourses(COLLEGE_COURSES[college] || []);
@@ -847,7 +847,7 @@ const SatisfactionSurvey = () => {
                     <Select
                       label="College / Unit *"
                       value={selectedCollege}
-                      onChange={(e) => handleCollegeChange(e.target.value)}
+                      onChange={handleCollegeChange}
                       sx={{
                         color: 'white',
                         bgcolor: 'rgba(255, 255, 255, 0.06)',
