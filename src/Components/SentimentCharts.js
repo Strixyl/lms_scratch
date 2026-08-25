@@ -1,10 +1,10 @@
 // ── Sentiment Dashboard — Reusable Sub-Components ───────────────────────────
 // Chart components, chips, tooltips, and cards extracted from SentimentDashboard.
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
-  Box, Typography, Card, Avatar, Paper,
-  Tooltip, ButtonBase,
+  Box, Typography, Card, CardContent, Avatar, Paper,
+  Tooltip, ButtonBase, Chip,
 } from '@mui/material';
 import {
   ArrowDropUp as ArrowDropUpIcon,
@@ -18,8 +18,16 @@ import {
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
   Bolt as BoltIcon,
+  Assessment as AssessmentIcon,
 } from '@mui/icons-material';
-import { THEME } from '../constants/themeTokens';
+import ReactWordcloud from 'react-wordcloud';
+import {
+  THEME,
+  sectionHeaderSx,
+  cardShellSx,
+  sectionTitleSx,
+  sectionSubtitleSx,
+} from '../constants/themeTokens';
 
 const T = THEME;
 
@@ -1036,3 +1044,165 @@ export const CustomDivergingTrendTooltip = ({ active, payload, label }) => {
   }
   return null;
 };
+
+// Stable minSize array so reference never changes across re-renders
+const WORD_CLOUD_MIN_SIZE = [300, 300];
+
+// ── Memoized Word Cloud Section Component ──────────────────────────────────
+export const WordCloudSection = React.memo(({
+  words = [],
+  selectedWordFilter = '',
+  onSelectWord,
+  onClearWordFilter,
+}) => {
+  const wordCloudOptions = useMemo(() => ({
+    deterministic: true,
+    randomSeed: 'hll-library-wordcloud-v4',
+    rotations: 1,
+    rotationAngles: [0, 0],
+    fontFamily: T.font.family,
+    fontSizes: [14, 68],
+    fontStyle: 'normal',
+    fontWeight: '800',
+    padding: 2,
+    enableTooltip: true,
+    transitionDuration: 750, // Fluid, smooth layout transition duration for d3-cloud
+    scale: 'sqrt',
+    spiral: 'archimedean',
+  }), []);
+
+  const wordCloudCallbacks = useMemo(() => ({
+    getWordColor: (word) => {
+      if (selectedWordFilter && word.text.toLowerCase() === selectedWordFilter.toLowerCase()) {
+        return '#ea580c';
+      }
+      if (words.length > 0 && word.text === words[0]?.text) {
+        return '#1e3a8a'; // prominent deep navy for the #1 center word
+      }
+      if (words.length > 1 && word.text === words[1]?.text) {
+        return '#854d0e'; // rich warm amber/brown for #2
+      }
+      if (words.length > 2 && word.text === words[2]?.text) {
+        return '#9d174d'; // rich raspberry for #3
+      }
+      const charCodeSum = (word.text || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      return T.wordCloudColors[charCodeSum % T.wordCloudColors.length];
+    },
+    getWordTooltip: (word) => `"${word.text}" — ${word.value} ${word.value === 1 ? 'mention' : 'mentions'}`,
+    onWordClick: (word) => {
+      if (onSelectWord) {
+        onSelectWord(word.text);
+      }
+    },
+  }), [selectedWordFilter, words, onSelectWord]);
+
+  return (
+    <Card elevation={0} sx={{
+      ...cardShellSx,
+      mb: 3.5,
+      border: '1.5px solid rgba(79, 70, 229, 0.22)',
+      borderTop: '3.5px solid #4f46e5',
+      boxShadow: '0 2px 12px rgba(79, 70, 229, 0.04)',
+      transition: 'box-shadow 0.3s ease',
+    }}>
+      <Box sx={{ ...sectionHeaderSx, flexWrap: 'wrap', gap: 1.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+          <Box sx={{
+            bgcolor: '#ede9fe',
+            color: '#4f46e5',
+            p: 0.55,
+            borderRadius: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            '& svg': { fontSize: 18 }
+          }}>
+            <AssessmentIcon />
+          </Box>
+          <Box>
+            <Typography sx={sectionTitleSx}>Frequently Used Words</Typography>
+            <Typography sx={sectionSubtitleSx}>Interactive keyword frequency cloud across patron feedback submissions</Typography>
+          </Box>
+        </Box>
+
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Chip
+            label={`${words.length} Words`}
+            size="small"
+            sx={{ fontWeight: 700, fontFamily: T.font.family, bgcolor: '#f1f5f9', color: '#475569', borderRadius: '9999px' }}
+          />
+          {selectedWordFilter && (
+            <Chip
+              label={`Filter: "${selectedWordFilter}"`}
+              size="small"
+              onDelete={onClearWordFilter}
+              sx={{
+                fontWeight: 700,
+                fontFamily: T.font.family,
+                borderRadius: '9999px',
+                bgcolor: '#fef3c7',
+                color: '#b45309',
+                border: '1px solid #fde68a',
+                animation: 'popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                '@keyframes popIn': {
+                  '0%': { transform: 'scale(0.85)', opacity: 0 },
+                  '100%': { transform: 'scale(1)', opacity: 1 }
+                }
+              }}
+            />
+          )}
+        </Box>
+      </Box>
+
+      <CardContent sx={{ p: { xs: 2, sm: 2.5 } }}>
+        {words.length === 0 ? (
+          <Typography sx={{ fontFamily: T.font.family, color: T.text.faint, textAlign: 'center', py: 6 }}>
+            No comment text available for the selected filters.
+          </Typography>
+        ) : (
+          <Box sx={{
+            height: 350,
+            borderRadius: 3,
+            p: 2,
+            bgcolor: T.surface.wordCloudBg,
+            border: `1.5px solid ${T.surface.borderLight}`,
+            position: 'relative',
+            overflow: 'hidden',
+            animation: 'wordCloudContainerFade 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+            '@keyframes wordCloudContainerFade': {
+              '0%': {
+                opacity: 0,
+                transform: 'scale(0.985)',
+              },
+              '100%': {
+                opacity: 1,
+                transform: 'scale(1)',
+              },
+            },
+            '& svg': {
+              width: '100% !important',
+              height: '100% !important',
+            },
+            '& svg text': {
+              cursor: 'pointer',
+              fontFamily: `${T.font.family} !important`,
+              userSelect: 'none',
+              transition: 'fill 0.3s ease, opacity 0.25s ease, filter 0.25s ease !important',
+            },
+            '& svg text:hover': {
+              opacity: '0.85 !important',
+              filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.2))',
+            }
+          }}>
+            <ReactWordcloud
+              words={words}
+              options={wordCloudOptions}
+              minSize={WORD_CLOUD_MIN_SIZE}
+              callbacks={wordCloudCallbacks}
+            />
+          </Box>
+        )}
+      </CardContent>
+    </Card>
+  );
+});
