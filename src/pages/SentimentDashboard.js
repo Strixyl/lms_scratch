@@ -967,7 +967,7 @@ const SentimentDashboard = () => {
         {(toggleDrawer) => (
           <>
             <TopBar
-              title="Sentiment Dashboard"
+              title="Sentiment Dashboard Analysis"
               onMenuClick={toggleDrawer}
               subtitle="PATRON SATISFACTION — SENTIMENT ANALYSIS"
             />
