@@ -793,7 +793,7 @@ function SentimentDashboard() {
         const scoredEvs = scoreCommentsWithLexicon(matchedItems);
         const topEvidences = scoredEvs
           .sort((a, b) => (b.blendedScore || 0) - (a.blendedScore || 0))
-          .slice(0, 3);
+          .slice(0, 2);
 
         const topicActionConfig = LEXICON_TOPIC_ACTIONS[topicName] || {};
         const severity = totalMatches >= 4 || topicActionConfig.defaultSeverity === 'HIGH' ? 'HIGH' : 'MODERATE';
@@ -1290,7 +1290,7 @@ function SentimentDashboard() {
                     {/* ── Modern Upper Section: 2-Column Revenue & Source Architecture ───── */}
                     <Box sx={{
                       display: 'grid',
-                      gridTemplateColumns: { xs: '1fr', lg: '1fr 340px', xl: '1fr 370px' },
+                      gridTemplateColumns: { xs: '1fr', lg: '3fr 1fr' },
                       gap: 2.5,
                       mb: 3.5,
                       alignItems: 'stretch'

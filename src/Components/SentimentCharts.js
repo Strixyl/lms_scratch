@@ -1633,7 +1633,7 @@ export const SourceSentimentBreakdownCard = ({
       </Box>
 
       {/* Donut Chart with Centered Total */}
-      <Box sx={{ width: '100%', position: 'relative', height: 185, my: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <Box sx={{ width: '100%', position: 'relative', height: 180, my: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -1642,8 +1642,8 @@ export const SourceSentimentBreakdownCard = ({
               nameKey="name"
               cx="50%"
               cy="50%"
-              innerRadius={52}
-              outerRadius={76}
+              innerRadius={50}
+              outerRadius={74}
               paddingAngle={donutData.length > 1 ? 4 : 0}
               cornerRadius={donutData.length > 1 ? 4 : 0}
               startAngle={90}
@@ -1660,33 +1660,33 @@ export const SourceSentimentBreakdownCard = ({
 
         {/* Centered Total Label */}
         <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', pointerEvents: 'none' }}>
-          <Typography sx={{ fontFamily: T.font.family, fontWeight: 900, fontSize: 22, color: '#0f172a', lineHeight: 1.1 }}>
+          <Typography sx={{ fontFamily: T.font.family, fontWeight: 900, fontSize: 20, color: '#0f172a', lineHeight: 1.1 }}>
             {formattedTotal}
           </Typography>
-          <Typography sx={{ fontFamily: T.font.family, fontWeight: 600, fontSize: 11.5, color: '#94a3b8' }}>
+          <Typography sx={{ fontFamily: T.font.family, fontWeight: 600, fontSize: 11, color: '#94a3b8' }}>
             {selectedCategory === 'All Categories' ? 'Total' : `${selectedCategory}`}
           </Typography>
         </Box>
       </Box>
 
       {/* Legend Indicators below Donut */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5, mb: 1.5, flexWrap: 'wrap' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, bgcolor: '#e6f4f5', border: '1px solid #b3dfe2', px: 1, py: 0.3, borderRadius: '9999px' }}>
-          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#005960' }} />
-          <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, fontWeight: 700, color: '#005960' }}>
-            Positive ({posPct}%)
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 1.2, flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: '#e6f4f5', border: '1px solid #b3dfe2', px: 0.8, py: 0.2, borderRadius: '9999px' }}>
+          <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#005960' }} />
+          <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 700, color: '#005960' }}>
+            Pos ({posPct}%)
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, bgcolor: '#edf0fc', border: '1px solid #cdd5f7', px: 1, py: 0.3, borderRadius: '9999px' }}>
-          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#7381cf' }} />
-          <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, fontWeight: 700, color: '#4a57a9' }}>
-            Neutral ({neuPct}%)
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: '#edf0fc', border: '1px solid #cdd5f7', px: 0.8, py: 0.2, borderRadius: '9999px' }}>
+          <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#7381cf' }} />
+          <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 700, color: '#4a57a9' }}>
+            Neu ({neuPct}%)
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, bgcolor: '#fff1f2', border: '1px solid #fecdd3', px: 1, py: 0.3, borderRadius: '9999px' }}>
-          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#f43f5e' }} />
-          <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, fontWeight: 700, color: '#be123c' }}>
-            Negative ({negPct}%)
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: '#fff1f2', border: '1px solid #fecdd3', px: 0.8, py: 0.2, borderRadius: '9999px' }}>
+          <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#f43f5e' }} />
+          <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 700, color: '#be123c' }}>
+            Neg ({negPct}%)
           </Typography>
         </Box>
       </Box>
