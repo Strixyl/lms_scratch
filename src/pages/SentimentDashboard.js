@@ -1956,13 +1956,14 @@ function SentimentDashboard() {
                                         px: 1.3,
                                         py: 0.3,
                                         borderRadius: '9999px',
-                                        bgcolor: '#ffffff',
-                                        color: '#16324f',
-                                        border: '1px solid #cbdbe9',
+                                        bgcolor: '#fffbeb',
+                                        color: '#b45309',
+                                        border: '1.5px solid #fed7aa',
                                         fontSize: 12,
                                         fontWeight: 700,
                                         fontFamily: T.font.family,
                                         lineHeight: 1.2,
+                                        boxShadow: '0 1px 2px rgba(246, 157, 27, 0.05)',
                                       }}>
                                         {row.College || 'N/A'}
                                       </Box>
