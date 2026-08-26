@@ -1,122 +1,126 @@
 // ── HLL Library System — Centralized Design Tokens ─────────────────────────
 // Single source of truth for all colors, fonts, and reusable MUI sx presets.
-// Import this file instead of hardcoding hex values in page components.
+// Palette inspired by Modern Executive Analytics Dashboard: Deep Navy (#16324f),
+// Vibrant Warm Golden-Orange (#f69d1b), Clean Slate Grey, and Soft Cool-Grey Surface (#eef1f6).
 
 export const THEME = {
-  // ── Brand Colors (CPU Blue & Gold / Henry Luce III Library) ───────────────
+  // ── Brand Colors (Deep Executive Navy & Vibrant Golden Orange) ───────────
   brand: {
-    primary: '#0f2b5c',       // Deep CPU Navy — headers, primary buttons, table heads
-    primaryHover: '#0a1c38',  // Hover state for primary
-    accent: '#d49f1e',        // CPU School Gold — border accents, highlights, badges
-    accentHover: '#b88612',   // Hover state for gold accent
-    indigo: '#1e40af',        // Royal Sapphire Navy
-    indigoHover: '#172554',   // Darker Navy Hover
-    goldLight: '#fffbeb',     // Soft Gold Tint
-    goldBorder: '#fde68a',    // Gold Border
-    blueLight: '#eff6ff',     // Soft Blue Tint
-    blueBorder: '#bfdbfe',    // Blue Border
-    violet: '#d49f1e',        // Gold Accent
-    violetHover: '#b88612',
+    primary: '#16324f',       // Deep Navy — headers, primary buttons, table heads, container outlines
+    primaryHover: '#0f243a',  // Hover state for primary
+    accent: '#f69d1b',        // Vibrant Warm Golden Orange — highlights, gold badges, excel export
+    accentHover: '#df8208',   // Hover state for orange accent
+    indigo: '#1b3a5b',        // Sapphire Navy
+    indigoHover: '#10253d',   // Darker Navy Hover
+    goldLight: '#fff8eb',     // Soft Gold/Orange Tint
+    goldBorder: '#fed7aa',    // Gold/Orange Border
+    blueLight: '#edf4fa',     // Soft Navy/Blue Tint
+    blueBorder: '#cbdbe9',    // Blue Border
+    violet: '#16324f',        // Primary Deep Navy
+    violetHover: '#0f243a',
   },
 
-  // ── Sentiment Palette (Teal = Positive, Lavender/Slate = Neutral, Rosey Red = Negative)
+  // ── Sentiment Palette (Original Green, Slate Grey, and Red for all Sentiment Signals)
   sentiment: {
-    Positive: { bg: '#005960', light: '#e6f4f5', text: '#005960', dot: '#137a84' },
-    Neutral:  { bg: '#7381cf', light: '#edf0fc', text: '#4a57a9', dot: '#8b97d8' },
-    Negative: { bg: '#f43f5e', light: '#fff1f2', text: '#be123c', dot: '#f87171' },
+    Positive: { bg: '#005960', light: '#e6f4f5', text: '#005960', dot: '#005960', border: '#b3dfe2' },
+    Neutral:  { bg: '#64748b', light: '#f1f5f9', text: '#475569', dot: '#94a3b8', border: '#cbd5e1' },
+    Negative: { bg: '#e11d48', light: '#fff1f2', text: '#be123c', dot: '#f43f5e', border: '#fecdd3' },
   },
 
-  // ── Category Palette (CPU Service Areas — Blue & Gold) ─────────────────────
+  // ── Category Palette (CPU Service Areas — Deep Navy, Warm Orange & Slate) ───
   category: {
-    Facilities:           { bg: '#0f2b5c', light: '#eff6ff', text: '#0f2b5c', dot: '#1e40af' },
-    Staff:                { bg: '#d49f1e', light: '#fffbeb', text: '#b45309', dot: '#f59e0b' },
-    Collection:           { bg: '#1d4ed8', light: '#eff6ff', text: '#1e40af', dot: '#3b82f6' },
-    'Other/Uncategorized':{ bg: '#64748b', light: '#f8fafc', text: '#475569', dot: '#94a3b8' },
+    Facilities:           { bg: '#16324f', light: '#edf4fa', text: '#16324f', dot: '#254b73', border: '#cbdbe9' },
+    Staff:                { bg: '#f69d1b', light: '#fff7ed', text: '#c2410c', dot: '#ea580c', border: '#fed7aa' },
+    Collection:           { bg: '#254b73', light: '#f0f4f9', text: '#16324f', dot: '#486581', border: '#cbdbe9' },
+    'Other/Uncategorized':{ bg: '#64748b', light: '#f8fafc', text: '#475569', dot: '#94a3b8', border: '#e2e8f0' },
   },
 
   // ── Category Donut Ring Colors ────────────────────────────────────────────
   categoryDonut: {
-    Facilities: '#0f2b5c',
-    Staff: '#d49f1e',
-    Collection: '#1d4ed8',
+    Facilities: '#16324f',
+    Staff: '#f69d1b',
+    Collection: '#254b73',
   },
 
-  // ── Chart Colors ──────────────────────────────────────────────────────────
+  // ── Chart Colors (Green = Positive, Slate = Neutral, Red = Negative) ──────
   chart: {
-    colors: ['#005960', '#7381cf', '#f43f5e'],
+    colors: ['#005960', '#64748b', '#e11d48'],
     gradients: {
-      positive: { start: '#005960', end: '#137a84' },
-      neutral:  { start: '#7381cf', end: '#8b97d8' },
-      negative: { start: '#f87171', end: '#f43f5e' },
+      positive: { start: '#005960', end: '#0d9488' },
+      neutral:  { start: '#64748b', end: '#94a3b8' },
+      negative: { start: '#f43f5e', end: '#fb7185' },
     },
     donutGradients: {
-      positive: { start: '#005960', end: '#137a84' },
-      neutral:  { start: '#7381cf', end: '#c2cbf0' },
-      negative: { start: '#f43f5e', end: '#fca5a5' },
+      positive: { start: '#005960', end: '#0d9488' },
+      neutral:  { start: '#64748b', end: '#cbd5e1' },
+      negative: { start: '#f43f5e', end: '#fecdd3' },
     },
   },
 
-  // ── Word Cloud Colors ─────────────────────────────────────────────────────
+  // ── Word Cloud Colors (Vibrant, Diverse & Colorful Spectrum) ──────────────
   wordCloudColors: [
-    '#0f2b5c', '#d49f1e', '#1d4ed8', '#005960', '#f59e0b',
-    '#f43f5e', '#7381cf', '#0ea5e9', '#0d9488', '#6366f1',
+    '#2563eb', '#7c3aed', '#db2777', '#059669', '#ea580c',
+    '#0891b2', '#4f46e5', '#d97706', '#0284c7', '#9333ea',
+    '#16a34a', '#e11d48', '#0d9488', '#c026d3', '#f59e0b',
+    '#4338ca', '#047857', '#b91c1c', '#6366f1', '#be185d',
+    '#0284c7', '#10b981', '#f43f5e', '#8b5cf6', '#ec4899',
   ],
 
   // ── Surface / UI Neutral Palette ──────────────────────────────────────────
   surface: {
-    background: '#f4f6f8',
-    backgroundGrad: 'linear-gradient(180deg, #f4f6f8 0%, #e8edf4 100%)',
+    background: '#eef1f6',
+    backgroundGrad: 'linear-gradient(180deg, #eef1f6 0%, #e5e9f0 100%)',
     card: '#ffffff',
     cardAlt: '#f8fafc',
     cardAltHover: '#f1f5f9',
-    border: '#cbd5e1',
+    border: '#d9e2ec',
     borderLight: '#e2e8f0',
     borderHover: '#94a3b8',
-    wordCloudBg: '#fcfdff',
+    wordCloudBg: '#ffffff', // Clean crisp white background
   },
 
   // ── Text Palette ──────────────────────────────────────────────────────────
   text: {
-    primary: '#0f172a',
-    heading: '#0f2b5c',
+    primary: '#16324f',
+    heading: '#16324f',
     body: '#334155',
-    secondary: '#475569',
-    muted: '#64748b',
+    secondary: '#64748b',
+    muted: '#8da2b5',
     faint: '#94a3b8',
     white: '#ffffff',
-    link: '#0f2b5c',
+    link: '#16324f',
   },
 
   // ── Status / Feedback Colors ──────────────────────────────────────────────
   status: {
     success:       '#005960',
-    successHover:  '#004449',
+    successHover:  '#00454a',
     successLight:  '#e6f4f5',
     successBorder: '#b3dfe2',
     successShadow: 'rgba(0, 89, 96, 0.25)',
-    error:         '#f43f5e',
-    errorHover:    '#e11d48',
+    error:         '#e11d48',
+    errorHover:    '#be123c',
     errorLight:    '#fff1f2',
     errorBorder:   '#fecdd3',
-    errorText:     '#e11d48',
-    warningLight:  '#fffbeb',
-    warningBorder: '#fde68a',
+    errorText:     '#be123c',
+    warningLight:  '#fff8eb',
+    warningBorder: '#fed7aa',
     warningText:   '#d97706',
     warningBold:   '#b45309',
-    info:          '#0f2b5c',
-    wordHighlight: '#d49f1e',
+    info:          '#16324f',
+    wordHighlight: '#f69d1b',
   },
 
   // ── Filter Chip Colors (Active filter badges) ─────────────────────────────
   filterChips: {
-    date:       { bg: '#ffffff', color: '#0f2b5c', border: '#cbd5e1' },
-    clientele:  { bg: '#fffbeb', color: '#b45309', border: '#fde68a' },
-    college:    { bg: '#eff6ff', color: '#0f2b5c', border: '#bfdbfe' },
-    course:     { bg: '#eff6ff', color: '#1e40af', border: '#bfdbfe' },
+    date:       { bg: '#ffffff', color: '#16324f', border: '#d9e2ec' },
+    clientele:  { bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' },
+    college:    { bg: '#edf4fa', color: '#16324f', border: '#cbdbe9' },
+    course:     { bg: '#edf4fa', color: '#254b73', border: '#cbdbe9' },
     sentimentPos:{ bg: '#e6f4f5', color: '#005960', border: '#b3dfe2' },
-    sentimentNeu:{ bg: '#edf0fc', color: '#4a57a9', border: '#cdd5f7' },
+    sentimentNeu:{ bg: '#f1f5f9', color: '#475569', border: '#cbd5e1' },
     sentimentNeg:{ bg: '#fff1f2', color: '#be123c', border: '#fecdd3' },
-    category:   { bg: '#fffbeb', color: '#b45309', border: '#fde68a' },
+    category:   { bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' },
   },
 
   // ── Typography ────────────────────────────────────────────────────────────
@@ -136,9 +140,9 @@ export const THEME = {
 
   // ── Shadows ───────────────────────────────────────────────────────────────
   shadow: {
-    card: '0 4px 16px -2px rgba(15, 43, 92, 0.06)',
-    cardHover: '0 8px 24px -4px rgba(15, 43, 92, 0.15)',
-    elevated: '0 10px 25px -5px rgba(0,0,0,0.1)',
+    card: '0 2px 10px rgba(22, 50, 79, 0.04)',
+    cardHover: '0 8px 24px -4px rgba(22, 50, 79, 0.12)',
+    elevated: '0 10px 25px -5px rgba(22, 50, 79, 0.1)',
   },
 };
 
@@ -160,7 +164,7 @@ export const cardShellSx = {
   border: `1.5px solid ${THEME.surface.borderLight}`,
   borderRadius: THEME.radius.card,
   backgroundColor: THEME.surface.card,
-  boxShadow: '0 2px 12px rgba(0,0,0,0.03)',
+  boxShadow: '0 2px 10px rgba(22, 50, 79, 0.03)',
   overflow: 'hidden',
 };
 
@@ -177,7 +181,7 @@ export const sectionTitleSx = {
 export const sectionSubtitleSx = {
   fontFamily: THEME.font.family,
   fontSize: 12.5,
-  color: THEME.text.muted,
+  color: THEME.text.secondary,
   fontWeight: 500,
   mt: 0.2,
 };
@@ -185,7 +189,7 @@ export const sectionSubtitleSx = {
 /** Section header icon style */
 export const sectionIconSx = {
   fontSize: 20,
-  color: '#0f2b5c',
+  color: '#16324f',
 };
 
 /** Standard select/text field styling */
@@ -201,10 +205,10 @@ export const selectSx = {
       borderWidth: '1.5px',
     },
     '&:hover fieldset': {
-      borderColor: '#0f2b5c',
+      borderColor: '#16324f',
     },
     '&.Mui-focused fieldset': {
-      borderColor: '#0f2b5c',
+      borderColor: '#16324f',
       borderWidth: '2px',
     },
   },
@@ -221,7 +225,7 @@ export const selectSx = {
     fontSize: 13.5,
     color: THEME.text.secondary,
     '&.Mui-focused': {
-      color: '#0f2b5c',
+      color: '#16324f',
       fontWeight: 700,
     },
   },
@@ -247,15 +251,15 @@ export const datePresetBtnSx = {
   fontWeight: 700,
   fontSize: 12,
   borderColor: 'transparent',
-  color: '#0f2b5c',
-  bgcolor: '#eff6ff',
+  color: '#16324f',
+  bgcolor: '#edf4fa',
   boxShadow: 'none',
   px: 1.6,
   py: 0.35,
   minWidth: 'auto',
   height: 28,
   '&:hover': {
-    bgcolor: '#dbeafe',
+    bgcolor: '#dbe7f3',
     borderColor: 'transparent',
   },
 };
@@ -280,7 +284,7 @@ export const tableHeaderRowSx = {
   backgroundColor: '#ffffff',
   borderBottom: `1px solid ${THEME.surface.borderLight}`,
   '& th': {
-    color: THEME.text.muted,
+    color: THEME.text.secondary,
     fontWeight: 700,
     fontFamily: THEME.font.family,
     fontSize: 11,
@@ -294,6 +298,6 @@ export const tableHeaderRowSx = {
 
 /** Table sort label on light header */
 export const tableSortLabelSx = {
-  color: `${THEME.text.muted} !important`,
+  color: `${THEME.text.secondary} !important`,
   '& .MuiTableSortLabel-icon': { color: `${THEME.text.faint} !important` },
 };

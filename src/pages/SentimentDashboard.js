@@ -23,6 +23,10 @@ import {
   CalendarToday as CalendarTodayIcon,
   RestartAlt as RestartAltIcon,
   Inbox as InboxIcon,
+  PersonOutline as PersonOutlineIcon,
+  ChatBubbleOutline as ChatBubbleOutlineIcon,
+  Category as CategoryIcon,
+  EventNote as EventNoteIcon,
 } from '@mui/icons-material';
 import {
   ResponsiveContainer,
@@ -655,36 +659,7 @@ function SentimentDashboard() {
   };
 
 
-  // ── Sentiment Distribution by Category (Multi-Donut Rings) ────────────────
-  const categoryDonutData = useMemo(() => {
-    const categories = ['Facilities', 'Staff', 'Collection'];
-    return categories.map(cat => {
-      const items = filtered.filter(s => (s.Category || 'Other/Uncategorized') === cat);
-      const pos = items.filter(s => s.SentimentResult === 'Positive').length;
-      const neu = items.filter(s => s.SentimentResult === 'Neutral').length;
-      const neg = items.filter(s => s.SentimentResult === 'Negative').length;
-      const tot = items.length;
 
-      const posPct = tot > 0 ? Math.round((pos / tot) * 100) : 0;
-      const neuPct = tot > 0 ? Math.round((neu / tot) * 100) : 0;
-      const negPct = tot > 0 ? Math.max(0, 100 - posPct - neuPct) : 0;
-
-      const slices = tot > 0 ? [
-        { name: 'Positive', value: posPct, count: pos, color: '#22c55e', solidColor: '#22c55e' },
-        { name: 'Neutral', value: neuPct, count: neu, color: '#f59e0b', solidColor: '#f59e0b' },
-        { name: 'Negative', value: negPct, count: neg, color: '#ef4444', solidColor: '#ef4444' },
-      ].filter(s => s.value > 0) : [
-        { name: 'No Data', value: 100, count: 0, color: '#e2e8f0', solidColor: '#e2e8f0' }
-      ];
-
-      return {
-        name: cat,
-        total: tot,
-        posPct,
-        slices
-      };
-    });
-  }, [filtered]);
 
   // ── Word/Term Frequency for Word Cloud ────────────────────────────────────
   const { freq: termFrequencies = {}, displayMap: stemToOriginalMap = {} } = useMemo(() => {
@@ -940,11 +915,11 @@ function SentimentDashboard() {
             .summary-box.pos .value { color: ${T.sentiment.Positive.text}; }
             .summary-box.neu .value { color: ${T.sentiment.Neutral.text}; }
             .summary-box.neg .value { color: ${T.sentiment.Negative.text}; }
-            .summary-box.tot .value { color: #1e3a8a; }
+            .summary-box.tot .value { color: #16324f; }
             .summary-box .label { font-size: 11px; color: #555; margin-top: 2px; font-weight: bold; }
             .scale-legend { font-size: 10.5px; color: ${T.text.secondary}; background: ${T.surface.cardAlt}; border: 1px solid ${T.surface.border}; padding: 6px 10px; border-radius: 4px; margin-bottom: 12px; text-align: center; font-weight: 600; }
             table { width: 100%; border-collapse: collapse; font-size: 10px; margin-top: 10px; }
-            th { background-color: #334155; color: white; padding: 6px 4px; text-align: left; font-size: 10px; }
+            th { background-color: #16324f; color: white; padding: 6px 4px; text-align: left; font-size: 10px; }
             td { padding: 5px 4px; border-bottom: 1px solid #eee; word-break: break-word; font-size: 9.5px; }
             tr:nth-child(even) { background-color: #f9f9f9; }
             .q-cell { text-align: center; font-weight: bold; }
@@ -974,17 +949,18 @@ function SentimentDashboard() {
             />
 
             {!showLoginModal && (
-              <Box sx={{ p: { xs: 2, md: 3 }, bgcolor: '#f8fafc', minHeight: '100vh' }}>
+              <Box sx={{ p: { xs: 2, md: 3 }, bgcolor: '#eef1f6', minHeight: '100vh' }}>
                 {/* ── Modern Header Action Bar Banner ───── */}
                 <Paper elevation={0} sx={{
                   p: { xs: 2, md: 2.5 }, mb: 3, borderRadius: 3.5,
                   bgcolor: '#ffffff',
-                  border: `1.5px solid ${T.surface.borderLight}`,
-                  boxShadow: '0 2px 12px rgba(0,0,0,0.03)',
+                  border: '1.5px solid #fed7aa',
+                  borderTop: '3.5px solid #f69d1b',
+                  boxShadow: '0 2px 12px rgba(246, 157, 27, 0.05)',
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2
                 }}>
                   <Box>
-                    <Typography sx={{ fontFamily: T.font.family, fontSize: { xs: 20, md: 24 }, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.3px' }}>
+                    <Typography sx={{ fontFamily: T.font.family, fontSize: { xs: 20, md: 24 }, fontWeight: 800, color: '#16324f', letterSpacing: '-0.3px' }}>
                       Henry Luce III Library Sentiment Analysis Dashboard
                     </Typography>
                     <Typography sx={{ fontFamily: T.font.family, fontSize: 13.5, color: '#64748b', fontWeight: 500, mt: 0.3 }}>
@@ -999,8 +975,8 @@ function SentimentDashboard() {
                       sx={{
                         borderRadius: '10px', height: 42, px: 2.5,
                         fontFamily: T.font.family, fontSize: 13.5, fontWeight: 700, textTransform: 'none',
-                        borderColor: '#e2e8f0', color: '#475569', bgcolor: '#ffffff', borderWidth: '1.5px',
-                        '&:hover': { borderColor: '#cbd5e1', bgcolor: '#f8fafc', borderWidth: '1.5px' }
+                        borderColor: '#d9e2ec', color: '#16324f', bgcolor: '#ffffff', borderWidth: '1.5px',
+                        '&:hover': { borderColor: '#16324f', bgcolor: '#edf4fa', borderWidth: '1.5px' }
                       }}
                     >
                       Print / Save PDF
@@ -1012,9 +988,10 @@ function SentimentDashboard() {
                       sx={{
                         borderRadius: '10px', height: 42, px: 2.5,
                         fontFamily: T.font.family, fontSize: 13.5, fontWeight: 700, textTransform: 'none',
-                        bgcolor: '#005960',
-                        boxShadow: '0 2px 8px rgba(0, 89, 96, 0.25)',
-                        '&:hover': { bgcolor: '#00454a' }
+                        bgcolor: '#f69d1b',
+                        color: '#ffffff',
+                        boxShadow: '0 2px 8px rgba(246, 157, 27, 0.3)',
+                        '&:hover': { bgcolor: '#df8208' }
                       }}
                     >
                       Export to Excel
@@ -1027,9 +1004,9 @@ function SentimentDashboard() {
                       sx={{
                         borderRadius: '10px', height: 42, px: 2.2,
                         fontFamily: T.font.family, fontSize: 13.5, fontWeight: 700, textTransform: 'none',
-                        borderColor: '#fecdd3', color: '#e11d48',
+                        borderColor: '#fed7aa', color: '#ea580c',
                         bgcolor: '#ffffff', borderWidth: '1.5px',
-                        '&:hover': { bgcolor: '#fff1f2', borderColor: '#f43f5e', borderWidth: '1.5px' }
+                        '&:hover': { bgcolor: '#fff7ed', borderColor: '#f69d1b', borderWidth: '1.5px' }
                       }}
                     >
                       Logout
@@ -1040,12 +1017,15 @@ function SentimentDashboard() {
                 {/* ── Filter Controls Container ───── */}
                 <Paper elevation={0} sx={{
                   mb: 3, ...cardShellSx,
+                  border: '1.5px solid #cbdbe9',
+                  borderTop: '3.5px solid #16324f',
+                  boxShadow: '0 2px 12px rgba(22, 50, 79, 0.04)',
                 }}>
                   <Box sx={{ ...sectionHeaderSx }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
                       <Box sx={{
-                        bgcolor: '#eff6ff',
-                        color: '#0f2b5c',
+                        bgcolor: '#edf4fa',
+                        color: '#16324f',
                         p: 0.55,
                         borderRadius: '8px',
                         display: 'flex',
@@ -1055,7 +1035,7 @@ function SentimentDashboard() {
                       }}>
                         <FilterAltIcon />
                       </Box>
-                      <Typography sx={{ ...sectionTitleSx }}>
+                      <Typography sx={{ ...sectionTitleSx, color: '#16324f' }}>
                         Filter & Analytics Controls
                       </Typography>
                     </Box>
@@ -1076,7 +1056,7 @@ function SentimentDashboard() {
                   {/* ── Quick Date Presets Row ───── */}
                   <Box sx={{ px: 3, pt: 1.8, pb: 1.5, bgcolor: '#ffffff', borderBottom: `1px solid ${T.surface.borderLight}`, display: 'flex', alignItems: 'center', gap: 0.8, flexWrap: 'wrap' }}>
                     <Typography sx={{ fontFamily: T.font.family, fontSize: 12.5, fontWeight: 700, color: '#64748b', mr: 0.8, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <CalendarTodayIcon sx={{ fontSize: 15, color: '#0f2b5c' }} /> Quick Date Range:
+                      <CalendarTodayIcon sx={{ fontSize: 15, color: '#16324f' }} /> Quick Date Range:
                     </Typography>
                     <Button size="small" variant="outlined" onClick={() => handleDatePreset('q1')} sx={datePresetBtnSx}>Q1</Button>
                     <Button size="small" variant="outlined" onClick={() => handleDatePreset('q2')} sx={datePresetBtnSx}>Q2</Button>
@@ -1220,11 +1200,11 @@ function SentimentDashboard() {
                       sx={{
                         height: 44, px: 2.8, borderRadius: '10px', textTransform: 'none',
                         fontFamily: T.font.family, fontWeight: 700, fontSize: 13.5,
-                        borderColor: hasActiveFilter ? '#ef4444' : '#e2e8f0',
-                        color: hasActiveFilter ? '#ef4444' : '#94a3b8',
+                        borderColor: hasActiveFilter ? '#ea580c' : '#e2e8f0',
+                        color: hasActiveFilter ? '#ea580c' : '#94a3b8',
                         borderWidth: '1.5px',
-                        bgcolor: hasActiveFilter ? 'rgba(239, 68, 68, 0.05)' : 'transparent',
-                        '&:hover': { borderWidth: '1.5px', borderColor: '#dc2626', bgcolor: 'rgba(239, 68, 68, 0.1)' }
+                        bgcolor: hasActiveFilter ? 'rgba(234, 88, 12, 0.05)' : 'transparent',
+                        '&:hover': { borderWidth: '1.5px', borderColor: '#c2410c', bgcolor: 'rgba(234, 88, 12, 0.1)' }
                       }}
                     >
                       Clear Filters
@@ -1239,42 +1219,42 @@ function SentimentDashboard() {
                       </Typography>
                       {(startDate || endDate) && (
                         <Chip label={`Date: ${startDate || 'Start'} to ${endDate || 'End'}`} onDelete={() => handleRemoveFilter('date')} size="small"
-                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#ffffff', color: '#1e293b', border: `1px solid ${T.surface.borderLight}`, borderRadius: '9999px' }} />
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#ffffff', color: '#16324f', border: `1px solid ${T.surface.borderLight}`, borderRadius: '9999px' }} />
                       )}
                       {filterQuarter && filterQuarter !== 'All' && (
                         <Chip label={`Quarter: ${filterQuarter}`} onDelete={() => handleRemoveFilter('quarter')} size="small"
-                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#ffffff', color: '#1e293b', border: `1px solid ${T.surface.borderLight}`, borderRadius: '9999px' }} />
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#ffffff', color: '#16324f', border: `1px solid ${T.surface.borderLight}`, borderRadius: '9999px' }} />
                       )}
                       {filterMonth && filterMonth !== 'All' && (
                         <Chip label={`Month: ${filterMonth}`} onDelete={() => handleRemoveFilter('month')} size="small"
-                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#ffffff', color: '#1e293b', border: `1px solid ${T.surface.borderLight}`, borderRadius: '9999px' }} />
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#ffffff', color: '#16324f', border: `1px solid ${T.surface.borderLight}`, borderRadius: '9999px' }} />
                       )}
                       {filterYear && filterYear !== 'All' && filterYear !== '2026' && (
                         <Chip label={`Year: ${filterYear}`} onDelete={() => handleRemoveFilter('year')} size="small"
-                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#ffffff', color: '#1e293b', border: `1px solid ${T.surface.borderLight}`, borderRadius: '9999px' }} />
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#ffffff', color: '#16324f', border: `1px solid ${T.surface.borderLight}`, borderRadius: '9999px' }} />
                       )}
                       {filterClientele && (
                         <Chip label={`Clientele: ${filterClientele}`} onDelete={() => handleRemoveFilter('clientele')} size="small"
-                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', borderRadius: '9999px' }} />
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#fff7ed', color: '#c2410c', border: '1px solid #fed7aa', borderRadius: '9999px' }} />
                       )}
                       {filterCollege && (
                         <Chip label={`College: ${filterCollege}`} onDelete={() => handleRemoveFilter('college')} size="small"
-                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#eff6ff', color: '#0f2b5c', border: '1px solid #bfdbfe', borderRadius: '9999px' }} />
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#edf4fa', color: '#16324f', border: '1px solid #cbdbe9', borderRadius: '9999px' }} />
                       )}
                       {filterCourse && (
                         <Chip label={`Course: ${filterCourse}`} onDelete={() => handleRemoveFilter('course')} size="small"
-                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#eff6ff', color: '#1e40af', border: '1px solid #bfdbfe', borderRadius: '9999px' }} />
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#edf4fa', color: '#254b73', border: '1px solid #cbdbe9', borderRadius: '9999px' }} />
                       )}
                       {filterSentiment && (
                         <Chip label={`Sentiment: ${filterSentiment}`} onDelete={() => handleRemoveFilter('sentiment')} size="small"
-                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: filterSentiment === 'Positive' ? '#e6f4f5' : filterSentiment === 'Negative' ? '#fff1f2' : '#edf0fc', color: filterSentiment === 'Positive' ? '#005960' : filterSentiment === 'Negative' ? '#be123c' : '#4a57a9', border: filterSentiment === 'Positive' ? '1px solid #b3dfe2' : filterSentiment === 'Negative' ? '1px solid #fecdd3' : '1px solid #cdd5f7', borderRadius: '9999px' }} />
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: filterSentiment === 'Positive' ? '#e6f4f5' : filterSentiment === 'Negative' ? '#fff1f2' : '#f1f5f9', color: filterSentiment === 'Positive' ? '#005960' : filterSentiment === 'Negative' ? '#be123c' : '#475569', border: filterSentiment === 'Positive' ? '1px solid #b3dfe2' : filterSentiment === 'Negative' ? '1px solid #fecdd3' : '1px solid #cbd5e1', borderRadius: '9999px' }} />
                       )}
                       {filterCategory && (
                         <Chip label={`Category: ${filterCategory}`} onDelete={() => handleRemoveFilter('category')} size="small"
-                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', borderRadius: '9999px' }} />
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#fff7ed', color: '#c2410c', border: '1px solid #fed7aa', borderRadius: '9999px' }} />
                       )}
                       <Button size="small" onClick={handleClear} startIcon={<RestartAltIcon sx={{ fontSize: 15 }} />}
-                        sx={{ fontFamily: T.font.family, textTransform: 'none', fontWeight: 700, fontSize: 12, color: '#ef4444', ml: 'auto' }}>
+                        sx={{ fontFamily: T.font.family, textTransform: 'none', fontWeight: 700, fontSize: 12, color: '#ea580c', ml: 'auto' }}>
                         Clear All
                       </Button>
                     </Box>
@@ -1283,7 +1263,7 @@ function SentimentDashboard() {
 
                 {loading ? (
                   <Box sx={{ display: 'flex', justifyContent: 'center', p: 8 }}>
-                    <CircularProgress color="primary" />
+                    <CircularProgress sx={{ color: '#16324f' }} />
                   </Box>
                 ) : (
                   <>
@@ -1302,11 +1282,13 @@ function SentimentDashboard() {
                           <ModernKpiCard
                             title="Total Surveys"
                             value={total.toLocaleString()}
+                            borderColorTheme="gold"
                             subtitle="Total survey submissions"
                           />
                           <ModernKpiCard
                             title="Positive Sentiment Rate"
                             value={`${total > 0 ? Math.round((counts.Positive / total) * 100) : 0}%`}
+                            borderColorTheme="blue"
                             subtitle={`${counts.Positive} positive responses`}
                           />
                           <ModernKpiCard
@@ -1322,15 +1304,16 @@ function SentimentDashboard() {
                         <Card elevation={0} sx={{
                           bgcolor: '#ffffff',
                           borderRadius: '16px',
-                          border: '1.5px solid #e2e8f0',
+                          border: '1.5px solid #cbdbe9',
+                          borderTop: '3.5px solid #16324f',
                           p: { xs: 2, sm: 2.5 },
-                          boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
+                          boxShadow: '0 2px 10px rgba(22, 50, 79, 0.03)',
                           display: 'flex',
                           flexDirection: 'column',
                           transition: 'all 0.2s ease-in-out',
                           '&:hover': {
-                            boxShadow: '0 6px 20px rgba(0,0,0,0.04)',
-                            borderColor: '#cbd5e1',
+                            boxShadow: '0 6px 20px rgba(22, 50, 79, 0.08)',
+                            borderColor: '#16324f',
                           }
                         }}>
                           {/* Header Container */}
@@ -1347,7 +1330,7 @@ function SentimentDashboard() {
                                 Monthly Sentiment Balance & Comparison
                               </Typography>
                               <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.2, mt: 0.4, flexWrap: 'wrap' }}>
-                                <Typography sx={{ fontFamily: T.font.family, fontSize: { xs: 24, sm: 28 }, fontWeight: 800, color: '#0f172a', lineHeight: 1.1 }}>
+                                <Typography sx={{ fontFamily: T.font.family, fontSize: { xs: 24, sm: 28 }, fontWeight: 800, color: '#16324f', lineHeight: 1.1 }}>
                                   {total > 0 ? Math.round((counts.Positive / total) * 100) : 0}% Positive Share
                                 </Typography>
                               </Box>
@@ -1363,7 +1346,7 @@ function SentimentDashboard() {
                                 sx={{
                                   height: 32,
                                   borderRadius: '9999px',
-                                  bgcolor: '#f1f5f9',
+                                  bgcolor: '#edf2f7',
                                   p: 0.3,
                                   '& .MuiToggleButton-root': {
                                     fontFamily: T.font.family,
@@ -1376,7 +1359,7 @@ function SentimentDashboard() {
                                     borderRadius: '9999px',
                                     '&.Mui-selected': {
                                       bgcolor: '#ffffff',
-                                      color: '#0f172a',
+                                      color: '#16324f',
                                       fontWeight: 800,
                                       boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
                                       '&:hover': { bgcolor: '#ffffff' }
@@ -1523,12 +1506,19 @@ function SentimentDashboard() {
                     </Box>
 
 
-                    <Card elevation={0} sx={{ ...cardShellSx, mb: 3 }}>
+                    {/* ── Top Patron Comments Container (Bluish Shell) ───── */}
+                    <Card elevation={0} sx={{
+                      ...cardShellSx,
+                      mb: 3,
+                      border: '1.5px solid #cbdbe9',
+                      borderTop: '3.5px solid #16324f',
+                      boxShadow: '0 2px 12px rgba(22, 50, 79, 0.04)',
+                    }}>
                       <Box sx={{ ...sectionHeaderSx, flexWrap: 'wrap', gap: 1 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
                           <Box sx={{
-                            bgcolor: '#eff6ff',
-                            color: '#0f2b5c',
+                            bgcolor: '#edf4fa',
+                            color: '#16324f',
                             p: 0.55,
                             borderRadius: '8px',
                             display: 'flex',
@@ -1539,7 +1529,7 @@ function SentimentDashboard() {
                             <RateReviewIcon />
                           </Box>
                           <Box>
-                            <Typography sx={sectionTitleSx}>Top Patron Comments</Typography>
+                            <Typography sx={{ ...sectionTitleSx, color: '#16324f' }}>Top Patron Comments</Typography>
                             <Typography sx={sectionSubtitleSx}>Top 5 high-impact positive commendations and critical negative feedback</Typography>
                           </Box>
                         </Box>
@@ -1569,13 +1559,19 @@ function SentimentDashboard() {
                       </CardContent>
                     </Card>
 
-                    {/* ── Service Improvement Recommendations Container ───── */}
-                    <Card elevation={0} sx={{ ...cardShellSx, mb: 3.5 }}>
+                    {/* ── Service Improvement Recommendations Container (Gold Shell) ───── */}
+                    <Card elevation={0} sx={{
+                      ...cardShellSx,
+                      mb: 3.5,
+                      border: '1.5px solid #fed7aa',
+                      borderTop: '3.5px solid #f69d1b',
+                      boxShadow: '0 2px 12px rgba(246, 157, 27, 0.04)',
+                    }}>
                       <Box sx={{ ...sectionHeaderSx, flexWrap: 'wrap', gap: 1.5 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
                           <Box sx={{
-                            bgcolor: '#fef3c7',
-                            color: '#d97706',
+                            bgcolor: '#fff7ed',
+                            color: '#ea580c',
                             p: 0.55,
                             borderRadius: '8px',
                             display: 'flex',
@@ -1586,7 +1582,7 @@ function SentimentDashboard() {
                             <LightbulbIcon />
                           </Box>
                           <Box>
-                            <Typography sx={sectionTitleSx}>Service Improvement Recommendations</Typography>
+                            <Typography sx={{ ...sectionTitleSx, color: '#16324f' }}>Service Improvement Recommendations</Typography>
                             <Typography sx={sectionSubtitleSx}>Actionable priority insights derived from negative patron sentiment signals</Typography>
                           </Box>
                         </Box>
@@ -1632,13 +1628,13 @@ function SentimentDashboard() {
                       onClearWordFilter={handleClearWordFilter}
                     />
 
-                    {/* ── Granular Survey Review Table (Stitch Clean Minimalist Design) ───── */}
+                    {/* ── Granular Survey Review Table (Gold Shell) ───── */}
                     <Paper id="review-table-section" elevation={0} sx={{
                       borderRadius: 3.5,
                       bgcolor: '#ffffff',
-                      border: '1.5px solid rgba(15, 43, 92, 0.22)',
-                      borderTop: '3.5px solid #0f2b5c',
-                      boxShadow: '0 2px 12px rgba(15, 43, 92, 0.04)',
+                      border: '1.5px solid #fed7aa',
+                      borderTop: '3.5px solid #f69d1b',
+                      boxShadow: '0 2px 12px rgba(246, 157, 27, 0.04)',
                       overflow: 'hidden',
                       p: { xs: 2, md: 3 },
                       mb: 3,
@@ -1657,10 +1653,10 @@ function SentimentDashboard() {
                             fontFamily: T.font.family,
                             fontWeight: 800,
                             fontSize: { xs: 16, md: 18 },
-                            color: '#0f172a',
+                            color: '#16324f',
                             letterSpacing: '-0.2px'
                           }}>
-                            Granular Survey Review
+                            Patron Review Submissions Table
                           </Typography>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, flexWrap: 'wrap', mt: 1.5 }}>
                             <Button
@@ -1678,8 +1674,8 @@ function SentimentDashboard() {
                                 height: 28,
                                 boxShadow: 'none',
                                 ...(filterMonth === 'All'
-                                  ? { bgcolor: '#1e293b', color: '#ffffff', '&:hover': { bgcolor: '#0f172a' } }
-                                  : { bgcolor: '#f1f5f9', color: '#475569', border: 'none', '&:hover': { bgcolor: '#e2e8f0' } }
+                                  ? { bgcolor: '#16324f', color: '#ffffff', '&:hover': { bgcolor: '#0e2237' } }
+                                  : { bgcolor: '#edf2f7', color: '#475569', border: 'none', '&:hover': { bgcolor: '#e2e8f0' } }
                                 )
                               }}
                             >
@@ -1705,8 +1701,8 @@ function SentimentDashboard() {
                                     height: 28,
                                     boxShadow: 'none',
                                     ...(isSelected
-                                      ? { bgcolor: '#1e293b', color: '#ffffff', '&:hover': { bgcolor: '#0f172a' } }
-                                      : { bgcolor: '#f1f5f9', color: c > 0 ? '#334155' : '#94a3b8', border: 'none', '&:hover': { bgcolor: '#e2e8f0' } }
+                                      ? { bgcolor: '#16324f', color: '#ffffff', '&:hover': { bgcolor: '#0e2237' } }
+                                      : { bgcolor: '#edf2f7', color: c > 0 ? '#334155' : '#94a3b8', border: 'none', '&:hover': { bgcolor: '#e2e8f0' } }
                                     )
                                   }}
                                 >
@@ -1729,9 +1725,9 @@ function SentimentDashboard() {
                                 fontSize: 11.5,
                                 height: 26,
                                 borderRadius: '9999px',
-                                bgcolor: '#fef3c7',
-                                color: '#b45309',
-                                border: 'none',
+                                bgcolor: '#fff7ed',
+                                color: '#c2410c',
+                                border: '1px solid #fed7aa',
                               }}
                             />
                           )}
@@ -1750,9 +1746,9 @@ function SentimentDashboard() {
                                 fontSize: 12,
                                 height: 30,
                                 px: 1.8,
-                                bgcolor: '#ef4444',
-                                boxShadow: '0 2px 8px rgba(239, 68, 68, 0.25)',
-                                '&:hover': { bgcolor: '#dc2626' }
+                                bgcolor: '#ea580c',
+                                boxShadow: '0 2px 8px rgba(234, 88, 12, 0.25)',
+                                '&:hover': { bgcolor: '#c2410c' }
                               }}
                             >
                               Delete Selected ({selectedRowIds.length})
@@ -1761,74 +1757,136 @@ function SentimentDashboard() {
                         </Box>
                       </Box>
 
-                      {/* ── Table Content - Clean Minimalist Grid ───── */}
-                      <TableContainer component={Box} sx={{ overflowX: 'auto', border: 'none' }}>
-                        <Table size="small" sx={{ minWidth: 850 }}>
+                      {/* ── Table Content - Modern Spreadsheet Grid with Section Highlighting ───── */}
+                      <TableContainer
+                        component={Box}
+                        sx={{
+                          overflowX: 'auto',
+                          borderRadius: '12px',
+                          border: '1.5px solid #cbdbe9',
+                          bgcolor: '#ffffff',
+                          boxShadow: '0 2px 8px rgba(22, 50, 79, 0.03)',
+                        }}
+                      >
+                        <Table size="small" sx={{ minWidth: 920, borderCollapse: 'separate', borderSpacing: 0 }}>
                           <TableHead>
+                            {/* Top Tier: Spreadsheet Section Category Headers */}
                             <TableRow sx={{
-                              borderBottom: '1px solid #f1f5f9',
+                              bgcolor: '#ffffff',
                               '& th': {
-                                py: 1.4,
+                                py: 0.9,
                                 px: 1.5,
                                 fontSize: 11,
-                                fontWeight: 700,
-                                color: '#64748b',
+                                fontWeight: 800,
+                                letterSpacing: '0.5px',
+                                textTransform: 'uppercase',
+                                fontFamily: T.font.family,
+                                borderBottom: '1px solid #e2e8f0',
+                                bgcolor: '#ffffff',
+                              }
+                            }}>
+                              <TableCell colSpan={3} sx={{ color: '#16324f', borderRight: '2px solid #cbdbe9 !important' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.7 }}>
+                                  <PersonOutlineIcon sx={{ fontSize: 15, color: '#16324f' }} />
+                                  <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 800, color: '#16324f', letterSpacing: '0.5px' }}>
+                                    Patron Identity
+                                  </Typography>
+                                </Box>
+                              </TableCell>
+                              <TableCell sx={{ color: '#334155', borderRight: '2px solid #cbdbe9 !important' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.7 }}>
+                                  <ChatBubbleOutlineIcon sx={{ fontSize: 15, color: '#334155' }} />
+                                  <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 800, color: '#334155', letterSpacing: '0.5px' }}>
+                                    Feedback Response
+                                  </Typography>
+                                </Box>
+                              </TableCell>
+                              <TableCell colSpan={2} sx={{ color: '#16324f', borderRight: '2px solid #cbdbe9 !important' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.7 }}>
+                                  <CategoryIcon sx={{ fontSize: 15, color: '#16324f' }} />
+                                  <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 800, color: '#16324f', letterSpacing: '0.5px' }}>
+                                    Sentiment & Classification
+                                  </Typography>
+                                </Box>
+                              </TableCell>
+                              <TableCell colSpan={2} sx={{ color: '#334155', borderRight: 'none !important' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.7 }}>
+                                  <EventNoteIcon sx={{ fontSize: 15, color: '#334155' }} />
+                                  <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 800, color: '#334155', letterSpacing: '0.5px' }}>
+                                    Audit & Actions
+                                  </Typography>
+                                </Box>
+                              </TableCell>
+                            </TableRow>
+
+                            {/* Second Tier: Column Field Names with Sort Labels and Grid Dividers */}
+                            <TableRow sx={{
+                              bgcolor: '#fafbfc',
+                              '& th': {
+                                py: 1.1,
+                                px: 1.5,
+                                fontSize: 11,
+                                fontWeight: 800,
+                                color: '#475569',
                                 letterSpacing: '0.4px',
                                 textTransform: 'uppercase',
-                                borderBottom: '1px solid #f1f5f9',
+                                borderBottom: '2px solid #cbdbe9',
+                                borderRight: '1px solid #e2e8f0',
+                                bgcolor: '#fafbfc',
                                 fontFamily: T.font.family,
                               }
                             }}>
-                              <TableCell padding="checkbox" sx={{ width: 40, py: 1 }}>
+                              <TableCell padding="checkbox" sx={{ width: 44, py: 1, borderRight: '1px solid #e2e8f0' }}>
                                 <Checkbox
                                   size="small"
                                   checked={isAllPageSelected}
                                   indeterminate={isSomePageSelected}
                                   onChange={handleSelectAllOnPage}
-                                  sx={{ color: '#cbd5e1', p: 0.5, '&.Mui-checked': { color: '#1e293b' }, '&.MuiCheckbox-indeterminate': { color: '#1e293b' } }}
+                                  sx={{ color: '#cbd5e1', p: 0.5, '&.Mui-checked': { color: '#16324f' }, '&.MuiCheckbox-indeterminate': { color: '#16324f' } }}
                                 />
                               </TableCell>
-                              <TableCell sx={{ width: 110 }}>
+                              <TableCell sx={{ width: 115, borderRight: '1px solid #e2e8f0' }}>
                                 <TableSortLabel active={sortField === 'Clientele'} direction={sortField === 'Clientele' ? sortOrder : 'asc'} onClick={() => handleRequestSort('Clientele')}
-                                  sx={{ color: '#64748b !important', '& .MuiTableSortLabel-icon': { color: '#94a3b8 !important' } }}>
+                                  sx={{ color: '#475569 !important', fontWeight: 800, '& .MuiTableSortLabel-icon': { color: '#94a3b8 !important' } }}>
                                   Clientele
                                 </TableSortLabel>
                               </TableCell>
-                              <TableCell sx={{ width: 130 }}>
+                              <TableCell sx={{ width: 145, borderRight: '2px solid #cbdbe9 !important' }}>
                                 <TableSortLabel active={sortField === 'College'} direction={sortField === 'College' ? sortOrder : 'asc'} onClick={() => handleRequestSort('College')}
-                                  sx={{ color: '#64748b !important', '& .MuiTableSortLabel-icon': { color: '#94a3b8 !important' } }}>
+                                  sx={{ color: '#475569 !important', fontWeight: 800, '& .MuiTableSortLabel-icon': { color: '#94a3b8 !important' } }}>
                                   College / Dept
                                 </TableSortLabel>
                               </TableCell>
-                              <TableCell sx={{ minWidth: 320 }}>
+                              <TableCell sx={{ minWidth: 320, borderRight: '2px solid #cbdbe9 !important' }}>
                                 <TableSortLabel active={sortField === 'Message'} direction={sortField === 'Message' ? sortOrder : 'asc'} onClick={() => handleRequestSort('Message')}
-                                  sx={{ color: '#64748b !important', '& .MuiTableSortLabel-icon': { color: '#94a3b8 !important' } }}>
+                                  sx={{ color: '#475569 !important', fontWeight: 800, '& .MuiTableSortLabel-icon': { color: '#94a3b8 !important' } }}>
                                   Feedback Response
                                 </TableSortLabel>
                               </TableCell>
-                              <TableCell sx={{ width: 115 }}>
+                              <TableCell sx={{ width: 125, borderRight: '1px solid #e2e8f0' }}>
                                 <TableSortLabel active={sortField === 'SentimentResult'} direction={sortField === 'SentimentResult' ? sortOrder : 'asc'} onClick={() => handleRequestSort('SentimentResult')}
-                                  sx={{ color: '#64748b !important', '& .MuiTableSortLabel-icon': { color: '#94a3b8 !important' } }}>
+                                  sx={{ color: '#475569 !important', fontWeight: 800, '& .MuiTableSortLabel-icon': { color: '#94a3b8 !important' } }}>
                                   Sentiment
                                 </TableSortLabel>
                               </TableCell>
-                              <TableCell sx={{ width: 125 }}>
+                              <TableCell sx={{ width: 135, borderRight: '2px solid #cbdbe9 !important' }}>
                                 <TableSortLabel active={sortField === 'Category'} direction={sortField === 'Category' ? sortOrder : 'asc'} onClick={() => handleRequestSort('Category')}
-                                  sx={{ color: '#64748b !important', '& .MuiTableSortLabel-icon': { color: '#94a3b8 !important' } }}>
+                                  sx={{ color: '#475569 !important', fontWeight: 800, '& .MuiTableSortLabel-icon': { color: '#94a3b8 !important' } }}>
                                   Category
                                 </TableSortLabel>
                               </TableCell>
-                              <TableCell sx={{ width: 110 }}>
+                              <TableCell sx={{ width: 115, borderRight: '1px solid #e2e8f0' }}>
                                 <TableSortLabel active={sortField === 'DateSubmitted'} direction={sortField === 'DateSubmitted' ? sortOrder : 'asc'} onClick={() => handleRequestSort('DateSubmitted')}
-                                  sx={{ color: '#64748b !important', '& .MuiTableSortLabel-icon': { color: '#94a3b8 !important' } }}>
+                                  sx={{ color: '#475569 !important', fontWeight: 800, '& .MuiTableSortLabel-icon': { color: '#94a3b8 !important' } }}>
                                   Date
                                 </TableSortLabel>
                               </TableCell>
-                              <TableCell align="center" sx={{ width: 75 }}>
+                              <TableCell align="center" sx={{ width: 75, borderRight: 'none !important', color: '#475569', fontWeight: 800 }}>
                                 Actions
                               </TableCell>
                             </TableRow>
                           </TableHead>
+
                           <TableBody>
                             {pageRows.length === 0 ? (
                               <TableRow>
@@ -1874,34 +1932,34 @@ function SentimentDashboard() {
                                     hover
                                     selected={isSelected}
                                     sx={{
-                                      borderBottom: '1px solid #f1f5f9',
+                                      bgcolor: '#ffffff',
                                       transition: 'background-color 0.15s ease',
-                                      '&:hover': { bgcolor: 'rgba(241, 245, 249, 0.6) !important' },
-                                      '&.Mui-selected': { bgcolor: 'rgba(241, 245, 249, 0.85) !important' },
+                                      '&:hover': { bgcolor: '#f1f5f9 !important' },
+                                      '&.Mui-selected': { bgcolor: '#edf4fa !important' },
                                     }}
                                   >
-                                    <TableCell padding="checkbox" sx={{ py: 1.1, px: 1, borderBottom: '1px solid #f1f5f9' }}>
+                                    <TableCell padding="checkbox" sx={{ py: 1.1, px: 1, borderBottom: '1px solid #edf2f7', borderRight: '1px solid #edf2f7' }}>
                                       <Checkbox
                                         size="small"
                                         checked={isSelected}
                                         onChange={() => handleToggleSelectRow(row.Id)}
-                                        sx={{ color: '#cbd5e1', '&.Mui-checked': { color: '#1e293b' }, p: 0.3 }}
+                                        sx={{ color: '#cbd5e1', '&.Mui-checked': { color: '#16324f' }, p: 0.3 }}
                                       />
                                     </TableCell>
-                                    <TableCell sx={{ py: 1.1, px: 1.4, borderBottom: '1px solid #f1f5f9', fontFamily: T.font.family, fontSize: 13.5, color: '#1e293b', fontWeight: 600 }}>
+                                    <TableCell sx={{ py: 1.1, px: 1.4, borderBottom: '1px solid #edf2f7', borderRight: '1px solid #edf2f7', fontFamily: T.font.family, fontSize: 13, color: '#16324f', fontWeight: 700 }}>
                                       {clientDisplay}
                                     </TableCell>
-                                    <TableCell sx={{ py: 1.1, px: 1.4, borderBottom: '1px solid #f1f5f9' }}>
+                                    <TableCell sx={{ py: 1.1, px: 1.4, borderBottom: '1px solid #edf2f7', borderRight: '2px solid #cbdbe9' }}>
                                       <Box sx={{
                                         display: 'inline-flex',
                                         alignItems: 'center',
                                         px: 1.3,
                                         py: 0.3,
                                         borderRadius: '9999px',
-                                        bgcolor: '#eff6ff',
-                                        color: '#0f2b5c',
-                                        border: '1px solid #bfdbfe',
-                                        fontSize: 12.5,
+                                        bgcolor: '#ffffff',
+                                        color: '#16324f',
+                                        border: '1px solid #cbdbe9',
+                                        fontSize: 12,
                                         fontWeight: 700,
                                         fontFamily: T.font.family,
                                         lineHeight: 1.2,
@@ -1916,14 +1974,14 @@ function SentimentDashboard() {
                                     </TableCell>
                                     <TableCell sx={{
                                       fontFamily: T.font.family,
-                                      fontSize: 13.8,
+                                      fontSize: 13.5,
                                       fontWeight: 500,
                                       color: '#1e293b',
                                       py: 1.1,
-                                      px: 1.4,
-                                      pr: 2,
+                                      px: 1.6,
                                       lineHeight: 1.45,
-                                      borderBottom: '1px solid #f1f5f9',
+                                      borderBottom: '1px solid #edf2f7',
+                                      borderRight: '2px solid #cbdbe9',
                                     }}>
                                       {row.Message && row.Message.trim().length > 0 ? (
                                         row.Message
@@ -1940,16 +1998,16 @@ function SentimentDashboard() {
                                         </Box>
                                       )}
                                     </TableCell>
-                                    <TableCell sx={{ py: 1.1, px: 1.4, borderBottom: '1px solid #f1f5f9' }}>
+                                    <TableCell sx={{ py: 1.1, px: 1.4, borderBottom: '1px solid #edf2f7', borderRight: '1px solid #edf2f7' }}>
                                       <SentimentChip label={row.SentimentResult} />
                                     </TableCell>
-                                    <TableCell sx={{ py: 1.1, px: 1.4, borderBottom: '1px solid #f1f5f9' }}>
+                                    <TableCell sx={{ py: 1.1, px: 1.4, borderBottom: '1px solid #edf2f7', borderRight: '2px solid #cbdbe9' }}>
                                       <CategoryChip label={row.Category} />
                                     </TableCell>
-                                    <TableCell sx={{ fontFamily: T.font.family, fontSize: 12.8, color: '#64748b', fontWeight: 500, py: 1.1, px: 1.4, borderBottom: '1px solid #f1f5f9' }}>
+                                    <TableCell sx={{ fontFamily: T.font.family, fontSize: 12.5, color: '#64748b', fontWeight: 600, py: 1.1, px: 1.4, borderBottom: '1px solid #edf2f7', borderRight: '1px solid #edf2f7' }}>
                                       {submittedDateStr}
                                     </TableCell>
-                                    <TableCell align="center" sx={{ py: 1.1, px: 1, borderBottom: '1px solid #f1f5f9' }}>
+                                    <TableCell align="center" sx={{ py: 1.1, px: 1, borderBottom: '1px solid #edf2f7' }}>
                                       <IconButton
                                         size="small"
                                         onClick={() => openDeleteModal(row)}

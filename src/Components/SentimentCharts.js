@@ -1,10 +1,10 @@
 // ── Sentiment Dashboard — Reusable Sub-Components ───────────────────────────
 // Chart components, chips, tooltips, and cards extracted from SentimentDashboard.
 
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import {
   Box, Typography, Card, CardContent, Avatar, Paper,
-  Tooltip, ButtonBase, Chip, Button, Select, MenuItem,
+  Tooltip, Chip, Button, Select, MenuItem,
   FormControl, ToggleButton, ToggleButtonGroup,
 } from '@mui/material';
 import {
@@ -63,13 +63,13 @@ export const SentimentChip = ({ label }) => {
           bg: '#fff1f2',
           border: '#fecdd3',
           text: '#be123c',
-          icon: <ArrowDropDownIcon sx={{ fontSize: 20, my: -0.4, ml: -0.3, mr: 0.1, color: '#be123c' }} />
+          icon: <ArrowDropDownIcon sx={{ fontSize: 20, my: -0.4, ml: -0.3, mr: 0.1, color: '#e11d48' }} />
         }
       : {
-          bg: '#edf0fc',
-          border: '#cdd5f7',
-          text: '#4a57a9',
-          icon: <FiberManualRecordIcon sx={{ fontSize: 8, mr: 0.4, color: '#7381cf' }} />
+          bg: '#f1f5f9',
+          border: '#cbd5e1',
+          text: '#475569',
+          icon: <FiberManualRecordIcon sx={{ fontSize: 8, mr: 0.4, color: '#94a3b8' }} />
         };
 
   return (
@@ -103,28 +103,44 @@ export const CategoryChip = ({ label }) => {
   const norm = label || 'Other/Uncategorized';
 
   const catStyles = {
-    Staff: { bg: '#dbeafe', border: '#bfdbfe', text: '#2563eb' },
-    Facilities: { bg: '#f3e8ff', border: '#e9d5ff', text: '#7c3aed' },
-    Collection: { bg: '#fce7f3', border: '#fbcfe8', text: '#db2777' },
-    'Other/Uncategorized': { bg: '#f1f5f9', border: '#e2e8f0', text: '#475569' },
+    Staff: { bg: '#fff7ed', border: '#fed7aa', text: '#c2410c', dot: '#ea580c' },
+    Facilities: { bg: '#eff6ff', border: '#bfdbfe', text: '#1d4ed8', dot: '#2563eb' },
+    Collection: { bg: '#faf5ff', border: '#e9d5ff', text: '#7e22ce', dot: '#9333ea' },
+    Environment: { bg: '#ecfdf5', border: '#a7f3d0', text: '#047857', dot: '#059669' },
+    Services: { bg: '#f0fdfa', border: '#99f6e4', text: '#0f766e', dot: '#0d9488' },
+    Technology: { bg: '#fdf2f8', border: '#fbcfe8', text: '#be185d', dot: '#db2777' },
+    'Other/Uncategorized': { bg: '#f8fafc', border: '#cbd5e1', text: '#475569', dot: '#64748b' },
+    Other: { bg: '#f8fafc', border: '#cbd5e1', text: '#475569', dot: '#64748b' },
   };
 
-  const config = catStyles[norm] || catStyles['Other/Uncategorized'];
+  const config = catStyles[norm] || {
+    bg: '#f8fafc',
+    border: '#cbd5e1',
+    text: '#475569',
+    dot: '#64748b',
+  };
 
   return (
     <Box sx={{
       display: 'inline-flex',
       alignItems: 'center',
-      justifyContent: 'center',
+      gap: 0.7,
       bgcolor: config.bg,
       border: `1.5px solid ${config.border}`,
       borderRadius: '9999px',
-      px: 1.6,
+      px: 1.3,
       py: 0.35,
       lineHeight: 1,
     }}>
+      <Box sx={{
+        width: 6,
+        height: 6,
+        borderRadius: '50%',
+        bgcolor: config.dot,
+        flexShrink: 0,
+      }} />
       <Typography sx={{
-        fontSize: 12.5,
+        fontSize: 12,
         fontWeight: 700,
         color: config.text,
         fontFamily: T.font.family,
@@ -142,7 +158,7 @@ export const SummaryCard = ({
   value,
   subtitle,
   icon,
-  color = '#3b82f6',
+  color = '#16324f',
   tooltipContent = null,
   isFeatured = false,
   footnote = null,
@@ -151,8 +167,8 @@ export const SummaryCard = ({
     const cardContent = (
       <Card elevation={0} sx={{
         borderRadius: 3.5,
-        bgcolor: '#1d2f8a',
-        background: 'linear-gradient(145deg, #1d2f8a 0%, #152266 100%)',
+        bgcolor: '#16324f',
+        background: 'linear-gradient(145deg, #16324f 0%, #0e2237 100%)',
         flex: 1,
         minWidth: 180,
         p: 2.2,
@@ -160,11 +176,11 @@ export const SummaryCard = ({
         flexDirection: 'column',
         justifyContent: 'space-between',
         cursor: tooltipContent ? 'pointer' : 'default',
-        boxShadow: '0 4px 16px -2px rgba(29, 47, 138, 0.35)',
+        boxShadow: '0 4px 16px -2px rgba(22, 50, 79, 0.35)',
         transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
         '&:hover': {
           transform: 'translateY(-3px)',
-          boxShadow: '0 8px 24px -4px rgba(29, 47, 138, 0.45)',
+          boxShadow: '0 8px 24px -4px rgba(22, 50, 79, 0.45)',
         }
       }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -172,7 +188,7 @@ export const SummaryCard = ({
             fontFamily: T.font.family,
             fontSize: 11,
             fontWeight: 800,
-            color: '#93c5fd',
+            color: '#cbdbe9',
             letterSpacing: '0.8px',
             textTransform: 'uppercase',
           }}>
@@ -180,7 +196,7 @@ export const SummaryCard = ({
           </Typography>
           <Box sx={{
             bgcolor: 'rgba(255, 255, 255, 0.12)',
-            color: '#93c5fd',
+            color: '#ffd580',
             width: 32,
             height: 32,
             borderRadius: '8px',
@@ -206,7 +222,7 @@ export const SummaryCard = ({
           <Typography sx={{
             fontFamily: T.font.family,
             fontSize: 12,
-            color: '#bfdbfe',
+            color: '#cbdbe9',
             fontWeight: 500,
             mt: 0.3,
           }}>
@@ -216,7 +232,7 @@ export const SummaryCard = ({
             <Typography sx={{
               fontFamily: T.font.family,
               fontSize: 11,
-              color: '#93c5fd',
+              color: '#ffd580',
               fontWeight: 600,
               mt: 0.8,
             }}>
@@ -271,7 +287,7 @@ export const SummaryCard = ({
           {icon}
         </Avatar>
       </Box>
-      <Typography sx={{ fontFamily: T.font.family, fontWeight: 800, fontSize: 28, color: '#0f172a', lineHeight: 1.1 }}>
+      <Typography sx={{ fontFamily: T.font.family, fontWeight: 800, fontSize: 28, color: '#16324f', lineHeight: 1.1 }}>
         {value}
       </Typography>
       <Typography sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 13, color: '#334155', mt: 0.8 }}>
@@ -301,7 +317,7 @@ export const SummaryCard = ({
 // ── Top Comments Card (Positive / Negative) ─────────────────────────────────
 export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
   const isPositive = type === 'positive';
-  const borderColor = isPositive ? '#10b981' : '#ef4444';
+  const borderColor = isPositive ? '#005960' : '#e11d48';
 
   const cleanQuote = (msg) => {
     if (!msg) return '';
@@ -336,11 +352,11 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
         p: { xs: 2, sm: 2.5 },
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: '0 2px 12px rgba(0,0,0,0.02)',
+        boxShadow: '0 2px 12px rgba(22, 50, 79, 0.02)',
         overflow: 'hidden',
         transition: 'all 0.2s ease',
         '&:hover': {
-          boxShadow: '0 6px 20px rgba(0,0,0,0.05)',
+          boxShadow: '0 6px 20px rgba(22, 50, 79, 0.05)',
           borderColor: '#cbd5e1',
           borderTopColor: borderColor,
         }
@@ -349,14 +365,14 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
       {/* Header Container (Styled like Priority Action Container with border, borderLeft, gradient & badge) */}
       <Box sx={{
         background: isPositive
-          ? 'linear-gradient(135deg, #e6f4f5 0%, #ebf8f6 100%)'
+          ? 'linear-gradient(135deg, #e6f4f5 0%, #d8edf0 100%)'
           : 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)',
         borderRadius: 2.5,
         p: { xs: 1.5, sm: 1.8 },
         mb: 2.2,
         border: isPositive ? '1.5px solid #b3dfe2' : '1.5px solid #fecdd3',
-        borderLeft: isPositive ? '5px solid #005960' : '5px solid #f43f5e',
-        boxShadow: isPositive ? '0 3px 12px rgba(0, 89, 96, 0.08)' : '0 3px 12px rgba(244, 63, 94, 0.08)',
+        borderLeft: isPositive ? '5px solid #005960' : '5px solid #e11d48',
+        boxShadow: isPositive ? '0 3px 12px rgba(0, 89, 96, 0.08)' : '0 3px 12px rgba(225, 29, 72, 0.08)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -365,7 +381,7 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, minWidth: 0 }}>
           <Box sx={{
-            bgcolor: isPositive ? '#005960' : '#be123c',
+            bgcolor: isPositive ? '#005960' : '#e11d48',
             color: '#ffffff',
             px: 1.1,
             py: 0.35,
@@ -388,7 +404,7 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
             fontFamily: T.font.family,
             fontWeight: 800,
             fontSize: { xs: 14, sm: 15.5 },
-            color: isPositive ? '#00373c' : '#881337',
+            color: isPositive ? '#005960' : '#be123c',
             letterSpacing: '-0.2px',
             lineHeight: 1.3,
             whiteSpace: 'nowrap',
@@ -468,20 +484,21 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
               >
                 {/* Badge Row */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.9, flexWrap: 'wrap' }}>
-                  {/* Dark Circular Number Badge */}
+                  {/* De-emphasized Circular Number Badge */}
                   <Box sx={{
                     width: 20,
                     height: 20,
                     minWidth: 20,
                     borderRadius: '50%',
-                    bgcolor: '#0f172a',
-                    color: '#ffffff',
+                    bgcolor: '#f1f5f9',
+                    color: '#475569',
+                    border: '1px solid #cbd5e1',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontFamily: T.font.family,
                     fontSize: 11,
-                    fontWeight: 800,
+                    fontWeight: 700,
                     lineHeight: 1,
                   }}>
                     {i + 1}
@@ -492,8 +509,8 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
                     px: 1,
                     py: 0.2,
                     borderRadius: '4px',
-                    bgcolor: isFacultyOrStaff ? '#0f2b5c' : '#eff6ff',
-                    color: isFacultyOrStaff ? '#ffffff' : '#0f2b5c',
+                    bgcolor: isFacultyOrStaff ? '#16324f' : '#edf4fa',
+                    color: isFacultyOrStaff ? '#ffffff' : '#16324f',
                     fontFamily: T.font.family,
                     fontSize: 10.5,
                     fontWeight: 800,
@@ -510,9 +527,9 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
                       px: 1,
                       py: 0.2,
                       borderRadius: '4px',
-                      bgcolor: '#fffbeb',
-                      color: '#b45309',
-                      border: '1px solid #fde68a',
+                      bgcolor: '#edf4fa',
+                      color: '#16324f',
+                      border: '1px solid #cbdbe9',
                       fontFamily: T.font.family,
                       fontSize: 10.5,
                       fontWeight: 700,
@@ -534,9 +551,9 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
                     fontSize: 11,
                     fontWeight: 700,
                     fontFamily: T.font.family,
-                    bgcolor: '#fef3c7',
-                    color: '#92400e',
-                    border: '1px solid #fde68a',
+                    bgcolor: isPositive ? '#e6f4f5' : '#fff1f2',
+                    color: isPositive ? '#005960' : '#be123c',
+                    border: `1px solid ${isPositive ? '#b3dfe2' : '#fecdd3'}`,
                     lineHeight: 1.2,
                   }}>
                     {getKeywordBadgeText(row)}
@@ -568,7 +585,7 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
 export const RecommendationCard = ({ stat }) => {
   if (!stat) return null;
   const isHigh = (stat.severity || '').toUpperCase() === 'HIGH';
-  const accentColor = isHigh ? '#ef4444' : '#f59e0b';
+  const accentColor = isHigh ? '#ea580c' : '#f69d1b';
 
   const cleanQuote = (msg) => {
     if (!msg) return '';
@@ -607,7 +624,7 @@ export const RecommendationCard = ({ stat }) => {
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1.2, mb: 1.8 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, minWidth: 0 }}>
           <Box sx={{
-            bgcolor: isHigh ? '#ef4444' : '#f59e0b',
+            bgcolor: isHigh ? '#ea580c' : '#f69d1b',
             color: '#ffffff',
             px: 1.2,
             py: 0.35,
@@ -626,7 +643,7 @@ export const RecommendationCard = ({ stat }) => {
             fontFamily: T.font.family,
             fontWeight: 800,
             fontSize: { xs: 14, sm: 15 },
-            color: '#0f172a',
+            color: '#16324f',
             letterSpacing: '-0.2px',
             lineHeight: 1.3,
             whiteSpace: 'nowrap',
@@ -655,17 +672,17 @@ export const RecommendationCard = ({ stat }) => {
 
       {/* Priority Action Box (Hero High-Contrast Callout) */}
       <Box sx={{
-        background: 'linear-gradient(135deg, #eff6ff 0%, #fffbeb 100%)',
+        background: 'linear-gradient(135deg, #edf4fa 0%, #fff7ed 100%)',
         borderRadius: 2.5,
         p: { xs: 1.8, sm: 2 },
         mb: 2.4,
-        border: '1.5px solid #fde68a',
-        borderLeft: '5px solid #d49f1e',
-        boxShadow: '0 3px 12px rgba(212, 159, 30, 0.1)',
+        border: '1.5px solid #fed7aa',
+        borderLeft: '5px solid #f69d1b',
+        boxShadow: '0 3px 12px rgba(246, 157, 27, 0.1)',
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, mb: 0.8 }}>
           <Box sx={{
-            bgcolor: '#0f2b5c',
+            bgcolor: '#16324f',
             color: '#ffffff',
             px: 1,
             py: 0.3,
@@ -674,7 +691,7 @@ export const RecommendationCard = ({ stat }) => {
             alignItems: 'center',
             gap: 0.4,
           }}>
-            <BoltIcon sx={{ fontSize: 13, color: '#ffd700' }} />
+            <BoltIcon sx={{ fontSize: 13, color: '#ffd580' }} />
             <Typography sx={{
               fontFamily: T.font.family,
               fontSize: 10.5,
@@ -691,7 +708,7 @@ export const RecommendationCard = ({ stat }) => {
           fontFamily: T.font.family,
           fontSize: { xs: 13.5, sm: 14.5 },
           fontWeight: 800,
-          color: '#0f2b5c',
+          color: '#16324f',
           lineHeight: 1.5,
           letterSpacing: '-0.1px',
         }}>
@@ -702,12 +719,12 @@ export const RecommendationCard = ({ stat }) => {
       {/* Pain-Point Keywords Section */}
       <Box sx={{ mb: 2.2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, mb: 1 }}>
-          <LocalOfferIcon sx={{ fontSize: 13, color: '#64748b' }} />
+          <LocalOfferIcon sx={{ fontSize: 13, color: '#16324f' }} />
           <Typography sx={{
             fontFamily: T.font.family,
             fontSize: 11,
             fontWeight: 800,
-            color: '#64748b',
+            color: '#16324f',
             letterSpacing: '0.5px',
             textTransform: 'uppercase',
           }}>
@@ -724,25 +741,30 @@ export const RecommendationCard = ({ stat }) => {
                 alignItems: 'center',
                 gap: 0.7,
                 bgcolor: '#ffffff',
-                border: isHigh ? '1.5px solid #fecaca' : '1.5px solid #fed7aa',
+                border: '1.5px solid #cbdbe9',
                 borderRadius: '9999px',
                 px: 1.4,
-                py: 0.45,
-                boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                py: 0.4,
+                boxShadow: '0 1px 3px rgba(22, 50, 79, 0.02)',
+                transition: 'all 0.15s ease',
+                '&:hover': {
+                  bgcolor: '#f8fafc',
+                  borderColor: '#16324f',
+                }
               }}
             >
               <Typography sx={{
                 fontFamily: T.font.family,
                 fontSize: 12.5,
-                fontWeight: 700,
-                color: isHigh ? '#991b1b' : '#9a3412',
+                fontWeight: 800,
+                color: '#16324f',
                 lineHeight: 1.2,
                 textTransform: 'capitalize',
               }}>
                 {kw.word}
               </Typography>
               <Box sx={{
-                bgcolor: isHigh ? '#ef4444' : '#ea580c',
+                bgcolor: '#16324f',
                 color: '#ffffff',
                 borderRadius: '9999px',
                 px: 0.8,
@@ -820,11 +842,12 @@ export const RecommendationCard = ({ stat }) => {
                     width: 20,
                     height: 20,
                     borderRadius: '50%',
-                    bgcolor: '#e2e8f0',
-                    color: '#64748b',
+                    bgcolor: '#f1f5f9',
+                    color: '#475569',
+                    border: '1px solid #cbd5e1',
                     fontFamily: T.font.family,
                     fontSize: 10.5,
-                    fontWeight: 800,
+                    fontWeight: 700,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -1042,16 +1065,16 @@ export const WordCloudSection = React.memo(({
 }) => {
   const wordCloudOptions = useMemo(() => ({
     deterministic: true,
-    randomSeed: 'hll-library-wordcloud-v4',
-    rotations: 1,
-    rotationAngles: [0, 0],
-    fontFamily: T.font.family,
-    fontSizes: [14, 68],
+    randomSeed: 'hll-library-wordcloud-poster-v1',
+    rotations: 2,
+    rotationAngles: [0, 90], // Horizontal & vertical word layout matching reference poster
+    fontFamily: '"Arial Black", Impact, "Trebuchet MS", "Poppins", sans-serif',
+    fontSizes: [16, 78],
     fontStyle: 'normal',
-    fontWeight: '800',
-    padding: 2,
+    fontWeight: '900',
+    padding: 3,
     enableTooltip: true,
-    transitionDuration: 750, // Fluid, smooth layout transition duration for d3-cloud
+    transitionDuration: 650, // Fluid, smooth layout transition duration for d3-cloud
     scale: 'sqrt',
     spiral: 'archimedean',
   }), []);
@@ -1059,18 +1082,12 @@ export const WordCloudSection = React.memo(({
   const wordCloudCallbacks = useMemo(() => ({
     getWordColor: (word) => {
       if (selectedWordFilter && word.text.toLowerCase() === selectedWordFilter.toLowerCase()) {
-        return '#ea580c';
+        return '#f37021';
       }
       if (words.length > 0 && word.text === words[0]?.text) {
-        return '#1e3a8a'; // prominent deep navy for the #1 center word
+        return '#f37021'; // Vibrant warm orange for the #1 prominent word
       }
-      if (words.length > 1 && word.text === words[1]?.text) {
-        return '#854d0e'; // rich warm amber/brown for #2
-      }
-      if (words.length > 2 && word.text === words[2]?.text) {
-        return '#9d174d'; // rich raspberry for #3
-      }
-      const charCodeSum = (word.text || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      const charCodeSum = (word.text || '').split('').reduce((acc, char, i) => acc + char.charCodeAt(0) * (i + 1), 0);
       return T.wordCloudColors[charCodeSum % T.wordCloudColors.length];
     },
     getWordTooltip: (word) => `"${word.text}" — ${word.value} ${word.value === 1 ? 'mention' : 'mentions'}`,
@@ -1085,16 +1102,16 @@ export const WordCloudSection = React.memo(({
     <Card elevation={0} sx={{
       ...cardShellSx,
       mb: 3.5,
-      border: '1.5px solid rgba(15, 43, 92, 0.22)',
-      borderTop: '3.5px solid #0f2b5c',
-      boxShadow: '0 2px 12px rgba(15, 43, 92, 0.04)',
+      border: '1.5px solid #cbdbe9',
+      borderTop: '3.5px solid #16324f',
+      boxShadow: '0 2px 12px rgba(22, 50, 79, 0.04)',
       transition: 'box-shadow 0.3s ease',
     }}>
       <Box sx={{ ...sectionHeaderSx, flexWrap: 'wrap', gap: 1.5 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
           <Box sx={{
-            bgcolor: '#eff6ff',
-            color: '#0f2b5c',
+            bgcolor: '#edf4fa',
+            color: '#16324f',
             p: 0.55,
             borderRadius: '8px',
             display: 'flex',
@@ -1125,9 +1142,9 @@ export const WordCloudSection = React.memo(({
                 fontWeight: 700,
                 fontFamily: T.font.family,
                 borderRadius: '9999px',
-                bgcolor: '#fef3c7',
-                color: '#b45309',
-                border: '1px solid #fde68a',
+                bgcolor: '#fff7ed',
+                color: '#c2410c',
+                border: '1px solid #fed7aa',
                 animation: 'popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
                 '@keyframes popIn': {
                   '0%': { transform: 'scale(0.85)', opacity: 0 },
@@ -1146,11 +1163,11 @@ export const WordCloudSection = React.memo(({
           </Typography>
         ) : (
           <Box sx={{
-            height: 350,
-            borderRadius: 3,
-            p: 2,
-            bgcolor: T.surface.wordCloudBg,
-            border: `1.5px solid ${T.surface.borderLight}`,
+            height: 380,
+            borderRadius: 3.5,
+            p: 2.5,
+            bgcolor: '#ffffff', // Clean white canvas (yellowish grey background removed)
+            border: '1.5px solid #e2e8f0',
             position: 'relative',
             overflow: 'hidden',
             animation: 'wordCloudContainerFade 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
@@ -1170,13 +1187,14 @@ export const WordCloudSection = React.memo(({
             },
             '& svg text': {
               cursor: 'pointer',
-              fontFamily: `${T.font.family} !important`,
+              fontFamily: '"Arial Black", Impact, "Trebuchet MS", "Poppins", sans-serif !important',
+              fontWeight: '900 !important',
               userSelect: 'none',
               transition: 'fill 0.3s ease, opacity 0.25s ease, filter 0.25s ease !important',
             },
             '& svg text:hover': {
               opacity: '0.85 !important',
-              filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.2))',
+              filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.25))',
             }
           }}>
             <ReactWordcloud
@@ -1200,13 +1218,14 @@ export const ModernKpiCard = ({
   badgeType = 'positive', // 'positive' | 'negative' | 'neutral' | 'purple' | 'blue'
   subtitle,
   highlighted = false,
+  borderColorTheme = 'gold', // 'gold' | 'blue'
 }) => {
   const badgeConfig = {
-    positive: { bg: '#eff6ff', text: '#0f2b5c', border: '#bfdbfe' },
+    positive: { bg: '#e6f4f5', text: '#005960', border: '#b3dfe2' },
     negative: { bg: '#fff1f2', text: '#be123c', border: '#fecdd3' },
-    neutral:  { bg: '#fffbeb', text: '#b45309', border: '#fde68a' },
-    purple:   { bg: '#fffbeb', text: '#b45309', border: '#fde68a' },
-    blue:     { bg: '#eff6ff', text: '#0f2b5c', border: '#bfdbfe' },
+    neutral:  { bg: '#f1f5f9', text: '#475569', border: '#cbd5e1' },
+    purple:   { bg: '#fff8eb', text: '#d97706', border: '#fed7aa' },
+    blue:     { bg: '#edf4fa', text: '#16324f', border: '#cbdbe9' },
   }[badgeType] || { bg: '#f8fafc', text: '#475569', border: '#e2e8f0' };
 
   if (highlighted) {
@@ -1214,12 +1233,12 @@ export const ModernKpiCard = ({
       <Card
         elevation={0}
         sx={{
-          background: 'linear-gradient(135deg, #0f2b5c 0%, #1e3a8a 100%)',
+          background: 'linear-gradient(135deg, #16324f 0%, #0e2237 100%)',
           color: '#ffffff',
           borderRadius: '16px',
-          border: '1.5px solid #1e3a8a',
+          border: '1.5px solid #f69d1b',
           p: { xs: 2, sm: 2.2 },
-          boxShadow: '0 4px 18px rgba(15, 43, 92, 0.28)',
+          boxShadow: '0 4px 18px rgba(22, 50, 79, 0.28), 0 0 0 1px rgba(246, 157, 27, 0.35)',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
@@ -1228,8 +1247,8 @@ export const ModernKpiCard = ({
           transition: 'all 0.2s ease-in-out',
           '&:hover': {
             transform: 'translateY(-2px)',
-            boxShadow: '0 8px 24px rgba(15, 43, 92, 0.38)',
-            borderColor: '#3b82f6',
+            boxShadow: '0 8px 24px rgba(22, 50, 79, 0.38), 0 0 0 1.5px #f69d1b',
+            borderColor: '#f69d1b',
           }
         }}
       >
@@ -1239,9 +1258,9 @@ export const ModernKpiCard = ({
           </Typography>
           {badgeText && (
             <Box sx={{
-              bgcolor: 'rgba(212, 159, 30, 0.25)',
-              color: '#ffd700',
-              border: '1px solid rgba(253, 230, 138, 0.5)',
+              bgcolor: 'rgba(246, 157, 27, 0.25)',
+              color: '#ffd580',
+              border: '1px solid rgba(254, 215, 170, 0.5)',
               backdropFilter: 'blur(4px)',
               borderRadius: '9999px',
               px: 1.1,
@@ -1269,15 +1288,22 @@ export const ModernKpiCard = ({
     );
   }
 
+  const isBlue = borderColorTheme === 'blue';
+  const borderCol = isBlue ? '#cbdbe9' : '#fed7aa';
+  const borderTopCol = isBlue ? '#16324f' : '#f69d1b';
+  const shadowColor = isBlue ? 'rgba(22, 50, 79, 0.04)' : 'rgba(246, 157, 27, 0.04)';
+  const hoverShadowColor = isBlue ? 'rgba(22, 50, 79, 0.1)' : 'rgba(246, 157, 27, 0.1)';
+
   return (
     <Card
       elevation={0}
       sx={{
         bgcolor: '#ffffff',
         borderRadius: '16px',
-        border: '1.5px solid #e2e8f0',
+        border: `1.5px solid ${borderCol}`,
+        borderTop: `3.5px solid ${borderTopCol}`,
         p: { xs: 2, sm: 2.2 },
-        boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+        boxShadow: `0 2px 8px ${shadowColor}`,
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
@@ -1286,8 +1312,8 @@ export const ModernKpiCard = ({
         transition: 'all 0.2s ease-in-out',
         '&:hover': {
           transform: 'translateY(-2px)',
-          boxShadow: '0 8px 20px rgba(0,0,0,0.05)',
-          borderColor: '#cbd5e1',
+          boxShadow: `0 8px 20px ${hoverShadowColor}`,
+          borderColor: borderTopCol,
         }
       }}
     >
@@ -1313,7 +1339,7 @@ export const ModernKpiCard = ({
         )}
       </Box>
 
-      <Typography sx={{ fontFamily: T.font.family, fontSize: { xs: 24, sm: 28, md: 30 }, fontWeight: 800, color: '#0f172a', lineHeight: 1.1, mb: 0.6 }}>
+      <Typography sx={{ fontFamily: T.font.family, fontSize: { xs: 24, sm: 28, md: 30 }, fontWeight: 800, color: '#16324f', lineHeight: 1.1, mb: 0.6 }}>
         {value}
       </Typography>
 
@@ -1347,12 +1373,12 @@ export const CustomRevenueTooltip = ({ active, payload, label, metricMode = 'per
           minWidth: 150,
         }}
       >
-        <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#1e293b', mb: 0.5 }}>
+        <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#16324f', mb: 0.5 }}>
           {label} {year}
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#0f2b5c' }} />
-          <Typography sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 800, color: '#0f172a' }}>
+          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#005960' }} />
+          <Typography sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 800, color: '#16324f' }}>
             {metricMode === 'percent'
               ? `Positive: ${posPct}%`
               : `Positive: ${pos} surveys`}
@@ -1390,15 +1416,16 @@ export const RevenueStyleSentimentChart = ({
       sx={{
         bgcolor: '#ffffff',
         borderRadius: '16px',
-        border: '1.5px solid #e2e8f0',
+        border: '1.5px solid #fed7aa',
+        borderTop: '3.5px solid #f69d1b',
         p: { xs: 2, sm: 2.5 },
-        boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
+        boxShadow: '0 2px 10px rgba(246, 157, 27, 0.03)',
         display: 'flex',
         flexDirection: 'column',
         transition: 'all 0.2s ease-in-out',
         '&:hover': {
-          boxShadow: '0 6px 20px rgba(0,0,0,0.04)',
-          borderColor: '#cbd5e1',
+          boxShadow: '0 6px 20px rgba(246, 157, 27, 0.08)',
+          borderColor: '#f69d1b',
         }
       }}
     >
@@ -1416,7 +1443,7 @@ export const RevenueStyleSentimentChart = ({
             {title}
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.2, mt: 0.4, flexWrap: 'wrap' }}>
-            <Typography sx={{ fontFamily: T.font.family, fontSize: { xs: 26, sm: 32 }, fontWeight: 800, color: '#0f172a', lineHeight: 1.1 }}>
+            <Typography sx={{ fontFamily: T.font.family, fontSize: { xs: 26, sm: 32 }, fontWeight: 800, color: '#16324f', lineHeight: 1.1 }}>
               {primaryValue}
             </Typography>
             {deltaText && (
@@ -1424,7 +1451,7 @@ export const RevenueStyleSentimentChart = ({
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 0.3,
-                color: isPositiveDelta ? '#059669' : '#e11d48',
+                color: isPositiveDelta ? '#005960' : '#e11d48',
                 fontFamily: T.font.family,
                 fontSize: 12.5,
                 fontWeight: 700,
@@ -1446,7 +1473,7 @@ export const RevenueStyleSentimentChart = ({
             sx={{
               height: 32,
               borderRadius: '9999px',
-              bgcolor: '#f1f5f9',
+              bgcolor: '#edf2f7',
               p: 0.3,
               '& .MuiToggleButton-root': {
                 fontFamily: T.font.family,
@@ -1459,7 +1486,7 @@ export const RevenueStyleSentimentChart = ({
                 borderRadius: '9999px',
                 '&.Mui-selected': {
                   bgcolor: '#ffffff',
-                  color: '#0f172a',
+                  color: '#16324f',
                   fontWeight: 800,
                   boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
                   '&:hover': { bgcolor: '#ffffff' }
@@ -1507,12 +1534,8 @@ export const RevenueStyleSentimentChart = ({
           <AreaChart data={data} margin={{ top: 15, right: 15, left: -15, bottom: 0 }}>
             <defs>
               <linearGradient id="revenueTealGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#0f2b5c" stopOpacity={0.32} />
-                <stop offset="95%" stopColor="#0f2b5c" stopOpacity={0.0} />
-              </linearGradient>
-              <linearGradient id="revenueGreenGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#0f2b5c" stopOpacity={0.28} />
-                <stop offset="95%" stopColor="#0f2b5c" stopOpacity={0.0} />
+                <stop offset="5%" stopColor="#005960" stopOpacity={0.32} />
+                <stop offset="95%" stopColor="#005960" stopOpacity={0.0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -1533,11 +1556,11 @@ export const RevenueStyleSentimentChart = ({
             <Area
               type="monotone"
               dataKey={metricMode === 'percent' ? 'posPct' : 'Positive'}
-              stroke="#0f2b5c"
+              stroke="#005960"
               strokeWidth={2.5}
               fillOpacity={1}
               fill="url(#revenueTealGradient)"
-              activeDot={{ r: 5, fill: '#0d9488', stroke: '#ffffff', strokeWidth: 2 }}
+              activeDot={{ r: 5, fill: '#16324f', stroke: '#ffffff', strokeWidth: 2 }}
             />
           </AreaChart>
         </ResponsiveContainer>
@@ -1564,11 +1587,11 @@ export const SourceSentimentBreakdownCard = ({
   const neuPct = total > 0 ? Math.round((neutralCount / total) * 100) : 0;
   const negPct = total > 0 ? Math.max(0, 100 - posPct - neuPct) : 0;
 
-  // Sentiment Donut: Teal for Positive, Lavender for Neutral, Dusty Rose for Negative
+  // Sentiment Donut: Green for Positive, Slate Grey for Neutral, Red for Negative
   const donutData = total > 0 ? [
     { name: 'Positive', value: positiveCount, color: '#005960' },
-    { name: 'Neutral', value: neutralCount, color: '#7381cf' },
-    { name: 'Negative', value: negativeCount, color: '#f43f5e' },
+    { name: 'Neutral', value: neutralCount, color: '#64748b' },
+    { name: 'Negative', value: negativeCount, color: '#e11d48' },
   ].filter(d => d.value > 0) : [
     { name: 'No Data', value: 1, color: '#e2e8f0' }
   ];
@@ -1581,24 +1604,25 @@ export const SourceSentimentBreakdownCard = ({
       sx={{
         bgcolor: '#ffffff',
         borderRadius: '16px',
-        border: '1.5px solid #e2e8f0',
+        border: '1.5px solid #fed7aa',
+        borderTop: '3.5px solid #f69d1b',
         p: { xs: 2, sm: 2.5 },
-        boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
+        boxShadow: '0 2px 10px rgba(246, 157, 27, 0.03)',
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
         justifyContent: 'space-between',
         transition: 'all 0.2s ease-in-out',
         '&:hover': {
-          boxShadow: '0 6px 20px rgba(0,0,0,0.04)',
-          borderColor: '#cbd5e1',
+          boxShadow: '0 6px 20px rgba(246, 157, 27, 0.08)',
+          borderColor: '#f69d1b',
         }
       }}
     >
       {/* Header with Title and Category Dropdown Filter */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, flexWrap: 'wrap', gap: 1 }}>
         <Box>
-          <Typography sx={{ fontFamily: T.font.family, fontSize: 16.5, fontWeight: 800, color: '#0f172a' }}>
+          <Typography sx={{ fontFamily: T.font.family, fontSize: 16.5, fontWeight: 800, color: '#16324f' }}>
             Source
           </Typography>
           <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, fontWeight: 600, color: '#64748b' }}>
@@ -1660,7 +1684,7 @@ export const SourceSentimentBreakdownCard = ({
 
         {/* Centered Total Label */}
         <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', pointerEvents: 'none' }}>
-          <Typography sx={{ fontFamily: T.font.family, fontWeight: 900, fontSize: 20, color: '#0f172a', lineHeight: 1.1 }}>
+          <Typography sx={{ fontFamily: T.font.family, fontWeight: 900, fontSize: 20, color: '#16324f', lineHeight: 1.1 }}>
             {formattedTotal}
           </Typography>
           <Typography sx={{ fontFamily: T.font.family, fontWeight: 600, fontSize: 11, color: '#94a3b8' }}>
@@ -1677,14 +1701,14 @@ export const SourceSentimentBreakdownCard = ({
             Pos ({posPct}%)
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: '#edf0fc', border: '1px solid #cdd5f7', px: 0.8, py: 0.2, borderRadius: '9999px' }}>
-          <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#7381cf' }} />
-          <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 700, color: '#4a57a9' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: '#f1f5f9', border: '1px solid #cbd5e1', px: 0.8, py: 0.2, borderRadius: '9999px' }}>
+          <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#64748b' }} />
+          <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 700, color: '#475569' }}>
             Neu ({neuPct}%)
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: '#fff1f2', border: '1px solid #fecdd3', px: 0.8, py: 0.2, borderRadius: '9999px' }}>
-          <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#f43f5e' }} />
+          <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#e11d48' }} />
           <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 700, color: '#be123c' }}>
             Neg ({negPct}%)
           </Typography>
@@ -1712,10 +1736,10 @@ export const SourceSentimentBreakdownCard = ({
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, pt: 1 }}>
               {categoryBreakdown.map((item, idx) => {
                 const catConfig = {
-                  Facilities: { icon: <ApartmentIcon sx={{ fontSize: 17 }} />, color: '#0f2b5c', bg: '#eff6ff', border: '#bfdbfe' },
-                  Staff: { icon: <PeopleIcon sx={{ fontSize: 17 }} />, color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
-                  Collection: { icon: <MenuBookIcon sx={{ fontSize: 17 }} />, color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe' },
-                }[item.name] || { icon: <AssessmentIcon sx={{ fontSize: 17 }} />, color: '#0f2b5c', bg: '#f8fafc', border: '#e2e8f0' };
+                  Facilities: { icon: <ApartmentIcon sx={{ fontSize: 17 }} />, color: '#16324f', bg: '#edf4fa', border: '#cbdbe9' },
+                  Staff: { icon: <PeopleIcon sx={{ fontSize: 17 }} />, color: '#c2410c', bg: '#fff7ed', border: '#fed7aa' },
+                  Collection: { icon: <MenuBookIcon sx={{ fontSize: 17 }} />, color: '#254b73', bg: '#f0f4f9', border: '#cbdbe9' },
+                }[item.name] || { icon: <AssessmentIcon sx={{ fontSize: 17 }} />, color: '#16324f', bg: '#f8fafc', border: '#e2e8f0' };
 
                 return (
                   <Box
@@ -1737,7 +1761,7 @@ export const SourceSentimentBreakdownCard = ({
                       cursor: 'pointer',
                       transition: 'all 0.15s ease',
                       '&:hover': {
-                        bgcolor: '#eff6ff',
+                        bgcolor: '#edf4fa',
                         boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
                         borderColor: catConfig.color,
                       }
@@ -1759,7 +1783,7 @@ export const SourceSentimentBreakdownCard = ({
                       }}>
                         {catConfig.icon}
                       </Box>
-                      <Typography sx={{ fontFamily: T.font.family, fontSize: 14.5, fontWeight: 800, color: '#1e293b' }}>
+                      <Typography sx={{ fontFamily: T.font.family, fontSize: 14.5, fontWeight: 800, color: '#16324f' }}>
                         {item.name}
                       </Typography>
                     </Box>
@@ -1819,7 +1843,7 @@ export const SourceSentimentBreakdownCard = ({
                   textTransform: 'none',
                   p: 0,
                   minWidth: 'auto',
-                  color: '#0f2b5c',
+                  color: '#16324f',
                   '&:hover': { bgcolor: 'transparent', textDecoration: 'underline' }
                 }}
               >
@@ -1862,19 +1886,19 @@ export const SourceSentimentBreakdownCard = ({
                 py: 0.9,
                 px: 1,
                 borderRadius: '10px',
-                bgcolor: '#edf0fc',
-                border: '1px solid #cdd5f7',
+                bgcolor: '#f1f5f9',
+                border: '1px solid #cbd5e1',
               }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-                  <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#7381cf' }} />
-                  <Typography sx={{ fontFamily: T.font.family, fontSize: 13.5, fontWeight: 800, color: '#4a57a9' }}>
+                  <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#64748b' }} />
+                  <Typography sx={{ fontFamily: T.font.family, fontSize: 13.5, fontWeight: 800, color: '#475569' }}>
                     Neutral
                   </Typography>
                 </Box>
-                <Typography sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 700, color: '#4a57a9', textAlign: 'center' }}>
+                <Typography sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 700, color: '#475569', textAlign: 'center' }}>
                   {neutralCount}
                 </Typography>
-                <Typography sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 800, color: '#4a57a9', textAlign: 'right' }}>
+                <Typography sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 800, color: '#475569', textAlign: 'right' }}>
                   {neuPct}%
                 </Typography>
               </Box>
@@ -1891,7 +1915,7 @@ export const SourceSentimentBreakdownCard = ({
                 border: '1px solid #fecdd3',
               }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-                  <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#f43f5e' }} />
+                  <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#e11d48' }} />
                   <Typography sx={{ fontFamily: T.font.family, fontSize: 13.5, fontWeight: 800, color: '#be123c' }}>
                     Negative
                   </Typography>
@@ -1920,13 +1944,13 @@ export const SourceSentimentBreakdownCard = ({
           fontSize: 13,
           fontWeight: 700,
           textTransform: 'none',
-          borderColor: '#e2e8f0',
-          color: '#0f2b5c',
+          borderColor: '#d9e2ec',
+          color: '#16324f',
           bgcolor: '#ffffff',
           borderWidth: '1.5px',
           '&:hover': {
-            borderColor: '#0f2b5c',
-            bgcolor: '#eff6ff',
+            borderColor: '#16324f',
+            bgcolor: '#edf4fa',
             borderWidth: '1.5px',
           }
         }}
