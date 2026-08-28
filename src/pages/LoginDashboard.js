@@ -82,49 +82,49 @@ const DONUT_GRADIENT_CSS = [
 const ALL_COLLEGES = COLLEGE_OPTIONS.filter(c => c !== 'All');
 
 const COURSE_COLORS = [
-  '#0288d1',
-  '#2e7d32',
-  '#ed6c02',
-  '#7b1fa2',
-  '#c62828',
-  '#00796b',
-  '#303f9f',
-  '#d81b60',
-  '#e65100',
-  '#00897b',
-  '#5c6bc0',
-  '#26a69a',
-  '#ff7043',
-  '#ab47bc',
-  '#42a5f5',
-  '#66bb6a',
-  '#ffa726',
-  '#ec407a',
-  '#78909c',
-  '#0097a7'
+  '#0284c7',
+  '#f69d1b',
+  '#10b981',
+  '#7c3aed',
+  '#ea580c',
+  '#e11d48',
+  '#0d9488',
+  '#3b82f6',
+  '#d97706',
+  '#06b6d4',
+  '#8b5cf6',
+  '#ec4899',
+  '#14b8a6',
+  '#f59e0b',
+  '#6366f1',
+  '#84cc16',
+  '#64748b',
+  '#be123c',
+  '#059669',
+  '#1e293b'
 ];
 
 const COURSE_LIGHT_COLORS = [
   '#38bdf8',
-  '#4ade80',
-  '#fb923c',
+  '#fbbf24',
+  '#34d399',
   '#c084fc',
-  '#f87171',
+  '#fb923c',
+  '#fb7185',
   '#2dd4bf',
-  '#818cf8',
+  '#60a5fa',
+  '#fcd34d',
+  '#67e8f9',
+  '#a78bfa',
   '#f472b6',
-  '#ffb74d',
   '#5eead4',
-  '#9fa8da',
-  '#80cbc4',
-  '#ffab91',
-  '#e879f9',
-  '#90caf9',
-  '#a5d6a7',
-  '#fde047',
-  '#f48fb1',
-  '#cbd5e1',
-  '#67e8f9'
+  '#fde68a',
+  '#818cf8',
+  '#a3e635',
+  '#94a3b8',
+  '#fda4af',
+  '#6ee7b7',
+  '#64748b'
 ];
 
 // ── Hover Tooltip Component listing all departments by library activity ─────────
@@ -142,21 +142,21 @@ const DepartmentsHoverList = ({ sortedColleges = [], totalEntries = 0 }) => {
         borderRadius: 3.5,
         maxWidth: 340,
         width: 320,
-        boxShadow: '0 20px 40px -10px rgba(26, 35, 126, 0.25)',
-        border: '1.5px solid #cbd5e1'
+        boxShadow: '0 20px 40px -10px rgba(22, 50, 79, 0.18)',
+        border: '1.5px solid #cbdbe9'
       }}
     >
       <Box sx={{ pb: 1.2, mb: 1.5, borderBottom: '1.5px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-          <AccountBalanceIcon sx={{ fontSize: 17, color: '#4f46e5' }} />
-          <Typography sx={{ fontFamily: T.font.family, fontWeight: 800, fontSize: 13.5, color: '#4f46e5' }}>
+          <AccountBalanceIcon sx={{ fontSize: 17, color: '#16324f' }} />
+          <Typography sx={{ fontFamily: T.font.family, fontWeight: 800, fontSize: 13.5, color: '#16324f' }}>
             Department Library Activity
           </Typography>
         </Box>
         <Chip
           label={`${activeColleges.length} Active`}
           size="small"
-          sx={{ fontFamily: T.font.family, fontWeight: 800, fontSize: 11, bgcolor: '#ede9fe', color: '#4f46e5', height: 22, borderRadius: '9999px' }}
+          sx={{ fontFamily: T.font.family, fontWeight: 800, fontSize: 11, bgcolor: '#edf4fa', color: '#16324f', height: 22, borderRadius: '9999px' }}
         />
       </Box>
 
@@ -181,13 +181,13 @@ const DepartmentsHoverList = ({ sortedColleges = [], totalEntries = 0 }) => {
                   border: '1px solid #e2e8f0',
                   transition: 'all 0.2s ease',
                   '&:hover': {
-                    bgcolor: '#ede9fe',
-                    borderColor: '#4f46e5'
+                    bgcolor: '#edf4fa',
+                    borderColor: '#cbdbe9'
                   }
                 }}
               >
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-                  <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 900, color: '#4f46e5', width: 22 }}>
+                  <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 900, color: '#16324f', width: 22 }}>
                     #{idx + 1}
                   </Typography>
                   <Typography noWrap sx={{ fontFamily: T.font.family, fontSize: 12.5, fontWeight: 700, color: '#0f172a' }}>
@@ -201,7 +201,7 @@ const DepartmentsHoverList = ({ sortedColleges = [], totalEntries = 0 }) => {
                     fontFamily: T.font.family,
                     fontSize: 11,
                     fontWeight: 800,
-                    bgcolor: '#4f46e5',
+                    bgcolor: '#16324f',
                     color: '#ffffff',
                     height: 20,
                     flexShrink: 0,
@@ -229,51 +229,145 @@ const DepartmentsHoverList = ({ sortedColleges = [], totalEntries = 0 }) => {
   );
 };
 
-// ── Summary KPI Card (Styled with Sentiment Dashboard themed colored borders & glow) ───────
-const SummaryCard = ({ title, value, subtitle, icon, color = '#4f46e5', tooltipContent = null, isFeatured = false }) => {
+// ── Summary KPI Card (Styled with Sentiment Dashboard executive tokens & featured banner) ───────
+const SummaryCard = ({ title, value, subtitle, icon, color = '#16324f', tooltipContent = null, isFeatured = false, footnote = null }) => {
+  if (isFeatured) {
+    const cardContent = (
+      <Card elevation={0} sx={{
+        borderRadius: 3.5,
+        bgcolor: '#16324f',
+        background: 'linear-gradient(145deg, #16324f 0%, #0e2237 100%)',
+        flex: 1,
+        minWidth: 180,
+        p: 2.2,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        cursor: tooltipContent ? 'pointer' : 'default',
+        boxShadow: '0 4px 16px -2px rgba(22, 50, 79, 0.35)',
+        transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+        '&:hover': {
+          transform: 'translateY(-3px)',
+          boxShadow: '0 8px 24px -4px rgba(22, 50, 79, 0.45)',
+        }
+      }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography sx={{
+            fontFamily: T.font.family,
+            fontSize: 11,
+            fontWeight: 800,
+            color: '#cbdbe9',
+            letterSpacing: '0.8px',
+            textTransform: 'uppercase',
+          }}>
+            {title || 'TOTAL PATRON VISITS'}
+          </Typography>
+          <Box sx={{
+            bgcolor: 'rgba(255, 255, 255, 0.12)',
+            color: '#ffd580',
+            width: 32,
+            height: 32,
+            borderRadius: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            '& svg': { fontSize: 18 }
+          }}>
+            {icon}
+          </Box>
+        </Box>
+
+        <Box sx={{ mt: 1.5 }}>
+          <Typography sx={{
+            fontFamily: T.font.family,
+            fontWeight: 800,
+            fontSize: 32,
+            color: '#ffffff',
+            lineHeight: 1.1,
+          }}>
+            {value}
+          </Typography>
+          <Typography sx={{
+            fontFamily: T.font.family,
+            fontSize: 12,
+            color: '#cbdbe9',
+            fontWeight: 500,
+            mt: 0.3,
+          }}>
+            {subtitle || 'total entries recorded'}
+          </Typography>
+          {footnote && (
+            <Typography sx={{
+              fontFamily: T.font.family,
+              fontSize: 11,
+              color: '#ffd580',
+              fontWeight: 600,
+              mt: 0.8,
+            }}>
+              {footnote}
+            </Typography>
+          )}
+        </Box>
+      </Card>
+    );
+
+    if (tooltipContent) {
+      return (
+        <Tooltip title={tooltipContent} arrow placement="top">
+          <Box sx={{ flex: 1, minWidth: 180, display: 'flex' }}>
+            {cardContent}
+          </Box>
+        </Tooltip>
+      );
+    }
+    return cardContent;
+  }
+
   const cardContent = (
     <Card elevation={0} sx={{
       borderRadius: 3.5,
-      backgroundColor: '#ffffff',
-      border: `1.5px solid ${color}35`,
+      bgcolor: '#ffffff',
+      background: `linear-gradient(150deg, #ffffff 0%, ${color}0d 100%)`,
+      border: `1.5px solid ${color}30`,
       borderTop: `3.5px solid ${color}`,
-      boxShadow: '0 2px 12px rgba(0,0,0,0.03)',
       flex: 1,
       minWidth: 180,
-      p: { xs: 2, md: 2.5 },
+      p: 2.2,
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'space-between',
       cursor: tooltipContent ? 'pointer' : 'default',
-      transition: 'all 0.25s ease',
+      boxShadow: `0 2px 10px -2px ${color}18`,
+      transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
       '&:hover': {
-        transform: 'translateY(-2px)',
-        boxShadow: `0 8px 24px -4px ${color}30`,
+        transform: 'translateY(-3px)',
+        boxShadow: `0 8px 20px -4px ${color}30`,
         borderColor: color
       }
     }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.2 }}>
         <Avatar sx={{
           bgcolor: `${color}15`,
           color: color,
-          width: 44,
-          height: 44,
-          borderRadius: '12px',
-          fontSize: 22,
-          border: `1px solid ${color}30`
+          width: 42,
+          height: 42,
+          fontSize: 20,
+          border: `1px solid ${color}30`,
+          boxShadow: `0 2px 8px ${color}15`,
+          '& svg': { fontSize: 20 }
         }}>
           {icon}
         </Avatar>
       </Box>
       <Box>
-        <Typography sx={{ fontFamily: T.font.family, fontWeight: 800, fontSize: { xs: 26, md: 30 }, color: '#0f172a', lineHeight: 1.15, letterSpacing: '-0.4px' }}>
+        <Typography sx={{ fontFamily: T.font.family, fontWeight: 800, fontSize: 28, color: '#16324f', lineHeight: 1.1 }}>
           {value}
         </Typography>
         <Typography sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 13, color: '#334155', mt: 0.8, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
           {title}
         </Typography>
         {subtitle && (
-          <Typography sx={{ fontFamily: T.font.family, fontSize: 12, color: '#64748b', mt: 0.3, fontWeight: 500 }}>
+          <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, color: '#64748b', mt: 0.3, fontWeight: 500 }}>
             {subtitle}
           </Typography>
         )}
@@ -312,13 +406,13 @@ const ItemChipsView = ({ data = [], totalVisits = 0, isCollegeLevel = false, sel
     <Box sx={{ py: 1, minHeight: 340 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
         <Chip
-          icon={<CategoryIcon sx={{ fontSize: '15px !important', color: '#4f46e5 !important' }} />}
+          icon={<CategoryIcon sx={{ fontSize: '15px !important', color: '#16324f !important' }} />}
           label={isCollegeLevel ? "Colleges Breakdown (Item Chips View)" : `Courses in ${selectedCollege} (Item Chips)`}
           size="small"
-          sx={{ fontWeight: 700, fontFamily: T.font.family, fontSize: 12, bgcolor: '#ede9fe', color: '#4f46e5', borderRadius: '9999px' }}
+          sx={{ fontWeight: 700, fontFamily: T.font.family, fontSize: 12, bgcolor: '#edf4fa', color: '#16324f', borderRadius: '9999px' }}
         />
         <Typography sx={{ fontFamily: T.font.family, fontSize: 13, color: '#64748b', fontWeight: 600 }}>
-          Total Visits: <strong style={{ color: '#4f46e5' }}>{totalVisits}</strong>
+          Total Visits: <strong style={{ color: '#16324f' }}>{totalVisits}</strong>
         </Typography>
       </Box>
 
@@ -411,8 +505,8 @@ const CustomBarTooltip = ({ active, payload, label }) => {
     const total = activeItems.reduce((acc, curr) => acc + curr.value, 0);
 
     return (
-      <Paper elevation={4} sx={{ p: 2, bgcolor: '#ffffff', border: '1.5px solid #cbd5e1', borderRadius: 3, maxWidth: 360, boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }}>
-        <Typography variant="subtitle2" sx={{ fontFamily: T.font.family, fontWeight: 800, color: '#4f46e5', mb: 1.5, borderBottom: '1px solid #e2e8f0', pb: 1, fontSize: 14 }}>
+      <Paper elevation={4} sx={{ p: 2, bgcolor: '#ffffff', border: '1.5px solid #cbdbe9', borderRadius: 3, maxWidth: 360, boxShadow: '0 10px 25px -5px rgba(22, 50, 79, 0.12)' }}>
+        <Typography variant="subtitle2" sx={{ fontFamily: T.font.family, fontWeight: 800, color: '#16324f', mb: 1.5, borderBottom: '1px solid #e2e8f0', pb: 1, fontSize: 14 }}>
           {label} — {total} Total Patron Visit{total > 1 ? 's' : ''}
         </Typography>
 
@@ -440,7 +534,7 @@ const CustomBarTooltip = ({ active, payload, label }) => {
                     <Box sx={{
                       width: 14, height: 14, borderRadius: '4px',
                       background: `linear-gradient(135deg, ${swatchColor} 0%, ${lightColor} 100%)`,
-                      boxShadow: `0 2px 6px ${swatchColor}60`,
+                      boxShadow: `0 2px 6px ${swatchColor}40`,
                       flexShrink: 0
                     }} />
                     <Typography variant="body2" sx={{ fontFamily: T.font.family, fontSize: 12.5, fontWeight: 700, color: '#1e293b' }}>
@@ -473,13 +567,13 @@ const CustomMonthlyTrendTooltip = ({ active, payload, label }) => {
     const isSelected = data.isSelectedMonth;
 
     return (
-      <Paper elevation={4} sx={{ p: 2, bgcolor: '#ffffff', border: '1.5px solid #cbd5e1', borderRadius: 3, minWidth: 250, maxWidth: 330, boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }}>
+      <Paper elevation={4} sx={{ p: 2, bgcolor: '#ffffff', border: '1.5px solid #cbdbe9', borderRadius: 3, minWidth: 250, maxWidth: 330, boxShadow: '0 10px 25px -5px rgba(22, 50, 79, 0.12)' }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1, borderBottom: '1px solid #e2e8f0', pb: 1 }}>
-          <Typography variant="subtitle2" sx={{ fontFamily: T.font.family, fontWeight: 800, color: '#4f46e5', fontSize: 14 }}>
+          <Typography variant="subtitle2" sx={{ fontFamily: T.font.family, fontWeight: 800, color: '#16324f', fontSize: 14 }}>
             {label}
           </Typography>
           {isSelected && (
-            <Chip label="Selected" size="small" sx={{ fontFamily: T.font.family, fontWeight: 800, fontSize: 10.5, bgcolor: '#1e293b', color: '#ffffff', height: 20 }} />
+            <Chip label="Selected" size="small" sx={{ fontFamily: T.font.family, fontWeight: 800, fontSize: 10.5, bgcolor: '#16324f', color: '#ffffff', height: 20 }} />
           )}
         </Box>
 
@@ -487,7 +581,7 @@ const CustomMonthlyTrendTooltip = ({ active, payload, label }) => {
           <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 600, color: '#64748b' }}>
             Total Visits:
           </Typography>
-          <Typography sx={{ fontFamily: T.font.family, fontSize: 14, fontWeight: 800, color: '#0f172a' }}>
+          <Typography sx={{ fontFamily: T.font.family, fontSize: 14, fontWeight: 800, color: '#16324f' }}>
             {total} <Typography component="span" sx={{ fontSize: 11.5, color: '#64748b', fontWeight: 600 }}>({pct}% of Year)</Typography>
           </Typography>
         </Box>
@@ -499,19 +593,19 @@ const CustomMonthlyTrendTooltip = ({ active, payload, label }) => {
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.6 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
-              <MaleIcon sx={{ fontSize: 16, color: '#0288d1' }} />
+              <MaleIcon sx={{ fontSize: 16, color: '#16324f' }} />
               <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 600, color: '#334155' }}>Male</Typography>
             </Box>
-            <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#0288d1' }}>
+            <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#16324f' }}>
               {males} {total > 0 ? `(${Math.round((males / total) * 100)}%)` : ''}
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
-              <FemaleIcon sx={{ fontSize: 16, color: '#7b1fa2' }} />
+              <FemaleIcon sx={{ fontSize: 16, color: '#c2410c' }} />
               <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 600, color: '#334155' }}>Female</Typography>
             </Box>
-            <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#7b1fa2' }}>
+            <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#c2410c' }}>
               {females} {total > 0 ? `(${Math.round((females / total) * 100)}%)` : ''}
             </Typography>
           </Box>
@@ -1257,7 +1351,7 @@ const LoginDashboard = () => {
     const counts = { Male: 0, Female: 0, Other: 0 };
     logins.forEach(item => {
       const g = (item.studGender || '').toLowerCase();
-      if (g.includes('m')) counts.Male += 1;
+      if (g.includes('m') && !g.includes('fe')) counts.Male += 1;
       else if (g.includes('f')) counts.Female += 1;
       else counts.Other += 1;
     });
@@ -1457,15 +1551,15 @@ const LoginDashboard = () => {
           <title>Library Entry Analytics Report</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 30px; color: #000; }
-            h1 { text-align: center; font-size: 22px; margin-bottom: 4px; color: #1a237e; }
+            h1 { text-align: center; font-size: 22px; margin-bottom: 4px; color: #16324f; }
             h2 { text-align: center; font-size: 15px; font-weight: normal; margin-bottom: 6px; color: #444; }
             p.daterange { text-align: center; font-size: 13px; color: #666; margin-bottom: 20px; }
             .summary { display: flex; justify-content: space-around; margin-bottom: 24px; gap: 12px; }
-            .summary-box { border: 1px solid #1a237e; border-radius: 8px; padding: 12px 20px; text-align: center; flex: 1; background-color: #f8f9fa; }
-            .summary-box .value { font-size: 24px; font-weight: bold; color: #1a237e; }
+            .summary-box { border: 1px solid #16324f; border-radius: 8px; padding: 12px 20px; text-align: center; flex: 1; background-color: #f8f9fa; }
+            .summary-box .value { font-size: 24px; font-weight: bold; color: #16324f; }
             .summary-box .label { font-size: 11px; color: #555; margin-top: 4px; text-transform: uppercase; }
             table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 15px; }
-            th { background-color: #1a237e; color: white; padding: 8px; text-align: left; }
+            th { background-color: #16324f; color: white; padding: 8px; text-align: left; }
             td { padding: 6px 8px; border-bottom: 1px solid #eee; }
             tr:nth-child(even) { background-color: #f5f5f5; }
             .footer { margin-top: 25px; text-align: center; font-size: 11px; color: #888; }
@@ -1490,17 +1584,18 @@ const LoginDashboard = () => {
             <TopBar title="Entry Analytics Dashboard" onMenuClick={toggleDrawer} subtitle="DEPARTMENTAL & ENTRY VISITOR ANALYTICS" />
 
             {!showLoginModal && (
-              <Box sx={{ p: { xs: 2, md: 3 }, bgcolor: '#f8fafc', minHeight: '100vh' }}>
+              <Box sx={{ p: { xs: 2, md: 3 }, bgcolor: '#eef1f6', minHeight: '100vh' }}>
                 {/* ── Modern Header Action Bar Banner ───── */}
                 <Paper elevation={0} sx={{
                   p: { xs: 2, md: 2.5 }, mb: 3, borderRadius: 3.5,
                   bgcolor: '#ffffff',
-                  border: 'none',
-                  boxShadow: '0 2px 12px rgba(0,0,0,0.03)',
+                  border: '1.5px solid #fed7aa',
+                  borderTop: '3.5px solid #f69d1b',
+                  boxShadow: '0 2px 12px rgba(246, 157, 27, 0.05)',
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2
                 }}>
                   <Box>
-                    <Typography sx={{ fontFamily: T.font.family, fontSize: { xs: 20, md: 24 }, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.3px' }}>
+                    <Typography sx={{ fontFamily: T.font.family, fontSize: { xs: 20, md: 24 }, fontWeight: 800, color: '#16324f', letterSpacing: '-0.3px' }}>
                       Henry Luce III Library Log-In Dashboard
                     </Typography>
                     <Typography sx={{ fontFamily: T.font.family, fontSize: 13.5, color: '#64748b', fontWeight: 500, mt: 0.3 }}>
@@ -1515,8 +1610,8 @@ const LoginDashboard = () => {
                       sx={{
                         borderRadius: '10px', height: 42, px: 2.5,
                         fontFamily: T.font.family, fontSize: 13.5, fontWeight: 700, textTransform: 'none',
-                        borderColor: '#e2e8f0', color: '#475569', bgcolor: '#ffffff', borderWidth: '1.5px',
-                        '&:hover': { borderColor: '#cbd5e1', bgcolor: '#f8fafc', borderWidth: '1.5px' }
+                        borderColor: '#d9e2ec', color: '#16324f', bgcolor: '#ffffff', borderWidth: '1.5px',
+                        '&:hover': { borderColor: '#16324f', bgcolor: '#edf4fa', borderWidth: '1.5px' }
                       }}
                     >
                       Print / Save PDF
@@ -1528,9 +1623,10 @@ const LoginDashboard = () => {
                       sx={{
                         borderRadius: '10px', height: 42, px: 2.5,
                         fontFamily: T.font.family, fontSize: 13.5, fontWeight: 700, textTransform: 'none',
-                        bgcolor: '#059669',
-                        boxShadow: '0 2px 8px rgba(5, 150, 105, 0.25)',
-                        '&:hover': { bgcolor: '#047857' }
+                        bgcolor: '#107c41',
+                        color: '#ffffff',
+                        boxShadow: '0 2px 8px rgba(16, 124, 65, 0.28)',
+                        '&:hover': { bgcolor: '#0b5a2f', boxShadow: '0 4px 12px rgba(16, 124, 65, 0.35)' }
                       }}
                     >
                       Export to Excel
@@ -1543,9 +1639,10 @@ const LoginDashboard = () => {
                       sx={{
                         borderRadius: '10px', height: 42, px: 2.2,
                         fontFamily: T.font.family, fontSize: 13.5, fontWeight: 700, textTransform: 'none',
-                        borderColor: '#fecdd3', color: '#e11d48',
+                        borderColor: '#fca5a5', color: '#e11d48',
                         bgcolor: '#ffffff', borderWidth: '1.5px',
-                        '&:hover': { bgcolor: '#fff1f2', borderColor: '#f43f5e', borderWidth: '1.5px' }
+                        boxShadow: '0 1px 3px rgba(225, 29, 72, 0.05)',
+                        '&:hover': { bgcolor: '#fff1f2', borderColor: '#e11d48', color: '#be123c', borderWidth: '1.5px' }
                       }}
                     >
                       Logout
@@ -1558,26 +1655,26 @@ const LoginDashboard = () => {
                   mb: 3,
                   borderRadius: 3.5,
                   bgcolor: '#ffffff',
-                  border: 'none',
-                  boxShadow: '0 2px 12px rgba(0,0,0,0.03)',
+                  border: '1.5px solid #cbdbe9',
+                  borderTop: '3.5px solid #16324f',
+                  boxShadow: '0 2px 12px rgba(22, 50, 79, 0.04)',
                   overflow: 'hidden'
                 }}>
                   <Box sx={{ ...sectionHeaderSx }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
                       <Box sx={{
-                        bgcolor: '#ede9fe',
-                        color: '#4f46e5',
+                        bgcolor: '#edf4fa',
+                        color: '#16324f',
                         p: 0.55,
                         borderRadius: '8px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        border: '1px solid #ddd6fe',
                         '& svg': { fontSize: 18 }
                       }}>
                         <FilterAltIcon />
                       </Box>
-                      <Typography sx={{ ...sectionTitleSx }}>
+                      <Typography sx={{ ...sectionTitleSx, color: '#16324f' }}>
                         Filter & Analytics Controls
                       </Typography>
                     </Box>
@@ -1598,7 +1695,7 @@ const LoginDashboard = () => {
                   {/* ── Quick Date Range Presets Bar ───── */}
                   <Box sx={{ px: 3, pt: 1.8, pb: 1.5, bgcolor: '#ffffff', borderBottom: `1px solid ${T.surface.borderLight}`, display: 'flex', alignItems: 'center', gap: 0.8, flexWrap: 'wrap' }}>
                     <Typography sx={{ fontFamily: T.font.family, fontSize: 12.5, fontWeight: 700, color: '#64748b', mr: 0.8, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <CalendarTodayIcon sx={{ fontSize: 15, color: '#4f46e5' }} /> Quick Date Range:
+                      <CalendarTodayIcon sx={{ fontSize: 15, color: '#16324f' }} /> Quick Date Range:
                     </Typography>
                     <Button size="small" variant="outlined" onClick={() => handleDatePreset('q1')} sx={datePresetBtnSx}>Q1</Button>
                     <Button size="small" variant="outlined" onClick={() => handleDatePreset('q2')} sx={datePresetBtnSx}>Q2</Button>
@@ -1752,17 +1849,17 @@ const LoginDashboard = () => {
                       disabled={!hasActiveFilter}
                       sx={{
                         height: 44,
-                        px: 2.5,
+                        px: 2.8,
                         borderRadius: '10px',
                         textTransform: 'none',
                         fontFamily: T.font.family,
                         fontWeight: 700,
                         fontSize: 13.5,
-                        borderColor: hasActiveFilter ? '#fecdd3' : '#e2e8f0',
-                        color: hasActiveFilter ? '#e11d48' : '#94a3b8',
-                        bgcolor: hasActiveFilter ? 'rgba(239, 68, 68, 0.05)' : 'transparent',
+                        borderColor: hasActiveFilter ? '#ea580c' : '#e2e8f0',
+                        color: hasActiveFilter ? '#ea580c' : '#94a3b8',
+                        bgcolor: hasActiveFilter ? 'rgba(234, 88, 12, 0.05)' : 'transparent',
                         borderWidth: '1.5px',
-                        '&:hover': { bgcolor: '#fff1f2', borderColor: '#f43f5e', borderWidth: '1.5px' }
+                        '&:hover': { borderWidth: '1.5px', borderColor: '#c2410c', bgcolor: 'rgba(234, 88, 12, 0.1)' }
                       }}
                     >
                       Reset
@@ -1780,7 +1877,7 @@ const LoginDashboard = () => {
                           label={`Date: ${startDate || 'Start'} to ${endDate || 'Now'}`}
                           onDelete={() => handleRemoveFilter('date')}
                           size="small"
-                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#ffffff', color: '#1e293b', border: `1px solid ${T.surface.borderLight}`, borderRadius: '9999px' }}
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#ffffff', color: '#16324f', border: `1px solid ${T.surface.borderLight}`, borderRadius: '9999px' }}
                         />
                       )}
                       {filterQuarter !== 'All' && (
@@ -1788,7 +1885,7 @@ const LoginDashboard = () => {
                           label={`Quarter: ${filterQuarter}`}
                           onDelete={() => handleRemoveFilter('quarter')}
                           size="small"
-                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#e0e7ff', color: '#3730a3', borderRadius: '9999px' }}
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#ffffff', color: '#16324f', border: `1px solid ${T.surface.borderLight}`, borderRadius: '9999px' }}
                         />
                       )}
                       {filterMonth !== 'All' && (
@@ -1796,7 +1893,7 @@ const LoginDashboard = () => {
                           label={`Month: ${filterMonth}`}
                           onDelete={() => handleRemoveFilter('month')}
                           size="small"
-                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#ede9fe', color: '#4f46e5', borderRadius: '9999px' }}
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#ffffff', color: '#16324f', border: `1px solid ${T.surface.borderLight}`, borderRadius: '9999px' }}
                         />
                       )}
                       {filterYear !== 'All' && filterYear !== '2026' && (
@@ -1804,7 +1901,7 @@ const LoginDashboard = () => {
                           label={`Year: ${filterYear}`}
                           onDelete={() => handleRemoveFilter('year')}
                           size="small"
-                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#f1f5f9', color: '#334155', borderRadius: '9999px' }}
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#ffffff', color: '#16324f', border: `1px solid ${T.surface.borderLight}`, borderRadius: '9999px' }}
                         />
                       )}
                       {selectedCollege !== 'All' && (
@@ -1812,7 +1909,7 @@ const LoginDashboard = () => {
                           label={`College: ${selectedCollege}`}
                           onDelete={() => handleRemoveFilter('college')}
                           size="small"
-                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#ede9fe', color: '#4f46e5', borderRadius: '9999px' }}
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#edf4fa', color: '#16324f', border: '1px solid #cbdbe9', borderRadius: '9999px' }}
                         />
                       )}
                       {selectedCourse !== 'All' && (
@@ -1820,7 +1917,7 @@ const LoginDashboard = () => {
                           label={`Course: ${selectedCourse}`}
                           onDelete={() => handleRemoveFilter('course')}
                           size="small"
-                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#e0f2fe', color: '#0369a1', borderRadius: '9999px' }}
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#edf4fa', color: '#254b73', border: '1px solid #cbdbe9', borderRadius: '9999px' }}
                         />
                       )}
                       {selectedSection !== 'All' && (
@@ -1828,7 +1925,7 @@ const LoginDashboard = () => {
                           label={`Section: ${selectedSection}`}
                           onDelete={() => handleRemoveFilter('section')}
                           size="small"
-                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#f3e8ff', color: '#6b21a8', borderRadius: '9999px' }}
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#fff7ed', color: '#c2410c', border: '1px solid #fed7aa', borderRadius: '9999px' }}
                         />
                       )}
                       {searchTerm && (
@@ -1836,14 +1933,14 @@ const LoginDashboard = () => {
                           label={`Search: "${searchTerm}"`}
                           onDelete={() => handleRemoveFilter('search')}
                           size="small"
-                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#fef3c7', color: '#b45309', borderRadius: '9999px' }}
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#fff8eb', color: '#b45309', border: '1px solid #fed7aa', borderRadius: '9999px' }}
                         />
                       )}
                       <Button
                         size="small"
                         onClick={handleClearFilters}
                         startIcon={<RestartAltIcon sx={{ fontSize: 15 }} />}
-                        sx={{ textTransform: 'none', fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#ef4444', ml: 'auto' }}
+                        sx={{ textTransform: 'none', fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#ea580c', ml: 'auto' }}
                       >
                         Clear All
                       </Button>
@@ -1853,11 +1950,11 @@ const LoginDashboard = () => {
 
                 {loading ? (
                   <Box sx={{ display: 'flex', justifyContent: 'center', p: 8 }}>
-                    <CircularProgress color="primary" />
+                    <CircularProgress sx={{ color: '#16324f' }} />
                   </Box>
                 ) : (
                   <>
-                    {/* ── Top Metric KPI Cards Grid (Themed with Distinct Container Colors & Hover Effects) ───── */}
+                    {/* ── Top Metric KPI Cards Grid (Themed with Executive Palette Colors & Glow) ───── */}
                     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 2.2, mb: 3 }}>
                       <SummaryCard
                         title="Total Patron Visits"
@@ -1872,7 +1969,7 @@ const LoginDashboard = () => {
                                 : 'All departments included'
                         }
                         icon={<GroupIcon sx={{ fontSize: 24 }} />}
-                        color="#4f46e5"
+                        color="#16324f"
                         isFeatured={true}
                         tooltipContent={`Total Patron Visits: ${totalEntries} entries recorded`}
                       />
@@ -1881,7 +1978,7 @@ const LoginDashboard = () => {
                         value={topCollege}
                         subtitle={`${topCollegeCount} Total Logged Entries`}
                         icon={<AccountBalanceIcon sx={{ fontSize: 24 }} />}
-                        color="#059669"
+                        color="#f69d1b"
                         tooltipContent={`Top Department: ${topCollege} (${topCollegeCount} visits)`}
                       />
                       <SummaryCard
@@ -1889,7 +1986,7 @@ const LoginDashboard = () => {
                         value={peakSection}
                         subtitle={topInternalSection ? `${peakSectionCount} Logged Section Visits` : 'No section entries recorded'}
                         icon={<LocationOnIcon sx={{ fontSize: 24 }} />}
-                        color="#d97706"
+                        color="#005960"
                         tooltipContent={`Peak Section: ${peakSection} (${peakSectionCount} visits)`}
                       />
                       <SummaryCard
@@ -1897,19 +1994,19 @@ const LoginDashboard = () => {
                         value={collegeChartData.filter(c => c.total > 0).length}
                         subtitle="Hover to view all department activity"
                         icon={<SchoolIcon sx={{ fontSize: 24 }} />}
-                        color="#0284c7"
+                        color="#254b73"
                         tooltipContent={<DepartmentsHoverList sortedColleges={sortedColleges} totalEntries={totalEntries} />}
                       />
                     </Box>
 
                     {/* ── Middle Visualizer Section (Main Chart + Side Donut with Themed Color Borders) ── */}
                     <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', mb: 3 }}>
-                      {/* Left: Main Visualizer Bar Chart (~70% width) - Indigo Themed Highlighted Container */}
+                      {/* Left: Main Visualizer Bar Chart (~70% width) - Blueish Themed Container */}
                       <Paper elevation={0} sx={{
                         borderRadius: 3.5,
-                        border: '1.5px solid rgba(79, 70, 229, 0.22)',
-                        borderTop: '3.5px solid #4f46e5',
-                        boxShadow: '0 2px 12px rgba(79, 70, 229, 0.04)',
+                        border: '1.5px solid #cbdbe9',
+                        borderTop: '3.5px solid #0284c7',
+                        boxShadow: '0 2px 12px rgba(2, 132, 199, 0.05)',
                         bgcolor: '#ffffff',
                         flex: 3,
                         minWidth: 480,
@@ -1918,20 +2015,20 @@ const LoginDashboard = () => {
                         <Box sx={{ ...sectionHeaderSx, flexWrap: 'wrap', gap: 1.5 }}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
                             <Box sx={{
-                              bgcolor: '#ede9fe',
-                              color: '#4f46e5',
+                              bgcolor: '#f0f9ff',
+                              color: '#0284c7',
                               p: 0.55,
                               borderRadius: '8px',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              border: '1px solid #ddd6fe',
+                              border: '1px solid #bae6fd',
                               '& svg': { fontSize: 18 }
                             }}>
                               <BarChartIcon />
                             </Box>
                             <Box>
-                              <Typography sx={sectionTitleSx}>
+                              <Typography sx={{ ...sectionTitleSx, color: '#16324f' }}>
                                 {effectiveMode === 'monthly'
                                   ? `Monthly Foot Traffic Trend (${filterYear === 'All' ? 'All Years' : filterYear})`
                                   : selectedCollege === 'All'
@@ -1950,7 +2047,7 @@ const LoginDashboard = () => {
 
                           {/* Visualizer Mode Select Dropdown */}
                           <FormControl size="small" sx={{ minWidth: 210 }}>
-                            <InputLabel id="visualizer-mode-select-label" sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#4f46e5' }}>
+                            <InputLabel id="visualizer-mode-select-label" sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#0284c7' }}>
                               Visualization View
                             </InputLabel>
                             <Select
@@ -1965,19 +2062,19 @@ const LoginDashboard = () => {
                                 fontFamily: T.font.family,
                                 fontWeight: 700,
                                 fontSize: 12.5,
-                                color: '#0f172a',
-                                '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0', borderWidth: 1.5 },
-                                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#4f46e5' }
+                                color: '#16324f',
+                                '& .MuiOutlinedInput-notchedOutline': { borderColor: '#cbdbe9', borderWidth: 1.5 },
+                                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#0284c7' }
                               }}
                             >
                               <MenuItem value="bar" sx={{ ...menuItemSx, display: 'flex', alignItems: 'center', gap: 1, fontSize: 13 }}>
-                                <BarChartIcon sx={{ fontSize: 17, color: '#4f46e5' }} /> Standard Bar Chart
+                                <BarChartIcon sx={{ fontSize: 17, color: '#0284c7' }} /> Standard Bar Chart
                               </MenuItem>
                               <MenuItem value="monthly" sx={{ ...menuItemSx, display: 'flex', alignItems: 'center', gap: 1, fontSize: 13 }}>
-                                <ShowChartIcon sx={{ fontSize: 17, color: '#4f46e5' }} /> Monthly Traffic Trend
+                                <ShowChartIcon sx={{ fontSize: 17, color: '#0284c7' }} /> Monthly Traffic Trend
                               </MenuItem>
                               <MenuItem value="chips" sx={{ ...menuItemSx, display: 'flex', alignItems: 'center', gap: 1, fontSize: 13 }}>
-                                <CategoryIcon sx={{ fontSize: 17, color: '#4f46e5' }} /> Item Chips View
+                                <CategoryIcon sx={{ fontSize: 17, color: '#0284c7' }} /> Item Chips View
                               </MenuItem>
                             </Select>
                           </FormControl>
@@ -2005,19 +2102,11 @@ const LoginDashboard = () => {
                                     setPage(0);
                                   }
                                 }}
-                                onMouseMove={(state) => {
-                                  if (state && state.activeLabel) {
-                                    setHoveredCollege(state.activeLabel);
-                                  } else {
-                                    setHoveredCollege(null);
-                                  }
-                                }}
-                                onMouseLeave={() => setHoveredCollege(null)}
                               >
                                 <defs>
                                   <linearGradient id="monthBarGradDefault" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#4f46e5" stopOpacity={0.95} />
-                                    <stop offset="100%" stopColor="#818cf8" stopOpacity={0.8} />
+                                    <stop offset="0%" stopColor="#1a237e" stopOpacity={0.95} />
+                                    <stop offset="100%" stopColor="#0288d1" stopOpacity={0.8} />
                                   </linearGradient>
                                   <linearGradient id="monthBarGradActive" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="0%" stopColor="#0f172a" stopOpacity={1} />
@@ -2050,8 +2139,11 @@ const LoginDashboard = () => {
                                       <Cell
                                         key={`month-cell-${index}`}
                                         fill={fill}
-                                        stroke={isSelected ? '#0f172a' : 'none'}
+                                        stroke={isSelected ? '#16324f' : 'none'}
                                         strokeWidth={isSelected ? 1.5 : 0}
+                                        onMouseEnter={() => setHoveredCollege(entry.month)}
+                                        onMouseLeave={() => setHoveredCollege(null)}
+                                        style={{ cursor: 'pointer' }}
                                       />
                                     );
                                   })}
@@ -2063,14 +2155,6 @@ const LoginDashboard = () => {
                               <RechartsBarChart
                                 data={mainChartData}
                                 maxBarSize={45}
-                                onMouseMove={(state) => {
-                                  if (state && state.activeLabel) {
-                                    setHoveredCollege(state.activeLabel);
-                                  } else {
-                                    setHoveredCollege(null);
-                                  }
-                                }}
-                                onMouseLeave={() => setHoveredCollege(null)}
                               >
                                 <defs>
                                   <linearGradient id="barDefaultGrad" x1="0" y1="0" x2="0" y2="1">
@@ -2101,10 +2185,27 @@ const LoginDashboard = () => {
                                     >
                                       {mainChartData.map((entry, index) => {
                                         const isHovered = hoveredCollege === entry.name;
-                                        const fillColor = isHovered
-                                          ? `url(#barCourseGrad_${courseIndex % COURSE_COLORS.length})`
-                                          : '#4f46e5';
-                                        return <Cell key={`cell-${index}`} fill={fillColor} stroke="none" strokeWidth={0} />;
+                                        let fillColor;
+                                        if (selectedCollege === 'All') {
+                                          fillColor = isHovered
+                                            ? `url(#barCourseGrad_${courseIndex % COURSE_COLORS.length})`
+                                            : '#0284c7';
+                                        } else {
+                                          fillColor = isHovered
+                                            ? `url(#barCourseGrad_${index % COURSE_COLORS.length})`
+                                            : '#0284c7';
+                                        }
+                                        return (
+                                          <Cell
+                                            key={`cell-${index}`}
+                                            fill={fillColor}
+                                            stroke="none"
+                                            strokeWidth={0}
+                                            onMouseEnter={() => setHoveredCollege(entry.name)}
+                                            onMouseLeave={() => setHoveredCollege(null)}
+                                            style={{ cursor: 'pointer', transition: 'fill 0.2s ease' }}
+                                          />
+                                        );
                                       })}
                                     </Bar>
                                   );
@@ -2115,12 +2216,12 @@ const LoginDashboard = () => {
                         </CardContent>
                       </Paper>
 
-                      {/* Right: Section Donut Chart + Side Legends (~30% width) - Sky Blue Themed Highlighted Container */}
+                      {/* Right: Section Donut Chart + Side Legends (~30% width) - Sky Blue Themed Container */}
                       <Paper elevation={0} sx={{
                         borderRadius: 3.5,
-                        border: '1.5px solid rgba(2, 132, 199, 0.22)',
+                        border: '1.5px solid #cbdbe9',
                         borderTop: '3.5px solid #0284c7',
-                        boxShadow: '0 2px 12px rgba(2, 132, 199, 0.04)',
+                        boxShadow: '0 2px 12px rgba(2, 132, 199, 0.05)',
                         bgcolor: '#ffffff',
                         flex: 1.4,
                         minWidth: 280,
@@ -2143,7 +2244,7 @@ const LoginDashboard = () => {
                               <PieChartIcon />
                             </Box>
                             <Box>
-                              <Typography sx={sectionTitleSx}>
+                              <Typography sx={{ ...sectionTitleSx, color: '#16324f' }}>
                                 Traffic by Library Section {selectedCollege !== 'All' ? `(${selectedCollege})` : ''}
                               </Typography>
                               <Typography sx={sectionSubtitleSx}>
@@ -2222,7 +2323,7 @@ const LoginDashboard = () => {
                                   position: 'absolute', top: '50%', left: '50%',
                                   transform: 'translate(-50%, -50%)', textAlign: 'center'
                                 }}>
-                                  <Typography sx={{ fontFamily: T.font.family, fontWeight: 800, fontSize: 22, color: '#0f172a', lineHeight: 1 }}>
+                                  <Typography sx={{ fontFamily: T.font.family, fontWeight: 800, fontSize: 22, color: '#0284c7', lineHeight: 1 }}>
                                     {collegeSectionTotal}
                                   </Typography>
                                   <Typography sx={{ fontFamily: T.font.family, fontSize: 11, color: '#64748b', fontWeight: 600, mt: 0.2 }}>
@@ -2281,13 +2382,13 @@ const LoginDashboard = () => {
 
                     {/* ── Bottom Section (Table + Demographics Sidebar with Distinct Themed Colors) ────── */}
                     <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-                      {/* Left: Detailed Visitor Entry Records Table (~70% width) - Indigo Themed Container */}
+                      {/* Left: Detailed Visitor Entry Records Table (~70% width) - Deep Navy Themed Container */}
                       <Paper elevation={0} sx={{
                         borderRadius: 3.5,
                         bgcolor: '#ffffff',
-                        border: '1.5px solid rgba(79, 70, 229, 0.22)',
-                        borderTop: '3.5px solid #4f46e5',
-                        boxShadow: '0 2px 12px rgba(79, 70, 229, 0.04)',
+                        border: '1.5px solid #cbdbe9',
+                        borderTop: '3.5px solid #16324f',
+                        boxShadow: '0 2px 12px rgba(22, 50, 79, 0.04)',
                         p: { xs: 2, md: 3 },
                         flex: 3,
                         minWidth: 480
@@ -2296,19 +2397,19 @@ const LoginDashboard = () => {
                           <Box>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
                               <Box sx={{
-                                bgcolor: '#ede9fe',
-                                color: '#4f46e5',
+                                bgcolor: '#edf4fa',
+                                color: '#16324f',
                                 p: 0.55,
                                 borderRadius: '8px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                border: '1px solid #ddd6fe',
+                                border: '1px solid #cbdbe9',
                                 '& svg': { fontSize: 18 }
                               }}>
                                 <FormatListNumberedIcon />
                               </Box>
-                              <Typography sx={{ fontFamily: T.font.family, fontWeight: 800, fontSize: { xs: 16, md: 18 }, color: '#0f172a', letterSpacing: '-0.2px' }}>
+                              <Typography sx={{ fontFamily: T.font.family, fontWeight: 800, fontSize: { xs: 16, md: 18 }, color: '#16324f', letterSpacing: '-0.2px' }}>
                                 Detailed Visitor Entry Records ({processedLogins.length} Matches)
                               </Typography>
                             </Box>
@@ -2330,8 +2431,8 @@ const LoginDashboard = () => {
                                   height: 28,
                                   boxShadow: 'none',
                                   ...(filterMonth === 'All'
-                                    ? { bgcolor: '#1e293b', color: '#ffffff', '&:hover': { bgcolor: '#0f172a' } }
-                                    : { bgcolor: '#f1f5f9', color: '#475569', border: 'none', '&:hover': { bgcolor: '#e2e8f0' } }
+                                    ? { bgcolor: '#16324f', color: '#ffffff', '&:hover': { bgcolor: '#0f243a' } }
+                                    : { bgcolor: '#f1f5f9', color: '#475569', border: 'none', '&:hover': { bgcolor: '#edf4fa' } }
                                   )
                                 }}
                               >
@@ -2357,8 +2458,8 @@ const LoginDashboard = () => {
                                       height: 28,
                                       boxShadow: 'none',
                                       ...(isSelected
-                                        ? { bgcolor: '#1e293b', color: '#ffffff', '&:hover': { bgcolor: '#0f172a' } }
-                                        : { bgcolor: '#f1f5f9', color: c > 0 ? '#334155' : '#94a3b8', border: 'none', '&:hover': { bgcolor: '#e2e8f0' } }
+                                        ? { bgcolor: '#16324f', color: '#ffffff', '&:hover': { bgcolor: '#0f243a' } }
+                                        : { bgcolor: '#f1f5f9', color: c > 0 ? '#334155' : '#94a3b8', border: 'none', '&:hover': { bgcolor: '#edf4fa' } }
                                       )
                                     }}
                                   >
@@ -2402,7 +2503,9 @@ const LoginDashboard = () => {
                                   fontFamily: T.font.family,
                                   fontSize: 12.5,
                                   borderRadius: '10px',
-                                  borderColor: '#e2e8f0',
+                                  borderColor: '#cbdbe9',
+                                  '&:hover fieldset': { borderColor: '#16324f' },
+                                  '&.Mui-focused fieldset': { borderColor: '#16324f' }
                                 }
                               }}
                             />
@@ -2421,9 +2524,9 @@ const LoginDashboard = () => {
                                   height: 30,
                                   px: 1.8,
                                   fontSize: 12,
-                                  bgcolor: '#ef4444',
-                                  boxShadow: '0 2px 8px rgba(239, 68, 68, 0.25)',
-                                  '&:hover': { bgcolor: '#dc2626' }
+                                  bgcolor: '#ea580c',
+                                  boxShadow: '0 2px 8px rgba(234, 88, 12, 0.25)',
+                                  '&:hover': { bgcolor: '#c2410c' }
                                 }}
                               >
                                 Delete Selected ({selectedLogIds.length})
@@ -2442,7 +2545,7 @@ const LoginDashboard = () => {
                                     checked={isAllPageSelected}
                                     indeterminate={isSomePageSelected}
                                     onChange={handleSelectAllOnPage}
-                                    sx={{ color: '#cbd5e1', p: 0.5, '&.Mui-checked': { color: '#1e293b' }, '&.MuiCheckbox-indeterminate': { color: '#1e293b' } }}
+                                    sx={{ color: '#cbdbe9', p: 0.5, '&.Mui-checked': { color: '#16324f' }, '&.MuiCheckbox-indeterminate': { color: '#16324f' } }}
                                   />
                                 </TableCell>
                                 <TableCell sx={{ width: 120 }}>
@@ -2505,13 +2608,13 @@ const LoginDashboard = () => {
                                 <TableRow>
                                   <TableCell colSpan={9} align="center" sx={{ py: 6, borderBottom: 'none' }}>
                                     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-                                      <Avatar sx={{ bgcolor: '#f8fafc', color: '#94a3b8', width: 48, height: 48, border: '1px solid #e2e8f0' }}>
+                                      <Avatar sx={{ bgcolor: '#f8fafc', color: '#94a3b8', width: 48, height: 48, border: '1px solid #cbdbe9' }}>
                                         <InboxIcon sx={{ fontSize: 26 }} />
                                       </Avatar>
-                                      <Typography sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 14, color: '#334155', mt: 0.5 }}>
+                                      <Typography sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 14, color: '#16324f', mt: 0.5 }}>
                                         No entrance login records found
                                       </Typography>
-                                      <Typography sx={{ fontFamily: T.font.family, fontSize: 12, color: '#94a3b8', maxWidth: 360 }}>
+                                      <Typography sx={{ fontFamily: T.font.family, fontSize: 12, color: '#64748b', maxWidth: 360 }}>
                                         {searchTerm
                                           ? `No patron records matching search "${searchTerm}".`
                                           : 'Try adjusting your date range or filter selections to view visitor entry data.'}
@@ -2521,7 +2624,7 @@ const LoginDashboard = () => {
                                         variant="outlined"
                                         onClick={handleClearFilters}
                                         startIcon={<RestartAltIcon sx={{ fontSize: 14 }} />}
-                                        sx={{ mt: 1, borderRadius: '9999px', textTransform: 'none', fontFamily: T.font.family, fontWeight: 700, fontSize: 11.5, borderColor: '#cbd5e1', color: '#475569', px: 2, py: 0.3 }}
+                                        sx={{ mt: 1, borderRadius: '9999px', textTransform: 'none', fontFamily: T.font.family, fontWeight: 700, fontSize: 11.5, borderColor: '#cbdbe9', color: '#16324f', px: 2, py: 0.3 }}
                                       >
                                         Clear All Filters
                                       </Button>
@@ -2543,8 +2646,8 @@ const LoginDashboard = () => {
                                       sx={{
                                         borderBottom: '1px solid #f1f5f9',
                                         transition: 'background-color 0.15s ease',
-                                        '&:hover': { bgcolor: 'rgba(241, 245, 249, 0.6) !important' },
-                                        '&.Mui-selected': { bgcolor: 'rgba(241, 245, 249, 0.85) !important' },
+                                        '&:hover': { bgcolor: 'rgba(237, 244, 250, 0.6) !important' },
+                                        '&.Mui-selected': { bgcolor: 'rgba(237, 244, 250, 0.9) !important' },
                                       }}
                                     >
                                       <TableCell padding="checkbox" sx={{ py: 1.1, px: 1, borderBottom: '1px solid #f1f5f9' }}>
@@ -2552,17 +2655,17 @@ const LoginDashboard = () => {
                                           size="small"
                                           checked={isSelected}
                                           onChange={() => handleToggleSelectRow(row.LogID)}
-                                          sx={{ color: '#cbd5e1', '&.Mui-checked': { color: '#1e293b' }, p: 0.3 }}
+                                          sx={{ color: '#cbdbe9', '&.Mui-checked': { color: '#16324f' }, p: 0.3 }}
                                         />
                                       </TableCell>
                                       <TableCell sx={{ py: 1.1, px: 1.4, borderBottom: '1px solid #f1f5f9', fontFamily: T.font.family, fontSize: 13, color: '#334155', fontWeight: 600 }}>
                                         {row.studIDnumber || 'N/A'}
                                       </TableCell>
-                                      <TableCell sx={{ py: 1.1, px: 1.4, borderBottom: '1px solid #f1f5f9', fontFamily: T.font.family, fontSize: 13.5, fontWeight: 700, color: '#1e293b' }}>
+                                      <TableCell sx={{ py: 1.1, px: 1.4, borderBottom: '1px solid #f1f5f9', fontFamily: T.font.family, fontSize: 13.5, fontWeight: 700, color: '#16324f' }}>
                                         {`${row.studLname || ''}, ${row.studFname || ''}`}
                                       </TableCell>
                                       <TableCell sx={{ py: 1.1, px: 1.4, borderBottom: '1px solid #f1f5f9', fontFamily: T.font.family, fontSize: 12.5, color: '#475569', fontWeight: 500 }}>
-                                        {`${row.studCourse || 'N/A'} - ${row.studYear || ''}`}
+                                        {`${(row.studCourse || 'N/A').replace(/comouter/gi, 'Computer')} - ${row.studYear || ''}`}
                                       </TableCell>
                                       <TableCell sx={{ py: 1.1, px: 1.4, borderBottom: '1px solid #f1f5f9' }}>
                                         <Box sx={{
@@ -2571,14 +2674,15 @@ const LoginDashboard = () => {
                                           px: 1.3,
                                           py: 0.3,
                                           borderRadius: '9999px',
-                                          bgcolor: '#ede9fe',
-                                          color: '#4f46e5',
+                                          bgcolor: '#edf4fa',
+                                          color: '#16324f',
+                                          border: '1px solid #cbdbe9',
                                           fontSize: 12,
                                           fontWeight: 700,
                                           fontFamily: T.font.family,
                                           lineHeight: 1.2,
                                         }}>
-                                          {row.studCollege || 'N/A'}
+                                          {(row.studCollege || 'N/A').replace(/comouter/gi, 'Computer')}
                                         </Box>
                                       </TableCell>
                                       <TableCell sx={{ py: 1.1, px: 1.4, borderBottom: '1px solid #f1f5f9' }}>
@@ -2589,8 +2693,9 @@ const LoginDashboard = () => {
                                             fontFamily: T.font.family,
                                             fontWeight: 700,
                                             fontSize: 11.5,
-                                            bgcolor: '#e0f2fe',
-                                            color: '#0369a1',
+                                            bgcolor: '#fff7ed',
+                                            color: '#c2410c',
+                                            border: '1px solid #fed7aa',
                                             height: 22,
                                             borderRadius: '9999px'
                                           }}
@@ -2602,17 +2707,17 @@ const LoginDashboard = () => {
                                       <TableCell sx={{ py: 1.1, px: 1.4, borderBottom: '1px solid #f1f5f9' }}>
                                         {isMale ? (
                                           <Chip
-                                            icon={<MaleIcon sx={{ fontSize: '15px !important', color: '#0288d1 !important' }} />}
+                                            icon={<MaleIcon sx={{ fontSize: '15px !important', color: '#0284c7 !important' }} />}
                                             label="Male"
                                             size="small"
-                                            sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 11, bgcolor: '#e0f2fe', color: '#0288d1', height: 22, borderRadius: '9999px' }}
+                                            sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 11, bgcolor: '#f0f9ff', color: '#0369a1', border: '1px solid #bae6fd', height: 22, borderRadius: '9999px' }}
                                           />
                                         ) : isFemale ? (
                                           <Chip
-                                            icon={<FemaleIcon sx={{ fontSize: '15px !important', color: '#7b1fa2 !important' }} />}
+                                            icon={<FemaleIcon sx={{ fontSize: '15px !important', color: '#ec4899 !important' }} />}
                                             label="Female"
                                             size="small"
-                                            sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 11, bgcolor: '#fdf4ff', color: '#7b1fa2', height: 22, borderRadius: '9999px' }}
+                                            sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 11, bgcolor: '#fdf2f8', color: '#be185d', border: '1px solid #fbcfe8', height: 22, borderRadius: '9999px' }}
                                           />
                                         ) : (
                                           <Typography sx={{ fontFamily: T.font.family, fontSize: 12, color: '#94a3b8' }}>
@@ -2626,9 +2731,9 @@ const LoginDashboard = () => {
                                             size="small"
                                             onClick={() => openDeleteSingleDialog(row)}
                                             sx={{
-                                              color: '#f87171',
+                                              color: '#ea580c',
                                               p: 0.4,
-                                              '&:hover': { color: '#ef4444', bgcolor: '#fee2e2' }
+                                              '&:hover': { color: '#c2410c', bgcolor: '#fff7ed' }
                                             }}
                                           >
                                             <DeleteOutlineIcon fontSize="small" />
@@ -2673,12 +2778,12 @@ const LoginDashboard = () => {
                         )}
                       </Paper>
 
-                      {/* Right: Demographic Breakdown Widget (~30% width) - Purple Themed Container */}
+                      {/* Right: Demographic Breakdown Widget (~30% width) - Deep Navy Themed Container */}
                       <Paper elevation={0} sx={{
                         borderRadius: 3.5,
-                        border: '1.5px solid rgba(124, 58, 237, 0.22)',
-                        borderTop: '3.5px solid #7c3aed',
-                        boxShadow: '0 2px 12px rgba(124, 58, 237, 0.04)',
+                        border: '1.5px solid #cbdbe9',
+                        borderTop: '3.5px solid #16324f',
+                        boxShadow: '0 2px 12px rgba(22, 50, 79, 0.04)',
                         bgcolor: '#ffffff',
                         flex: 1.4,
                         minWidth: 280,
@@ -2686,19 +2791,19 @@ const LoginDashboard = () => {
                       }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, mb: 2 }}>
                           <Box sx={{
-                            bgcolor: '#faf5ff',
-                            color: '#7c3aed',
+                            bgcolor: '#edf4fa',
+                            color: '#16324f',
                             p: 0.55,
                             borderRadius: '8px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            border: '1px solid #e9d5ff',
+                            border: '1px solid #cbdbe9',
                             '& svg': { fontSize: 18 }
                           }}>
                             <PeopleIcon />
                           </Box>
-                          <Typography sx={sectionTitleSx}>
+                          <Typography sx={{ ...sectionTitleSx, color: '#16324f' }}>
                             Demographics & Top Traffic
                           </Typography>
                         </Box>
@@ -2713,7 +2818,7 @@ const LoginDashboard = () => {
                               <Chip
                                 label="View All Activity"
                                 size="small"
-                                sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 10.5, bgcolor: '#ede9fe', color: '#4f46e5', cursor: 'pointer', height: 22, borderRadius: '9999px' }}
+                                sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 10.5, bgcolor: '#edf4fa', color: '#16324f', cursor: 'pointer', height: 22, borderRadius: '9999px' }}
                               />
                             </Tooltip>
                           </Box>
@@ -2730,7 +2835,7 @@ const LoginDashboard = () => {
                                     {col.total} visits ({pct.toFixed(0)}%)
                                   </Typography>
                                 </Box>
-                                <LinearProgress variant="determinate" value={pct} sx={{ height: 6, borderRadius: 3, bgcolor: '#f1f5f9', '& .MuiLinearProgress-bar': { bgcolor: '#7c3aed', borderRadius: 3 } }} />
+                                <LinearProgress variant="determinate" value={pct} sx={{ height: 6, borderRadius: 3, bgcolor: '#f1f5f9', '& .MuiLinearProgress-bar': { bgcolor: '#16324f', borderRadius: 3 } }} />
                               </Box>
                             );
                           })}
@@ -2739,57 +2844,60 @@ const LoginDashboard = () => {
                           {sortedColleges.length > 5 && (
                             <Tooltip title={<DepartmentsHoverList sortedColleges={sortedColleges} totalEntries={totalEntries} />} arrow placement="top">
                               <Box sx={{
-                                mt: 1.5, p: 1.2, borderRadius: 2.5, bgcolor: '#f8fafc', border: '1.5px dashed #cbd5e1',
+                                mt: 1.5, p: 1.2, borderRadius: 2.5, bgcolor: '#f8fafc', border: '1.5px dashed #cbdbe9',
                                 display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer',
-                                transition: 'all 0.2s ease', '&:hover': { bgcolor: '#ede9fe', borderColor: '#4f46e5' }
+                                transition: 'all 0.2s ease', '&:hover': { bgcolor: '#edf4fa', borderColor: '#16324f' }
                               }}>
-                                <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#4f46e5' }}>
+                                <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#16324f' }}>
                                   + {sortedColleges.length - 5} Other Departments
                                 </Typography>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3 }}>
                                   <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 600, color: '#64748b' }}>
                                     Hover for full list
                                   </Typography>
-                                  <ArrowForwardIcon sx={{ fontSize: 13, color: '#4f46e5' }} />
+                                  <ArrowForwardIcon sx={{ fontSize: 13, color: '#16324f' }} />
                                 </Box>
                               </Box>
                             </Tooltip>
                           )}
                         </Box>
 
-                        {/* Gender Demographics List with Sentiment Themed Color Cards */}
+                        {/* Gender Demographics List with Light Blue (Male) and Pink (Female) Cards */}
                         <Box>
                           <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, fontWeight: 700, color: '#64748b', mb: 1.5, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                             Patron Gender Split
                           </Typography>
                           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                            {/* Male Visitors - Light Blue */}
                             <Box sx={{
                               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                               p: 1.8, borderRadius: 2.5, bgcolor: '#f0f9ff',
-                              border: '1.5px solid #bae6fd', borderTop: '3px solid #0284c7',
+                              border: '1.5px solid #bae6fd', borderTop: '3.5px solid #0284c7',
                               transition: 'all 0.2s ease', '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 4px 12px rgba(2, 132, 199, 0.15)' }
                             }}>
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-                                <Box sx={{ bgcolor: '#e0f2fe', color: '#0284c7', p: 0.5, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                  <MaleIcon sx={{ fontSize: 20, color: '#0288d1' }} />
+                                <Box sx={{ bgcolor: '#ffffff', color: '#0284c7', p: 0.5, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #bae6fd' }}>
+                                  <MaleIcon sx={{ fontSize: 20, color: '#0284c7' }} />
                                 </Box>
-                                <Typography sx={{ fontFamily: T.font.family, fontSize: 13.5, fontWeight: 700, color: '#0f172a' }}>Male Visitors</Typography>
+                                <Typography sx={{ fontFamily: T.font.family, fontSize: 13.5, fontWeight: 700, color: '#0369a1' }}>Male Visitors</Typography>
                               </Box>
-                              <Typography sx={{ fontFamily: T.font.family, fontSize: 18, fontWeight: 900, color: '#0288d1' }}>{genderCounts.Male}</Typography>
+                              <Typography sx={{ fontFamily: T.font.family, fontSize: 18, fontWeight: 900, color: '#0284c7' }}>{genderCounts.Male}</Typography>
                             </Box>
+
+                            {/* Female Visitors - Pink */}
                             <Box sx={{
                               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                               p: 1.8, borderRadius: 2.5, bgcolor: '#fdf2f8',
-                              border: '1.5px solid #fbcfe8', borderTop: '3px solid #db2777',
-                              transition: 'all 0.2s ease', '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 4px 12px rgba(219, 39, 119, 0.15)' }
+                              border: '1.5px solid #fbcfe8', borderTop: '3.5px solid #ec4899',
+                              transition: 'all 0.2s ease', '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 4px 12px rgba(236, 72, 153, 0.15)' }
                             }}>
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-                                <Box sx={{ bgcolor: '#fce7f3', color: '#db2777', p: 0.5, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                  <FemaleIcon sx={{ fontSize: 20, color: '#db2777' }} />
+                                <Box sx={{ bgcolor: '#ffffff', color: '#ec4899', p: 0.5, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #fbcfe8' }}>
+                                  <FemaleIcon sx={{ fontSize: 20, color: '#ec4899' }} />
                                 </Box>
-                                <Typography sx={{ fontFamily: T.font.family, fontSize: 13.5, fontWeight: 700, color: '#0f172a' }}>Female Visitors</Typography>
+                                <Typography sx={{ fontFamily: T.font.family, fontSize: 13.5, fontWeight: 700, color: '#be185d' }}>Female Visitors</Typography>
                               </Box>
-                              <Typography sx={{ fontFamily: T.font.family, fontSize: 18, fontWeight: 900, color: '#db2777' }}>{genderCounts.Female}</Typography>
+                              <Typography sx={{ fontFamily: T.font.family, fontSize: 18, fontWeight: 900, color: '#ec4899' }}>{genderCounts.Female}</Typography>
                             </Box>
                           </Box>
                         </Box>
@@ -2824,7 +2932,7 @@ const LoginDashboard = () => {
           <Button onClick={() => setDeleteConfirmOpen(false)} variant="outlined" color="inherit" sx={{ borderRadius: '8px', textTransform: 'none', fontFamily: T.font.family }}>
             Cancel
           </Button>
-          <Button onClick={handleConfirmDelete} variant="contained" color="error" disabled={deleting} sx={{ borderRadius: '8px', textTransform: 'none', fontFamily: T.font.family, bgcolor: '#ef4444' }}>
+          <Button onClick={handleConfirmDelete} variant="contained" color="error" disabled={deleting} sx={{ borderRadius: '8px', textTransform: 'none', fontFamily: T.font.family, bgcolor: '#ea580c', '&:hover': { bgcolor: '#c2410c' } }}>
             {deleting ? 'Deleting...' : 'Delete Record(s)'}
           </Button>
         </DialogActions>
@@ -2853,7 +2961,8 @@ const LoginDashboard = () => {
               maxWidth: 420,
               width: '100%',
               boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.35)',
-              border: '1.5px solid #cbd5e1',
+              border: '1.5px solid #cbdbe9',
+              borderTop: '3.5px solid #16324f',
               bgcolor: '#ffffff'
             }
           }}
@@ -2867,10 +2976,10 @@ const LoginDashboard = () => {
           }}
         >
           <Box sx={{ textAlign: 'center', pt: 3, px: 3 }}>
-            <Avatar sx={{ bgcolor: '#ede9fe', color: '#4f46e5', width: 56, height: 56, mx: 'auto', mb: 1.5, boxShadow: '0 4px 14px rgba(79, 70, 229, 0.25)' }}>
+            <Avatar sx={{ bgcolor: '#edf4fa', color: '#16324f', width: 56, height: 56, mx: 'auto', mb: 1.5, boxShadow: '0 4px 14px rgba(22, 50, 79, 0.2)', border: '1px solid #cbdbe9' }}>
               <LockIcon sx={{ fontSize: 28 }} />
             </Avatar>
-            <Typography sx={{ fontFamily: T.font.family, fontWeight: 800, fontSize: 20, color: '#0f172a' }}>
+            <Typography sx={{ fontFamily: T.font.family, fontWeight: 800, fontSize: 20, color: '#16324f' }}>
               Admin Verification
             </Typography>
             <Typography sx={{ fontFamily: T.font.family, fontSize: 13, color: '#64748b', mt: 0.5 }}>
@@ -2917,13 +3026,13 @@ const LoginDashboard = () => {
                   mt: 2.5,
                   height: 44,
                   borderRadius: '10px',
-                  bgcolor: '#1a237e',
+                  bgcolor: '#16324f',
                   fontFamily: T.font.family,
                   fontWeight: 700,
                   fontSize: 14.5,
                   textTransform: 'none',
-                  boxShadow: '0 4px 14px rgba(26, 35, 126, 0.3)',
-                  '&:hover': { bgcolor: '#0d47a1' }
+                  boxShadow: '0 4px 14px rgba(22, 50, 79, 0.25)',
+                  '&:hover': { bgcolor: '#0f243a' }
                 }}
               >
                 Login to Dashboard
@@ -2936,11 +3045,12 @@ const LoginDashboard = () => {
                   height: 42,
                   borderRadius: '10px',
                   color: '#475569',
-                  borderColor: '#cbd5e1',
+                  borderColor: '#cbdbe9',
                   fontFamily: T.font.family,
                   fontWeight: 700,
                   fontSize: 13.5,
-                  textTransform: 'none'
+                  textTransform: 'none',
+                  '&:hover': { bgcolor: '#edf4fa', borderColor: '#16324f' }
                 }}
                 onClick={() => navigate('/')}
               >

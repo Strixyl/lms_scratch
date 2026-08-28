@@ -1,10 +1,11 @@
 // ── Sentiment Dashboard — Reusable Sub-Components ───────────────────────────
 // Chart components, chips, tooltips, and cards extracted from SentimentDashboard.
 
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import {
   Box, Typography, Card, CardContent, Avatar, Paper,
-  Tooltip, ButtonBase, Chip,
+  Tooltip, Chip, Button, Select, MenuItem,
+  FormControl, ToggleButton, ToggleButtonGroup,
 } from '@mui/material';
 import {
   ArrowDropUp as ArrowDropUpIcon,
@@ -15,11 +16,24 @@ import {
   ThumbDown as ThumbDownIcon,
   LocalOffer as LocalOfferIcon,
   FormatQuote as FormatQuoteIcon,
-  ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
   Bolt as BoltIcon,
   Assessment as AssessmentIcon,
+  Apartment as ApartmentIcon,
+  People as PeopleIcon,
+  MenuBook as MenuBookIcon,
 } from '@mui/icons-material';
+import {
+  AreaChart,
+  Area,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+} from 'recharts';
 import ReactWordcloud from 'react-wordcloud';
 import {
   THEME,
@@ -39,23 +53,23 @@ export const SentimentChip = ({ label }) => {
 
   const config = isPos
     ? {
-        bg: '#dcfce7',
-        border: '#86efac',
-        text: '#059669',
-        icon: <ArrowDropUpIcon sx={{ fontSize: 20, my: -0.4, ml: -0.3, mr: 0.1, color: '#059669' }} />
+        bg: '#e6f4f5',
+        border: '#b3dfe2',
+        text: '#005960',
+        icon: <ArrowDropUpIcon sx={{ fontSize: 20, my: -0.4, ml: -0.3, mr: 0.1, color: '#005960' }} />
       }
     : isNeg
       ? {
-          bg: '#fee2e2',
-          border: '#fca5a5',
-          text: '#dc2626',
-          icon: <ArrowDropDownIcon sx={{ fontSize: 20, my: -0.4, ml: -0.3, mr: 0.1, color: '#dc2626' }} />
+          bg: '#fff1f2',
+          border: '#fecdd3',
+          text: '#be123c',
+          icon: <ArrowDropDownIcon sx={{ fontSize: 20, my: -0.4, ml: -0.3, mr: 0.1, color: '#e11d48' }} />
         }
       : {
-          bg: '#fef3c7',
-          border: '#fde68a',
-          text: '#b45309',
-          icon: <FiberManualRecordIcon sx={{ fontSize: 8, mr: 0.4, color: '#b45309' }} />
+          bg: '#f1f5f9',
+          border: '#cbd5e1',
+          text: '#475569',
+          icon: <FiberManualRecordIcon sx={{ fontSize: 8, mr: 0.4, color: '#94a3b8' }} />
         };
 
   return (
@@ -89,28 +103,44 @@ export const CategoryChip = ({ label }) => {
   const norm = label || 'Other/Uncategorized';
 
   const catStyles = {
-    Staff: { bg: '#dbeafe', border: '#bfdbfe', text: '#2563eb' },
-    Facilities: { bg: '#f3e8ff', border: '#e9d5ff', text: '#7c3aed' },
-    Collection: { bg: '#fce7f3', border: '#fbcfe8', text: '#db2777' },
-    'Other/Uncategorized': { bg: '#f1f5f9', border: '#e2e8f0', text: '#475569' },
+    Staff: { bg: '#fff7ed', border: '#fed7aa', text: '#c2410c', dot: '#ea580c' },
+    Facilities: { bg: '#eff6ff', border: '#bfdbfe', text: '#1d4ed8', dot: '#2563eb' },
+    Collection: { bg: '#faf5ff', border: '#e9d5ff', text: '#7e22ce', dot: '#9333ea' },
+    Environment: { bg: '#ecfdf5', border: '#a7f3d0', text: '#047857', dot: '#059669' },
+    Services: { bg: '#f0fdfa', border: '#99f6e4', text: '#0f766e', dot: '#0d9488' },
+    Technology: { bg: '#fdf2f8', border: '#fbcfe8', text: '#be185d', dot: '#db2777' },
+    'Other/Uncategorized': { bg: '#f8fafc', border: '#cbd5e1', text: '#475569', dot: '#64748b' },
+    Other: { bg: '#f8fafc', border: '#cbd5e1', text: '#475569', dot: '#64748b' },
   };
 
-  const config = catStyles[norm] || catStyles['Other/Uncategorized'];
+  const config = catStyles[norm] || {
+    bg: '#f8fafc',
+    border: '#cbd5e1',
+    text: '#475569',
+    dot: '#64748b',
+  };
 
   return (
     <Box sx={{
       display: 'inline-flex',
       alignItems: 'center',
-      justifyContent: 'center',
+      gap: 0.7,
       bgcolor: config.bg,
       border: `1.5px solid ${config.border}`,
       borderRadius: '9999px',
-      px: 1.6,
+      px: 1.3,
       py: 0.35,
       lineHeight: 1,
     }}>
+      <Box sx={{
+        width: 6,
+        height: 6,
+        borderRadius: '50%',
+        bgcolor: config.dot,
+        flexShrink: 0,
+      }} />
       <Typography sx={{
-        fontSize: 12.5,
+        fontSize: 12,
         fontWeight: 700,
         color: config.text,
         fontFamily: T.font.family,
@@ -128,7 +158,7 @@ export const SummaryCard = ({
   value,
   subtitle,
   icon,
-  color = '#3b82f6',
+  color = '#16324f',
   tooltipContent = null,
   isFeatured = false,
   footnote = null,
@@ -137,8 +167,8 @@ export const SummaryCard = ({
     const cardContent = (
       <Card elevation={0} sx={{
         borderRadius: 3.5,
-        bgcolor: '#1d2f8a',
-        background: 'linear-gradient(145deg, #1d2f8a 0%, #152266 100%)',
+        bgcolor: '#16324f',
+        background: 'linear-gradient(145deg, #16324f 0%, #0e2237 100%)',
         flex: 1,
         minWidth: 180,
         p: 2.2,
@@ -146,11 +176,11 @@ export const SummaryCard = ({
         flexDirection: 'column',
         justifyContent: 'space-between',
         cursor: tooltipContent ? 'pointer' : 'default',
-        boxShadow: '0 4px 16px -2px rgba(29, 47, 138, 0.35)',
+        boxShadow: '0 4px 16px -2px rgba(22, 50, 79, 0.35)',
         transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
         '&:hover': {
           transform: 'translateY(-3px)',
-          boxShadow: '0 8px 24px -4px rgba(29, 47, 138, 0.45)',
+          boxShadow: '0 8px 24px -4px rgba(22, 50, 79, 0.45)',
         }
       }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -158,7 +188,7 @@ export const SummaryCard = ({
             fontFamily: T.font.family,
             fontSize: 11,
             fontWeight: 800,
-            color: '#93c5fd',
+            color: '#cbdbe9',
             letterSpacing: '0.8px',
             textTransform: 'uppercase',
           }}>
@@ -166,7 +196,7 @@ export const SummaryCard = ({
           </Typography>
           <Box sx={{
             bgcolor: 'rgba(255, 255, 255, 0.12)',
-            color: '#93c5fd',
+            color: '#ffd580',
             width: 32,
             height: 32,
             borderRadius: '8px',
@@ -192,7 +222,7 @@ export const SummaryCard = ({
           <Typography sx={{
             fontFamily: T.font.family,
             fontSize: 12,
-            color: '#bfdbfe',
+            color: '#cbdbe9',
             fontWeight: 500,
             mt: 0.3,
           }}>
@@ -202,7 +232,7 @@ export const SummaryCard = ({
             <Typography sx={{
               fontFamily: T.font.family,
               fontSize: 11,
-              color: '#93c5fd',
+              color: '#ffd580',
               fontWeight: 600,
               mt: 0.8,
             }}>
@@ -257,7 +287,7 @@ export const SummaryCard = ({
           {icon}
         </Avatar>
       </Box>
-      <Typography sx={{ fontFamily: T.font.family, fontWeight: 800, fontSize: 28, color: '#0f172a', lineHeight: 1.1 }}>
+      <Typography sx={{ fontFamily: T.font.family, fontWeight: 800, fontSize: 28, color: '#16324f', lineHeight: 1.1 }}>
         {value}
       </Typography>
       <Typography sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 13, color: '#334155', mt: 0.8 }}>
@@ -287,7 +317,7 @@ export const SummaryCard = ({
 // ── Top Comments Card (Positive / Negative) ─────────────────────────────────
 export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
   const isPositive = type === 'positive';
-  const borderColor = isPositive ? '#10b981' : '#ef4444';
+  const borderColor = isPositive ? '#005960' : '#e11d48';
 
   const cleanQuote = (msg) => {
     if (!msg) return '';
@@ -322,11 +352,11 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
         p: { xs: 2, sm: 2.5 },
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: '0 2px 12px rgba(0,0,0,0.02)',
+        boxShadow: '0 2px 12px rgba(22, 50, 79, 0.02)',
         overflow: 'hidden',
         transition: 'all 0.2s ease',
         '&:hover': {
-          boxShadow: '0 6px 20px rgba(0,0,0,0.05)',
+          boxShadow: '0 6px 20px rgba(22, 50, 79, 0.05)',
           borderColor: '#cbd5e1',
           borderTopColor: borderColor,
         }
@@ -335,14 +365,14 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
       {/* Header Container (Styled like Priority Action Container with border, borderLeft, gradient & badge) */}
       <Box sx={{
         background: isPositive
-          ? 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'
-          : 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
+          ? 'linear-gradient(135deg, #e6f4f5 0%, #d8edf0 100%)'
+          : 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)',
         borderRadius: 2.5,
         p: { xs: 1.5, sm: 1.8 },
         mb: 2.2,
-        border: isPositive ? '1.5px solid #bbf7d0' : '1.5px solid #fecaca',
-        borderLeft: isPositive ? '5px solid #16a34a' : '5px solid #dc2626',
-        boxShadow: isPositive ? '0 3px 12px rgba(22, 163, 74, 0.08)' : '0 3px 12px rgba(220, 38, 38, 0.08)',
+        border: isPositive ? '1.5px solid #b3dfe2' : '1.5px solid #fecdd3',
+        borderLeft: isPositive ? '5px solid #005960' : '5px solid #e11d48',
+        boxShadow: isPositive ? '0 3px 12px rgba(0, 89, 96, 0.08)' : '0 3px 12px rgba(225, 29, 72, 0.08)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -351,7 +381,7 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, minWidth: 0 }}>
           <Box sx={{
-            bgcolor: isPositive ? '#15803d' : '#b91c1c',
+            bgcolor: isPositive ? '#005960' : '#e11d48',
             color: '#ffffff',
             px: 1.1,
             py: 0.35,
@@ -374,7 +404,7 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
             fontFamily: T.font.family,
             fontWeight: 800,
             fontSize: { xs: 14, sm: 15.5 },
-            color: isPositive ? '#14532d' : '#7f1d1d',
+            color: isPositive ? '#005960' : '#be123c',
             letterSpacing: '-0.2px',
             lineHeight: 1.3,
             whiteSpace: 'nowrap',
@@ -388,9 +418,9 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
           fontFamily: T.font.family,
           fontSize: 11.5,
           fontWeight: 700,
-          color: isPositive ? '#166534' : '#991b1b',
+          color: isPositive ? '#005960' : '#be123c',
           bgcolor: '#ffffff',
-          border: isPositive ? '1.5px solid #bbf7d0' : '1.5px solid #fecaca',
+          border: isPositive ? '1.5px solid #b3dfe2' : '1.5px solid #fecdd3',
           px: 1.2,
           py: 0.3,
           borderRadius: '9999px',
@@ -454,20 +484,21 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
               >
                 {/* Badge Row */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.9, flexWrap: 'wrap' }}>
-                  {/* Dark Circular Number Badge */}
+                  {/* De-emphasized Circular Number Badge */}
                   <Box sx={{
                     width: 20,
                     height: 20,
                     minWidth: 20,
                     borderRadius: '50%',
-                    bgcolor: '#0f172a',
-                    color: '#ffffff',
+                    bgcolor: '#f1f5f9',
+                    color: '#475569',
+                    border: '1px solid #cbd5e1',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontFamily: T.font.family,
                     fontSize: 11,
-                    fontWeight: 800,
+                    fontWeight: 700,
                     lineHeight: 1,
                   }}>
                     {i + 1}
@@ -478,8 +509,8 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
                     px: 1,
                     py: 0.2,
                     borderRadius: '4px',
-                    bgcolor: isFacultyOrStaff ? '#0f172a' : '#ede9fe',
-                    color: isFacultyOrStaff ? '#ffffff' : '#4f46e5',
+                    bgcolor: isFacultyOrStaff ? '#16324f' : '#edf4fa',
+                    color: isFacultyOrStaff ? '#ffffff' : '#16324f',
                     fontFamily: T.font.family,
                     fontSize: 10.5,
                     fontWeight: 800,
@@ -496,8 +527,9 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
                       px: 1,
                       py: 0.2,
                       borderRadius: '4px',
-                      bgcolor: '#ede9fe',
-                      color: '#4f46e5',
+                      bgcolor: '#edf4fa',
+                      color: '#16324f',
+                      border: '1px solid #cbdbe9',
                       fontFamily: T.font.family,
                       fontSize: 10.5,
                       fontWeight: 700,
@@ -519,9 +551,9 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
                     fontSize: 11,
                     fontWeight: 700,
                     fontFamily: T.font.family,
-                    bgcolor: '#fef3c7',
-                    color: '#92400e',
-                    border: '1px solid #fde68a',
+                    bgcolor: isPositive ? '#e6f4f5' : '#fff1f2',
+                    color: isPositive ? '#005960' : '#be123c',
+                    border: `1px solid ${isPositive ? '#b3dfe2' : '#fecdd3'}`,
                     lineHeight: 1.2,
                   }}>
                     {getKeywordBadgeText(row)}
@@ -551,11 +583,9 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
 
 // ── Recommendation Card for a specific flagged category / topic ───────────
 export const RecommendationCard = ({ stat }) => {
-  const [expandedQuotes, setExpandedQuotes] = useState({});
-
   if (!stat) return null;
   const isHigh = (stat.severity || '').toUpperCase() === 'HIGH';
-  const accentColor = isHigh ? '#ef4444' : '#f59e0b';
+  const accentColor = isHigh ? '#ea580c' : '#f69d1b';
 
   const cleanQuote = (msg) => {
     if (!msg) return '';
@@ -564,10 +594,6 @@ export const RecommendationCard = ({ stat }) => {
       str = str.slice(1, -1).trim();
     }
     return str;
-  };
-
-  const toggleQuoteExpand = (idx) => {
-    setExpandedQuotes(prev => ({ ...prev, [idx]: !prev[idx] }));
   };
 
   const keywords = stat.keywords || [];
@@ -598,7 +624,7 @@ export const RecommendationCard = ({ stat }) => {
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1.2, mb: 1.8 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, minWidth: 0 }}>
           <Box sx={{
-            bgcolor: isHigh ? '#ef4444' : '#f59e0b',
+            bgcolor: isHigh ? '#ea580c' : '#f69d1b',
             color: '#ffffff',
             px: 1.2,
             py: 0.35,
@@ -617,7 +643,7 @@ export const RecommendationCard = ({ stat }) => {
             fontFamily: T.font.family,
             fontWeight: 800,
             fontSize: { xs: 14, sm: 15 },
-            color: '#0f172a',
+            color: '#16324f',
             letterSpacing: '-0.2px',
             lineHeight: 1.3,
             whiteSpace: 'nowrap',
@@ -646,17 +672,17 @@ export const RecommendationCard = ({ stat }) => {
 
       {/* Priority Action Box (Hero High-Contrast Callout) */}
       <Box sx={{
-        background: 'linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%)',
+        background: 'linear-gradient(135deg, #edf4fa 0%, #fff7ed 100%)',
         borderRadius: 2.5,
         p: { xs: 1.8, sm: 2 },
         mb: 2.4,
-        border: '1.5px solid #c7d2fe',
-        borderLeft: '5px solid #4f46e5',
-        boxShadow: '0 3px 12px rgba(79, 70, 229, 0.08)',
+        border: '1.5px solid #fed7aa',
+        borderLeft: '5px solid #f69d1b',
+        boxShadow: '0 3px 12px rgba(246, 157, 27, 0.1)',
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, mb: 0.8 }}>
           <Box sx={{
-            bgcolor: '#4338ca',
+            bgcolor: '#16324f',
             color: '#ffffff',
             px: 1,
             py: 0.3,
@@ -665,7 +691,7 @@ export const RecommendationCard = ({ stat }) => {
             alignItems: 'center',
             gap: 0.4,
           }}>
-            <BoltIcon sx={{ fontSize: 13 }} />
+            <BoltIcon sx={{ fontSize: 13, color: '#ffd580' }} />
             <Typography sx={{
               fontFamily: T.font.family,
               fontSize: 10.5,
@@ -682,7 +708,7 @@ export const RecommendationCard = ({ stat }) => {
           fontFamily: T.font.family,
           fontSize: { xs: 13.5, sm: 14.5 },
           fontWeight: 800,
-          color: '#1e1b4b',
+          color: '#16324f',
           lineHeight: 1.5,
           letterSpacing: '-0.1px',
         }}>
@@ -693,12 +719,12 @@ export const RecommendationCard = ({ stat }) => {
       {/* Pain-Point Keywords Section */}
       <Box sx={{ mb: 2.2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, mb: 1 }}>
-          <LocalOfferIcon sx={{ fontSize: 13, color: '#64748b' }} />
+          <LocalOfferIcon sx={{ fontSize: 13, color: '#16324f' }} />
           <Typography sx={{
             fontFamily: T.font.family,
             fontSize: 11,
             fontWeight: 800,
-            color: '#64748b',
+            color: '#16324f',
             letterSpacing: '0.5px',
             textTransform: 'uppercase',
           }}>
@@ -715,25 +741,30 @@ export const RecommendationCard = ({ stat }) => {
                 alignItems: 'center',
                 gap: 0.7,
                 bgcolor: '#ffffff',
-                border: isHigh ? '1.5px solid #fecaca' : '1.5px solid #fed7aa',
+                border: '1.5px solid #cbdbe9',
                 borderRadius: '9999px',
                 px: 1.4,
-                py: 0.45,
-                boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                py: 0.4,
+                boxShadow: '0 1px 3px rgba(22, 50, 79, 0.02)',
+                transition: 'all 0.15s ease',
+                '&:hover': {
+                  bgcolor: '#f8fafc',
+                  borderColor: '#16324f',
+                }
               }}
             >
               <Typography sx={{
                 fontFamily: T.font.family,
                 fontSize: 12.5,
-                fontWeight: 700,
-                color: isHigh ? '#991b1b' : '#9a3412',
+                fontWeight: 800,
+                color: '#16324f',
                 lineHeight: 1.2,
                 textTransform: 'capitalize',
               }}>
                 {kw.word}
               </Typography>
               <Box sx={{
-                bgcolor: isHigh ? '#ef4444' : '#ea580c',
+                bgcolor: '#16324f',
                 color: '#ffffff',
                 borderRadius: '9999px',
                 px: 0.8,
@@ -791,8 +822,6 @@ export const RecommendationCard = ({ stat }) => {
           {evidences.slice(0, 3).map((ev, idx) => {
             const rawQuote = typeof ev === 'string' ? ev : (ev.Message || '');
             const cleaned = cleanQuote(rawQuote);
-            const isExpanded = !!expandedQuotes[idx];
-            const isLong = cleaned.length > 95;
 
             return (
               <Box
@@ -813,11 +842,12 @@ export const RecommendationCard = ({ stat }) => {
                     width: 20,
                     height: 20,
                     borderRadius: '50%',
-                    bgcolor: '#e2e8f0',
-                    color: '#64748b',
+                    bgcolor: '#f1f5f9',
+                    color: '#475569',
+                    border: '1px solid #cbd5e1',
                     fontFamily: T.font.family,
                     fontSize: 10.5,
-                    fontWeight: 800,
+                    fontWeight: 700,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -829,6 +859,7 @@ export const RecommendationCard = ({ stat }) => {
 
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Typography
+                      title={cleaned}
                       sx={{
                         fontFamily: T.font.family,
                         fontSize: 12.5,
@@ -837,38 +868,15 @@ export const RecommendationCard = ({ stat }) => {
                         fontStyle: 'italic',
                         lineHeight: 1.5,
                         wordBreak: 'break-word',
-                        display: isExpanded || !isLong ? 'block' : '-webkit-box',
-                        WebkitLineClamp: isExpanded || !isLong ? 'unset' : 2,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
                         WebkitBoxOrient: 'vertical',
-                        overflow: isExpanded || !isLong ? 'visible' : 'hidden',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
                       }}
                     >
                       "{cleaned}"
                     </Typography>
-
-                    {isLong && (
-                      <ButtonBase
-                        onClick={() => toggleQuoteExpand(idx)}
-                        sx={{
-                          mt: 0.4,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 0.2,
-                          color: '#4f46e5',
-                          fontFamily: T.font.family,
-                          fontSize: 11.5,
-                          fontWeight: 700,
-                          '&:hover': { textDecoration: 'underline' },
-                        }}
-                      >
-                        <span>{isExpanded ? 'Show less' : 'View full quote'}</span>
-                        {isExpanded ? (
-                          <ExpandLessIcon sx={{ fontSize: 14 }} />
-                        ) : (
-                          <ExpandMoreIcon sx={{ fontSize: 14 }} />
-                        )}
-                      </ButtonBase>
-                    )}
                   </Box>
                 </Box>
               </Box>
@@ -1057,16 +1065,16 @@ export const WordCloudSection = React.memo(({
 }) => {
   const wordCloudOptions = useMemo(() => ({
     deterministic: true,
-    randomSeed: 'hll-library-wordcloud-v4',
+    randomSeed: 'hll-library-wordcloud-poster-v1',
     rotations: 1,
-    rotationAngles: [0, 0],
-    fontFamily: T.font.family,
-    fontSizes: [14, 68],
+    rotationAngles: [0, 0], // Strictly horizontal words only, no vertical rotation
+    fontFamily: '"Arial Black", Impact, "Trebuchet MS", "Poppins", sans-serif',
+    fontSizes: [16, 76],
     fontStyle: 'normal',
-    fontWeight: '800',
-    padding: 2,
+    fontWeight: '900',
+    padding: 3,
     enableTooltip: true,
-    transitionDuration: 750, // Fluid, smooth layout transition duration for d3-cloud
+    transitionDuration: 650, // Fluid, smooth layout transition duration for d3-cloud
     scale: 'sqrt',
     spiral: 'archimedean',
   }), []);
@@ -1077,15 +1085,9 @@ export const WordCloudSection = React.memo(({
         return '#ea580c';
       }
       if (words.length > 0 && word.text === words[0]?.text) {
-        return '#1e3a8a'; // prominent deep navy for the #1 center word
+        return '#ea580c'; // Vibrant warm orange for the #1 prominent word
       }
-      if (words.length > 1 && word.text === words[1]?.text) {
-        return '#854d0e'; // rich warm amber/brown for #2
-      }
-      if (words.length > 2 && word.text === words[2]?.text) {
-        return '#9d174d'; // rich raspberry for #3
-      }
-      const charCodeSum = (word.text || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      const charCodeSum = (word.text || '').split('').reduce((acc, char, i) => acc + char.charCodeAt(0) * (i + 1), 0);
       return T.wordCloudColors[charCodeSum % T.wordCloudColors.length];
     },
     getWordTooltip: (word) => `"${word.text}" — ${word.value} ${word.value === 1 ? 'mention' : 'mentions'}`,
@@ -1100,16 +1102,16 @@ export const WordCloudSection = React.memo(({
     <Card elevation={0} sx={{
       ...cardShellSx,
       mb: 3.5,
-      border: '1.5px solid rgba(79, 70, 229, 0.22)',
-      borderTop: '3.5px solid #4f46e5',
-      boxShadow: '0 2px 12px rgba(79, 70, 229, 0.04)',
+      border: '1.5px solid #cbdbe9',
+      borderTop: '3.5px solid #16324f',
+      boxShadow: '0 2px 12px rgba(22, 50, 79, 0.04)',
       transition: 'box-shadow 0.3s ease',
     }}>
       <Box sx={{ ...sectionHeaderSx, flexWrap: 'wrap', gap: 1.5 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
           <Box sx={{
-            bgcolor: '#ede9fe',
-            color: '#4f46e5',
+            bgcolor: '#edf4fa',
+            color: '#16324f',
             p: 0.55,
             borderRadius: '8px',
             display: 'flex',
@@ -1140,9 +1142,9 @@ export const WordCloudSection = React.memo(({
                 fontWeight: 700,
                 fontFamily: T.font.family,
                 borderRadius: '9999px',
-                bgcolor: '#fef3c7',
-                color: '#b45309',
-                border: '1px solid #fde68a',
+                bgcolor: '#fff7ed',
+                color: '#c2410c',
+                border: '1px solid #fed7aa',
                 animation: 'popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
                 '@keyframes popIn': {
                   '0%': { transform: 'scale(0.85)', opacity: 0 },
@@ -1161,11 +1163,11 @@ export const WordCloudSection = React.memo(({
           </Typography>
         ) : (
           <Box sx={{
-            height: 350,
-            borderRadius: 3,
-            p: 2,
-            bgcolor: T.surface.wordCloudBg,
-            border: `1.5px solid ${T.surface.borderLight}`,
+            height: 380,
+            borderRadius: 3.5,
+            p: 2.5,
+            bgcolor: '#ffffff',
+            border: '1.5px solid #cbdbe9',
             position: 'relative',
             overflow: 'hidden',
             animation: 'wordCloudContainerFade 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
@@ -1185,13 +1187,14 @@ export const WordCloudSection = React.memo(({
             },
             '& svg text': {
               cursor: 'pointer',
-              fontFamily: `${T.font.family} !important`,
+              fontFamily: '"Arial Black", Impact, "Trebuchet MS", "Poppins", sans-serif !important',
+              fontWeight: '900 !important',
               userSelect: 'none',
               transition: 'fill 0.3s ease, opacity 0.25s ease, filter 0.25s ease !important',
             },
             '& svg text:hover': {
               opacity: '0.85 !important',
-              filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.2))',
+              filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.25))',
             }
           }}>
             <ReactWordcloud
@@ -1206,3 +1209,755 @@ export const WordCloudSection = React.memo(({
     </Card>
   );
 });
+
+// ── Modern KPI Metric Card (Matching Reference Design with Top-Right Pill Badge) ─────
+export const ModernKpiCard = ({
+  title,
+  value,
+  badgeText,
+  badgeType = 'positive', // 'positive' | 'negative' | 'neutral' | 'purple' | 'blue'
+  subtitle,
+  highlighted = false,
+  borderColorTheme = 'gold', // 'gold' | 'blue'
+}) => {
+  const badgeConfig = {
+    positive: { bg: '#e6f4f5', text: '#005960', border: '#b3dfe2' },
+    negative: { bg: '#fff1f2', text: '#be123c', border: '#fecdd3' },
+    neutral:  { bg: '#f1f5f9', text: '#475569', border: '#cbd5e1' },
+    purple:   { bg: '#fff8eb', text: '#d97706', border: '#fed7aa' },
+    blue:     { bg: '#edf4fa', text: '#16324f', border: '#cbdbe9' },
+  }[badgeType] || { bg: '#f8fafc', text: '#475569', border: '#e2e8f0' };
+
+  if (highlighted) {
+    return (
+      <Card
+        elevation={0}
+        sx={{
+          background: 'linear-gradient(135deg, #16324f 0%, #0e2237 100%)',
+          color: '#ffffff',
+          borderRadius: '16px',
+          border: '1.5px solid #f69d1b',
+          p: { xs: 2, sm: 2.2 },
+          boxShadow: '0 4px 18px rgba(22, 50, 79, 0.28), 0 0 0 1px rgba(246, 157, 27, 0.35)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          flex: 1,
+          minWidth: 0,
+          transition: 'all 0.2s ease-in-out',
+          '&:hover': {
+            transform: 'translateY(-2px)',
+            boxShadow: '0 8px 24px rgba(22, 50, 79, 0.38), 0 0 0 1.5px #f69d1b',
+            borderColor: '#f69d1b',
+          }
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.2 }}>
+          <Typography sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 700, color: 'rgba(255, 255, 255, 0.9)' }}>
+            {title}
+          </Typography>
+          {badgeText && (
+            <Box sx={{
+              bgcolor: 'rgba(246, 157, 27, 0.25)',
+              color: '#ffd580',
+              border: '1px solid rgba(254, 215, 170, 0.5)',
+              backdropFilter: 'blur(4px)',
+              borderRadius: '9999px',
+              px: 1.1,
+              py: 0.2,
+              fontSize: 11.5,
+              fontWeight: 800,
+              fontFamily: T.font.family,
+              lineHeight: 1.2,
+            }}>
+              {badgeText}
+            </Box>
+          )}
+        </Box>
+
+        <Typography sx={{ fontFamily: T.font.family, fontSize: { xs: 24, sm: 28, md: 30 }, fontWeight: 800, color: '#ffffff', lineHeight: 1.1, mb: 0.6 }}>
+          {value}
+        </Typography>
+
+        {subtitle && (
+          <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 500, color: 'rgba(255, 255, 255, 0.82)' }}>
+            {subtitle}
+          </Typography>
+        )}
+      </Card>
+    );
+  }
+
+  const isBlue = borderColorTheme === 'blue';
+  const borderCol = isBlue ? '#cbdbe9' : '#fed7aa';
+  const borderTopCol = isBlue ? '#16324f' : '#f69d1b';
+  const shadowColor = isBlue ? 'rgba(22, 50, 79, 0.04)' : 'rgba(246, 157, 27, 0.04)';
+  const hoverShadowColor = isBlue ? 'rgba(22, 50, 79, 0.1)' : 'rgba(246, 157, 27, 0.1)';
+
+  return (
+    <Card
+      elevation={0}
+      sx={{
+        bgcolor: '#ffffff',
+        borderRadius: '16px',
+        border: `1.5px solid ${borderCol}`,
+        borderTop: `3.5px solid ${borderTopCol}`,
+        p: { xs: 2, sm: 2.2 },
+        boxShadow: `0 2px 8px ${shadowColor}`,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        flex: 1,
+        minWidth: 0,
+        transition: 'all 0.2s ease-in-out',
+        '&:hover': {
+          transform: 'translateY(-2px)',
+          boxShadow: `0 8px 20px ${hoverShadowColor}`,
+          borderColor: borderTopCol,
+        }
+      }}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.2 }}>
+        <Typography sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 600, color: '#64748b' }}>
+          {title}
+        </Typography>
+        {badgeText && (
+          <Box sx={{
+            bgcolor: badgeConfig.bg,
+            color: badgeConfig.text,
+            border: `1px solid ${badgeConfig.border}`,
+            borderRadius: '9999px',
+            px: 1.1,
+            py: 0.2,
+            fontSize: 11.5,
+            fontWeight: 700,
+            fontFamily: T.font.family,
+            lineHeight: 1.2,
+          }}>
+            {badgeText}
+          </Box>
+        )}
+      </Box>
+
+      <Typography sx={{ fontFamily: T.font.family, fontSize: { xs: 24, sm: 28, md: 30 }, fontWeight: 800, color: '#16324f', lineHeight: 1.1, mb: 0.6 }}>
+        {value}
+      </Typography>
+
+      {subtitle && (
+        <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 500, color: '#94a3b8' }}>
+          {subtitle}
+        </Typography>
+      )}
+    </Card>
+  );
+};
+
+// ── Custom Tooltip for Revenue-Style Sentiment Trend Area Chart ────────────
+export const CustomRevenueTooltip = ({ active, payload, label, metricMode = 'percent' }) => {
+  if (active && payload && payload.length) {
+    const dataObj = payload[0]?.payload || {};
+    const pos = Number(dataObj.Positive) || 0;
+    const total = Number(dataObj.Total) || 0;
+    const posPct = Number(dataObj.posPct) || 0;
+    const year = dataObj.year || '2026';
+
+    return (
+      <Paper
+        elevation={3}
+        sx={{
+          p: 1.5,
+          bgcolor: '#ffffff',
+          border: '1.5px solid #e2e8f0',
+          borderRadius: '12px',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.1)',
+          minWidth: 150,
+        }}
+      >
+        <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#16324f', mb: 0.5 }}>
+          {label} {year}
+        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#005960' }} />
+          <Typography sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 800, color: '#16324f' }}>
+            {metricMode === 'percent'
+              ? `Positive: ${posPct}%`
+              : `Positive: ${pos} surveys`}
+          </Typography>
+        </Box>
+        <Typography sx={{ fontFamily: T.font.family, fontSize: 11, color: '#94a3b8', mt: 0.4 }}>
+          {total} total responses ({pos} pos, {dataObj.rawNegative || dataObj.Negative || 0} neg)
+        </Typography>
+      </Paper>
+    );
+  }
+  return null;
+};
+
+// ── Revenue-Style Monthly Sentiment Trend Container ────────────────────────
+export const RevenueStyleSentimentChart = ({
+  data = [],
+  title = "Monthly Sentiment Overview",
+  primaryValue = "84.2%",
+  deltaText = "+5.2% vs last month",
+  deltaType = "positive",
+  timeframe = "1Y",
+  onTimeframeChange,
+  metricMode = "percent",
+  onMetricModeChange,
+  availableYears = [],
+  selectedYear = "2026",
+  onYearChange,
+}) => {
+  const isPositiveDelta = deltaType === 'positive';
+
+  return (
+    <Card
+      elevation={0}
+      sx={{
+        bgcolor: '#ffffff',
+        borderRadius: '16px',
+        border: '1.5px solid #fed7aa',
+        borderTop: '3.5px solid #f69d1b',
+        p: { xs: 2, sm: 2.5 },
+        boxShadow: '0 2px 10px rgba(246, 157, 27, 0.03)',
+        display: 'flex',
+        flexDirection: 'column',
+        transition: 'all 0.2s ease-in-out',
+        '&:hover': {
+          boxShadow: '0 6px 20px rgba(246, 157, 27, 0.08)',
+          borderColor: '#f69d1b',
+        }
+      }}
+    >
+      {/* Header Container */}
+      <Box sx={{
+        display: 'flex',
+        alignItems: { xs: 'flex-start', sm: 'center' },
+        justifyContent: 'space-between',
+        flexDirection: { xs: 'column', sm: 'row' },
+        gap: 1.5,
+        mb: 2,
+      }}>
+        <Box>
+          <Typography sx={{ fontFamily: T.font.family, fontSize: 14, fontWeight: 700, color: '#64748b' }}>
+            {title}
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.2, mt: 0.4, flexWrap: 'wrap' }}>
+            <Typography sx={{ fontFamily: T.font.family, fontSize: { xs: 26, sm: 32 }, fontWeight: 800, color: '#16324f', lineHeight: 1.1 }}>
+              {primaryValue}
+            </Typography>
+            {deltaText && (
+              <Box sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 0.3,
+                color: isPositiveDelta ? '#005960' : '#e11d48',
+                fontFamily: T.font.family,
+                fontSize: 12.5,
+                fontWeight: 700,
+              }}>
+                {isPositiveDelta ? '↗' : '↘'} {deltaText}
+              </Box>
+            )}
+          </Box>
+        </Box>
+
+        {/* Timeframe & View Controls */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', alignSelf: { xs: 'stretch', sm: 'auto' }, justifyContent: { xs: 'space-between', sm: 'flex-end' } }}>
+          {/* 1M 3M 6M 1Y ALL Segmented Controls */}
+          <ToggleButtonGroup
+            value={timeframe}
+            exclusive
+            onChange={(e, newTf) => { if (newTf && onTimeframeChange) onTimeframeChange(newTf); }}
+            size="small"
+            sx={{
+              height: 32,
+              borderRadius: '9999px',
+              bgcolor: '#edf2f7',
+              p: 0.3,
+              '& .MuiToggleButton-root': {
+                fontFamily: T.font.family,
+                fontSize: 11.5,
+                fontWeight: 600,
+                textTransform: 'none',
+                px: 1.2,
+                color: '#64748b',
+                border: 'none',
+                borderRadius: '9999px',
+                '&.Mui-selected': {
+                  bgcolor: '#ffffff',
+                  color: '#16324f',
+                  fontWeight: 800,
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                  '&:hover': { bgcolor: '#ffffff' }
+                }
+              }
+            }}
+          >
+            <ToggleButton value="1M">1M</ToggleButton>
+            <ToggleButton value="3M">3M</ToggleButton>
+            <ToggleButton value="6M">6M</ToggleButton>
+            <ToggleButton value="1Y">1Y</ToggleButton>
+            <ToggleButton value="ALL">ALL</ToggleButton>
+          </ToggleButtonGroup>
+
+          {/* Optional Year Selector */}
+          {availableYears.length > 0 && onYearChange && (
+            <FormControl size="small" sx={{ minWidth: 90 }}>
+              <Select
+                value={selectedYear}
+                onChange={(e) => onYearChange(e.target.value)}
+                sx={{
+                  height: 32,
+                  borderRadius: '9999px',
+                  fontFamily: T.font.family,
+                  fontWeight: 700,
+                  fontSize: 11.5,
+                  bgcolor: '#f8fafc',
+                  color: '#334155',
+                  '& fieldset': { borderColor: '#e2e8f0' }
+                }}
+              >
+                <MenuItem value="All" sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 600 }}>All Years</MenuItem>
+                {availableYears.map(yr => (
+                  <MenuItem key={yr} value={yr} sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 600 }}>{yr}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
+        </Box>
+      </Box>
+
+      {/* Smooth Curved Area Chart */}
+      <Box sx={{ width: '100%', height: 290, mt: 1 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={data} margin={{ top: 15, right: 15, left: -15, bottom: 0 }}>
+            <defs>
+              <linearGradient id="revenueTealGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#005960" stopOpacity={0.32} />
+                <stop offset="95%" stopColor="#005960" stopOpacity={0.0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+            <XAxis
+              dataKey="month"
+              tick={{ fontFamily: T.font.family, fontSize: 11.5, fill: '#94a3b8', fontWeight: 600 }}
+              axisLine={{ stroke: '#f1f5f9' }}
+              tickLine={false}
+            />
+            <YAxis
+              tick={{ fontFamily: T.font.family, fontSize: 11, fill: '#94a3b8', fontWeight: 600 }}
+              axisLine={false}
+              tickLine={false}
+              domain={metricMode === 'percent' ? [0, 100] : [0, 'auto']}
+              tickFormatter={(v) => metricMode === 'percent' ? `${v}%` : v >= 1000 ? `${(v/1000).toFixed(1)}k` : v}
+            />
+            <RechartsTooltip content={<CustomRevenueTooltip metricMode={metricMode} />} />
+            <Area
+              type="monotone"
+              dataKey={metricMode === 'percent' ? 'posPct' : 'Positive'}
+              stroke="#005960"
+              strokeWidth={2.5}
+              fillOpacity={1}
+              fill="url(#revenueTealGradient)"
+              activeDot={{ r: 5, fill: '#16324f', stroke: '#ffffff', strokeWidth: 2 }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </Box>
+    </Card>
+  );
+};
+
+// ── Source & Category Sentiment Breakdown Container (Right-Side Card) ────────
+export const SourceSentimentBreakdownCard = ({
+  totalSurveys = 0,
+  positiveCount = 0,
+  neutralCount = 0,
+  negativeCount = 0,
+  categoryBreakdown = [],
+  selectedCategory = 'All Categories',
+  onCategoryChange,
+  categoryOptions = ['All Categories', 'Facilities', 'Staff', 'Collection'],
+  onViewReportsClick,
+}) => {
+  const total = totalSurveys || (positiveCount + neutralCount + negativeCount);
+
+  const posPct = total > 0 ? Math.round((positiveCount / total) * 100) : 0;
+  const neuPct = total > 0 ? Math.round((neutralCount / total) * 100) : 0;
+  const negPct = total > 0 ? Math.max(0, 100 - posPct - neuPct) : 0;
+
+  // Sentiment Donut: Green for Positive, Slate Grey for Neutral, Red for Negative
+  const donutData = total > 0 ? [
+    { name: 'Positive', value: positiveCount, color: '#005960' },
+    { name: 'Neutral', value: neutralCount, color: '#64748b' },
+    { name: 'Negative', value: negativeCount, color: '#e11d48' },
+  ].filter(d => d.value > 0) : [
+    { name: 'No Data', value: 1, color: '#e2e8f0' }
+  ];
+
+  const formattedTotal = total >= 1000 ? `${(total / 1000).toFixed(1)}K` : total;
+
+  return (
+    <Card
+      elevation={0}
+      sx={{
+        bgcolor: '#ffffff',
+        borderRadius: '16px',
+        border: '1.5px solid #fed7aa',
+        borderTop: '3.5px solid #f69d1b',
+        p: { xs: 2, sm: 2.5 },
+        boxShadow: '0 2px 10px rgba(246, 157, 27, 0.03)',
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        justifyContent: 'space-between',
+        transition: 'all 0.2s ease-in-out',
+        '&:hover': {
+          boxShadow: '0 6px 20px rgba(246, 157, 27, 0.08)',
+          borderColor: '#f69d1b',
+        }
+      }}
+    >
+      {/* Header with Title and Category Dropdown Filter */}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, flexWrap: 'wrap', gap: 1 }}>
+        <Box>
+          <Typography sx={{ fontFamily: T.font.family, fontSize: 16.5, fontWeight: 800, color: '#16324f' }}>
+            Source
+          </Typography>
+          <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, fontWeight: 600, color: '#64748b' }}>
+            {selectedCategory === 'All Categories' ? 'All Service Areas' : selectedCategory}
+          </Typography>
+        </Box>
+
+        {onCategoryChange && (
+          <FormControl size="small" sx={{ minWidth: 135 }}>
+            <Select
+              value={selectedCategory}
+              onChange={(e) => onCategoryChange(e.target.value)}
+              sx={{
+                height: 32,
+                borderRadius: '8px',
+                fontFamily: T.font.family,
+                fontWeight: 700,
+                fontSize: 12,
+                bgcolor: '#f8fafc',
+                color: '#334155',
+                '& fieldset': { borderColor: '#e2e8f0' }
+              }}
+            >
+              {categoryOptions.map(opt => (
+                <MenuItem key={opt} value={opt} sx={{ fontFamily: T.font.family, fontSize: 12.5, fontWeight: 600 }}>
+                  {opt}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        )}
+      </Box>
+
+      {/* Donut Chart with Centered Total */}
+      <Box sx={{ width: '100%', position: 'relative', height: 180, my: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={donutData}
+              dataKey="value"
+              nameKey="name"
+              cx="50%"
+              cy="50%"
+              innerRadius={50}
+              outerRadius={74}
+              paddingAngle={donutData.length > 1 ? 4 : 0}
+              cornerRadius={donutData.length > 1 ? 4 : 0}
+              startAngle={90}
+              endAngle={-270}
+              stroke="#ffffff"
+              strokeWidth={2}
+            >
+              {donutData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={entry.color} />
+              ))}
+            </Pie>
+          </PieChart>
+        </ResponsiveContainer>
+
+        {/* Centered Total Label */}
+        <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', pointerEvents: 'none' }}>
+          <Typography sx={{ fontFamily: T.font.family, fontWeight: 900, fontSize: 20, color: '#16324f', lineHeight: 1.1 }}>
+            {formattedTotal}
+          </Typography>
+          <Typography sx={{ fontFamily: T.font.family, fontWeight: 600, fontSize: 11, color: '#94a3b8' }}>
+            {selectedCategory === 'All Categories' ? 'Total' : `${selectedCategory}`}
+          </Typography>
+        </Box>
+      </Box>
+
+      {/* Legend Indicators below Donut */}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 1.2, flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: '#e6f4f5', border: '1px solid #b3dfe2', px: 0.8, py: 0.2, borderRadius: '9999px' }}>
+          <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#005960' }} />
+          <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 700, color: '#005960' }}>
+            Pos ({posPct}%)
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: '#f1f5f9', border: '1px solid #cbd5e1', px: 0.8, py: 0.2, borderRadius: '9999px' }}>
+          <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#64748b' }} />
+          <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 700, color: '#475569' }}>
+            Neu ({neuPct}%)
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: '#fff1f2', border: '1px solid #fecdd3', px: 0.8, py: 0.2, borderRadius: '9999px' }}>
+          <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#e11d48' }} />
+          <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 700, color: '#be123c' }}>
+            Neg ({negPct}%)
+          </Typography>
+        </Box>
+      </Box>
+
+      {/* Category or Sentiment Breakdown Details Section */}
+      <Box sx={{ width: '100%', mb: 1.5, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        {selectedCategory === 'All Categories' ? (
+          <>
+            {/* Table Header for All Categories Comparison */}
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr', pb: 0.8, px: 0.5, borderBottom: '1px solid #f1f5f9' }}>
+              <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#94a3b8' }}>
+                Category
+              </Typography>
+              <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#94a3b8', textAlign: 'center' }}>
+                Rating
+              </Typography>
+              <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#94a3b8', textAlign: 'right' }}>
+                Surveys
+              </Typography>
+            </Box>
+
+            {/* Table Rows for All Categories */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, pt: 1 }}>
+              {categoryBreakdown.map((item, idx) => {
+                const catConfig = {
+                  Facilities: { icon: <ApartmentIcon sx={{ fontSize: 17 }} />, color: '#16324f', bg: '#edf4fa', border: '#cbdbe9' },
+                  Staff: { icon: <PeopleIcon sx={{ fontSize: 17 }} />, color: '#c2410c', bg: '#fff7ed', border: '#fed7aa' },
+                  Collection: { icon: <MenuBookIcon sx={{ fontSize: 17 }} />, color: '#254b73', bg: '#f0f4f9', border: '#cbdbe9' },
+                }[item.name] || { icon: <AssessmentIcon sx={{ fontSize: 17 }} />, color: '#16324f', bg: '#f8fafc', border: '#e2e8f0' };
+
+                return (
+                  <Box
+                    key={idx}
+                    onClick={() => {
+                      if (onCategoryChange) {
+                        onCategoryChange(item.name);
+                      }
+                    }}
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns: '1.4fr 1fr 1fr',
+                      alignItems: 'center',
+                      py: 1,
+                      px: 1,
+                      borderRadius: '10px',
+                      bgcolor: '#f8fafc',
+                      border: '1px solid #f1f5f9',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      '&:hover': {
+                        bgcolor: '#edf4fa',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                        borderColor: catConfig.color,
+                      }
+                    }}
+                  >
+                    {/* Category Icon & Prominent Name */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.9 }}>
+                      <Box sx={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: '8px',
+                        bgcolor: catConfig.bg,
+                        color: catConfig.color,
+                        border: `1px solid ${catConfig.border}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0
+                      }}>
+                        {catConfig.icon}
+                      </Box>
+                      <Typography sx={{ fontFamily: T.font.family, fontSize: 14.5, fontWeight: 800, color: '#16324f' }}>
+                        {item.name}
+                      </Typography>
+                    </Box>
+
+                    {/* Rating Metric */}
+                    <Typography sx={{
+                      fontFamily: T.font.family,
+                      fontSize: 13.5,
+                      fontWeight: 700,
+                      color: '#334155',
+                      textAlign: 'center',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 0.3,
+                    }}>
+                      {item.metric || '4.5 ★'}
+                    </Typography>
+
+                    {/* Total Submissions Count */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                      <Box sx={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        bgcolor: '#f1f5f9',
+                        color: '#334155',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '9999px',
+                        px: 1.1,
+                        py: 0.25,
+                        fontSize: 12,
+                        fontWeight: 700,
+                        fontFamily: T.font.family,
+                      }}>
+                        {item.total} {item.total === 1 ? 'survey' : 'surveys'}
+                      </Box>
+                    </Box>
+                  </Box>
+                );
+              })}
+            </Box>
+          </>
+        ) : (
+          <>
+            {/* Table Header for Single Category Breakdown */}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 0.8, px: 0.5, borderBottom: '1px solid #f1f5f9' }}>
+              <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#94a3b8' }}>
+                {selectedCategory} Breakdown
+              </Typography>
+              <Button
+                size="small"
+                onClick={() => onCategoryChange && onCategoryChange('All Categories')}
+                sx={{
+                  fontFamily: T.font.family,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  textTransform: 'none',
+                  p: 0,
+                  minWidth: 'auto',
+                  color: '#16324f',
+                  '&:hover': { bgcolor: 'transparent', textDecoration: 'underline' }
+                }}
+              >
+                All Categories ↺
+              </Button>
+            </Box>
+
+            {/* Rows for Single Category Sentiment Shares */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, pt: 1 }}>
+              {/* Positive Row */}
+              <Box sx={{
+                display: 'grid',
+                gridTemplateColumns: '1.4fr 1fr 1fr',
+                alignItems: 'center',
+                py: 0.9,
+                px: 1,
+                borderRadius: '10px',
+                bgcolor: '#e6f4f5',
+                border: '1px solid #b3dfe2',
+              }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                  <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#005960' }} />
+                  <Typography sx={{ fontFamily: T.font.family, fontSize: 13.5, fontWeight: 800, color: '#005960' }}>
+                    Positive
+                  </Typography>
+                </Box>
+                <Typography sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 700, color: '#005960', textAlign: 'center' }}>
+                  {positiveCount}
+                </Typography>
+                <Typography sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 800, color: '#005960', textAlign: 'right' }}>
+                  {posPct}%
+                </Typography>
+              </Box>
+
+              {/* Neutral Row */}
+              <Box sx={{
+                display: 'grid',
+                gridTemplateColumns: '1.4fr 1fr 1fr',
+                alignItems: 'center',
+                py: 0.9,
+                px: 1,
+                borderRadius: '10px',
+                bgcolor: '#f1f5f9',
+                border: '1px solid #cbd5e1',
+              }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                  <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#64748b' }} />
+                  <Typography sx={{ fontFamily: T.font.family, fontSize: 13.5, fontWeight: 800, color: '#475569' }}>
+                    Neutral
+                  </Typography>
+                </Box>
+                <Typography sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 700, color: '#475569', textAlign: 'center' }}>
+                  {neutralCount}
+                </Typography>
+                <Typography sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 800, color: '#475569', textAlign: 'right' }}>
+                  {neuPct}%
+                </Typography>
+              </Box>
+
+              {/* Negative Row */}
+              <Box sx={{
+                display: 'grid',
+                gridTemplateColumns: '1.4fr 1fr 1fr',
+                alignItems: 'center',
+                py: 0.9,
+                px: 1,
+                borderRadius: '10px',
+                bgcolor: '#fff1f2',
+                border: '1px solid #fecdd3',
+              }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                  <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#e11d48' }} />
+                  <Typography sx={{ fontFamily: T.font.family, fontSize: 13.5, fontWeight: 800, color: '#be123c' }}>
+                    Negative
+                  </Typography>
+                </Box>
+                <Typography sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 700, color: '#be123c', textAlign: 'center' }}>
+                  {negativeCount}
+                </Typography>
+                <Typography sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 800, color: '#be123c', textAlign: 'right' }}>
+                  {negPct}%
+                </Typography>
+              </Box>
+            </Box>
+          </>
+        )}
+      </Box>
+
+      {/* Action Button at bottom */}
+      <Button
+        variant="outlined"
+        fullWidth
+        onClick={onViewReportsClick}
+        sx={{
+          borderRadius: '10px',
+          height: 40,
+          fontFamily: T.font.family,
+          fontSize: 13,
+          fontWeight: 700,
+          textTransform: 'none',
+          borderColor: '#d9e2ec',
+          color: '#16324f',
+          bgcolor: '#ffffff',
+          borderWidth: '1.5px',
+          '&:hover': {
+            borderColor: '#16324f',
+            bgcolor: '#edf4fa',
+            borderWidth: '1.5px',
+          }
+        }}
+      >
+        View detailed review reports →
+      </Button>
+    </Card>
+  );
+};
+

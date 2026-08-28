@@ -15,42 +15,29 @@ import {
   FilterAlt as FilterAltIcon,
   Logout as LogoutIcon,
   DeleteOutline as DeleteOutlineIcon,
-  Star as StarIcon,
   ThumbUp as ThumbUpIcon,
   ThumbDown as ThumbDownIcon,
-  SentimentSatisfied as SentimentSatisfiedIcon,
   RateReview as RateReviewIcon,
   Lightbulb as LightbulbIcon,
-  Assessment as AssessmentIcon,
   AdminPanelSettings as AdminIcon,
   CalendarToday as CalendarTodayIcon,
   RestartAlt as RestartAltIcon,
   Inbox as InboxIcon,
-  TrendingUp as TrendingUpIcon,
-  PieChart as PieChartIcon,
-  BarChart as BarChartIcon,
-  FormatListNumbered as FormatListNumberedIcon,
-  Apartment as ApartmentIcon,
-  People as PeopleIcon,
-  MenuBook as MenuBookIcon,
+  PersonOutline as PersonOutlineIcon,
+  ChatBubbleOutline as ChatBubbleOutlineIcon,
   Category as CategoryIcon,
-  ArrowDropUp as ArrowDropUpIcon,
-  ArrowDropDown as ArrowDropDownIcon,
-  FiberManualRecord as FiberManualRecordIcon,
+  EventNote as EventNoteIcon,
 } from '@mui/icons-material';
 import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip as RechartsTooltip,
-  Legend,
   ResponsiveContainer,
   BarChart,
   Bar,
   XAxis,
   YAxis,
   CartesianGrid,
-  ReferenceLine
+  ReferenceLine,
+  Legend,
+  Tooltip as RechartsTooltip,
 } from 'recharts';
 import * as XLSX from 'xlsx';
 import { useNavigate } from 'react-router-dom';
@@ -81,6 +68,7 @@ import {
   LEXICON_TOPIC_ACTIONS,
   RECOMMENDATIONS,
   CATEGORY_KEYWORDS,
+  cleanCollegeName,
 } from '../constants/sentimentConstants';
 
 import {
@@ -96,16 +84,13 @@ import {
 import {
   SentimentChip,
   CategoryChip,
-  SummaryCard,
+  ModernKpiCard,
+  SourceSentimentBreakdownCard,
   TopCommentsCard,
   RecommendationCard,
   CustomDivergingTrendTooltip,
-  CustomDonutGaugeTooltip,
   WordCloudSection,
 } from '../Components/SentimentCharts';
-
-// Re-export for external consumers (e.g. other pages importing CONTROLLED_LEXICON)
-export { CONTROLLED_LEXICON } from '../constants/sentimentConstants';
 
 const MONTH_CODE_MAP = {
   Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06',
@@ -114,7 +99,7 @@ const MONTH_CODE_MAP = {
 
 const T = THEME;
 
-const SentimentDashboard = () => {
+function SentimentDashboard() {
   const navigate = useNavigate();
   const [showLoginModal, setShowLoginModal] = useState(true);
   const [username, setUsername] = useState('');
@@ -205,6 +190,9 @@ const SentimentDashboard = () => {
 
   // Trend Container Scale state ('percent' = Symmetric 100% | 'count' = Volume Counts)
   const [trendScaleMode, setTrendScaleMode] = useState('percent');
+
+  // Upper Section Modern Layout Controls
+  const [sourceCategoryFilter, setSourceCategoryFilter] = useState('All Categories');
 
   const printRef = useRef();
 
@@ -608,7 +596,7 @@ const SentimentDashboard = () => {
         isSelectedMonth: filterMonth === m,
       };
     });
-  }, [surveys, filterYear, filterClientele, filterCollege, filterSentiment, filterCategory, filterMonth]);
+  }, [surveys, filterYear, filterClientele, filterCollege, filterCourse, filterSentiment, filterCategory, filterMonth]);
 
   // Dynamic Y-Axis scale for balanced positive and negative headroom
   const maxVolume = useMemo(() => {
@@ -620,37 +608,59 @@ const SentimentDashboard = () => {
     return Math.ceil(maxVal * 1.2);
   }, [divergingTrendData]);
 
-
-  // ── Sentiment Distribution by Category (Multi-Donut Rings) ────────────────
-  const categoryDonutData = useMemo(() => {
+  // Category Breakdown for the Source Card
+  const categoryBreakdownData = useMemo(() => {
     const categories = ['Facilities', 'Staff', 'Collection'];
     return categories.map(cat => {
       const items = filtered.filter(s => (s.Category || 'Other/Uncategorized') === cat);
       const pos = items.filter(s => s.SentimentResult === 'Positive').length;
-      const neu = items.filter(s => s.SentimentResult === 'Neutral').length;
-      const neg = items.filter(s => s.SentimentResult === 'Negative').length;
       const tot = items.length;
-
       const posPct = tot > 0 ? Math.round((pos / tot) * 100) : 0;
-      const neuPct = tot > 0 ? Math.round((neu / tot) * 100) : 0;
-      const negPct = tot > 0 ? Math.max(0, 100 - posPct - neuPct) : 0;
-
-      const slices = tot > 0 ? [
-        { name: 'Positive', value: posPct, count: pos, color: '#22c55e', solidColor: '#22c55e' },
-        { name: 'Neutral', value: neuPct, count: neu, color: '#f59e0b', solidColor: '#f59e0b' },
-        { name: 'Negative', value: negPct, count: neg, color: '#ef4444', solidColor: '#ef4444' },
-      ].filter(s => s.value > 0) : [
-        { name: 'No Data', value: 100, count: 0, color: '#e2e8f0', solidColor: '#e2e8f0' }
-      ];
+      const avgScore = tot > 0
+        ? (items.reduce((acc, s) => acc + getSatisfactionAverage(s), 0) / tot).toFixed(1)
+        : '0.0';
 
       return {
         name: cat,
         total: tot,
+        posCount: pos,
         posPct,
-        slices
+        metric: `${avgScore} ★`,
       };
     });
   }, [filtered]);
+
+  // Sentiment counts dynamically filtered by the Source card's selected category
+  const sourceCardSentimentData = useMemo(() => {
+    if (sourceCategoryFilter === 'All Categories' || sourceCategoryFilter === 'All') {
+      return {
+        total: total,
+        positive: counts.Positive,
+        neutral: counts.Neutral,
+        negative: counts.Negative,
+      };
+    }
+    const catItems = filtered.filter(s => (s.Category || 'Other/Uncategorized') === sourceCategoryFilter);
+    const catPos = catItems.filter(s => s.SentimentResult === 'Positive').length;
+    const catNeu = catItems.filter(s => s.SentimentResult === 'Neutral').length;
+    const catNeg = catItems.filter(s => s.SentimentResult === 'Negative').length;
+    return {
+      total: catItems.length,
+      positive: catPos,
+      neutral: catNeu,
+      negative: catNeg,
+    };
+  }, [sourceCategoryFilter, total, counts, filtered]);
+
+  const handleScrollToReviewTable = () => {
+    const tableEl = document.getElementById('review-table-section');
+    if (tableEl) {
+      tableEl.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+
+
 
   // ── Word/Term Frequency for Word Cloud ────────────────────────────────────
   const { freq: termFrequencies = {}, displayMap: stemToOriginalMap = {} } = useMemo(() => {
@@ -759,7 +769,7 @@ const SentimentDashboard = () => {
         const scoredEvs = scoreCommentsWithLexicon(matchedItems);
         const topEvidences = scoredEvs
           .sort((a, b) => (b.blendedScore || 0) - (a.blendedScore || 0))
-          .slice(0, 3);
+          .slice(0, 2);
 
         const topicActionConfig = LEXICON_TOPIC_ACTIONS[topicName] || {};
         const severity = totalMatches >= 4 || topicActionConfig.defaultSeverity === 'HIGH' ? 'HIGH' : 'MODERATE';
@@ -906,11 +916,11 @@ const SentimentDashboard = () => {
             .summary-box.pos .value { color: ${T.sentiment.Positive.text}; }
             .summary-box.neu .value { color: ${T.sentiment.Neutral.text}; }
             .summary-box.neg .value { color: ${T.sentiment.Negative.text}; }
-            .summary-box.tot .value { color: #1e3a8a; }
+            .summary-box.tot .value { color: #16324f; }
             .summary-box .label { font-size: 11px; color: #555; margin-top: 2px; font-weight: bold; }
             .scale-legend { font-size: 10.5px; color: ${T.text.secondary}; background: ${T.surface.cardAlt}; border: 1px solid ${T.surface.border}; padding: 6px 10px; border-radius: 4px; margin-bottom: 12px; text-align: center; font-weight: 600; }
             table { width: 100%; border-collapse: collapse; font-size: 10px; margin-top: 10px; }
-            th { background-color: #334155; color: white; padding: 6px 4px; text-align: left; font-size: 10px; }
+            th { background-color: #16324f; color: white; padding: 6px 4px; text-align: left; font-size: 10px; }
             td { padding: 5px 4px; border-bottom: 1px solid #eee; word-break: break-word; font-size: 9.5px; }
             tr:nth-child(even) { background-color: #f9f9f9; }
             .q-cell { text-align: center; font-weight: bold; }
@@ -940,17 +950,18 @@ const SentimentDashboard = () => {
             />
 
             {!showLoginModal && (
-              <Box sx={{ p: { xs: 2, md: 3 }, bgcolor: '#f8fafc', minHeight: '100vh' }}>
+              <Box sx={{ p: { xs: 2, md: 3 }, bgcolor: '#eef1f6', minHeight: '100vh' }}>
                 {/* ── Modern Header Action Bar Banner ───── */}
                 <Paper elevation={0} sx={{
                   p: { xs: 2, md: 2.5 }, mb: 3, borderRadius: 3.5,
                   bgcolor: '#ffffff',
-                  border: `1.5px solid ${T.surface.borderLight}`,
-                  boxShadow: '0 2px 12px rgba(0,0,0,0.03)',
+                  border: '1.5px solid #fed7aa',
+                  borderTop: '3.5px solid #f69d1b',
+                  boxShadow: '0 2px 12px rgba(246, 157, 27, 0.05)',
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2
                 }}>
                   <Box>
-                    <Typography sx={{ fontFamily: T.font.family, fontSize: { xs: 20, md: 24 }, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.3px' }}>
+                    <Typography sx={{ fontFamily: T.font.family, fontSize: { xs: 20, md: 24 }, fontWeight: 800, color: '#16324f', letterSpacing: '-0.3px' }}>
                       Henry Luce III Library Sentiment Analysis Dashboard
                     </Typography>
                     <Typography sx={{ fontFamily: T.font.family, fontSize: 13.5, color: '#64748b', fontWeight: 500, mt: 0.3 }}>
@@ -965,8 +976,8 @@ const SentimentDashboard = () => {
                       sx={{
                         borderRadius: '10px', height: 42, px: 2.5,
                         fontFamily: T.font.family, fontSize: 13.5, fontWeight: 700, textTransform: 'none',
-                        borderColor: '#e2e8f0', color: '#475569', bgcolor: '#ffffff', borderWidth: '1.5px',
-                        '&:hover': { borderColor: '#cbd5e1', bgcolor: '#f8fafc', borderWidth: '1.5px' }
+                        borderColor: '#d9e2ec', color: '#16324f', bgcolor: '#ffffff', borderWidth: '1.5px',
+                        '&:hover': { borderColor: '#16324f', bgcolor: '#edf4fa', borderWidth: '1.5px' }
                       }}
                     >
                       Print / Save PDF
@@ -978,9 +989,10 @@ const SentimentDashboard = () => {
                       sx={{
                         borderRadius: '10px', height: 42, px: 2.5,
                         fontFamily: T.font.family, fontSize: 13.5, fontWeight: 700, textTransform: 'none',
-                        bgcolor: '#059669',
-                        boxShadow: '0 2px 8px rgba(5, 150, 105, 0.25)',
-                        '&:hover': { bgcolor: '#047857' }
+                        bgcolor: '#107c41',
+                        color: '#ffffff',
+                        boxShadow: '0 2px 8px rgba(16, 124, 65, 0.28)',
+                        '&:hover': { bgcolor: '#0b5a2f', boxShadow: '0 4px 12px rgba(16, 124, 65, 0.35)' }
                       }}
                     >
                       Export to Excel
@@ -993,9 +1005,10 @@ const SentimentDashboard = () => {
                       sx={{
                         borderRadius: '10px', height: 42, px: 2.2,
                         fontFamily: T.font.family, fontSize: 13.5, fontWeight: 700, textTransform: 'none',
-                        borderColor: '#fecdd3', color: '#e11d48',
+                        borderColor: '#fca5a5', color: '#e11d48',
                         bgcolor: '#ffffff', borderWidth: '1.5px',
-                        '&:hover': { bgcolor: '#fff1f2', borderColor: '#f43f5e', borderWidth: '1.5px' }
+                        boxShadow: '0 1px 3px rgba(225, 29, 72, 0.05)',
+                        '&:hover': { bgcolor: '#fff1f2', borderColor: '#e11d48', color: '#be123c', borderWidth: '1.5px' }
                       }}
                     >
                       Logout
@@ -1006,12 +1019,15 @@ const SentimentDashboard = () => {
                 {/* ── Filter Controls Container ───── */}
                 <Paper elevation={0} sx={{
                   mb: 3, ...cardShellSx,
+                  border: '1.5px solid #cbdbe9',
+                  borderTop: '3.5px solid #16324f',
+                  boxShadow: '0 2px 12px rgba(22, 50, 79, 0.04)',
                 }}>
                   <Box sx={{ ...sectionHeaderSx }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
                       <Box sx={{
-                        bgcolor: '#ede9fe',
-                        color: '#4f46e5',
+                        bgcolor: '#edf4fa',
+                        color: '#16324f',
                         p: 0.55,
                         borderRadius: '8px',
                         display: 'flex',
@@ -1021,7 +1037,7 @@ const SentimentDashboard = () => {
                       }}>
                         <FilterAltIcon />
                       </Box>
-                      <Typography sx={{ ...sectionTitleSx }}>
+                      <Typography sx={{ ...sectionTitleSx, color: '#16324f' }}>
                         Filter & Analytics Controls
                       </Typography>
                     </Box>
@@ -1042,7 +1058,7 @@ const SentimentDashboard = () => {
                   {/* ── Quick Date Presets Row ───── */}
                   <Box sx={{ px: 3, pt: 1.8, pb: 1.5, bgcolor: '#ffffff', borderBottom: `1px solid ${T.surface.borderLight}`, display: 'flex', alignItems: 'center', gap: 0.8, flexWrap: 'wrap' }}>
                     <Typography sx={{ fontFamily: T.font.family, fontSize: 12.5, fontWeight: 700, color: '#64748b', mr: 0.8, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <CalendarTodayIcon sx={{ fontSize: 15, color: '#4f46e5' }} /> Quick Date Range:
+                      <CalendarTodayIcon sx={{ fontSize: 15, color: '#16324f' }} /> Quick Date Range:
                     </Typography>
                     <Button size="small" variant="outlined" onClick={() => handleDatePreset('q1')} sx={datePresetBtnSx}>Q1</Button>
                     <Button size="small" variant="outlined" onClick={() => handleDatePreset('q2')} sx={datePresetBtnSx}>Q2</Button>
@@ -1186,11 +1202,11 @@ const SentimentDashboard = () => {
                       sx={{
                         height: 44, px: 2.8, borderRadius: '10px', textTransform: 'none',
                         fontFamily: T.font.family, fontWeight: 700, fontSize: 13.5,
-                        borderColor: hasActiveFilter ? '#ef4444' : '#e2e8f0',
-                        color: hasActiveFilter ? '#ef4444' : '#94a3b8',
+                        borderColor: hasActiveFilter ? '#ea580c' : '#e2e8f0',
+                        color: hasActiveFilter ? '#ea580c' : '#94a3b8',
                         borderWidth: '1.5px',
-                        bgcolor: hasActiveFilter ? 'rgba(239, 68, 68, 0.05)' : 'transparent',
-                        '&:hover': { borderWidth: '1.5px', borderColor: '#dc2626', bgcolor: 'rgba(239, 68, 68, 0.1)' }
+                        bgcolor: hasActiveFilter ? 'rgba(234, 88, 12, 0.05)' : 'transparent',
+                        '&:hover': { borderWidth: '1.5px', borderColor: '#c2410c', bgcolor: 'rgba(234, 88, 12, 0.1)' }
                       }}
                     >
                       Clear Filters
@@ -1205,42 +1221,42 @@ const SentimentDashboard = () => {
                       </Typography>
                       {(startDate || endDate) && (
                         <Chip label={`Date: ${startDate || 'Start'} to ${endDate || 'End'}`} onDelete={() => handleRemoveFilter('date')} size="small"
-                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#ffffff', color: '#1e293b', border: `1px solid ${T.surface.borderLight}`, borderRadius: '9999px' }} />
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#ffffff', color: '#16324f', border: `1px solid ${T.surface.borderLight}`, borderRadius: '9999px' }} />
                       )}
                       {filterQuarter && filterQuarter !== 'All' && (
                         <Chip label={`Quarter: ${filterQuarter}`} onDelete={() => handleRemoveFilter('quarter')} size="small"
-                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#ffffff', color: '#1e293b', border: `1px solid ${T.surface.borderLight}`, borderRadius: '9999px' }} />
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#ffffff', color: '#16324f', border: `1px solid ${T.surface.borderLight}`, borderRadius: '9999px' }} />
                       )}
                       {filterMonth && filterMonth !== 'All' && (
                         <Chip label={`Month: ${filterMonth}`} onDelete={() => handleRemoveFilter('month')} size="small"
-                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#ffffff', color: '#1e293b', border: `1px solid ${T.surface.borderLight}`, borderRadius: '9999px' }} />
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#ffffff', color: '#16324f', border: `1px solid ${T.surface.borderLight}`, borderRadius: '9999px' }} />
                       )}
                       {filterYear && filterYear !== 'All' && filterYear !== '2026' && (
                         <Chip label={`Year: ${filterYear}`} onDelete={() => handleRemoveFilter('year')} size="small"
-                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#ffffff', color: '#1e293b', border: `1px solid ${T.surface.borderLight}`, borderRadius: '9999px' }} />
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#ffffff', color: '#16324f', border: `1px solid ${T.surface.borderLight}`, borderRadius: '9999px' }} />
                       )}
                       {filterClientele && (
                         <Chip label={`Clientele: ${filterClientele}`} onDelete={() => handleRemoveFilter('clientele')} size="small"
-                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#f3e8ff', color: '#6b21a8', borderRadius: '9999px' }} />
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#fff7ed', color: '#c2410c', border: '1px solid #fed7aa', borderRadius: '9999px' }} />
                       )}
                       {filterCollege && (
                         <Chip label={`College: ${filterCollege}`} onDelete={() => handleRemoveFilter('college')} size="small"
-                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#ede9fe', color: '#4f46e5', borderRadius: '9999px' }} />
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#edf4fa', color: '#16324f', border: '1px solid #cbdbe9', borderRadius: '9999px' }} />
                       )}
                       {filterCourse && (
                         <Chip label={`Course: ${filterCourse}`} onDelete={() => handleRemoveFilter('course')} size="small"
-                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#e0f2fe', color: '#0369a1', borderRadius: '9999px' }} />
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#edf4fa', color: '#254b73', border: '1px solid #cbdbe9', borderRadius: '9999px' }} />
                       )}
                       {filterSentiment && (
                         <Chip label={`Sentiment: ${filterSentiment}`} onDelete={() => handleRemoveFilter('sentiment')} size="small"
-                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: filterSentiment === 'Positive' ? '#dcfce7' : filterSentiment === 'Negative' ? '#fee2e2' : '#fef3c7', color: filterSentiment === 'Positive' ? '#15803d' : filterSentiment === 'Negative' ? '#dc2626' : '#b45309', borderRadius: '9999px' }} />
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: filterSentiment === 'Positive' ? '#e6f4f5' : filterSentiment === 'Negative' ? '#fff1f2' : '#f1f5f9', color: filterSentiment === 'Positive' ? '#005960' : filterSentiment === 'Negative' ? '#be123c' : '#475569', border: filterSentiment === 'Positive' ? '1px solid #b3dfe2' : filterSentiment === 'Negative' ? '1px solid #fecdd3' : '1px solid #cbd5e1', borderRadius: '9999px' }} />
                       )}
                       {filterCategory && (
                         <Chip label={`Category: ${filterCategory}`} onDelete={() => handleRemoveFilter('category')} size="small"
-                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#e0f2fe', color: '#0284c7', borderRadius: '9999px' }} />
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#fff7ed', color: '#c2410c', border: '1px solid #fed7aa', borderRadius: '9999px' }} />
                       )}
                       <Button size="small" onClick={handleClear} startIcon={<RestartAltIcon sx={{ fontSize: 15 }} />}
-                        sx={{ fontFamily: T.font.family, textTransform: 'none', fontWeight: 700, fontSize: 12, color: '#ef4444', ml: 'auto' }}>
+                        sx={{ fontFamily: T.font.family, textTransform: 'none', fontWeight: 700, fontSize: 12, color: '#ea580c', ml: 'auto' }}>
                         Clear All
                       </Button>
                     </Box>
@@ -1249,445 +1265,262 @@ const SentimentDashboard = () => {
 
                 {loading ? (
                   <Box sx={{ display: 'flex', justifyContent: 'center', p: 8 }}>
-                    <CircularProgress color="primary" />
+                    <CircularProgress sx={{ color: '#16324f' }} />
                   </Box>
                 ) : (
                   <>
-                    {/* ── Top Metric KPI Cards Grid ───── */}
-                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)', md: 'repeat(5, 1fr)' }, gap: 2.2, mb: 3 }}>
-                      <SummaryCard title="Avg Satisfaction" value={avgSatisfaction.toFixed(2)} subtitle="Scale: 1.0 to 5.0" icon={<StarIcon />} color="#8b5cf6" tooltipContent="Average patron score across satisfaction survey questions (1.0 to 5.0 scale)" />
-                      <SummaryCard title="Positive" value={counts.Positive} subtitle={`${total > 0 ? Math.round((counts.Positive / total) * 100) : 0}% of responses`} icon={<ThumbUpIcon />} color={T.sentiment.Positive.bg} tooltipContent={`Positive Sentiments: ${counts.Positive} responses (${total > 0 ? Math.round((counts.Positive / total) * 100) : 0}% of total)`} />
-                      <SummaryCard title="Neutral" value={counts.Neutral} subtitle={`${total > 0 ? Math.round((counts.Neutral / total) * 100) : 0}% of responses`} icon={<SentimentSatisfiedIcon />} color={T.sentiment.Neutral.bg} tooltipContent={`Neutral Sentiments: ${counts.Neutral} responses (${total > 0 ? Math.round((counts.Neutral / total) * 100) : 0}% of total)`} />
-                      <SummaryCard title="Negative" value={counts.Negative} subtitle={`${total > 0 ? Math.round((counts.Negative / total) * 100) : 0}% of responses`} icon={<ThumbDownIcon />} color={T.sentiment.Negative.bg} tooltipContent={`Negative Sentiments: ${counts.Negative} responses (${total > 0 ? Math.round((counts.Negative / total) * 100) : 0}% of total)`} />
-                      <SummaryCard
-                        title="TOTAL SURVEYS"
-                        value={total}
-                        subtitle="total responses"
-                        footnote={
-                          startDate && endDate
-                            ? `${startDate} to ${endDate}`
-                            : filterQuarter !== 'All'
-                              ? `${filterQuarter} ${filterYear !== 'All' ? filterYear : '2026'}`
-                              : filterYear !== 'All'
-                                ? `Year ${filterYear}`
-                                : 'All Quarters'
-                        }
-                        icon={<BarChartIcon />}
-                        isFeatured={true}
-                        tooltipContent={`Total Filtered Surveys: ${total} responses matching current filters`}
-                      />
-                    </Box>
+                    {/* ── Modern Upper Section: 2-Column Revenue & Source Architecture ───── */}
+                    <Box sx={{
+                      display: 'grid',
+                      gridTemplateColumns: { xs: '1fr', lg: '3fr 1fr' },
+                      gap: 2.5,
+                      mb: 3.5,
+                      alignItems: 'stretch'
+                    }}>
+                      {/* Left Column: Top 3 KPI Cards + Original Monthly Sentiment Bar Chart Container */}
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+                        {/* Top 3 KPI Cards */}
+                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2 }}>
+                          <ModernKpiCard
+                            title="Total Surveys"
+                            value={total.toLocaleString()}
+                            borderColorTheme="gold"
+                            subtitle="Total survey submissions"
+                          />
+                          <ModernKpiCard
+                            title="Positive Sentiment Rate"
+                            value={`${total > 0 ? Math.round((counts.Positive / total) * 100) : 0}%`}
+                            borderColorTheme="blue"
+                            subtitle={`${counts.Positive} positive responses`}
+                          />
+                          <ModernKpiCard
+                            title="Avg Satisfaction"
+                            value={`${avgSatisfaction.toFixed(2)} ★`}
+                            badgeText={`${Math.round((avgSatisfaction / 5) * 100)}%`}
+                            highlighted={true}
+                            subtitle="Scale: 1.0 to 5.0 rating"
+                          />
+                        </Box>
 
-                    {/* ── Monthly Sentiment Balance & Bar Comparison ───── */}
-                    <Card elevation={0} sx={{ ...cardShellSx, mb: 3 }}>
-                      <Box sx={{ ...sectionHeaderSx, flexWrap: 'wrap', gap: 1.5 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+                        {/* Monthly Sentiment Balance & Bar Comparison (Original Diverging Bar Chart with Revenue Header Styling) */}
+                        <Card elevation={0} sx={{
+                          bgcolor: '#ffffff',
+                          borderRadius: '16px',
+                          border: '1.5px solid #cbdbe9',
+                          borderTop: '3.5px solid #16324f',
+                          p: { xs: 2, sm: 2.5 },
+                          boxShadow: '0 2px 10px rgba(22, 50, 79, 0.03)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          transition: 'all 0.2s ease-in-out',
+                          '&:hover': {
+                            boxShadow: '0 6px 20px rgba(22, 50, 79, 0.08)',
+                            borderColor: '#16324f',
+                          }
+                        }}>
+                          {/* Header Container */}
                           <Box sx={{
-                            bgcolor: '#ede9fe',
-                            color: '#4f46e5',
-                            p: 0.55,
-                            borderRadius: '8px',
                             display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            '& svg': { fontSize: 18 }
+                            alignItems: { xs: 'flex-start', sm: 'center' },
+                            justifyContent: 'space-between',
+                            flexDirection: { xs: 'column', sm: 'row' },
+                            gap: 1.5,
+                            mb: 1.5,
                           }}>
-                            <TrendingUpIcon />
-                          </Box>
-                          <Box>
-                            <Typography sx={sectionTitleSx}>
-                              Monthly Sentiment Balance & Comparison — {filterYear === 'All' ? 'All Batched Years' : `Year ${filterYear}`}
-                            </Typography>
-                            <Typography sx={sectionSubtitleSx}>
-                              {trendScaleMode === 'percent'
-                                ? 'Symmetric 100% monthly sentiment distribution (Positive on top / Negative on bottom)'
-                                : 'Monthly sentiment volume flow (Positive Inflow / Negative Outflow)'}
-                            </Typography>
-                          </Box>
-                        </Box>
+                            <Box>
+                              <Typography sx={{ fontFamily: T.font.family, fontSize: 14, fontWeight: 700, color: '#64748b' }}>
+                                Monthly Sentiment Balance & Comparison
+                              </Typography>
+                              <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.2, mt: 0.4, flexWrap: 'wrap' }}>
+                                <Typography sx={{ fontFamily: T.font.family, fontSize: { xs: 24, sm: 28 }, fontWeight: 800, color: '#16324f', lineHeight: 1.1 }}>
+                                  {total > 0 ? Math.round((counts.Positive / total) * 100) : 0}% Positive Share
+                                </Typography>
+                              </Box>
+                            </Box>
 
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, flexWrap: 'wrap' }}>
-                          {/* Scale Selector: Symmetric % Share vs Raw Volume (Using Icons Instead of Emojis) */}
-                          <ToggleButtonGroup
-                            value={trendScaleMode} exclusive
-                            onChange={(e, newScale) => { if (newScale) setTrendScaleMode(newScale); }}
-                            size="small"
-                            sx={{
-                              height: 34, borderRadius: '9999px', bgcolor: '#f1f5f9', p: 0.3,
-                              '& .MuiToggleButton-root': {
-                                fontFamily: T.font.family, fontSize: 12, fontWeight: 600, textTransform: 'none', px: 1.5,
-                                color: '#64748b', border: 'none', borderRadius: '9999px',
-                                display: 'flex', alignItems: 'center', gap: 0.5,
-                                '&.Mui-selected': { bgcolor: '#1e293b', color: '#ffffff', fontWeight: 700, '&:hover': { bgcolor: '#0f172a' } }
-                              }
-                            }}
-                          >
-                            <ToggleButton value="percent">
-                              <BarChartIcon sx={{ fontSize: 16 }} /> % Share
-                            </ToggleButton>
-                            <ToggleButton value="count">
-                              <FormatListNumberedIcon sx={{ fontSize: 16 }} /> Counts
-                            </ToggleButton>
-                          </ToggleButtonGroup>
+                            {/* View Controls: % Share vs Counts + Year Selector */}
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                              <ToggleButtonGroup
+                                value={trendScaleMode}
+                                exclusive
+                                onChange={(e, newScale) => { if (newScale) setTrendScaleMode(newScale); }}
+                                size="small"
+                                sx={{
+                                  height: 32,
+                                  borderRadius: '9999px',
+                                  bgcolor: '#edf2f7',
+                                  p: 0.3,
+                                  '& .MuiToggleButton-root': {
+                                    fontFamily: T.font.family,
+                                    fontSize: 11.5,
+                                    fontWeight: 600,
+                                    textTransform: 'none',
+                                    px: 1.2,
+                                    color: '#64748b',
+                                    border: 'none',
+                                    borderRadius: '9999px',
+                                    '&.Mui-selected': {
+                                      bgcolor: '#ffffff',
+                                      color: '#16324f',
+                                      fontWeight: 800,
+                                      boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                                      '&:hover': { bgcolor: '#ffffff' }
+                                    }
+                                  }
+                                }}
+                              >
+                                <ToggleButton value="percent">% Share</ToggleButton>
+                                <ToggleButton value="count">Counts</ToggleButton>
+                              </ToggleButtonGroup>
 
-                          <FormControl size="small" sx={{ minWidth: 110 }}>
-                            <InputLabel sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#64748b' }}>Year</InputLabel>
-                            <Select
-                              value={filterYear} label="Year" onChange={(e) => setFilterYear(e.target.value)}
-                              sx={{
-                                height: 34, borderRadius: '8px', fontFamily: T.font.family, fontWeight: 700, fontSize: 12.5,
-                                bgcolor: '#ffffff', color: '#1e293b',
-                                '& fieldset': { borderColor: '#e2e8f0' }
-                              }}
-                            >
-                              <MenuItem value="All" sx={{ fontFamily: T.font.family, fontWeight: 600, fontSize: 13 }}>All Years</MenuItem>
-                              {availableYears.map(yr => (<MenuItem key={yr} value={yr} sx={{ fontFamily: T.font.family, fontWeight: 600, fontSize: 13 }}>{yr}</MenuItem>))}
-                            </Select>
-                          </FormControl>
-                        </Box>
+                              <FormControl size="small" sx={{ minWidth: 95 }}>
+                                <Select
+                                  value={filterYear}
+                                  onChange={(e) => { setFilterYear(e.target.value); setPage(0); }}
+                                  sx={{
+                                    height: 32,
+                                    borderRadius: '9999px',
+                                    fontFamily: T.font.family,
+                                    fontWeight: 700,
+                                    fontSize: 11.5,
+                                    bgcolor: '#f8fafc',
+                                    color: '#334155',
+                                    '& fieldset': { borderColor: '#e2e8f0' }
+                                  }}
+                                >
+                                  <MenuItem value="All" sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 600 }}>All Years</MenuItem>
+                                  {availableYears.map(yr => (
+                                    <MenuItem key={yr} value={yr} sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 600 }}>{yr}</MenuItem>
+                                  ))}
+                                </Select>
+                              </FormControl>
+                            </Box>
+                          </Box>
+
+                          {/* Original Diverging Bar Chart */}
+                          <Box sx={{ width: '100%', height: 310, mt: 0.5 }}>
+                            <ResponsiveContainer width="100%" height="100%">
+                              <BarChart
+                                data={divergingTrendData}
+                                margin={{ top: 15, right: 15, left: -10, bottom: 5 }}
+                                stackOffset="sign"
+                                style={{ cursor: 'pointer' }}
+                                onClick={(state) => {
+                                  if (state && state.activeLabel) {
+                                    const monthName = state.activeLabel;
+                                    const mIdx = MONTH_NAMES.indexOf(monthName);
+                                    if (mIdx !== -1) {
+                                      const targetYr = filterYear === 'All' ? '2026' : (filterYear || '2026');
+                                      const mm = String(mIdx + 1).padStart(2, '0');
+                                      const startD = `${targetYr}-${mm}-01`;
+                                      const lastDay = new Date(parseInt(targetYr, 10), mIdx + 1, 0).getDate();
+                                      const endD = `${targetYr}-${mm}-${String(lastDay).padStart(2, '0')}`;
+                                      if (startDate === startD && endDate === endD) {
+                                        setStartDate('');
+                                        setEndDate('');
+                                      } else {
+                                        setStartDate(startD);
+                                        setEndDate(endD);
+                                        setFilterQuarter('All');
+                                      }
+                                      setPage(0);
+                                    }
+                                  }
+                                }}
+                              >
+                                <defs>
+                                  <linearGradient id="divPosGrad" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#005960" stopOpacity={0.95} />
+                                    <stop offset="100%" stopColor="#137a84" stopOpacity={0.88} />
+                                  </linearGradient>
+                                  <linearGradient id="divNegGrad" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#fca5a5" stopOpacity={0.9} />
+                                    <stop offset="100%" stopColor="#f43f5e" stopOpacity={0.95} />
+                                  </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={T.surface.borderLight} />
+                                <XAxis dataKey="month" tick={{ fontFamily: T.font.family, fontSize: 11.5, fill: T.text.secondary, fontWeight: 700 }} />
+
+                                {trendScaleMode === 'percent' ? (
+                                  <YAxis
+                                    domain={[-100, 100]}
+                                    ticks={[-100, -50, 0, 50, 100]}
+                                    tickFormatter={(val) => `${Math.abs(val)}%`}
+                                    tick={{ fontFamily: T.font.family, fontSize: 11, fill: T.text.secondary, fontWeight: 600 }}
+                                    allowDecimals={false}
+                                  />
+                                ) : (
+                                  <YAxis
+                                    domain={[-maxVolume, maxVolume]}
+                                    tickFormatter={(val) => Math.abs(val)}
+                                    tick={{ fontFamily: T.font.family, fontSize: 11, fill: T.text.secondary, fontWeight: 600 }}
+                                    allowDecimals={false}
+                                  />
+                                )}
+
+                                <ReferenceLine y={0} stroke="#94a3b8" strokeWidth={1.5} />
+                                <RechartsTooltip content={<CustomDivergingTrendTooltip />} />
+                                <Legend
+                                  wrapperStyle={{ fontFamily: T.font.family, fontSize: 12, paddingTop: 8 }}
+                                  formatter={(value) => <span style={{ color: T.text.heading, fontWeight: 600 }}>{value}</span>}
+                                />
+
+                                <Bar
+                                  dataKey={trendScaleMode === 'percent' ? 'posPct' : 'Positive'}
+                                  stackId="sentimentPillar"
+                                  name={trendScaleMode === 'percent' ? 'Positive (%)' : 'Positive (Inflow)'}
+                                  fill="url(#divPosGrad)"
+                                  stroke="#005960"
+                                  strokeWidth={1}
+                                  radius={[4, 4, 0, 0]}
+                                  maxBarSize={32}
+                                />
+                                <Bar
+                                  dataKey={trendScaleMode === 'percent' ? 'negPctDiverging' : 'Negative'}
+                                  stackId="sentimentPillar"
+                                  name={trendScaleMode === 'percent' ? 'Negative (%)' : 'Negative (Outflow)'}
+                                  fill="url(#divNegGrad)"
+                                  stroke="#f43f5e"
+                                  strokeWidth={1}
+                                  radius={[0, 0, 4, 4]}
+                                  maxBarSize={32}
+                                />
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </Box>
+                        </Card>
                       </Box>
 
-                      <CardContent sx={{ p: 3 }}>
-                        <ResponsiveContainer width="100%" height={360}>
-                          <BarChart
-                            data={divergingTrendData}
-                            margin={{ top: 20, right: 30, left: 10, bottom: 5 }}
-                            stackOffset="sign"
-                            style={{ cursor: 'pointer' }}
-                            onClick={(state) => {
-                              if (state && state.activeLabel) {
-                                const monthName = state.activeLabel;
-                                const mIdx = MONTH_NAMES.indexOf(monthName);
-                                if (mIdx !== -1) {
-                                  const targetYr = filterYear === 'All' ? '2026' : (filterYear || '2026');
-                                  const mm = String(mIdx + 1).padStart(2, '0');
-                                  const startD = `${targetYr}-${mm}-01`;
-                                  const lastDay = new Date(parseInt(targetYr, 10), mIdx + 1, 0).getDate();
-                                  const endD = `${targetYr}-${mm}-${String(lastDay).padStart(2, '0')}`;
-                                  if (startDate === startD && endDate === endD) {
-                                    setStartDate('');
-                                    setEndDate('');
-                                  } else {
-                                    setStartDate(startD);
-                                    setEndDate(endD);
-                                    setFilterQuarter('All');
-                                  }
-                                  setPage(0);
-                                }
-                              }
-                            }}
-                          >
-                            <defs>
-                              <linearGradient id="divPosGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="#86efac" stopOpacity={0.95} />
-                                <stop offset="100%" stopColor="#4ade80" stopOpacity={0.9} />
-                              </linearGradient>
-                              <linearGradient id="divNegGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="#fca5a5" stopOpacity={0.9} />
-                                <stop offset="100%" stopColor="#f87171" stopOpacity={0.95} />
-                              </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={T.surface.borderLight} />
-                            <XAxis dataKey="month" tick={{ fontFamily: T.font.family, fontSize: 12, fill: T.text.secondary, fontWeight: 700 }} />
+                      {/* Right Column: Source & Category Sentiment Breakdown Donut Card */}
+                      <Box sx={{ height: '87%' }}>
+                        <SourceSentimentBreakdownCard
+                          totalSurveys={sourceCardSentimentData.total}
+                          positiveCount={sourceCardSentimentData.positive}
+                          neutralCount={sourceCardSentimentData.neutral}
+                          negativeCount={sourceCardSentimentData.negative}
+                          categoryBreakdown={categoryBreakdownData}
+                          selectedCategory={sourceCategoryFilter}
+                          onCategoryChange={setSourceCategoryFilter}
+                          categoryOptions={['All Categories', 'Facilities', 'Staff', 'Collection']}
+                          onViewReportsClick={handleScrollToReviewTable}
+                        />
+                      </Box>
+                    </Box>
 
-                            {/* Single Y-Axis: Symmetric Percentage (Default) or Absolute Counts */}
-                            {trendScaleMode === 'percent' ? (
-                              <YAxis
-                                domain={[-100, 100]}
-                                ticks={[-100, -75, -50, -25, 0, 25, 50, 75, 100]}
-                                tickFormatter={(val) => `${Math.abs(val)}%`}
-                                tick={{ fontFamily: T.font.family, fontSize: 11, fill: T.text.secondary, fontWeight: 600 }}
-                                allowDecimals={false}
-                                label={{
-                                  value: 'Positive Share (%) / Negative Share (%)',
-                                  angle: -90,
-                                  position: 'insideLeft',
-                                  style: { textAnchor: 'middle', fontFamily: T.font.family, fontSize: 11, fill: T.text.muted, fontWeight: 600 }
-                                }}
-                              />
-                            ) : (
-                              <YAxis
-                                domain={[-maxVolume, maxVolume]}
-                                tickFormatter={(val) => Math.abs(val)}
-                                tick={{ fontFamily: T.font.family, fontSize: 11, fill: T.text.secondary, fontWeight: 600 }}
-                                allowDecimals={false}
-                                label={{
-                                  value: 'Positive Count / Negative Count',
-                                  angle: -90,
-                                  position: 'insideLeft',
-                                  style: { textAnchor: 'middle', fontFamily: T.font.family, fontSize: 11, fill: T.text.muted, fontWeight: 600 }
-                                }}
-                              />
-                            )}
 
-                            {/* Zero Baseline separating positive (top) from negative (bottom) */}
-                            <ReferenceLine y={0} stroke="#64748b" strokeWidth={1.8} />
-
-                            <RechartsTooltip content={<CustomDivergingTrendTooltip />} />
-                            <Legend
-                              wrapperStyle={{ fontFamily: T.font.family, fontSize: 12.5, paddingTop: 12 }}
-                              formatter={(value) => <span style={{ color: T.text.heading, fontWeight: 600 }}>{value}</span>}
-                            />
-
-                            {/* Positive Sentiment Bar */}
-                            <Bar
-                              dataKey={trendScaleMode === 'percent' ? 'posPct' : 'Positive'}
-                              stackId="sentimentPillar"
-                              name={trendScaleMode === 'percent' ? 'Positive Sentiment Share (%)' : 'Positive Sentiments (Inflow)'}
-                              fill="url(#divPosGrad)"
-                              stroke="#22c55e"
-                              strokeWidth={1}
-                              radius={[4, 4, 0, 0]}
-                              maxBarSize={38}
-                            />
-
-                            {/* Negative Sentiment Bar */}
-                            <Bar
-                              dataKey={trendScaleMode === 'percent' ? 'negPctDiverging' : 'Negative'}
-                              stackId="sentimentPillar"
-                              name={trendScaleMode === 'percent' ? 'Negative Sentiment Share (%)' : 'Negative Sentiments (Outflow)'}
-                              fill="url(#divNegGrad)"
-                              stroke="#ef4444"
-                              strokeWidth={1}
-                              radius={[0, 0, 4, 4]}
-                              maxBarSize={38}
-                            />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </CardContent>
-                    </Card>
-
-                    {/* ── Sentiment Distribution by Category (Container with Category Icons) ───── */}
-                    <Card elevation={0} sx={{ ...cardShellSx, mb: 3 }}>
+                    {/* ── Top Patron Comments Container (Bluish Shell) ───── */}
+                    <Card elevation={0} sx={{
+                      ...cardShellSx,
+                      mb: 3,
+                      border: '1.5px solid #cbdbe9',
+                      borderTop: '3.5px solid #16324f',
+                      boxShadow: '0 2px 12px rgba(22, 50, 79, 0.04)',
+                    }}>
                       <Box sx={{ ...sectionHeaderSx, flexWrap: 'wrap', gap: 1 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
                           <Box sx={{
-                            bgcolor: '#ede9fe',
-                            color: '#4f46e5',
-                            p: 0.55,
-                            borderRadius: '8px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            '& svg': { fontSize: 18 }
-                          }}>
-                            <PieChartIcon />
-                          </Box>
-                          <Box>
-                            <Typography sx={sectionTitleSx}>Sentiment Distribution by Category</Typography>
-                            <Typography sx={sectionSubtitleSx}>Categorical satisfaction distribution across library key service areas</Typography>
-                          </Box>
-                        </Box>
-
-                        {/* Legend Indicators with Material Icons */}
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, px: 1.2, py: 0.35, bgcolor: '#dcfce7', borderRadius: '9999px' }}>
-                            <ArrowDropUpIcon sx={{ fontSize: 18, color: '#15803d', ml: -0.3, mr: -0.2 }} />
-                            <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, color: '#15803d', fontWeight: 700 }}>Positive</Typography>
-                          </Box>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, px: 1.2, py: 0.35, bgcolor: '#fef3c7', borderRadius: '9999px' }}>
-                            <FiberManualRecordIcon sx={{ fontSize: 7, color: '#b45309' }} />
-                            <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, color: '#b45309', fontWeight: 700 }}>Neutral</Typography>
-                          </Box>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, px: 1.2, py: 0.35, bgcolor: '#fee2e2', borderRadius: '9999px' }}>
-                            <ArrowDropDownIcon sx={{ fontSize: 18, color: '#dc2626', ml: -0.3, mr: -0.2 }} />
-                            <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, color: '#dc2626', fontWeight: 700 }}>Negative</Typography>
-                          </Box>
-                        </Box>
-                      </Box>
-
-                      <CardContent sx={{ p: { xs: 2.5, sm: 3 } }}>
-                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2.5, alignItems: 'stretch' }}>
-                          {categoryDonutData.map((donut) => {
-                            const catThemes = {
-                              Facilities: { color: '#0284c7', bg: '#f0f9ff', border: '#bae6fd', icon: <ApartmentIcon sx={{ fontSize: 20 }} /> },
-                              Staff: { color: '#7c3aed', bg: '#faf5ff', border: '#e9d5ff', icon: <PeopleIcon sx={{ fontSize: 20 }} /> },
-                              Collection: { color: '#db2777', bg: '#fdf2f8', border: '#fbcfe8', icon: <MenuBookIcon sx={{ fontSize: 20 }} /> },
-                            };
-                            const theme = catThemes[donut.name] || { color: '#4f46e5', bg: '#f8fafc', border: '#e2e8f0', icon: <CategoryIcon sx={{ fontSize: 20 }} /> };
-                            const posVal = donut.slices.find(s => s.name === 'Positive')?.count || 0;
-                            const neuVal = donut.slices.find(s => s.name === 'Neutral')?.count || 0;
-                            const negVal = donut.slices.find(s => s.name === 'Negative')?.count || 0;
-
-                            return (
-                              <Paper key={donut.name} elevation={0} sx={{
-                                position: 'relative',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                bgcolor: '#ffffff',
-                                border: `1.5px solid ${T.surface.borderLight}`,
-                                borderTop: `4px solid ${theme.color}`,
-                                borderRadius: 3.5,
-                                p: 2.5,
-                                minHeight: 330,
-                                boxShadow: '0 2px 12px rgba(0,0,0,0.03)',
-                                transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                                '&:hover': {
-                                  transform: 'translateY(-3px)',
-                                  boxShadow: `0 10px 24px -4px ${theme.color}25`,
-                                  borderColor: theme.color
-                                }
-                              }}>
-                                {/* Card Header with Category Icon & Response Count */}
-                                <Box sx={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-                                    <Box sx={{
-                                      bgcolor: theme.bg,
-                                      color: theme.color,
-                                      width: 36,
-                                      height: 36,
-                                      borderRadius: '10px',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      border: `1px solid ${theme.border}`
-                                    }}>
-                                      {theme.icon}
-                                    </Box>
-                                    <Typography sx={{ fontFamily: T.font.family, fontWeight: 800, fontSize: 16, color: '#0f172a' }}>
-                                      {donut.name}
-                                    </Typography>
-                                  </Box>
-                                  <Chip
-                                    label={`${donut.total} Responses`}
-                                    size="small"
-                                    sx={{
-                                      fontWeight: 700,
-                                      fontFamily: T.font.family,
-                                      fontSize: 12,
-                                      bgcolor: '#f1f5f9',
-                                      color: '#475569',
-                                      borderRadius: '9999px',
-                                      height: 24,
-                                      px: 0.5
-                                    }}
-                                  />
-                                </Box>
-
-                                {/* Donut Chart Gauge */}
-                                <Box sx={{ width: '100%', position: 'relative', my: 0.5 }}>
-                                  <ResponsiveContainer width="100%" height={210}>
-                                    <PieChart>
-                                      <Pie
-                                        data={donut.slices}
-                                        dataKey="value"
-                                        nameKey="name"
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius={48}
-                                        outerRadius={74}
-                                        paddingAngle={donut.slices.length > 1 ? 4 : 0}
-                                        cornerRadius={donut.slices.length > 1 ? 4 : 0}
-                                        startAngle={90}
-                                        endAngle={-270}
-                                        stroke="#ffffff"
-                                        strokeWidth={2}
-                                      >
-                                        {donut.slices.map((entry, i) => (
-                                          <Cell key={`cell-${donut.name}-${i}`} fill={entry.solidColor || entry.color || '#22c55e'} />
-                                        ))}
-                                      </Pie>
-                                      {donut.total > 0 && <RechartsTooltip content={<CustomDonutGaugeTooltip />} />}
-                                    </PieChart>
-                                  </ResponsiveContainer>
-
-                                  {/* Centered Percentage & Positive Label */}
-                                  <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', pointerEvents: 'none' }}>
-                                    <Typography sx={{ fontFamily: T.font.family, fontWeight: 800, fontSize: 22, color: '#0f172a', lineHeight: 1.1 }}>
-                                      {donut.posPct}%
-                                    </Typography>
-                                    <Typography sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', mt: 0.2 }}>
-                                      <ArrowDropUpIcon sx={{ fontSize: 18, ml: -0.3, mr: -0.2 }} /> Positive
-                                    </Typography>
-                                  </Box>
-                                </Box>
-
-                                {/* Bottom Stat Breakdown Strip with Text Labels & Percentages */}
-                                <Box sx={{ width: '100%', display: 'flex', justifyContent: 'space-between', gap: 1, mt: 'auto', pt: 1.5 }}>
-                                  {/* Positive */}
-                                  <Box sx={{
-                                    flex: 1,
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    px: 0.8,
-                                    py: 0.6,
-                                    bgcolor: '#f0fdf4',
-                                    border: '1px solid #dcfce7',
-                                    borderRadius: '8px'
-                                  }}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.2 }}>
-                                      <ArrowDropUpIcon sx={{ fontSize: 16, color: '#15803d', ml: -0.4, mr: -0.3 }} />
-                                      <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#15803d', fontFamily: T.font.family }}>
-                                        Positive
-                                      </Typography>
-                                    </Box>
-                                    <Typography sx={{ fontSize: 12.5, fontWeight: 800, color: '#15803d', fontFamily: T.font.family, mt: 0.1 }}>
-                                      {posVal} <Typography component="span" sx={{ fontSize: 11, fontWeight: 600, color: '#16a34a' }}>({donut.total > 0 ? Math.round((posVal / donut.total) * 100) : 0}%)</Typography>
-                                    </Typography>
-                                  </Box>
-
-                                  {/* Neutral */}
-                                  <Box sx={{
-                                    flex: 1,
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    px: 0.8,
-                                    py: 0.6,
-                                    bgcolor: '#fffbeb',
-                                    border: '1px solid #fef3c7',
-                                    borderRadius: '8px'
-                                  }}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
-                                      <FiberManualRecordIcon sx={{ fontSize: 6, color: '#b45309' }} />
-                                      <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#b45309', fontFamily: T.font.family }}>
-                                        Neutral
-                                      </Typography>
-                                    </Box>
-                                    <Typography sx={{ fontSize: 12.5, fontWeight: 800, color: '#b45309', fontFamily: T.font.family, mt: 0.1 }}>
-                                      {neuVal} <Typography component="span" sx={{ fontSize: 11, fontWeight: 600, color: '#b45309' }}>({donut.total > 0 ? Math.round((neuVal / donut.total) * 100) : 0}%)</Typography>
-                                    </Typography>
-                                  </Box>
-
-                                  {/* Negative */}
-                                  <Box sx={{
-                                    flex: 1,
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    px: 0.8,
-                                    py: 0.6,
-                                    bgcolor: '#fef2f2',
-                                    border: '1px solid #fee2e2',
-                                    borderRadius: '8px'
-                                  }}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.2 }}>
-                                      <ArrowDropDownIcon sx={{ fontSize: 16, color: '#dc2626', ml: -0.4, mr: -0.3 }} />
-                                      <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#dc2626', fontFamily: T.font.family }}>
-                                        Negative
-                                      </Typography>
-                                    </Box>
-                                    <Typography sx={{ fontSize: 12.5, fontWeight: 800, color: '#dc2626', fontFamily: T.font.family, mt: 0.1 }}>
-                                      {negVal} <Typography component="span" sx={{ fontSize: 11, fontWeight: 600, color: '#dc2626' }}>({donut.total > 0 ? Math.round((negVal / donut.total) * 100) : 0}%)</Typography>
-                                    </Typography>
-                                  </Box>
-                                </Box>
-                              </Paper>
-                            );
-                          })}
-                        </Box>
-                      </CardContent>
-                    </Card>
-
-                    {/* ── Top Positive & Negative Comments Container ───── */}
-                    <Card elevation={0} sx={{ ...cardShellSx, mb: 3.5 }}>
-                      <Box sx={{ ...sectionHeaderSx, flexWrap: 'wrap', gap: 1.5 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-                          <Box sx={{
-                            bgcolor: '#ede9fe',
-                            color: '#4f46e5',
+                            bgcolor: '#edf4fa',
+                            color: '#16324f',
                             p: 0.55,
                             borderRadius: '8px',
                             display: 'flex',
@@ -1698,19 +1531,19 @@ const SentimentDashboard = () => {
                             <RateReviewIcon />
                           </Box>
                           <Box>
-                            <Typography sx={sectionTitleSx}>Top Patron Comments</Typography>
+                            <Typography sx={{ ...sectionTitleSx, color: '#16324f' }}>Top Patron Comments</Typography>
                             <Typography sx={sectionSubtitleSx}>Top 5 high-impact positive commendations and critical negative feedback</Typography>
                           </Box>
                         </Box>
 
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, px: 1.2, py: 0.35, bgcolor: '#dcfce7', borderRadius: '9999px' }}>
-                            <ThumbUpIcon sx={{ fontSize: 14, color: '#15803d' }} />
-                            <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, color: '#15803d', fontWeight: 700 }}>5 Positive</Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, px: 1.2, py: 0.35, bgcolor: '#e6f4f5', border: '1px solid #b3dfe2', borderRadius: '9999px' }}>
+                            <ThumbUpIcon sx={{ fontSize: 14, color: '#005960' }} />
+                            <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, color: '#005960', fontWeight: 700 }}>5 Positive</Typography>
                           </Box>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, px: 1.2, py: 0.35, bgcolor: '#fee2e2', borderRadius: '9999px' }}>
-                            <ThumbDownIcon sx={{ fontSize: 14, color: '#dc2626' }} />
-                            <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, color: '#dc2626', fontWeight: 700 }}>5 Negative</Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, px: 1.2, py: 0.35, bgcolor: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '9999px' }}>
+                            <ThumbDownIcon sx={{ fontSize: 14, color: '#be123c' }} />
+                            <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, color: '#be123c', fontWeight: 700 }}>5 Negative</Typography>
                           </Box>
                         </Box>
                       </Box>
@@ -1728,13 +1561,19 @@ const SentimentDashboard = () => {
                       </CardContent>
                     </Card>
 
-                    {/* ── Service Improvement Recommendations Container ───── */}
-                    <Card elevation={0} sx={{ ...cardShellSx, mb: 3.5 }}>
+                    {/* ── Service Improvement Recommendations Container (Gold Shell) ───── */}
+                    <Card elevation={0} sx={{
+                      ...cardShellSx,
+                      mb: 3.5,
+                      border: '1.5px solid #fed7aa',
+                      borderTop: '3.5px solid #f69d1b',
+                      boxShadow: '0 2px 12px rgba(246, 157, 27, 0.04)',
+                    }}>
                       <Box sx={{ ...sectionHeaderSx, flexWrap: 'wrap', gap: 1.5 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
                           <Box sx={{
-                            bgcolor: '#fef3c7',
-                            color: '#d97706',
+                            bgcolor: '#fff7ed',
+                            color: '#ea580c',
                             p: 0.55,
                             borderRadius: '8px',
                             display: 'flex',
@@ -1745,7 +1584,7 @@ const SentimentDashboard = () => {
                             <LightbulbIcon />
                           </Box>
                           <Box>
-                            <Typography sx={sectionTitleSx}>Service Improvement Recommendations</Typography>
+                            <Typography sx={{ ...sectionTitleSx, color: '#16324f' }}>Service Improvement Recommendations</Typography>
                             <Typography sx={sectionSubtitleSx}>Actionable priority insights derived from negative patron sentiment signals</Typography>
                           </Box>
                         </Box>
@@ -1791,13 +1630,13 @@ const SentimentDashboard = () => {
                       onClearWordFilter={handleClearWordFilter}
                     />
 
-                    {/* ── Granular Survey Review Table (Stitch Clean Minimalist Design) ───── */}
-                    <Paper elevation={0} sx={{
+                    {/* ── Granular Survey Review Table (Gold Shell) ───── */}
+                    <Paper id="review-table-section" elevation={0} sx={{
                       borderRadius: 3.5,
                       bgcolor: '#ffffff',
-                      border: '1.5px solid rgba(79, 70, 229, 0.22)',
-                      borderTop: '3.5px solid #4f46e5',
-                      boxShadow: '0 2px 12px rgba(79, 70, 229, 0.04)',
+                      border: '1.5px solid #fed7aa',
+                      borderTop: '3.5px solid #f69d1b',
+                      boxShadow: '0 2px 12px rgba(246, 157, 27, 0.04)',
                       overflow: 'hidden',
                       p: { xs: 2, md: 3 },
                       mb: 3,
@@ -1816,10 +1655,10 @@ const SentimentDashboard = () => {
                             fontFamily: T.font.family,
                             fontWeight: 800,
                             fontSize: { xs: 16, md: 18 },
-                            color: '#0f172a',
+                            color: '#16324f',
                             letterSpacing: '-0.2px'
                           }}>
-                            Granular Survey Review
+                            Patron Review Submissions Table
                           </Typography>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, flexWrap: 'wrap', mt: 1.5 }}>
                             <Button
@@ -1837,8 +1676,8 @@ const SentimentDashboard = () => {
                                 height: 28,
                                 boxShadow: 'none',
                                 ...(filterMonth === 'All'
-                                  ? { bgcolor: '#1e293b', color: '#ffffff', '&:hover': { bgcolor: '#0f172a' } }
-                                  : { bgcolor: '#f1f5f9', color: '#475569', border: 'none', '&:hover': { bgcolor: '#e2e8f0' } }
+                                  ? { bgcolor: '#16324f', color: '#ffffff', '&:hover': { bgcolor: '#0e2237' } }
+                                  : { bgcolor: '#edf2f7', color: '#475569', border: 'none', '&:hover': { bgcolor: '#e2e8f0' } }
                                 )
                               }}
                             >
@@ -1864,8 +1703,8 @@ const SentimentDashboard = () => {
                                     height: 28,
                                     boxShadow: 'none',
                                     ...(isSelected
-                                      ? { bgcolor: '#1e293b', color: '#ffffff', '&:hover': { bgcolor: '#0f172a' } }
-                                      : { bgcolor: '#f1f5f9', color: c > 0 ? '#334155' : '#94a3b8', border: 'none', '&:hover': { bgcolor: '#e2e8f0' } }
+                                      ? { bgcolor: '#16324f', color: '#ffffff', '&:hover': { bgcolor: '#0e2237' } }
+                                      : { bgcolor: '#edf2f7', color: c > 0 ? '#334155' : '#94a3b8', border: 'none', '&:hover': { bgcolor: '#e2e8f0' } }
                                     )
                                   }}
                                 >
@@ -1888,9 +1727,9 @@ const SentimentDashboard = () => {
                                 fontSize: 11.5,
                                 height: 26,
                                 borderRadius: '9999px',
-                                bgcolor: '#fef3c7',
-                                color: '#b45309',
-                                border: 'none',
+                                bgcolor: '#fff7ed',
+                                color: '#c2410c',
+                                border: '1px solid #fed7aa',
                               }}
                             />
                           )}
@@ -1909,9 +1748,9 @@ const SentimentDashboard = () => {
                                 fontSize: 12,
                                 height: 30,
                                 px: 1.8,
-                                bgcolor: '#ef4444',
-                                boxShadow: '0 2px 8px rgba(239, 68, 68, 0.25)',
-                                '&:hover': { bgcolor: '#dc2626' }
+                                bgcolor: '#ea580c',
+                                boxShadow: '0 2px 8px rgba(234, 88, 12, 0.25)',
+                                '&:hover': { bgcolor: '#c2410c' }
                               }}
                             >
                               Delete Selected ({selectedRowIds.length})
@@ -1920,74 +1759,136 @@ const SentimentDashboard = () => {
                         </Box>
                       </Box>
 
-                      {/* ── Table Content - Clean Minimalist Grid ───── */}
-                      <TableContainer component={Box} sx={{ overflowX: 'auto', border: 'none' }}>
-                        <Table size="small" sx={{ minWidth: 850 }}>
+                      {/* ── Table Content - Modern Spreadsheet Grid with Section Highlighting ───── */}
+                      <TableContainer
+                        component={Box}
+                        sx={{
+                          overflowX: 'auto',
+                          borderRadius: '12px',
+                          border: '1.5px solid #cbdbe9',
+                          bgcolor: '#ffffff',
+                          boxShadow: '0 2px 8px rgba(22, 50, 79, 0.03)',
+                        }}
+                      >
+                        <Table size="small" sx={{ minWidth: 920, borderCollapse: 'separate', borderSpacing: 0 }}>
                           <TableHead>
+                            {/* Top Tier: Spreadsheet Section Category Headers */}
                             <TableRow sx={{
-                              borderBottom: '1px solid #f1f5f9',
+                              bgcolor: '#ffffff',
                               '& th': {
-                                py: 1.4,
+                                py: 0.9,
                                 px: 1.5,
                                 fontSize: 11,
-                                fontWeight: 700,
-                                color: '#64748b',
+                                fontWeight: 800,
+                                letterSpacing: '0.5px',
+                                textTransform: 'uppercase',
+                                fontFamily: T.font.family,
+                                borderBottom: '1px solid #e2e8f0',
+                                bgcolor: '#ffffff',
+                              }
+                            }}>
+                              <TableCell colSpan={3} sx={{ color: '#16324f', borderRight: '2px solid #cbdbe9 !important' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.7 }}>
+                                  <PersonOutlineIcon sx={{ fontSize: 15, color: '#16324f' }} />
+                                  <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 800, color: '#16324f', letterSpacing: '0.5px' }}>
+                                    Patron Identity
+                                  </Typography>
+                                </Box>
+                              </TableCell>
+                              <TableCell sx={{ color: '#334155', borderRight: '2px solid #cbdbe9 !important' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.7 }}>
+                                  <ChatBubbleOutlineIcon sx={{ fontSize: 15, color: '#334155' }} />
+                                  <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 800, color: '#334155', letterSpacing: '0.5px' }}>
+                                    Feedback Response
+                                  </Typography>
+                                </Box>
+                              </TableCell>
+                              <TableCell colSpan={2} sx={{ color: '#16324f', borderRight: '2px solid #cbdbe9 !important' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.7 }}>
+                                  <CategoryIcon sx={{ fontSize: 15, color: '#16324f' }} />
+                                  <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 800, color: '#16324f', letterSpacing: '0.5px' }}>
+                                    Sentiment & Classification
+                                  </Typography>
+                                </Box>
+                              </TableCell>
+                              <TableCell colSpan={2} sx={{ color: '#334155', borderRight: 'none !important' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.7 }}>
+                                  <EventNoteIcon sx={{ fontSize: 15, color: '#334155' }} />
+                                  <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 800, color: '#334155', letterSpacing: '0.5px' }}>
+                                    Audit & Actions
+                                  </Typography>
+                                </Box>
+                              </TableCell>
+                            </TableRow>
+
+                            {/* Second Tier: Column Field Names with Sort Labels and Grid Dividers */}
+                            <TableRow sx={{
+                              bgcolor: '#fafbfc',
+                              '& th': {
+                                py: 1.1,
+                                px: 1.5,
+                                fontSize: 11,
+                                fontWeight: 800,
+                                color: '#475569',
                                 letterSpacing: '0.4px',
                                 textTransform: 'uppercase',
-                                borderBottom: '1px solid #f1f5f9',
+                                borderBottom: '2px solid #cbdbe9',
+                                borderRight: '1px solid #e2e8f0',
+                                bgcolor: '#fafbfc',
                                 fontFamily: T.font.family,
                               }
                             }}>
-                              <TableCell padding="checkbox" sx={{ width: 40, py: 1 }}>
+                              <TableCell padding="checkbox" sx={{ width: 44, py: 1, borderRight: '1px solid #e2e8f0' }}>
                                 <Checkbox
                                   size="small"
                                   checked={isAllPageSelected}
                                   indeterminate={isSomePageSelected}
                                   onChange={handleSelectAllOnPage}
-                                  sx={{ color: '#cbd5e1', p: 0.5, '&.Mui-checked': { color: '#1e293b' }, '&.MuiCheckbox-indeterminate': { color: '#1e293b' } }}
+                                  sx={{ color: '#cbd5e1', p: 0.5, '&.Mui-checked': { color: '#16324f' }, '&.MuiCheckbox-indeterminate': { color: '#16324f' } }}
                                 />
                               </TableCell>
-                              <TableCell sx={{ width: 110 }}>
+                              <TableCell sx={{ width: 115, borderRight: '1px solid #e2e8f0' }}>
                                 <TableSortLabel active={sortField === 'Clientele'} direction={sortField === 'Clientele' ? sortOrder : 'asc'} onClick={() => handleRequestSort('Clientele')}
-                                  sx={{ color: '#64748b !important', '& .MuiTableSortLabel-icon': { color: '#94a3b8 !important' } }}>
+                                  sx={{ color: '#475569 !important', fontWeight: 800, '& .MuiTableSortLabel-icon': { color: '#94a3b8 !important' } }}>
                                   Clientele
                                 </TableSortLabel>
                               </TableCell>
-                              <TableCell sx={{ width: 130 }}>
+                              <TableCell sx={{ width: 145, borderRight: '2px solid #cbdbe9 !important' }}>
                                 <TableSortLabel active={sortField === 'College'} direction={sortField === 'College' ? sortOrder : 'asc'} onClick={() => handleRequestSort('College')}
-                                  sx={{ color: '#64748b !important', '& .MuiTableSortLabel-icon': { color: '#94a3b8 !important' } }}>
+                                  sx={{ color: '#475569 !important', fontWeight: 800, '& .MuiTableSortLabel-icon': { color: '#94a3b8 !important' } }}>
                                   College / Dept
                                 </TableSortLabel>
                               </TableCell>
-                              <TableCell sx={{ minWidth: 320 }}>
+                              <TableCell sx={{ minWidth: 320, borderRight: '2px solid #cbdbe9 !important' }}>
                                 <TableSortLabel active={sortField === 'Message'} direction={sortField === 'Message' ? sortOrder : 'asc'} onClick={() => handleRequestSort('Message')}
-                                  sx={{ color: '#64748b !important', '& .MuiTableSortLabel-icon': { color: '#94a3b8 !important' } }}>
+                                  sx={{ color: '#475569 !important', fontWeight: 800, '& .MuiTableSortLabel-icon': { color: '#94a3b8 !important' } }}>
                                   Feedback Response
                                 </TableSortLabel>
                               </TableCell>
-                              <TableCell sx={{ width: 115 }}>
+                              <TableCell sx={{ width: 125, borderRight: '1px solid #e2e8f0' }}>
                                 <TableSortLabel active={sortField === 'SentimentResult'} direction={sortField === 'SentimentResult' ? sortOrder : 'asc'} onClick={() => handleRequestSort('SentimentResult')}
-                                  sx={{ color: '#64748b !important', '& .MuiTableSortLabel-icon': { color: '#94a3b8 !important' } }}>
+                                  sx={{ color: '#475569 !important', fontWeight: 800, '& .MuiTableSortLabel-icon': { color: '#94a3b8 !important' } }}>
                                   Sentiment
                                 </TableSortLabel>
                               </TableCell>
-                              <TableCell sx={{ width: 125 }}>
+                              <TableCell sx={{ width: 135, borderRight: '2px solid #cbdbe9 !important' }}>
                                 <TableSortLabel active={sortField === 'Category'} direction={sortField === 'Category' ? sortOrder : 'asc'} onClick={() => handleRequestSort('Category')}
-                                  sx={{ color: '#64748b !important', '& .MuiTableSortLabel-icon': { color: '#94a3b8 !important' } }}>
+                                  sx={{ color: '#475569 !important', fontWeight: 800, '& .MuiTableSortLabel-icon': { color: '#94a3b8 !important' } }}>
                                   Category
                                 </TableSortLabel>
                               </TableCell>
-                              <TableCell sx={{ width: 110 }}>
+                              <TableCell sx={{ width: 115, borderRight: '1px solid #e2e8f0' }}>
                                 <TableSortLabel active={sortField === 'DateSubmitted'} direction={sortField === 'DateSubmitted' ? sortOrder : 'asc'} onClick={() => handleRequestSort('DateSubmitted')}
-                                  sx={{ color: '#64748b !important', '& .MuiTableSortLabel-icon': { color: '#94a3b8 !important' } }}>
+                                  sx={{ color: '#475569 !important', fontWeight: 800, '& .MuiTableSortLabel-icon': { color: '#94a3b8 !important' } }}>
                                   Date
                                 </TableSortLabel>
                               </TableCell>
-                              <TableCell align="center" sx={{ width: 75 }}>
+                              <TableCell align="center" sx={{ width: 75, borderRight: 'none !important', color: '#475569', fontWeight: 800 }}>
                                 Actions
                               </TableCell>
                             </TableRow>
                           </TableHead>
+
                           <TableBody>
                             {pageRows.length === 0 ? (
                               <TableRow>
@@ -2033,55 +1934,57 @@ const SentimentDashboard = () => {
                                     hover
                                     selected={isSelected}
                                     sx={{
-                                      borderBottom: '1px solid #f1f5f9',
+                                      bgcolor: '#ffffff',
                                       transition: 'background-color 0.15s ease',
-                                      '&:hover': { bgcolor: 'rgba(241, 245, 249, 0.6) !important' },
-                                      '&.Mui-selected': { bgcolor: 'rgba(241, 245, 249, 0.85) !important' },
+                                      '&:hover': { bgcolor: '#f1f5f9 !important' },
+                                      '&.Mui-selected': { bgcolor: '#edf4fa !important' },
                                     }}
                                   >
-                                    <TableCell padding="checkbox" sx={{ py: 1.1, px: 1, borderBottom: '1px solid #f1f5f9' }}>
+                                    <TableCell padding="checkbox" sx={{ py: 1.1, px: 1, borderBottom: '1px solid #edf2f7', borderRight: '1px solid #edf2f7' }}>
                                       <Checkbox
                                         size="small"
                                         checked={isSelected}
                                         onChange={() => handleToggleSelectRow(row.Id)}
-                                        sx={{ color: '#cbd5e1', '&.Mui-checked': { color: '#1e293b' }, p: 0.3 }}
+                                        sx={{ color: '#cbd5e1', '&.Mui-checked': { color: '#16324f' }, p: 0.3 }}
                                       />
                                     </TableCell>
-                                    <TableCell sx={{ py: 1.1, px: 1.4, borderBottom: '1px solid #f1f5f9', fontFamily: T.font.family, fontSize: 13.5, color: '#1e293b', fontWeight: 600 }}>
+                                    <TableCell sx={{ py: 1.1, px: 1.4, borderBottom: '1px solid #edf2f7', borderRight: '1px solid #edf2f7', fontFamily: T.font.family, fontSize: 13, color: '#16324f', fontWeight: 700 }}>
                                       {clientDisplay}
                                     </TableCell>
-                                    <TableCell sx={{ py: 1.1, px: 1.4, borderBottom: '1px solid #f1f5f9' }}>
+                                    <TableCell sx={{ py: 1.1, px: 1.4, borderBottom: '1px solid #edf2f7', borderRight: '2px solid #cbdbe9' }}>
                                       <Box sx={{
                                         display: 'inline-flex',
                                         alignItems: 'center',
-                                        px: 1.3,
-                                        py: 0.3,
+                                        px: 1.4,
+                                        py: 0.35,
                                         borderRadius: '9999px',
-                                        bgcolor: '#ede9fe',
-                                        color: '#4f46e5',
-                                        fontSize: 12.5,
-                                        fontWeight: 700,
+                                        bgcolor: '#edf4fa',
+                                        color: '#16324f',
+                                        border: '1px solid #cbdbe9',
+                                        fontSize: 12,
+                                        fontWeight: 800,
                                         fontFamily: T.font.family,
-                                        lineHeight: 1.2,
+                                        lineHeight: 1.25,
+                                        textAlign: 'center',
                                       }}>
-                                        {row.College || 'N/A'}
+                                        {cleanCollegeName(row.College)}
                                       </Box>
                                       {row.Course && (
                                         <Typography sx={{ fontFamily: T.font.family, fontSize: 11, color: '#64748b', fontWeight: 500, mt: 0.2 }}>
-                                          {row.Course}
+                                          {cleanCollegeName(row.Course)}
                                         </Typography>
                                       )}
                                     </TableCell>
                                     <TableCell sx={{
                                       fontFamily: T.font.family,
-                                      fontSize: 13.8,
+                                      fontSize: 13.5,
                                       fontWeight: 500,
                                       color: '#1e293b',
                                       py: 1.1,
-                                      px: 1.4,
-                                      pr: 2,
+                                      px: 1.6,
                                       lineHeight: 1.45,
-                                      borderBottom: '1px solid #f1f5f9',
+                                      borderBottom: '1px solid #edf2f7',
+                                      borderRight: '2px solid #cbdbe9',
                                     }}>
                                       {row.Message && row.Message.trim().length > 0 ? (
                                         row.Message
@@ -2098,16 +2001,16 @@ const SentimentDashboard = () => {
                                         </Box>
                                       )}
                                     </TableCell>
-                                    <TableCell sx={{ py: 1.1, px: 1.4, borderBottom: '1px solid #f1f5f9' }}>
+                                    <TableCell sx={{ py: 1.1, px: 1.4, borderBottom: '1px solid #edf2f7', borderRight: '1px solid #edf2f7' }}>
                                       <SentimentChip label={row.SentimentResult} />
                                     </TableCell>
-                                    <TableCell sx={{ py: 1.1, px: 1.4, borderBottom: '1px solid #f1f5f9' }}>
+                                    <TableCell sx={{ py: 1.1, px: 1.4, borderBottom: '1px solid #edf2f7', borderRight: '2px solid #cbdbe9' }}>
                                       <CategoryChip label={row.Category} />
                                     </TableCell>
-                                    <TableCell sx={{ fontFamily: T.font.family, fontSize: 12.8, color: '#64748b', fontWeight: 500, py: 1.1, px: 1.4, borderBottom: '1px solid #f1f5f9' }}>
+                                    <TableCell sx={{ fontFamily: T.font.family, fontSize: 12.5, color: '#64748b', fontWeight: 600, py: 1.1, px: 1.4, borderBottom: '1px solid #edf2f7', borderRight: '1px solid #edf2f7' }}>
                                       {submittedDateStr}
                                     </TableCell>
-                                    <TableCell align="center" sx={{ py: 1.1, px: 1, borderBottom: '1px solid #f1f5f9' }}>
+                                    <TableCell align="center" sx={{ py: 1.1, px: 1, borderBottom: '1px solid #edf2f7' }}>
                                       <IconButton
                                         size="small"
                                         onClick={() => openDeleteModal(row)}

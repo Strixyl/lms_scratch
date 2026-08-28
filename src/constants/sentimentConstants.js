@@ -10,7 +10,16 @@ export const COLLEGE_OPTIONS = [
   'SHS', 'JHS', 'ELEM', 'KINDER'
 ];
 
+export const cleanCollegeName = (collegeStr) => {
+  if (!collegeStr) return 'N/A';
+  let s = String(collegeStr).trim();
+  // Fix typo error: Comouter Studies -> Computer Studies
+  s = s.replace(/comouter/gi, 'Computer');
+  return s || 'N/A';
+};
+
 export const COLLEGE_COURSES = {
+  'Faculty / Staff': ['Faculty', 'Staff'],
   CARES: ['Agriculture', 'Agricultural and Biosystems Engineering', 'Environmental Management'],
   CAS: ['English Language Studies', 'Biology with specialization in Medical Biology', 'Biology with specialization in Microbiology', 'Chemistry', 'Psychology', 'Social Work'],
   CBA: ['Accountancy', 'Management Accounting', 'Business Administration major in Human Resource Management', 'Business Administration major in Financial Management', 'Business Administration major in Marketing Management', 'Entrepreneurship'],
