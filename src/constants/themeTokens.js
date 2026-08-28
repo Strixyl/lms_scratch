@@ -8,8 +8,11 @@ export const THEME = {
   brand: {
     primary: '#16324f',       // Deep Navy — headers, primary buttons, table heads, container outlines
     primaryHover: '#0f243a',  // Hover state for primary
-    accent: '#f69d1b',        // Vibrant Warm Golden Orange — highlights, gold badges, excel export
+    accent: '#f69d1b',        // Vibrant Warm Golden Orange — highlights, gold badges
     accentHover: '#df8208',   // Hover state for orange accent
+    excel: '#107c41',         // Microsoft Excel Forest Green
+    excelHover: '#0b5a2f',    // Excel Green Hover
+    excelShadow: 'rgba(16, 124, 65, 0.28)',
     indigo: '#1b3a5b',        // Sapphire Navy
     indigoHover: '#10253d',   // Darker Navy Hover
     goldLight: '#fff8eb',     // Soft Gold/Orange Tint
@@ -57,13 +60,25 @@ export const THEME = {
     },
   },
 
-  // ── Word Cloud Colors (Vibrant, Diverse & Colorful Spectrum) ──────────────
+  // ── Word Cloud Colors (Vibrant, Colorful & Modern Palette) ───────────────
   wordCloudColors: [
-    '#2563eb', '#7c3aed', '#db2777', '#059669', '#ea580c',
-    '#0891b2', '#4f46e5', '#d97706', '#0284c7', '#9333ea',
-    '#16a34a', '#e11d48', '#0d9488', '#c026d3', '#f59e0b',
-    '#4338ca', '#047857', '#b91c1c', '#6366f1', '#be185d',
-    '#0284c7', '#10b981', '#f43f5e', '#8b5cf6', '#ec4899',
+    '#0284c7', // Sky Blue
+    '#7c3aed', // Royal Purple
+    '#f59e0b', // Amber Gold
+    '#10b981', // Emerald Green
+    '#e11d48', // Crimson Rose
+    '#4f46e5', // Electric Indigo
+    '#ea580c', // Vibrant Orange
+    '#0d9488', // Teal
+    '#9333ea', // Bright Purple
+    '#2563eb', // Sapphire Blue
+    '#ec4899', // Pink
+    '#059669', // Forest Mint
+    '#d97706', // Warm Amber
+    '#0891b2', // Ocean Cyan
+    '#be123c', // Deep Crimson
+    '#6366f1', // Indigo
+    '#16324f', // Deep Navy
   ],
 
   // ── Surface / UI Neutral Palette ──────────────────────────────────────────

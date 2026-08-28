@@ -68,6 +68,7 @@ import {
   LEXICON_TOPIC_ACTIONS,
   RECOMMENDATIONS,
   CATEGORY_KEYWORDS,
+  cleanCollegeName,
 } from '../constants/sentimentConstants';
 
 import {
@@ -988,10 +989,10 @@ function SentimentDashboard() {
                       sx={{
                         borderRadius: '10px', height: 42, px: 2.5,
                         fontFamily: T.font.family, fontSize: 13.5, fontWeight: 700, textTransform: 'none',
-                        bgcolor: '#f69d1b',
+                        bgcolor: '#107c41',
                         color: '#ffffff',
-                        boxShadow: '0 2px 8px rgba(246, 157, 27, 0.3)',
-                        '&:hover': { bgcolor: '#df8208' }
+                        boxShadow: '0 2px 8px rgba(16, 124, 65, 0.28)',
+                        '&:hover': { bgcolor: '#0b5a2f', boxShadow: '0 4px 12px rgba(16, 124, 65, 0.35)' }
                       }}
                     >
                       Export to Excel
@@ -1004,9 +1005,10 @@ function SentimentDashboard() {
                       sx={{
                         borderRadius: '10px', height: 42, px: 2.2,
                         fontFamily: T.font.family, fontSize: 13.5, fontWeight: 700, textTransform: 'none',
-                        borderColor: '#fed7aa', color: '#ea580c',
+                        borderColor: '#fca5a5', color: '#e11d48',
                         bgcolor: '#ffffff', borderWidth: '1.5px',
-                        '&:hover': { bgcolor: '#fff7ed', borderColor: '#f69d1b', borderWidth: '1.5px' }
+                        boxShadow: '0 1px 3px rgba(225, 29, 72, 0.05)',
+                        '&:hover': { bgcolor: '#fff1f2', borderColor: '#e11d48', color: '#be123c', borderWidth: '1.5px' }
                       }}
                     >
                       Logout
@@ -1953,23 +1955,23 @@ function SentimentDashboard() {
                                       <Box sx={{
                                         display: 'inline-flex',
                                         alignItems: 'center',
-                                        px: 1.3,
-                                        py: 0.3,
+                                        px: 1.4,
+                                        py: 0.35,
                                         borderRadius: '9999px',
-                                        bgcolor: '#fffbeb',
-                                        color: '#b45309',
-                                        border: '1.5px solid #fed7aa',
+                                        bgcolor: '#edf4fa',
+                                        color: '#16324f',
+                                        border: '1px solid #cbdbe9',
                                         fontSize: 12,
-                                        fontWeight: 700,
+                                        fontWeight: 800,
                                         fontFamily: T.font.family,
-                                        lineHeight: 1.2,
-                                        boxShadow: '0 1px 2px rgba(246, 157, 27, 0.05)',
+                                        lineHeight: 1.25,
+                                        textAlign: 'center',
                                       }}>
-                                        {row.College || 'N/A'}
+                                        {cleanCollegeName(row.College)}
                                       </Box>
                                       {row.Course && (
                                         <Typography sx={{ fontFamily: T.font.family, fontSize: 11, color: '#64748b', fontWeight: 500, mt: 0.2 }}>
-                                          {row.Course}
+                                          {cleanCollegeName(row.Course)}
                                         </Typography>
                                       )}
                                     </TableCell>

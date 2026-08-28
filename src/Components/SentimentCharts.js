@@ -1066,10 +1066,10 @@ export const WordCloudSection = React.memo(({
   const wordCloudOptions = useMemo(() => ({
     deterministic: true,
     randomSeed: 'hll-library-wordcloud-poster-v1',
-    rotations: 2,
-    rotationAngles: [0, 90], // Horizontal & vertical word layout matching reference poster
+    rotations: 1,
+    rotationAngles: [0, 0], // Strictly horizontal words only, no vertical rotation
     fontFamily: '"Arial Black", Impact, "Trebuchet MS", "Poppins", sans-serif',
-    fontSizes: [16, 78],
+    fontSizes: [16, 76],
     fontStyle: 'normal',
     fontWeight: '900',
     padding: 3,
@@ -1082,10 +1082,10 @@ export const WordCloudSection = React.memo(({
   const wordCloudCallbacks = useMemo(() => ({
     getWordColor: (word) => {
       if (selectedWordFilter && word.text.toLowerCase() === selectedWordFilter.toLowerCase()) {
-        return '#f37021';
+        return '#ea580c';
       }
       if (words.length > 0 && word.text === words[0]?.text) {
-        return '#f37021'; // Vibrant warm orange for the #1 prominent word
+        return '#ea580c'; // Vibrant warm orange for the #1 prominent word
       }
       const charCodeSum = (word.text || '').split('').reduce((acc, char, i) => acc + char.charCodeAt(0) * (i + 1), 0);
       return T.wordCloudColors[charCodeSum % T.wordCloudColors.length];
@@ -1166,8 +1166,8 @@ export const WordCloudSection = React.memo(({
             height: 380,
             borderRadius: 3.5,
             p: 2.5,
-            bgcolor: '#ffffff', // Clean white canvas (yellowish grey background removed)
-            border: '1.5px solid #e2e8f0',
+            bgcolor: '#ffffff',
+            border: '1.5px solid #cbdbe9',
             position: 'relative',
             overflow: 'hidden',
             animation: 'wordCloudContainerFade 0.6s cubic-bezier(0.16, 1, 0.3, 1)',

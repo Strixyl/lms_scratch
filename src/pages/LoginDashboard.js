@@ -1351,7 +1351,7 @@ const LoginDashboard = () => {
     const counts = { Male: 0, Female: 0, Other: 0 };
     logins.forEach(item => {
       const g = (item.studGender || '').toLowerCase();
-      if (g.includes('m')) counts.Male += 1;
+      if (g.includes('m') && !g.includes('fe')) counts.Male += 1;
       else if (g.includes('f')) counts.Female += 1;
       else counts.Other += 1;
     });
@@ -1623,10 +1623,10 @@ const LoginDashboard = () => {
                       sx={{
                         borderRadius: '10px', height: 42, px: 2.5,
                         fontFamily: T.font.family, fontSize: 13.5, fontWeight: 700, textTransform: 'none',
-                        bgcolor: '#f69d1b',
+                        bgcolor: '#107c41',
                         color: '#ffffff',
-                        boxShadow: '0 2px 8px rgba(246, 157, 27, 0.3)',
-                        '&:hover': { bgcolor: '#df8208' }
+                        boxShadow: '0 2px 8px rgba(16, 124, 65, 0.28)',
+                        '&:hover': { bgcolor: '#0b5a2f', boxShadow: '0 4px 12px rgba(16, 124, 65, 0.35)' }
                       }}
                     >
                       Export to Excel
@@ -1639,9 +1639,10 @@ const LoginDashboard = () => {
                       sx={{
                         borderRadius: '10px', height: 42, px: 2.2,
                         fontFamily: T.font.family, fontSize: 13.5, fontWeight: 700, textTransform: 'none',
-                        borderColor: '#fed7aa', color: '#ea580c',
+                        borderColor: '#fca5a5', color: '#e11d48',
                         bgcolor: '#ffffff', borderWidth: '1.5px',
-                        '&:hover': { bgcolor: '#fff7ed', borderColor: '#f69d1b', borderWidth: '1.5px' }
+                        boxShadow: '0 1px 3px rgba(225, 29, 72, 0.05)',
+                        '&:hover': { bgcolor: '#fff1f2', borderColor: '#e11d48', color: '#be123c', borderWidth: '1.5px' }
                       }}
                     >
                       Logout
@@ -2664,7 +2665,7 @@ const LoginDashboard = () => {
                                         {`${row.studLname || ''}, ${row.studFname || ''}`}
                                       </TableCell>
                                       <TableCell sx={{ py: 1.1, px: 1.4, borderBottom: '1px solid #f1f5f9', fontFamily: T.font.family, fontSize: 12.5, color: '#475569', fontWeight: 500 }}>
-                                        {`${row.studCourse || 'N/A'} - ${row.studYear || ''}`}
+                                        {`${(row.studCourse || 'N/A').replace(/comouter/gi, 'Computer')} - ${row.studYear || ''}`}
                                       </TableCell>
                                       <TableCell sx={{ py: 1.1, px: 1.4, borderBottom: '1px solid #f1f5f9' }}>
                                         <Box sx={{
@@ -2681,7 +2682,7 @@ const LoginDashboard = () => {
                                           fontFamily: T.font.family,
                                           lineHeight: 1.2,
                                         }}>
-                                          {row.studCollege || 'N/A'}
+                                          {(row.studCollege || 'N/A').replace(/comouter/gi, 'Computer')}
                                         </Box>
                                       </TableCell>
                                       <TableCell sx={{ py: 1.1, px: 1.4, borderBottom: '1px solid #f1f5f9' }}>
@@ -2706,17 +2707,17 @@ const LoginDashboard = () => {
                                       <TableCell sx={{ py: 1.1, px: 1.4, borderBottom: '1px solid #f1f5f9' }}>
                                         {isMale ? (
                                           <Chip
-                                            icon={<MaleIcon sx={{ fontSize: '15px !important', color: '#16324f !important' }} />}
+                                            icon={<MaleIcon sx={{ fontSize: '15px !important', color: '#0284c7 !important' }} />}
                                             label="Male"
                                             size="small"
-                                            sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 11, bgcolor: '#edf4fa', color: '#16324f', border: '1px solid #cbdbe9', height: 22, borderRadius: '9999px' }}
+                                            sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 11, bgcolor: '#f0f9ff', color: '#0369a1', border: '1px solid #bae6fd', height: 22, borderRadius: '9999px' }}
                                           />
                                         ) : isFemale ? (
                                           <Chip
-                                            icon={<FemaleIcon sx={{ fontSize: '15px !important', color: '#c2410c !important' }} />}
+                                            icon={<FemaleIcon sx={{ fontSize: '15px !important', color: '#ec4899 !important' }} />}
                                             label="Female"
                                             size="small"
-                                            sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 11, bgcolor: '#fff7ed', color: '#c2410c', border: '1px solid #fed7aa', height: 22, borderRadius: '9999px' }}
+                                            sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 11, bgcolor: '#fdf2f8', color: '#be185d', border: '1px solid #fbcfe8', height: 22, borderRadius: '9999px' }}
                                           />
                                         ) : (
                                           <Typography sx={{ fontFamily: T.font.family, fontSize: 12, color: '#94a3b8' }}>
@@ -2861,39 +2862,42 @@ const LoginDashboard = () => {
                           )}
                         </Box>
 
-                        {/* Gender Demographics List with Sentiment Themed Color Cards */}
+                        {/* Gender Demographics List with Light Blue (Male) and Pink (Female) Cards */}
                         <Box>
                           <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, fontWeight: 700, color: '#64748b', mb: 1.5, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                             Patron Gender Split
                           </Typography>
                           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                            {/* Male Visitors - Light Blue */}
                             <Box sx={{
                               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                              p: 1.8, borderRadius: 2.5, bgcolor: '#edf4fa',
-                              border: '1.5px solid #cbdbe9', borderTop: '3.5px solid #16324f',
-                              transition: 'all 0.2s ease', '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 4px 12px rgba(22, 50, 79, 0.15)' }
+                              p: 1.8, borderRadius: 2.5, bgcolor: '#f0f9ff',
+                              border: '1.5px solid #bae6fd', borderTop: '3.5px solid #0284c7',
+                              transition: 'all 0.2s ease', '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 4px 12px rgba(2, 132, 199, 0.15)' }
                             }}>
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-                                <Box sx={{ bgcolor: '#ffffff', color: '#16324f', p: 0.5, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #cbdbe9' }}>
-                                  <MaleIcon sx={{ fontSize: 20, color: '#16324f' }} />
+                                <Box sx={{ bgcolor: '#ffffff', color: '#0284c7', p: 0.5, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #bae6fd' }}>
+                                  <MaleIcon sx={{ fontSize: 20, color: '#0284c7' }} />
                                 </Box>
-                                <Typography sx={{ fontFamily: T.font.family, fontSize: 13.5, fontWeight: 700, color: '#16324f' }}>Male Visitors</Typography>
+                                <Typography sx={{ fontFamily: T.font.family, fontSize: 13.5, fontWeight: 700, color: '#0369a1' }}>Male Visitors</Typography>
                               </Box>
-                              <Typography sx={{ fontFamily: T.font.family, fontSize: 18, fontWeight: 900, color: '#16324f' }}>{genderCounts.Male}</Typography>
+                              <Typography sx={{ fontFamily: T.font.family, fontSize: 18, fontWeight: 900, color: '#0284c7' }}>{genderCounts.Male}</Typography>
                             </Box>
+
+                            {/* Female Visitors - Pink */}
                             <Box sx={{
                               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                              p: 1.8, borderRadius: 2.5, bgcolor: '#fff7ed',
-                              border: '1.5px solid #fed7aa', borderTop: '3.5px solid #ea580c',
-                              transition: 'all 0.2s ease', '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 4px 12px rgba(234, 88, 12, 0.15)' }
+                              p: 1.8, borderRadius: 2.5, bgcolor: '#fdf2f8',
+                              border: '1.5px solid #fbcfe8', borderTop: '3.5px solid #ec4899',
+                              transition: 'all 0.2s ease', '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 4px 12px rgba(236, 72, 153, 0.15)' }
                             }}>
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-                                <Box sx={{ bgcolor: '#ffffff', color: '#ea580c', p: 0.5, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #fed7aa' }}>
-                                  <FemaleIcon sx={{ fontSize: 20, color: '#ea580c' }} />
+                                <Box sx={{ bgcolor: '#ffffff', color: '#ec4899', p: 0.5, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #fbcfe8' }}>
+                                  <FemaleIcon sx={{ fontSize: 20, color: '#ec4899' }} />
                                 </Box>
-                                <Typography sx={{ fontFamily: T.font.family, fontSize: 13.5, fontWeight: 700, color: '#9a3412' }}>Female Visitors</Typography>
+                                <Typography sx={{ fontFamily: T.font.family, fontSize: 13.5, fontWeight: 700, color: '#be185d' }}>Female Visitors</Typography>
                               </Box>
-                              <Typography sx={{ fontFamily: T.font.family, fontSize: 18, fontWeight: 900, color: '#ea580c' }}>{genderCounts.Female}</Typography>
+                              <Typography sx={{ fontFamily: T.font.family, fontSize: 18, fontWeight: 900, color: '#ec4899' }}>{genderCounts.Female}</Typography>
                             </Box>
                           </Box>
                         </Box>

@@ -329,7 +329,7 @@ const COLLEGE_MAP = {
   CARES: ['CARES', 'Agriculture', 'Environmental', 'BSA', 'BSABE', 'BSEM'],
   CAS: ['CAS', 'Arts', 'Sciences', 'BAComm', 'BAELS', 'BAPolSci', 'BSBio', 'BSChem', 'BSPsyc', 'BSSW', 'ABPSPA'],
   CBA: ['CBA', 'Business', 'Accountancy', 'BSActy', 'BSAd', 'BSBABM', 'BSBAFM', 'BSBAMM', 'BSEnt', 'BSBAMA'],
-  CCS: ['CCS', 'Computer Studies', 'Computer', 'BSCS', 'BSDMIA', 'BSIT', 'BLIS'],
+  CCS: ['CCS', 'Computer Studies', 'Comouter Studies', 'Computer', 'Comouter', 'BSCS', 'BSDMIA', 'BSIT', 'BLIS'],
   COED: ['COED', 'Education', 'BECEd', 'BEEd', 'BPEd', 'BSBMic', 'BSEd', 'BSMath'],
   COE: ['COE', 'Engineering', 'BSCE', 'BSChE', 'BSEE', 'BSECE', 'BSME', 'BSPkgE', 'BSSE'],
   CHM: ['CHM', 'Hospitality', 'BSHM', 'BSTM', 'BSHRM'],
