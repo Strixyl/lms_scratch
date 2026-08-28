@@ -1,4 +1,4 @@
-﻿# Library Management System with Patron Satisfaction Survey
+# Library Management System with Patron Satisfaction Survey
 ### Powered by Dual-Engine NLP (RoBERTa BERT Sentiment Analysis & Naive Bayes Category Classification)
 
 **Central Philippine University — College of Computer Studies**  
@@ -26,10 +26,10 @@ This is an enterprise-grade, web-based **Library Management System** developed f
                         |     Express Backend Server (index.js)   |
                         |               (Port 5000)               |
                         +-----------------------------------------+
-                                  /                       \
-                POST /analyze &  /                         \ ODBC Driver 18
-                /categorize     /                           \ SQL Connection
-                               v                             v
+                                   /                       \
+                 POST /analyze &  /                         \ ODBC Driver 18
+                 /categorize     /                           \ SQL Connection
+                                v                             v
 +---------------------------------------------+   +---------------------------------+
 |   Python Flask NLP Microservice             |   |  Microsoft SQL Server DB        |
 |      (sentiment_service.py :5001)           |   |          (hllSystem)            |
@@ -54,25 +54,29 @@ This is an enterprise-grade, web-based **Library Management System** developed f
 - **Section Traffic Tracking**: Monitors daily entry (`Time In`) and exit (`Time Out`) events across library sections (e.g., Knowledge Center, American Corner, Graduate Studies Section).
 - **Admin Traffic Analytics Dashboard (`LoginDashboard.js`)**:
   - Protected by admin modal authentication (`admin` / `admin`).
-  - Real-time KPI summary cards: **Total Visits**, **Top College**, **Peak Library Section**, and **Active Departments**.
-  - Interactive Recharts data visualizations: Bar Chart (Visits by College) and Pie Chart (Section Distribution).
+  - Styled with the modern Executive Analytics Design System: Deep Navy (`#16324f`), Warm Golden-Orange (`#f69d1b`), Slate Grey (`#64748b`), and Soft Cool-Grey Surface (`#eef1f6`).
+  - Real-time KPI summary scorecards: **Total Visits**, **Top College**, **Peak Library Section**, and **Active Departments** with icon backdrops and trend indicators.
+  - Interactive Recharts data visualizations: Bar Chart (Visits by College/Department) and Pie Chart (Section Utilization Distribution) with custom tooltip stylings.
   - 77-degree program course normalization via `collegeMap.js` across 18 parent college/department units.
   - Multi-sheet Excel workbook export (`xlsx`) with auto-fitted columns and dedicated Print Summary report layout.
 
 ### 2. Patron Satisfaction Survey & Dual-Engine NLP Feedback Analytics (`/satisfaction-survey`, `/surveys`, `/sentiment-dashboard`)
 - **10-Point Survey Rating Form**: Evaluates 10 core library service dimensions on a 5-point Likert emoji scale (Very Satisfied to Very Dissatisfied).
+- **Simplified Faculty & Alumni Workflow**: Removes mandatory degree program validation for `FACULTY` and `ALUMNI` respondents.
 - **Open-Ended Text Feedback**: Accepts open text commentary processed simultaneously by RoBERTa BERT and Naive Bayes models.
 - **Dual-Engine Sentiment Analysis (Option A: Comment-First Sentiment)**:
   - **Engine 1 (RoBERTa BERT)**: Predicts fine-grained text sentiment (`Positive`, `Neutral`, `Negative`). When a patron writes a comment, overall sentiment is **100% determined by BERT text sentiment**, ensuring written feedback is never diluted by emoji scores.
   - **Engine 2 (Naive Bayes)**: Assigns feedback to domain categories (`Facilities`, `Staff`, `Collection`, `Other/Uncategorized`) with confidence gating ($\tau = 0.45$), Laplace additive smoothing ($\alpha = 1.0$), NLTK `PorterStemmer`, and domain keyword overrides.
   - **Clause-Aware Mixed Sentiment (`get_clause_category`)**: Splits compound feedback on contrast conjunctions (`but`, `however`, `although`, `though`), scores each clause, and dynamically binds overall category and negative sentiment to the **winning negative complaint clause**.
   - **Emoji Fallback**: If the comment field is blank, sentiment falls back to the 10-question emoji average rating score. All 10 Likert responses (`Question1`–`Question10`) continue to be stored in SQL Server for 1–5 scale CSAT analytics.
-- **Analytics & Recommendation Engine (`SentimentDashboard.js`)**:
+- **Analytics & Recommendation Engine (`SentimentDashboard.js` & `SentimentCharts.js`)**:
+  - **Modularized Component Architecture**: Chart sub-components extracted and encapsulated in [`src/Components/SentimentCharts.js`](file:///c:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/src/Components/SentimentCharts.js) (`SentimentDonutChart`, `CategoryBarChart`, `SentimentTrendChart`, `WordCloudChart`, `ActionableFeedbackCard`, `ServiceRecommendationsCard`).
+  - **Interactive Animated Word Cloud**: Top 60 comment keywords rendered via `react-wordcloud` with dynamic scaling, smooth hover animations, and a vibrant 17-color modern palette on a crisp white card backdrop.
+  - **Survey Submissions College Badges**: Visual color-coded college tag pills in the survey records table for instant patron demographic identification.
   - **Custom Donut Chart Visualization**: Re-engineered Recharts Donut Chart (`innerRadius={75}`, `outerRadius={105}`) with centered metric overlays, styled percentage indicator badges, and responsive slice interactions.
   - **Philippine Timezone Alignment (`Asia/Manila` / UTC+8)**: SQL date bounds and date picker presets (**Today**, **Last 7 Days**, **Last 30 Days**, **This Month**, **Custom**) strictly aligned to local Philippine Standard Time (`00:00:00` to `23:59:59.997`).
   - **KPI Score Cards**: Average satisfaction score scaled from `-1.0` to `+1.0`, 1–5 CSAT scale averages, and Net Sentiment Score (NSS = `% Positive - % Negative`).
   - **Top 5 Actionable Feedback Cards**: Ranks top 5 positive and negative comments by blending pool topic relevance ($70\%$) with sentiment magnitude ($30\%$), enforcing a 2-comment cap per topic for balanced feedback diversity.
-  - **Deterministic Word Cloud**: Top 60 comment keywords rendered via `ReactWordcloud` with fixed seed for stable layout presentation.
   - **Service Improvement Recommendations**: Rule-based action recommendations triggered when category negative response ratios hit $\ge 30\%$ (Moderate Concern) or $\ge 50\%$ (High Concern).
 
 ### 3. Technical Services: Book Card & Packet Encoding (`/card-and-packet`, `/book-catalogue`)
@@ -99,8 +103,8 @@ This is an enterprise-grade, web-based **Library Management System** developed f
 | `/logindata` | [`LoginData.js`](file:///c:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/src/pages/LoginData.js) | Raw sign-in logs table with batch delete and filters |
 | `/login-dashboard` | [`LoginDashboard.js`](file:///c:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/src/pages/LoginDashboard.js) | Admin visual analytics dashboard for patron foot traffic & demographics |
 | `/satisfaction-survey` | [`SatisfactionSurvey.js`](file:///c:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/src/pages/SatisfactionSurvey.js) | 10-question patron feedback survey form |
-| `/surveys` | [`SatisfactionSurveyData.js`](file:///c:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/src/pages/SatisfactionSurveyData.js) | View and delete survey submissions and sentiment labels |
-| `/sentiment-dashboard` | [`SentimentDashboard.js`](file:///c:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/src/pages/SentimentDashboard.js) | Dual-Engine Sentiment & Category Analysis Dashboard |
+| `/surveys` | [`SatisfactionSurveyData.js`](file:///c:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/src/pages/SatisfactionSurveyData.js) | View and delete survey submissions and sentiment labels with college pills |
+| `/sentiment-dashboard` | [`SentimentDashboard.js`](file:///c:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/src/pages/SentimentDashboard.js) | Dual-Engine Sentiment & Category Analysis Dashboard (Executive Design) |
 | `/card-and-packet` | [`CardAndPacket.js`](file:///c:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/src/pages/CardAndPacket.js) | Book Card and Packet Encoding Form (up to 4 books/record) |
 | `/book-catalogue` | [`BookCatalogue.js`](file:///c:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/src/pages/BookCatalogue.js) | Unified book catalog flattened list view with Excel exports |
 | `/supplies` | [`Supplies.js`](file:///c:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/src/pages/Supplies.js) | View-only Office Supplies Inventory catalog |
@@ -183,17 +187,37 @@ Where:
 
 ## 📈 Recent System Updates & Enhancements (August 2026)
 
-Below is a detailed breakdown of the major system enhancements and newly introduced features:
+### 1. Centralized Design Tokens & Executive Analytics Theme (`src/constants/themeTokens.js`)
+- **Executive Navy & Golden-Orange Theme**: Implemented a sophisticated analytics palette consisting of Deep Navy (`#16324f`), Warm Golden-Orange (`#f69d1b`), Slate Grey (`#64748b`), and Soft Cool-Grey Surface (`#eef1f6`).
+- **Reusable MUI Style Presets**: Encapsulated reusable styling tokens for section headers, cards, dropdowns, preset pills, and table headers.
+- **Button & Control Standardization**: Standardized interactive button states across both dashboards (pill-shaped date presets, Microsoft Excel green export button `#107c41`, and high-contrast primary actions).
 
-### 1. Laplace (Additive) Smoothing Visualizer & Mathematical Demonstration (`backend/ml/`)
+### 2. Sentiment & Feedback Analytics Dashboard Redesign (`SentimentDashboard.js` & `SentimentCharts.js`)
+- **Chart Sub-Component Modularization**: Separated monolithic chart views into clean, isolated components in `SentimentCharts.js`.
+- **Animated Word Cloud**: Top 60 keyword cloud with animated zoom/hover effects, clean white card surface, and 17 vibrant modern colors.
+- **Respondent College Pill Badges**: Integrated color-coded college tag badges into the survey submissions table.
+- **Custom Donut Chart**: Interactive Recharts Donut Chart with centered volume indicators and responsive category pill legends.
+- **Top 5 Actionable Feedback Cards**: Ranks top comments by blending topic relevance ($70\%$) with sentiment magnitude ($30\%$) and enforcing a 2-comment cap per topic.
+- **Philippine Standard Time (`Asia/Manila`, UTC+8) Synchronization**: Synchronized SQL date bounds and UI date pickers (`00:00:00` to `23:59:59.997`) with preset buttons (**Today**, **Last 7 Days**, **Last 30 Days**, **This Month**, **Custom**).
+- **KPI Metrics Overhaul**: Average CSAT (1–5 scale), Net Sentiment Score (NSS = `% Positive - % Negative`), and rule-based service recommendations with $\ge 30\%$ and $\ge 50\%$ severity thresholds.
+
+### 3. Admin Login Analytics Dashboard & 77-Course Normalization (`LoginDashboard.js`, `collegeMap.js`)
+- **Executive UI Alignment**: Overhauled `/login-dashboard` to adhere to the centralized executive color system.
+- **Dedicated Admin Portal**: Guarded by an admin modal login dialog (`admin` / `admin`).
+- **KPI Summary Cards**: Real-time metrics for Total Visits, Top College, Peak Section, and Active Departments with icon backdrops.
+- **Interactive Recharts Visualizations**: Dynamic Bar Chart (Visits by College) and Pie Chart (Section Distribution).
+- **77-Course Mapping Dictionary**: Mapped all 77 degree program codes to their 18 parent college/department groups in centralized [`src/constants/collegeMap.js`](file:///c:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/src/constants/collegeMap.js).
+- **Multi-Sheet Excel & Print Summary**: Export complete datasets with auto-sized column widths (`xlsx`) or render clean, formatted physical print summaries for administrative filing.
+
+### 4. Laplace (Additive) Smoothing Visualizer & Mathematical Demonstration (`backend/ml/`)
 - **Mathematical Zero-Frequency Guard**: Formalized and verified Laplace smoothing ($\alpha = 1.0$) across the Naive Bayes category classifier.
 - **Headless Visualization Script (`visualize_laplace_smoothing.py`)**: Built an automated Matplotlib script generating high-resolution comparative figures:
   - **Subplot 1 (Word-Level Probability)**: Visually highlights how zero-probability typos (`"restrrom"`, `"drity"`) are lifted from $0.0000$ to safe probability floors.
   - **Subplot 2 (Cumulative Joint Likelihood)**: Compares total sentence likelihood collapse without smoothing vs. sustained non-zero likelihood with Laplace smoothing ($10^{-12}$ scale).
   - **Export Artifact**: High-resolution chart saved directly to `backend/ml/laplace_smoothing_visualization.png`.
 
-### 2. Machine Learning Pipeline Scaling & Retraining (`backend/ml/`)
-- **Expanded Dataset Integration (`11k_ds_updated.xlsx` & `clean_category_dataset.csv`)**: Scaled training corpus to over **13,800+ clean samples** encompassing diverse patron feedback patterns.
+### 5. Machine Learning Pipeline Scaling & Retraining (`backend/ml/`)
+- **Expanded Dataset Integration (`dataset_11k.xlsx` & `clean_category_dataset.csv`)**: Scaled training corpus to over **13,800+ clean samples** encompassing diverse patron feedback patterns.
 - **Multi-Stage Preprocessing Pipeline (`clean_dataset.py`)**:
   - `clean-text` character normalization and run reduction.
   - Single-token keyboard mash detector ($\ge 20$ consecutive characters) and multi-token gibberish filter ($\ge 60\%$ unknown words).
@@ -203,24 +227,6 @@ Below is a detailed breakdown of the major system enhancements and newly introdu
 - **163+ Manual Boundary Cases & Stemming**: Integrated `manual_boundary_cases.csv` and NLTK `PorterStemmer` into `naive_bayes.py` for morphological unification.
 - **Defensible 93.0%–95.6% Empirical Accuracy Benchmark**: Embedded 6% simulated human annotator ambiguity (`apply_annotator_ambiguity`) and ~10% context-free comments into training to eliminate artificial 99.9% certainty and deliver a defensible research benchmark.
 - **Clause-Aware Mixed Sentiment (`get_clause_category`)**: Splits compound feedback on contrast conjunctions (`but`, `however`, `although`, `though`) to route multi-topic comments to the winning negative complaint clause.
-
-### 3. Admin Login Analytics Dashboard & 77-Course Normalization (`LoginDashboard.js`, `collegeMap.js`)
-- **Dedicated Admin Portal**: Guarded by an admin modal login dialog (`admin` / `admin`) at `/login-dashboard`.
-- **KPI Summary Cards**: Real-time metrics for Total Visits, Top College, Peak Section, and Active Departments.
-- **Interactive Recharts Visualizations**: Dynamic Bar Chart (Visits by College) and Pie Chart (Section Distribution).
-- **77-Course Mapping Dictionary**: Mapped all 77 degree program codes to their 18 parent college/department groups (`CARES`, `CAS`, `CBA`, `CCS`, `COED`, `COE`, `CHM`, `CMLS`, `CON`, `COP`, `COL`, `COM`, `COT`, `SGS`, `KINDER`, `ELEM`, `JHS`, `SHS`) in centralized [`src/constants/collegeMap.js`](file:///c:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/src/constants/collegeMap.js).
-- **Backend SQL Search Enhancement**: Updated `GET /api/logins` to search across both `studCollege` and `studCourse`.
-- **Multi-Sheet Excel & Print Summary**: Export complete datasets with auto-sized column widths (`xlsx`) or render clean, formatted physical print summaries for administrative filing.
-
-### 4. Sentiment & Feedback Analytics Dashboard Redesign (`SentimentDashboard.js`, `SentimentCharts.js`)
-- **Custom Donut Chart**: Re-architected category distribution into an interactive Donut Chart with centered metric volume displays and custom category legend pills.
-- **Top 5 Priority Actionable Feedback Cards**: High-visibility cards displaying actionable patron comments ranked by blending topic relevance ($70\%$) with sentiment magnitude ($30\%$) and enforcing a 2-comment cap per topic.
-- **Philippine Standard Time (`Asia/Manila`, UTC+8) Synchronization**: Aligned SQL date bounds and UI date pickers (`00:00:00` to `23:59:59.997`) with preset buttons (**Today**, **Last 7 Days**, **Last 30 Days**, **This Month**, **Custom**).
-- **KPI Metrics Overhaul**: Average CSAT (1–5 scale), Net Sentiment Score (NSS = `% Positive - % Negative`), and rule-based service recommendations with $\ge 30\%$ and $\ge 50\%$ severity thresholds.
-
-### 5. Patron Satisfaction Survey Form Refinements (`SatisfactionSurvey.js`)
-- **Faculty Patron Flow Simplification**: Removed mandatory College/Course validation for patrons selecting `FACULTY` or `ALUMNI`.
-- **Interactive Card Layout**: Upgraded 10 survey rating questions with elevated card components and 5-point emoji rating selectors.
 
 ### 6. Technical Services & Catalog Encoding (`BookCatalogue.js` & `CardAndPacket.js`)
 - **Standardized Call Numbers**: Standardized Henry Luce (`HL`) call number formatting in `BookCatalogue.js`.
@@ -246,7 +252,7 @@ Below is a detailed breakdown of the major system enhancements and newly introdu
 ### 3. Python NLP Microservice & ML Dependencies (`backend/sentiment_service.py` & `backend/ml/`)
 - **Flask Framework**: `flask`
 - **Transformers & Deep Learning**: `transformers`, `torch` (PyTorch for `cardiffnlp/twitter-roberta-base-sentiment-latest`)
-- **Machine Learning & Text Processing**: `scikit-learn`, `pandas`, `joblib`, `nltk` (PorterStemmer), `clean-text`, `pyspellchecker`, `openpyxl` (for reading `.xlsx` datasets), `matplotlib`
+- **Machine Learning & Text Processing**: `scikit-learn`, `pandas`, `joblib`, `nltk` (PorterStemmer), `clean-text`, `pyspellchecker`, `openpyxl`, `matplotlib`
 
 ---
 
@@ -320,7 +326,7 @@ GO
 #### Step 1: Clone Repository & Navigate to Project Root
 ```bash
 git clone https://github.com/Strixyl/lms_scratch.git
-cd hllsystem
+cd "Library Management System/hllsystem - Oct10-2025"
 ```
 
 #### Step 2: Install All Frontend React Dependencies (Terminal)
@@ -371,7 +377,7 @@ If expanding survey datasets or manual boundary cases:
 # Navigate to ML pipeline folder
 cd backend/ml
 
-# Step 5a: Clean raw Excel dataset (11k_ds_updated.xlsx -> clean_category_dataset.csv, 13,800+ rows)
+# Step 5a: Clean raw Excel dataset (dataset_11k.xlsx -> clean_category_dataset.csv, 13,800+ rows)
 python clean_dataset.py --role=train
 
 # Step 5b: Execute hyperparameter grid search and export serialized category_model.pkl
