@@ -53,10 +53,10 @@ export const SentimentChip = ({ label }) => {
 
   const config = isPos
     ? {
-        bg: '#e6f4f5',
-        border: '#b3dfe2',
-        text: '#005960',
-        icon: <ArrowDropUpIcon sx={{ fontSize: 20, my: -0.4, ml: -0.3, mr: 0.1, color: '#005960' }} />
+        bg: '#eafaf1',
+        border: '#b7ebc9',
+        text: '#107c41',
+        icon: <ArrowDropUpIcon sx={{ fontSize: 20, my: -0.4, ml: -0.3, mr: 0.1, color: '#107c41' }} />
       }
     : isNeg
       ? {
@@ -317,7 +317,7 @@ export const SummaryCard = ({
 // ── Top Comments Card (Positive / Negative) ─────────────────────────────────
 export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
   const isPositive = type === 'positive';
-  const borderColor = isPositive ? '#005960' : '#e11d48';
+  const borderColor = isPositive ? '#107c41' : '#e11d48';
 
   const cleanQuote = (msg) => {
     if (!msg) return '';
@@ -365,14 +365,14 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
       {/* Header Container (Styled like Priority Action Container with border, borderLeft, gradient & badge) */}
       <Box sx={{
         background: isPositive
-          ? 'linear-gradient(135deg, #e6f4f5 0%, #d8edf0 100%)'
+          ? 'linear-gradient(135deg, #eafaf1 0%, #dcfce7 100%)'
           : 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)',
         borderRadius: 2.5,
         p: { xs: 1.5, sm: 1.8 },
         mb: 2.2,
-        border: isPositive ? '1.5px solid #b3dfe2' : '1.5px solid #fecdd3',
-        borderLeft: isPositive ? '5px solid #005960' : '5px solid #e11d48',
-        boxShadow: isPositive ? '0 3px 12px rgba(0, 89, 96, 0.08)' : '0 3px 12px rgba(225, 29, 72, 0.08)',
+        border: isPositive ? '1.5px solid #b7ebc9' : '1.5px solid #fecdd3',
+        borderLeft: isPositive ? '5px solid #107c41' : '5px solid #e11d48',
+        boxShadow: isPositive ? '0 3px 12px rgba(16, 124, 65, 0.08)' : '0 3px 12px rgba(225, 29, 72, 0.08)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -381,7 +381,7 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, minWidth: 0 }}>
           <Box sx={{
-            bgcolor: isPositive ? '#005960' : '#e11d48',
+            bgcolor: isPositive ? '#107c41' : '#e11d48',
             color: '#ffffff',
             px: 1.1,
             py: 0.35,
@@ -404,7 +404,7 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
             fontFamily: T.font.family,
             fontWeight: 800,
             fontSize: { xs: 14, sm: 15.5 },
-            color: isPositive ? '#005960' : '#be123c',
+            color: isPositive ? '#107c41' : '#be123c',
             letterSpacing: '-0.2px',
             lineHeight: 1.3,
             whiteSpace: 'nowrap',
@@ -418,9 +418,9 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
           fontFamily: T.font.family,
           fontSize: 11.5,
           fontWeight: 700,
-          color: isPositive ? '#005960' : '#be123c',
+          color: isPositive ? '#107c41' : '#be123c',
           bgcolor: '#ffffff',
-          border: isPositive ? '1.5px solid #b3dfe2' : '1.5px solid #fecdd3',
+          border: isPositive ? '1.5px solid #b7ebc9' : '1.5px solid #fecdd3',
           px: 1.2,
           py: 0.3,
           borderRadius: '9999px',
@@ -551,9 +551,9 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
                     fontSize: 11,
                     fontWeight: 700,
                     fontFamily: T.font.family,
-                    bgcolor: isPositive ? '#e6f4f5' : '#fff1f2',
-                    color: isPositive ? '#005960' : '#be123c',
-                    border: `1px solid ${isPositive ? '#b3dfe2' : '#fecdd3'}`,
+                    bgcolor: isPositive ? '#eafaf1' : '#fff1f2',
+                    color: isPositive ? '#107c41' : '#be123c',
+                    border: `1px solid ${isPositive ? '#b7ebc9' : '#fecdd3'}`,
                     lineHeight: 1.2,
                   }}>
                     {getKeywordBadgeText(row)}
@@ -1221,7 +1221,7 @@ export const ModernKpiCard = ({
   borderColorTheme = 'gold', // 'gold' | 'blue'
 }) => {
   const badgeConfig = {
-    positive: { bg: '#e6f4f5', text: '#005960', border: '#b3dfe2' },
+    positive: { bg: '#eafaf1', text: '#107c41', border: '#b7ebc9' },
     negative: { bg: '#fff1f2', text: '#be123c', border: '#fecdd3' },
     neutral:  { bg: '#f1f5f9', text: '#475569', border: '#cbd5e1' },
     purple:   { bg: '#fff8eb', text: '#d97706', border: '#fed7aa' },
@@ -1377,7 +1377,7 @@ export const CustomRevenueTooltip = ({ active, payload, label, metricMode = 'per
           {label} {year}
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#005960' }} />
+          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#107c41' }} />
           <Typography sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 800, color: '#16324f' }}>
             {metricMode === 'percent'
               ? `Positive: ${posPct}%`
@@ -1451,7 +1451,7 @@ export const RevenueStyleSentimentChart = ({
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 0.3,
-                color: isPositiveDelta ? '#005960' : '#e11d48',
+                color: isPositiveDelta ? '#107c41' : '#e11d48',
                 fontFamily: T.font.family,
                 fontSize: 12.5,
                 fontWeight: 700,
@@ -1534,8 +1534,8 @@ export const RevenueStyleSentimentChart = ({
           <AreaChart data={data} margin={{ top: 15, right: 15, left: -15, bottom: 0 }}>
             <defs>
               <linearGradient id="revenueTealGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#005960" stopOpacity={0.32} />
-                <stop offset="95%" stopColor="#005960" stopOpacity={0.0} />
+                <stop offset="5%" stopColor="#107c41" stopOpacity={0.32} />
+                <stop offset="95%" stopColor="#107c41" stopOpacity={0.0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -1556,7 +1556,7 @@ export const RevenueStyleSentimentChart = ({
             <Area
               type="monotone"
               dataKey={metricMode === 'percent' ? 'posPct' : 'Positive'}
-              stroke="#005960"
+              stroke="#107c41"
               strokeWidth={2.5}
               fillOpacity={1}
               fill="url(#revenueTealGradient)"
@@ -1589,7 +1589,7 @@ export const SourceSentimentBreakdownCard = ({
 
   // Sentiment Donut: Green for Positive, Slate Grey for Neutral, Red for Negative
   const donutData = total > 0 ? [
-    { name: 'Positive', value: positiveCount, color: '#005960' },
+    { name: 'Positive', value: positiveCount, color: '#107c41' },
     { name: 'Neutral', value: neutralCount, color: '#64748b' },
     { name: 'Negative', value: negativeCount, color: '#e11d48' },
   ].filter(d => d.value > 0) : [
@@ -1695,9 +1695,9 @@ export const SourceSentimentBreakdownCard = ({
 
       {/* Legend Indicators below Donut */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 1.2, flexWrap: 'wrap' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: '#e6f4f5', border: '1px solid #b3dfe2', px: 0.8, py: 0.2, borderRadius: '9999px' }}>
-          <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#005960' }} />
-          <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 700, color: '#005960' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: '#eafaf1', border: '1px solid #b7ebc9', px: 0.8, py: 0.2, borderRadius: '9999px' }}>
+          <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#107c41' }} />
+          <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 700, color: '#107c41' }}>
             Pos ({posPct}%)
           </Typography>
         </Box>
@@ -1861,19 +1861,19 @@ export const SourceSentimentBreakdownCard = ({
                 py: 0.9,
                 px: 1,
                 borderRadius: '10px',
-                bgcolor: '#e6f4f5',
-                border: '1px solid #b3dfe2',
+                bgcolor: '#eafaf1',
+                border: '1px solid #b7ebc9',
               }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-                  <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#005960' }} />
-                  <Typography sx={{ fontFamily: T.font.family, fontSize: 13.5, fontWeight: 800, color: '#005960' }}>
+                  <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#107c41' }} />
+                  <Typography sx={{ fontFamily: T.font.family, fontSize: 13.5, fontWeight: 800, color: '#107c41' }}>
                     Positive
                   </Typography>
                 </Box>
-                <Typography sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 700, color: '#005960', textAlign: 'center' }}>
+                <Typography sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 700, color: '#107c41', textAlign: 'center' }}>
                   {positiveCount}
                 </Typography>
-                <Typography sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 800, color: '#005960', textAlign: 'right' }}>
+                <Typography sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 800, color: '#107c41', textAlign: 'right' }}>
                   {posPct}%
                 </Typography>
               </Box>

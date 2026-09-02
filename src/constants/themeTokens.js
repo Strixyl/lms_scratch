@@ -23,9 +23,9 @@ export const THEME = {
     violetHover: '#0f243a',
   },
 
-  // ── Sentiment Palette (Original Green, Slate Grey, and Red for all Sentiment Signals)
+  // ── Sentiment Palette (Excel Green, Slate Grey, and Red for all Sentiment Signals)
   sentiment: {
-    Positive: { bg: '#005960', light: '#e6f4f5', text: '#005960', dot: '#005960', border: '#b3dfe2' },
+    Positive: { bg: '#107c41', light: '#eafaf1', text: '#107c41', dot: '#107c41', border: '#b7ebc9' },
     Neutral:  { bg: '#64748b', light: '#f1f5f9', text: '#475569', dot: '#94a3b8', border: '#cbd5e1' },
     Negative: { bg: '#e11d48', light: '#fff1f2', text: '#be123c', dot: '#f43f5e', border: '#fecdd3' },
   },
@@ -47,14 +47,14 @@ export const THEME = {
 
   // ── Chart Colors (Green = Positive, Slate = Neutral, Red = Negative) ──────
   chart: {
-    colors: ['#005960', '#64748b', '#e11d48'],
+    colors: ['#107c41', '#64748b', '#e11d48'],
     gradients: {
-      positive: { start: '#005960', end: '#0d9488' },
+      positive: { start: '#107c41', end: '#16a34a' },
       neutral:  { start: '#64748b', end: '#94a3b8' },
       negative: { start: '#f43f5e', end: '#fb7185' },
     },
     donutGradients: {
-      positive: { start: '#005960', end: '#0d9488' },
+      positive: { start: '#107c41', end: '#16a34a' },
       neutral:  { start: '#64748b', end: '#cbd5e1' },
       negative: { start: '#f43f5e', end: '#fecdd3' },
     },
@@ -108,11 +108,11 @@ export const THEME = {
 
   // ── Status / Feedback Colors ──────────────────────────────────────────────
   status: {
-    success:       '#005960',
-    successHover:  '#00454a',
-    successLight:  '#e6f4f5',
-    successBorder: '#b3dfe2',
-    successShadow: 'rgba(0, 89, 96, 0.25)',
+    success:       '#107c41',
+    successHover:  '#0b5a2f',
+    successLight:  '#eafaf1',
+    successBorder: '#b7ebc9',
+    successShadow: 'rgba(16, 124, 65, 0.25)',
     error:         '#e11d48',
     errorHover:    '#be123c',
     errorLight:    '#fff1f2',
@@ -132,7 +132,7 @@ export const THEME = {
     clientele:  { bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' },
     college:    { bg: '#edf4fa', color: '#16324f', border: '#cbdbe9' },
     course:     { bg: '#edf4fa', color: '#254b73', border: '#cbdbe9' },
-    sentimentPos:{ bg: '#e6f4f5', color: '#005960', border: '#b3dfe2' },
+    sentimentPos:{ bg: '#eafaf1', color: '#107c41', border: '#b7ebc9' },
     sentimentNeu:{ bg: '#f1f5f9', color: '#475569', border: '#cbd5e1' },
     sentimentNeg:{ bg: '#fff1f2', color: '#be123c', border: '#fecdd3' },
     category:   { bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' },

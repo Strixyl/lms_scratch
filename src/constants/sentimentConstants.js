@@ -18,6 +18,57 @@ export const cleanCollegeName = (collegeStr) => {
   return s || 'N/A';
 };
 
+// ── Distinct Curated Color Palette per College / Department ────────────────
+export const getCollegeStyle = (collegeStr) => {
+  const norm = cleanCollegeName(collegeStr).toLowerCase();
+
+  if (norm.includes('comput') || norm === 'ccs') {
+    return { bg: '#eef2ff', text: '#4338ca', border: '#c7d2fe', dot: '#6366f1', shadow: 'rgba(67, 56, 202, 0.08)' }; // Indigo / Tech
+  }
+  if (norm.includes('engin') || norm === 'coe') {
+    return { bg: '#fff7ed', text: '#c2410c', border: '#fed7aa', dot: '#f97316', shadow: 'rgba(194, 65, 12, 0.08)' }; // Amber / Orange
+  }
+  if (norm.includes('nurs') || norm === 'con') {
+    return { bg: '#fff1f2', text: '#be123c', border: '#fecdd3', dot: '#f43f5e', shadow: 'rgba(190, 18, 60, 0.08)' }; // Rose / Coral
+  }
+  if ((norm.includes('med') && norm.includes('lab')) || norm === 'cmls') {
+    return { bg: '#ecfdf5', text: '#047857', border: '#a7f3d0', dot: '#10b981', shadow: 'rgba(4, 120, 87, 0.08)' }; // Emerald / Mint
+  }
+  if (norm.includes('pharm') || norm === 'cop') {
+    return { bg: '#f0fdfa', text: '#0f766e', border: '#99f6e4', dot: '#14b8a6', shadow: 'rgba(15, 118, 110, 0.08)' }; // Teal / Cyan
+  }
+  if (norm.includes('bus') || norm.includes('account') || norm === 'cba') {
+    return { bg: '#eff6ff', text: '#1d4ed8', border: '#bfdbfe', dot: '#3b82f6', shadow: 'rgba(29, 78, 216, 0.08)' }; // Sapphire Blue
+  }
+  if (norm.includes('art') || norm.includes('scien') || norm === 'cas') {
+    return { bg: '#faf5ff', text: '#7e22ce', border: '#e9d5ff', dot: '#a855f7', shadow: 'rgba(126, 34, 206, 0.08)' }; // Purple / Violet
+  }
+  if (norm.includes('hosp') || norm.includes('tour') || norm === 'chm') {
+    return { bg: '#fefce8', text: '#a16207', border: '#fef08a', dot: '#eab308', shadow: 'rgba(161, 98, 7, 0.08)' }; // Warm Gold
+  }
+  if (norm.includes('educ') || norm === 'coed') {
+    return { bg: '#ecfeff', text: '#0e7490', border: '#a5f3fc', dot: '#06b6d4', shadow: 'rgba(14, 116, 144, 0.08)' }; // Sky Cyan
+  }
+  if (norm.includes('agri') || norm === 'cares') {
+    return { bg: '#f7fee7', text: '#4d7c0f', border: '#d9f99d', dot: '#84cc16', shadow: 'rgba(77, 124, 15, 0.08)' }; // Lime Green
+  }
+  if (norm.includes('law') || norm === 'col') {
+    return { bg: '#f8fafc', text: '#334155', border: '#cbd5e1', dot: '#64748b', shadow: 'rgba(51, 65, 85, 0.08)' }; // Slate
+  }
+  if (norm.includes('theol') || norm === 'cot') {
+    return { bg: '#fdf4ff', text: '#86198f', border: '#f5d0fe', dot: '#d946ef', shadow: 'rgba(134, 25, 143, 0.08)' }; // Fuchsia
+  }
+  if (norm.includes('faculty') || norm.includes('staff')) {
+    return { bg: '#f1f5f9', text: '#475569', border: '#cbd5e1', dot: '#94a3b8', shadow: 'rgba(71, 85, 105, 0.08)' }; // Neutral Grey
+  }
+  if (norm.includes('shs') || norm.includes('high')) {
+    return { bg: '#fffbe6', text: '#b78103', border: '#ffe58f', dot: '#faad14', shadow: 'rgba(183, 129, 3, 0.08)' }; // Soft Amber
+  }
+
+  // Default fallback
+  return { bg: '#edf4fa', text: '#16324f', border: '#cbdbe9', dot: '#254b73', shadow: 'rgba(22, 50, 79, 0.08)' };
+};
+
 export const COLLEGE_COURSES = {
   'Faculty / Staff': ['Faculty', 'Staff'],
   CARES: ['Agriculture', 'Agricultural and Biosystems Engineering', 'Environmental Management'],

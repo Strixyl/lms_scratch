@@ -6,7 +6,7 @@ import {
   TableRow, Paper, Button, TextField, CircularProgress,
   MenuItem, Select, FormControl, InputLabel,
   Dialog, DialogTitle, DialogContent, DialogActions, Avatar, Chip,
-  TableSortLabel, Snackbar, Alert,
+  TableSortLabel, Snackbar, Alert, Tooltip,
   Checkbox, ToggleButton, ToggleButtonGroup, IconButton
 } from '@mui/material';
 import {
@@ -69,6 +69,7 @@ import {
   RECOMMENDATIONS,
   CATEGORY_KEYWORDS,
   cleanCollegeName,
+  getCollegeStyle,
 } from '../constants/sentimentConstants';
 
 import {
@@ -772,7 +773,8 @@ function SentimentDashboard() {
           .slice(0, 2);
 
         const topicActionConfig = LEXICON_TOPIC_ACTIONS[topicName] || {};
-        const severity = totalMatches >= 4 || topicActionConfig.defaultSeverity === 'HIGH' ? 'HIGH' : 'MODERATE';
+        const threshold = topicActionConfig.defaultSeverity === 'HIGH' ? 4 : 7;
+        const severity = totalMatches >= threshold ? 'HIGH' : 'MODERATE';
         const action = topicActionConfig.action || RECOMMENDATIONS[catName]?.[severity.toLowerCase()] || 'Review patron feedback and assess operational adjustments.';
 
         scoredTopics.push({
@@ -1249,7 +1251,7 @@ function SentimentDashboard() {
                       )}
                       {filterSentiment && (
                         <Chip label={`Sentiment: ${filterSentiment}`} onDelete={() => handleRemoveFilter('sentiment')} size="small"
-                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: filterSentiment === 'Positive' ? '#e6f4f5' : filterSentiment === 'Negative' ? '#fff1f2' : '#f1f5f9', color: filterSentiment === 'Positive' ? '#005960' : filterSentiment === 'Negative' ? '#be123c' : '#475569', border: filterSentiment === 'Positive' ? '1px solid #b3dfe2' : filterSentiment === 'Negative' ? '1px solid #fecdd3' : '1px solid #cbd5e1', borderRadius: '9999px' }} />
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: filterSentiment === 'Positive' ? '#eafaf1' : filterSentiment === 'Negative' ? '#fff1f2' : '#f1f5f9', color: filterSentiment === 'Positive' ? '#107c41' : filterSentiment === 'Negative' ? '#be123c' : '#475569', border: filterSentiment === 'Positive' ? '1px solid #b7ebc9' : filterSentiment === 'Negative' ? '1px solid #fecdd3' : '1px solid #cbd5e1', borderRadius: '9999px' }} />
                       )}
                       {filterCategory && (
                         <Chip label={`Category: ${filterCategory}`} onDelete={() => handleRemoveFilter('category')} size="small"
@@ -1430,8 +1432,8 @@ function SentimentDashboard() {
                               >
                                 <defs>
                                   <linearGradient id="divPosGrad" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#005960" stopOpacity={0.95} />
-                                    <stop offset="100%" stopColor="#137a84" stopOpacity={0.88} />
+                                    <stop offset="0%" stopColor="#107c41" stopOpacity={0.95} />
+                                    <stop offset="100%" stopColor="#16a34a" stopOpacity={0.88} />
                                   </linearGradient>
                                   <linearGradient id="divNegGrad" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="0%" stopColor="#fca5a5" stopOpacity={0.9} />
@@ -1470,7 +1472,7 @@ function SentimentDashboard() {
                                   stackId="sentimentPillar"
                                   name={trendScaleMode === 'percent' ? 'Positive (%)' : 'Positive (Inflow)'}
                                   fill="url(#divPosGrad)"
-                                  stroke="#005960"
+                                  stroke="#107c41"
                                   strokeWidth={1}
                                   radius={[4, 4, 0, 0]}
                                   maxBarSize={32}
@@ -1537,9 +1539,9 @@ function SentimentDashboard() {
                         </Box>
 
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, px: 1.2, py: 0.35, bgcolor: '#e6f4f5', border: '1px solid #b3dfe2', borderRadius: '9999px' }}>
-                            <ThumbUpIcon sx={{ fontSize: 14, color: '#005960' }} />
-                            <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, color: '#005960', fontWeight: 700 }}>5 Positive</Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, px: 1.2, py: 0.35, bgcolor: '#eafaf1', border: '1px solid #b7ebc9', borderRadius: '9999px' }}>
+                            <ThumbUpIcon sx={{ fontSize: 14, color: '#107c41' }} />
+                            <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, color: '#107c41', fontWeight: 700 }}>5 Positive</Typography>
                           </Box>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, px: 1.2, py: 0.35, bgcolor: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '9999px' }}>
                             <ThumbDownIcon sx={{ fontSize: 14, color: '#be123c' }} />
@@ -1856,7 +1858,7 @@ function SentimentDashboard() {
                               <TableCell sx={{ width: 145, borderRight: '2px solid #cbdbe9 !important' }}>
                                 <TableSortLabel active={sortField === 'College'} direction={sortField === 'College' ? sortOrder : 'asc'} onClick={() => handleRequestSort('College')}
                                   sx={{ color: '#475569 !important', fontWeight: 800, '& .MuiTableSortLabel-icon': { color: '#94a3b8 !important' } }}>
-                                  College / Dept
+                                  College
                                 </TableSortLabel>
                               </TableCell>
                               <TableCell sx={{ minWidth: 320, borderRight: '2px solid #cbdbe9 !important' }}>
@@ -1952,26 +1954,29 @@ function SentimentDashboard() {
                                       {clientDisplay}
                                     </TableCell>
                                     <TableCell sx={{ py: 1.1, px: 1.4, borderBottom: '1px solid #edf2f7', borderRight: '2px solid #cbdbe9' }}>
-                                      <Box sx={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        px: 1.4,
-                                        py: 0.35,
-                                        borderRadius: '9999px',
-                                        bgcolor: '#edf4fa',
-                                        color: '#16324f',
-                                        border: '1px solid #cbdbe9',
-                                        fontSize: 12,
-                                        fontWeight: 800,
-                                        fontFamily: T.font.family,
-                                        lineHeight: 1.25,
-                                        textAlign: 'center',
-                                      }}>
-                                        {cleanCollegeName(row.College)}
-                                      </Box>
-                                      {row.Course && (
-                                        <Typography sx={{ fontFamily: T.font.family, fontSize: 11, color: '#64748b', fontWeight: 500, mt: 0.2 }}>
-                                          {cleanCollegeName(row.Course)}
+                                      {row.Course && cleanCollegeName(row.Course) ? (
+                                        <Tooltip title={`Program / Course: ${cleanCollegeName(row.Course)}`} arrow placement="top">
+                                          <Typography component="span" sx={{
+                                            fontFamily: T.font.family,
+                                            fontSize: 13,
+                                            fontWeight: 700,
+                                            color: '#16324f',
+                                            lineHeight: 1.35,
+                                            cursor: 'default',
+                                            display: 'inline-block',
+                                          }}>
+                                            {cleanCollegeName(row.College)}
+                                          </Typography>
+                                        </Tooltip>
+                                      ) : (
+                                        <Typography sx={{
+                                          fontFamily: T.font.family,
+                                          fontSize: 13,
+                                          fontWeight: 700,
+                                          color: '#16324f',
+                                          lineHeight: 1.35,
+                                        }}>
+                                          {cleanCollegeName(row.College)}
                                         </Typography>
                                       )}
                                     </TableCell>
