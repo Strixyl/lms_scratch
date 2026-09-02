@@ -773,7 +773,8 @@ function SentimentDashboard() {
           .slice(0, 2);
 
         const topicActionConfig = LEXICON_TOPIC_ACTIONS[topicName] || {};
-        const severity = totalMatches >= 4 || topicActionConfig.defaultSeverity === 'HIGH' ? 'HIGH' : 'MODERATE';
+        const threshold = topicActionConfig.defaultSeverity === 'HIGH' ? 4 : 7;
+        const severity = totalMatches >= threshold ? 'HIGH' : 'MODERATE';
         const action = topicActionConfig.action || RECOMMENDATIONS[catName]?.[severity.toLowerCase()] || 'Review patron feedback and assess operational adjustments.';
 
         scoredTopics.push({
