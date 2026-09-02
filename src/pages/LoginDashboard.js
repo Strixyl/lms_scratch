@@ -2524,9 +2524,9 @@ const LoginDashboard = () => {
                                   height: 30,
                                   px: 1.8,
                                   fontSize: 12,
-                                  bgcolor: '#ea580c',
-                                  boxShadow: '0 2px 8px rgba(234, 88, 12, 0.25)',
-                                  '&:hover': { bgcolor: '#c2410c' }
+                                  bgcolor: '#dc2626',
+                                  boxShadow: '0 2px 8px rgba(220, 38, 38, 0.25)',
+                                  '&:hover': { bgcolor: '#b91c1c' }
                                 }}
                               >
                                 Delete Selected ({selectedLogIds.length})
@@ -2637,6 +2637,11 @@ const LoginDashboard = () => {
                                   const genderStr = (row.studGender || '').toLowerCase();
                                   const isMale = genderStr.includes('m') && !genderStr.includes('fe');
                                   const isFemale = genderStr.includes('f');
+                                  const collegeCode = getCollegeGroup(row.studCollege, row.studCourse, row.studLogType);
+                                  const rawCollege = (row.studCollege || 'N/A').replace(/comouter/gi, 'Computer');
+                                  const tooltipCollege = rawCollege !== 'N/A' && rawCollege.toUpperCase() !== collegeCode.toUpperCase()
+                                    ? `${collegeCode} — ${rawCollege}`
+                                    : rawCollege;
 
                                   return (
                                     <TableRow
@@ -2668,22 +2673,29 @@ const LoginDashboard = () => {
                                         {`${(row.studCourse || 'N/A').replace(/comouter/gi, 'Computer')} - ${row.studYear || ''}`}
                                       </TableCell>
                                       <TableCell sx={{ py: 1.1, px: 1.4, borderBottom: '1px solid #f1f5f9' }}>
-                                        <Box sx={{
-                                          display: 'inline-flex',
-                                          alignItems: 'center',
-                                          px: 1.3,
-                                          py: 0.3,
-                                          borderRadius: '9999px',
-                                          bgcolor: '#edf4fa',
-                                          color: '#16324f',
-                                          border: '1px solid #cbdbe9',
-                                          fontSize: 12,
-                                          fontWeight: 700,
-                                          fontFamily: T.font.family,
-                                          lineHeight: 1.2,
-                                        }}>
-                                          {(row.studCollege || 'N/A').replace(/comouter/gi, 'Computer')}
-                                        </Box>
+                                        <Tooltip title={tooltipCollege} arrow placement="top">
+                                          <Box sx={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            minWidth: 54,
+                                            px: 1.3,
+                                            py: 0.35,
+                                            borderRadius: '9999px',
+                                            bgcolor: '#edf4fa',
+                                            color: '#16324f',
+                                            border: '1px solid #cbdbe9',
+                                            fontSize: 12,
+                                            fontWeight: 800,
+                                            fontFamily: T.font.family,
+                                            lineHeight: 1.2,
+                                            cursor: 'help',
+                                            transition: 'all 0.15s ease',
+                                            '&:hover': { bgcolor: '#dbeafe', borderColor: '#93c5fd' }
+                                          }}>
+                                            {collegeCode}
+                                          </Box>
+                                        </Tooltip>
                                       </TableCell>
                                       <TableCell sx={{ py: 1.1, px: 1.4, borderBottom: '1px solid #f1f5f9' }}>
                                         <Chip
@@ -2731,9 +2743,9 @@ const LoginDashboard = () => {
                                             size="small"
                                             onClick={() => openDeleteSingleDialog(row)}
                                             sx={{
-                                              color: '#ea580c',
+                                              color: '#dc2626',
                                               p: 0.4,
-                                              '&:hover': { color: '#c2410c', bgcolor: '#fff7ed' }
+                                              '&:hover': { color: '#b91c1c', bgcolor: '#fef2f2' }
                                             }}
                                           >
                                             <DeleteOutlineIcon fontSize="small" />
@@ -2932,7 +2944,7 @@ const LoginDashboard = () => {
           <Button onClick={() => setDeleteConfirmOpen(false)} variant="outlined" color="inherit" sx={{ borderRadius: '8px', textTransform: 'none', fontFamily: T.font.family }}>
             Cancel
           </Button>
-          <Button onClick={handleConfirmDelete} variant="contained" color="error" disabled={deleting} sx={{ borderRadius: '8px', textTransform: 'none', fontFamily: T.font.family, bgcolor: '#ea580c', '&:hover': { bgcolor: '#c2410c' } }}>
+          <Button onClick={handleConfirmDelete} variant="contained" color="error" disabled={deleting} sx={{ borderRadius: '8px', textTransform: 'none', fontFamily: T.font.family, bgcolor: '#dc2626', '&:hover': { bgcolor: '#b91c1c' } }}>
             {deleting ? 'Deleting...' : 'Delete Record(s)'}
           </Button>
         </DialogActions>
