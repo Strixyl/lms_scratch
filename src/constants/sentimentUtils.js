@@ -190,25 +190,42 @@ export const scoreCommentsWithLexicon = (commentsPool) => {
   });
 };
 
-// ── Diverse Top Comment Selector ────────────────────────────────────────────
+// ── Simple & Diverse Top Comment Selector (Clean Deduplication) ─────────────
 export const selectDiverseTopComments = (scoredList, limit = 5) => {
+  if (!scoredList || scoredList.length === 0) return [];
+
   const selected = [];
+  const seenTexts = new Set();
   const keywordCounts = {};
 
+  const cleanTextKey = (msg) => {
+    if (!msg) return '';
+    const str = typeof msg === 'string' ? msg : (msg.Message || '');
+    return str.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 50);
+  };
+
+  // 1. Pick unique comments, spreading across diverse keywords
   for (const comment of scoredList) {
+    if (selected.length >= limit) break;
+    const textKey = cleanTextKey(comment.Message);
+    if (!textKey || seenTexts.has(textKey)) continue;
+
     const kw = (comment.topTerm || 'general').toLowerCase();
     if ((keywordCounts[kw] || 0) < 2) {
       selected.push(comment);
+      seenTexts.add(textKey);
       keywordCounts[kw] = (keywordCounts[kw] || 0) + 1;
     }
-    if (selected.length === limit) break;
   }
 
+  // 2. Fill any remaining slots with other unique comments
   if (selected.length < limit) {
     for (const comment of scoredList) {
-      if (!selected.includes(comment)) {
+      if (selected.length >= limit) break;
+      const textKey = cleanTextKey(comment.Message);
+      if (textKey && !seenTexts.has(textKey)) {
         selected.push(comment);
-        if (selected.length === limit) break;
+        seenTexts.add(textKey);
       }
     }
   }

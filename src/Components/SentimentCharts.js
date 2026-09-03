@@ -1,11 +1,12 @@
 // ── Sentiment Dashboard — Reusable Sub-Components ───────────────────────────
 // Chart components, chips, tooltips, and cards extracted from SentimentDashboard.
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Box, Typography, Card, CardContent, Avatar, Paper,
   Tooltip, Chip, Button, Select, MenuItem,
   FormControl, ToggleButton, ToggleButtonGroup,
+  IconButton,
 } from '@mui/material';
 import {
   ArrowDropUp as ArrowDropUpIcon,
@@ -314,10 +315,13 @@ export const SummaryCard = ({
   return cardContent;
 };
 
-// ── Top Comments Card (Positive / Negative) ─────────────────────────────────
+// ── Top Comments Card (Positive / Negative — Clean & Focused) ───────────────
 export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
   const isPositive = type === 'positive';
   const borderColor = isPositive ? '#107c41' : '#e11d48';
+  const badgeBg = isPositive ? '#eafaf1' : '#fff1f2';
+  const badgeBorder = isPositive ? '#b7ebc9' : '#fecdd3';
+  const badgeColor = isPositive ? '#107c41' : '#be123c';
 
   const cleanQuote = (msg) => {
     if (!msg) return '';
@@ -328,17 +332,27 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
     return str;
   };
 
-  const getKeywordBadgeText = (row) => {
-    if (row.topTerm && /\(\d+x\)/.test(row.topTerm)) {
-      return row.topTerm;
-    }
-    let term = row.topTerm || (row.Category ? row.Category.toLowerCase() : 'general');
-    term = term.replace(/^"|"$/g, '').trim();
-    if (term) {
-      term = term.charAt(0).toUpperCase() + term.slice(1);
-    }
-    const freq = row.maxTermFreq || 1;
-    return `"${term}" (${freq}x)`;
+  const formatCollege = (college) => {
+    if (!college) return '';
+    const upper = college.toUpperCase().trim();
+    const map = {
+      'BUSINESS & ACCOUNTANCY': 'CBA',
+      'BUSINESS AND ACCOUNTANCY': 'CBA',
+      'COMPUTER STUDIES': 'CCS',
+      'ENGINEERING': 'COE',
+      'ARTS & SCIENCES': 'CAS',
+      'ARTS AND SCIENCES': 'CAS',
+      'EDUCATION': 'COED',
+      'HOSPITALITY MANAGEMENT': 'CHM',
+      'GRADUATE STUDIES': 'SGS',
+      'THEOLOGY': 'COT',
+      'LAW': 'COL',
+      'MEDICINE': 'COM',
+      'NURSING': 'CON',
+      'PHARMACY': 'COP',
+      'AGRICULTURE': 'CAG',
+    };
+    return map[upper] || (upper.length > 9 ? `${upper.slice(0, 8)}.` : upper);
   };
 
   return (
@@ -346,96 +360,76 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
       elevation={0}
       sx={{
         bgcolor: '#ffffff',
-        borderRadius: 3.5,
+        borderRadius: 3,
         border: '1.5px solid #e2e8f0',
         borderTop: `4px solid ${borderColor}`,
-        p: { xs: 2, sm: 2.5 },
+        p: { xs: 1.8, sm: 2.2 },
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: '0 2px 12px rgba(22, 50, 79, 0.02)',
+        boxShadow: '0 2px 10px rgba(22, 50, 79, 0.02)',
         overflow: 'hidden',
-        transition: 'all 0.2s ease',
-        '&:hover': {
-          boxShadow: '0 6px 20px rgba(22, 50, 79, 0.05)',
-          borderColor: '#cbd5e1',
-          borderTopColor: borderColor,
-        }
       }}
     >
-      {/* Header Container (Styled like Priority Action Container with border, borderLeft, gradient & badge) */}
+      {/* Header Container */}
       <Box sx={{
         background: isPositive
           ? 'linear-gradient(135deg, #eafaf1 0%, #dcfce7 100%)'
           : 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)',
         borderRadius: 2.5,
-        p: { xs: 1.5, sm: 1.8 },
-        mb: 2.2,
+        p: { xs: 1.3, sm: 1.5 },
+        mb: 2,
         border: isPositive ? '1.5px solid #b7ebc9' : '1.5px solid #fecdd3',
         borderLeft: isPositive ? '5px solid #107c41' : '5px solid #e11d48',
-        boxShadow: isPositive ? '0 3px 12px rgba(16, 124, 65, 0.08)' : '0 3px 12px rgba(225, 29, 72, 0.08)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: 1.2,
+        gap: 1,
       }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, minWidth: 0 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
           <Box sx={{
-            bgcolor: isPositive ? '#107c41' : '#e11d48',
+            bgcolor: borderColor,
             color: '#ffffff',
-            px: 1.1,
-            py: 0.35,
-            borderRadius: '5px',
-            fontFamily: T.font.family,
-            fontSize: 10.5,
-            fontWeight: 900,
-            letterSpacing: '0.6px',
-            textTransform: 'uppercase',
-            lineHeight: 1,
-            flexShrink: 0,
+            p: 0.55,
+            borderRadius: '6px',
             display: 'inline-flex',
             alignItems: 'center',
-            gap: 0.4,
+            justifyContent: 'center',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+            '& svg': { fontSize: 16 }
           }}>
-            {isPositive ? <ThumbUpIcon sx={{ fontSize: 13 }} /> : <ThumbDownIcon sx={{ fontSize: 13 }} />}
-            {isPositive ? 'POSITIVE' : 'NEGATIVE'}
+            {isPositive ? <ThumbUpIcon /> : <ThumbDownIcon />}
           </Box>
           <Typography sx={{
             fontFamily: T.font.family,
             fontWeight: 800,
-            fontSize: { xs: 14, sm: 15.5 },
-            color: isPositive ? '#107c41' : '#be123c',
+            fontSize: { xs: 14, sm: 15 },
+            color: badgeColor,
             letterSpacing: '-0.2px',
-            lineHeight: 1.3,
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
           }}>
             {title}
           </Typography>
         </Box>
         <Typography sx={{
           fontFamily: T.font.family,
-          fontSize: 11.5,
+          fontSize: 11,
           fontWeight: 700,
-          color: isPositive ? '#107c41' : '#be123c',
+          color: badgeColor,
           bgcolor: '#ffffff',
-          border: isPositive ? '1.5px solid #b7ebc9' : '1.5px solid #fecdd3',
+          border: `1.5px solid ${badgeBorder}`,
           px: 1.2,
-          py: 0.3,
+          py: 0.25,
           borderRadius: '9999px',
           flexShrink: 0,
-          boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
         }}>
           {rows.length} {rows.length === 1 ? 'Comment' : 'Comments'}
         </Typography>
       </Box>
 
-      {/* Card Content */}
+      {/* Comments List */}
       {rows.length === 0 ? (
         <Box sx={{
           display: 'flex',
-          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
           py: 4,
@@ -449,17 +443,18 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
             fontWeight: 600,
             color: T.text.secondary,
             fontSize: 13,
-            textAlign: 'center',
           }}>
-            No {isPositive ? 'positive' : 'negative'} comments recorded for current filters.
+            No {isPositive ? 'positive' : 'negative'} comments recorded.
           </Typography>
         </Box>
       ) : (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.3 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.2 }}>
           {rows.map((row, i) => {
-            const clientele = (row.Clientele || 'STUDENT').toUpperCase();
-            const isFacultyOrStaff = clientele === 'FACULTY' || clientele === 'STAFF' || clientele === 'ADMIN' || clientele === 'CPU ADMIN';
-            const college = (row.College || 'CCS').toUpperCase();
+            const rawCollege = row.College || '';
+            const collegeAbbr = formatCollege(rawCollege);
+            const category = row.Category || 'General';
+            const catToken = T.category[category] || T.category['Other/Uncategorized'];
+            const rawQuote = cleanQuote(row.Message);
 
             return (
               <Box
@@ -469,108 +464,97 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
                   border: '1.5px solid #e2e8f0',
                   borderLeft: `4px solid ${borderColor}`,
                   borderRadius: '8px',
-                  p: 1.5,
+                  p: { xs: 1.2, sm: 1.4 },
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 0.8,
+                  gap: 0.7,
                   transition: 'all 0.15s ease',
                   '&:hover': {
                     bgcolor: '#ffffff',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                    boxShadow: '0 3px 12px rgba(22, 50, 79, 0.05)',
                     borderColor: '#cbd5e1',
                     borderLeftColor: borderColor,
                   }
                 }}
               >
-                {/* Badge Row */}
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.9, flexWrap: 'wrap' }}>
-                  {/* De-emphasized Circular Number Badge */}
+                {/* Clean, Pleasing Metadata Row */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, flexWrap: 'wrap' }}>
+                  {/* Number Badge */}
                   <Box sx={{
-                    width: 20,
-                    height: 20,
-                    minWidth: 20,
+                    width: 22,
+                    height: 22,
+                    minWidth: 22,
                     borderRadius: '50%',
-                    bgcolor: '#f1f5f9',
-                    color: '#475569',
-                    border: '1px solid #cbd5e1',
+                    bgcolor: borderColor,
+                    color: '#ffffff',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontFamily: T.font.family,
                     fontSize: 11,
-                    fontWeight: 700,
+                    fontWeight: 800,
                     lineHeight: 1,
                   }}>
                     {i + 1}
                   </Box>
 
-                  {/* Clientele Role Badge */}
-                  <Box sx={{
-                    px: 1,
-                    py: 0.2,
-                    borderRadius: '4px',
-                    bgcolor: isFacultyOrStaff ? '#16324f' : '#edf4fa',
-                    color: isFacultyOrStaff ? '#ffffff' : '#16324f',
-                    fontFamily: T.font.family,
-                    fontSize: 10.5,
-                    fontWeight: 800,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.3px',
-                    lineHeight: 1.2,
-                  }}>
-                    {clientele}
-                  </Box>
-
                   {/* College Badge */}
-                  {college && (
-                    <Box sx={{
-                      px: 1,
-                      py: 0.2,
-                      borderRadius: '4px',
-                      bgcolor: '#edf4fa',
-                      color: '#16324f',
-                      border: '1px solid #cbdbe9',
-                      fontFamily: T.font.family,
-                      fontSize: 10.5,
-                      fontWeight: 700,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.3px',
-                      lineHeight: 1.2,
-                    }}>
-                      {college}
-                    </Box>
+                  {rawCollege && (
+                    <Tooltip title={rawCollege} arrow>
+                      <Box sx={{
+                        px: 0.85,
+                        py: 0.2,
+                        borderRadius: '4px',
+                        bgcolor: '#edf4fa',
+                        color: '#16324f',
+                        border: '1px solid #cbdbe9',
+                        fontFamily: T.font.family,
+                        fontSize: 10,
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        lineHeight: 1.2,
+                        cursor: 'help',
+                      }}>
+                        {collegeAbbr}
+                      </Box>
+                    </Tooltip>
                   )}
 
-                  {/* Keyword & Frequency Badge */}
+                  {/* Category Pill (Aligned to Right — Clean & Eye-Pleasing) */}
                   <Box sx={{
+                    ml: 'auto',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    px: 1.1,
-                    py: 0.2,
+                    gap: 0.6,
+                    px: 1.2,
+                    py: 0.3,
                     borderRadius: '9999px',
-                    fontSize: 11,
-                    fontWeight: 700,
+                    bgcolor: catToken.light,
+                    color: catToken.text,
+                    border: `1px solid ${catToken.border}`,
                     fontFamily: T.font.family,
-                    bgcolor: isPositive ? '#eafaf1' : '#fff1f2',
-                    color: isPositive ? '#107c41' : '#be123c',
-                    border: `1px solid ${isPositive ? '#b7ebc9' : '#fecdd3'}`,
-                    lineHeight: 1.2,
+                    fontSize: 10.5,
+                    fontWeight: 700,
+                    lineHeight: 1,
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
                   }}>
-                    {getKeywordBadgeText(row)}
+                    <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: catToken.dot }} />
+                    <span>{category}</span>
                   </Box>
                 </Box>
 
-                {/* Verbatim Comment Text */}
+                {/* Verbatim Comment — Clean Normal Text */}
                 <Typography sx={{
                   fontFamily: T.font.family,
                   fontSize: 13,
-                  color: '#334155',
+                  color: '#1e293b',
                   fontWeight: 500,
                   fontStyle: 'italic',
-                  lineHeight: 1.5,
+                  lineHeight: 1.55,
                   wordBreak: 'break-word',
+                  pl: 0.2,
                 }}>
-                  "{cleanQuote(row.Message)}"
+                  "{rawQuote}"
                 </Typography>
               </Box>
             );
