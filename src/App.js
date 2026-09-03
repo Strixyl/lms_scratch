@@ -18,6 +18,7 @@ import SendAsset from './pages/Sendasset';
 import TransactionHistory from './pages/Transactionhistory';
 import SendSupply from './pages/SendSupply';
 import SupplyTransactionHistory from './pages/SupplyTransactionHistory';
+import ScrollToTopButton from './Components/ScrollToTopButton';
 
 const theme = createTheme({
   typography: {
@@ -68,6 +69,7 @@ function App() {
             <Route path="/supply-transactions" element={<SupplyTransactionHistory />} />
             <Route path="*" element={<Home />} />
           </Routes>
+          <ScrollToTopButton />
         </div>
       </ThemeProvider>
     </Router>

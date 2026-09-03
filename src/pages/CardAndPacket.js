@@ -1,14 +1,13 @@
 import {
   Grid, Box, Typography, TextField, Button, Dialog, DialogTitle, DialogContent, Modal, ToggleButton, ToggleButtonGroup,
 } from "@mui/material";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import Header from '../Components/Header';
 import TopBar from '../Components/TopBar';
 import { Autocomplete } from "@mui/material";
 import SearchIcon from '@mui/icons-material/Search';
 import InputAdornment from '@mui/material/InputAdornment';
 import IconButton from '@mui/material/IconButton';
-import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import LocalOfferIcon from '@mui/icons-material/LocalOffer';
@@ -40,14 +39,7 @@ export default function CardAndPacket() {
   const [selectedDocId, setSelectedDocId] = useState(null);
   const [printModalOpen, setPrintModalOpen] = useState(false);
   const [previewSide, setPreviewSide] = useState('front');
-  const [showBackToTop, setShowBackToTop] = useState(false);
   const printRef = useRef();
-
-  useEffect(() => {
-    const handleScroll = () => setShowBackToTop(window.scrollY > 500);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   const formatAuthorName = (last, first, mi) => {
     if (!last && !first && !mi) return '';
@@ -1182,13 +1174,6 @@ export default function CardAndPacket() {
         <Button variant="contained" startIcon={<ClearAllIcon />} onClick={handleClear} sx={{ mr: 1.5, bgcolor: '#64748b', '&:hover': { bgcolor: '#475569' }, borderRadius: 2.5, px: 3.5, py: 1.2, fontWeight: 700, boxShadow: '0 4px 12px rgba(100, 116, 139, 0.2)' }}>Clear Entry</Button>
         <Button variant="contained" startIcon={<PrintIcon />} onClick={handleOpenPrint} sx={{ bgcolor: '#2e7d32', '&:hover': { bgcolor: '#1b5e20' }, borderRadius: 2.5, px: 3.5, py: 1.2, fontWeight: 700, boxShadow: '0 4px 12px rgba(46, 125, 50, 0.25)' }}>Print Entry</Button>
       </Grid>
-
-      {showBackToTop && (
-        <IconButton onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          sx={{ position: 'fixed', bottom: 20, right: 20, bgcolor: 'primary.main', color: '#fff', '&:hover': { bgcolor: 'primary.dark' }, zIndex: 9999 }}>
-          <KeyboardArrowUpIcon />
-        </IconButton>
-      )}
     </Box>
   );
 }
