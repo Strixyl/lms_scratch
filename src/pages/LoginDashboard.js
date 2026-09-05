@@ -520,55 +520,72 @@ const ItemChipsView = ({ data = [], totalVisits = 0, isCollegeLevel = false, sel
 };
 
 
-// ── Dynamic Custom Tooltip for Stacked Bar Chart ──────────────────────────
+// ── Dynamic Custom Tooltip for Stacked & Standard Bar Chart ───────────────
 const CustomBarTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
-    const activeItems = payload.filter(p => p.value > 0);
-    const total = activeItems.reduce((acc, curr) => acc + curr.value, 0);
+    const entryData = payload[0]?.payload;
+    let activeItems = [];
+
+    if (entryData) {
+      // Check if entryData has child course keys (College-level breakdown)
+      activeItems = Object.entries(entryData)
+        .filter(([key, val]) => key !== 'name' && key !== 'total' && key !== 'fullName' && typeof val === 'number' && val > 0)
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value);
+    }
+
+    const total = entryData?.total ?? (payload[0]?.value || 0);
+    const isCollegeBreakdown = activeItems.length > 0;
 
     return (
       <Paper elevation={4} sx={{ p: 2, bgcolor: '#ffffff', border: '1.5px solid #cbdbe9', borderRadius: 3, maxWidth: 360, boxShadow: '0 10px 25px -5px rgba(22, 50, 79, 0.12)' }}>
         <Typography variant="subtitle2" sx={{ fontFamily: T.font.family, fontWeight: 800, color: '#16324f', mb: 1.5, borderBottom: '1px solid #e2e8f0', pb: 1, fontSize: 14 }}>
-          {label} — {total} Total Patron Visit{total > 1 ? 's' : ''}
+          {entryData?.fullName || label} — {total} Total Patron Visit{total !== 1 ? 's' : ''}
         </Typography>
 
-        <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 700, color: '#64748b', mb: 1, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-          Course Breakdown & Color Key:
-        </Typography>
+        {isCollegeBreakdown ? (
+          <>
+            <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 700, color: '#64748b', mb: 1, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              Course Breakdown & Color Key:
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, maxHeight: 240, overflowY: 'auto' }}>
+              {activeItems.map((item, idx) => {
+                const percent = total > 0 ? ((item.value / total) * 100).toFixed(1) : 0;
+                const swatchColor = COURSE_COLORS[idx % COURSE_COLORS.length];
+                const lightColor = COURSE_LIGHT_COLORS[idx % COURSE_LIGHT_COLORS.length] || swatchColor;
 
-        {activeItems.length === 0 ? (
-          <Typography variant="body2" sx={{ fontSize: 12, color: '#94a3b8', fontStyle: 'italic', fontFamily: T.font.family }}>
-            No visits recorded for this department.
-          </Typography>
-        ) : (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, maxHeight: 240, overflowY: 'auto' }}>
-            {activeItems.map((item, idx) => {
-              const percent = total > 0 ? ((item.value / total) * 100).toFixed(1) : 0;
-              const swatchColor = COURSE_COLORS[idx % COURSE_COLORS.length];
-              const lightColor = COURSE_LIGHT_COLORS[idx % COURSE_LIGHT_COLORS.length];
-
-              return (
-                <Box key={idx} sx={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  p: 1, borderRadius: 2, bgcolor: '#f8fafc', border: '1px solid #f1f5f9'
-                }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-                    <Box sx={{
-                      width: 14, height: 14, borderRadius: '4px',
-                      background: `linear-gradient(135deg, ${swatchColor} 0%, ${lightColor} 100%)`,
-                      boxShadow: `0 2px 6px ${swatchColor}40`,
-                      flexShrink: 0
-                    }} />
-                    <Typography variant="body2" sx={{ fontFamily: T.font.family, fontSize: 12.5, fontWeight: 700, color: '#1e293b' }}>
-                      {item.name}
+                return (
+                  <Box key={idx} sx={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    p: 1, borderRadius: 2, bgcolor: '#f8fafc', border: '1px solid #f1f5f9'
+                  }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+                      <Box sx={{
+                        width: 14, height: 14, borderRadius: '4px',
+                        background: `linear-gradient(135deg, ${swatchColor} 0%, ${lightColor} 100%)`,
+                        boxShadow: `0 2px 6px ${swatchColor}40`,
+                        flexShrink: 0
+                      }} />
+                      <Typography variant="body2" sx={{ fontFamily: T.font.family, fontSize: 12.5, fontWeight: 700, color: '#1e293b' }}>
+                        {item.name}
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 800, color: swatchColor, ml: 2, flexShrink: 0 }}>
+                      {item.value} ({percent}%)
                     </Typography>
                   </Box>
-                  <Typography variant="body2" sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 800, color: swatchColor, ml: 2, flexShrink: 0 }}>
-                    {item.value} ({percent}%)
-                  </Typography>
-                </Box>
-              );
-            })}
+                );
+              })}
+            </Box>
+          </>
+        ) : (
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1, borderRadius: 2, bgcolor: '#f8fafc', border: '1px solid #f1f5f9' }}>
+            <Typography variant="body2" sx={{ fontFamily: T.font.family, fontSize: 12.5, fontWeight: 700, color: '#1e293b' }}>
+              Recorded Foot Traffic
+            </Typography>
+            <Typography variant="body2" sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 800, color: '#0284c7' }}>
+              {total} visits
+            </Typography>
           </Box>
         )}
       </Paper>
@@ -928,6 +945,7 @@ const LoginDashboard = () => {
     } else if (key === 'college') {
       setSelectedCollege('All');
       setSelectedCourse('All');
+      setVisualizerMode('bar');
     } else if (key === 'course') {
       setSelectedCourse('All');
     } else if (key === 'section') {
@@ -973,6 +991,7 @@ const LoginDashboard = () => {
     setSelectedSection('All');
     setSelectedCourse('All');
     setSearchTerm('');
+    setVisualizerMode('bar');
     setPage(0);
   };
 
@@ -1255,11 +1274,11 @@ const LoginDashboard = () => {
 
   const effectiveMode = useMemo(() => {
     if (visualizerMode !== 'auto') return visualizerMode;
-    if (selectedCollege !== 'All' && mainChartData.length >= 2 && mainChartData.length <= 4) {
+    if (selectedCollege !== 'All') {
       return 'chips';
     }
     return 'bar';
-  }, [visualizerMode, selectedCollege, mainChartData.length]);
+  }, [visualizerMode, selectedCollege]);
 
   // Section distribution for Section Pie Chart & Donut Visualizer
   const { sectionChartData, donutSlices, collegeSectionTotal, internalSections } = useMemo(() => {
@@ -1598,6 +1617,113 @@ const LoginDashboard = () => {
     }, 500);
   };
 
+  // ── Custom Bar Renderer: Consistent Gradient by Default, Respective Course Colors on Hover ──
+  const renderCustomBar = (props) => {
+    const { x, y, width, height, payload, index } = props;
+    if (!height || height <= 0 || !width || width <= 0) return null;
+
+    const isSelected = selectedCollege === payload?.name;
+    const isHovered = hoveredCollege === payload?.name;
+
+    if (isSelected) {
+      return (
+        <rect
+          x={x}
+          y={y}
+          width={width}
+          height={height}
+          rx={6}
+          ry={6}
+          fill="url(#barActiveGrad)"
+          stroke="#16324f"
+          strokeWidth={1.5}
+          style={{ cursor: 'pointer', transition: 'all 0.15s ease' }}
+          onMouseEnter={() => setHoveredCollege(payload?.name)}
+          onMouseLeave={() => setHoveredCollege(null)}
+        />
+      );
+    }
+
+    if (!isHovered) {
+      return (
+        <rect
+          x={x}
+          y={y}
+          width={width}
+          height={height}
+          rx={6}
+          ry={6}
+          fill="url(#barDefaultGrad)"
+          style={{ cursor: 'pointer', transition: 'all 0.15s ease' }}
+          onMouseEnter={() => setHoveredCollege(payload?.name)}
+          onMouseLeave={() => setHoveredCollege(null)}
+        />
+      );
+    }
+
+    // On hover: extract active courses matching CustomBarTooltip
+    let courses = [];
+    if (selectedCollege === 'All' && payload) {
+      courses = Object.entries(payload)
+        .filter(([k, v]) => k !== 'name' && k !== 'total' && k !== 'fullName' && typeof v === 'number' && v > 0)
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value);
+    }
+
+    if (courses.length <= 1) {
+      return (
+        <rect
+          x={x}
+          y={y}
+          width={width}
+          height={height}
+          rx={6}
+          ry={6}
+          fill={`url(#barCourseGrad_${index % COURSE_COLORS.length})`}
+          style={{ cursor: 'pointer', transition: 'all 0.15s ease' }}
+          onMouseEnter={() => setHoveredCollege(payload?.name)}
+          onMouseLeave={() => setHoveredCollege(null)}
+        />
+      );
+    }
+
+    const total = payload.total || courses.reduce((sum, c) => sum + c.value, 0);
+    const clipId = `bar-clip-${index}`;
+    let accumulatedY = y;
+
+    return (
+      <g
+        style={{ cursor: 'pointer' }}
+        onMouseEnter={() => setHoveredCollege(payload?.name)}
+        onMouseLeave={() => setHoveredCollege(null)}
+      >
+        <defs>
+          <clipPath id={clipId}>
+            <rect x={x} y={y} width={width} height={height} rx={6} ry={6} />
+          </clipPath>
+        </defs>
+        <g clipPath={`url(#${clipId})`}>
+          {courses.map((c, cIdx) => {
+            const segHeight = total > 0 ? (c.value / total) * height : 0;
+            const currentY = accumulatedY;
+            accumulatedY += segHeight;
+
+            return (
+              <rect
+                key={`seg-${cIdx}`}
+                x={x}
+                y={currentY}
+                width={width}
+                height={segHeight}
+                fill={`url(#barCourseGrad_${cIdx % COURSE_COLORS.length})`}
+              />
+            );
+          })}
+        </g>
+      </g>
+    );
+  };
+
   return (
     <>
       <Header>
@@ -1760,7 +1886,13 @@ const LoginDashboard = () => {
                         value={selectedCollege}
                         label="College/Dept"
                         onChange={(e) => {
-                          setSelectedCollege(e.target.value);
+                          const val = e.target.value;
+                          setSelectedCollege(val);
+                          if (val !== 'All') {
+                            setVisualizerMode('chips');
+                          } else {
+                            setVisualizerMode('bar');
+                          }
                           setPage(0);
                         }}
                       >
@@ -2053,16 +2185,22 @@ const LoginDashboard = () => {
                               <Typography sx={{ ...sectionTitleSx, color: '#16324f' }}>
                                 {effectiveMode === 'monthly'
                                   ? `Monthly Foot Traffic Trend (${filterYear === 'All' ? 'All Years' : filterYear})`
-                                  : selectedCollege === 'All'
-                                    ? 'Visits by College & Course Breakdown'
-                                    : `Available Course Foot Traffic (${selectedCollege})`}
+                                  : effectiveMode === 'chips'
+                                    ? selectedCollege === 'All'
+                                      ? 'Colleges Foot Traffic (Item Chips)'
+                                      : `Available Course Foot Traffic (${selectedCollege})`
+                                    : selectedCollege === 'All'
+                                      ? 'Visits by College Breakdown'
+                                      : `Available Course Foot Traffic (${selectedCollege})`}
                               </Typography>
                               <Typography sx={sectionSubtitleSx}>
                                 {effectiveMode === 'monthly'
                                   ? 'Comparing entrance traffic volume across months (Click any bar to filter)'
-                                  : selectedCollege === 'All'
-                                    ? 'Hover over any bar or switch view modes'
-                                    : `Comparing student foot traffic across available courses in ${selectedCollege}`}
+                                  : effectiveMode === 'chips'
+                                    ? 'Detailed cards showing traffic share and metrics per item'
+                                    : selectedCollege === 'All'
+                                      ? 'Click any bar to filter by department or hover to inspect'
+                                      : `Comparing student foot traffic across available courses in ${selectedCollege}`}
                               </Typography>
                             </Box>
                           </Box>
@@ -2177,11 +2315,34 @@ const LoginDashboard = () => {
                               <RechartsBarChart
                                 data={mainChartData}
                                 maxBarSize={45}
+                                style={{ cursor: 'pointer' }}
+                                onMouseMove={(state) => {
+                                  if (state && state.activeLabel) {
+                                    setHoveredCollege(state.activeLabel);
+                                  }
+                                }}
+                                onMouseLeave={() => setHoveredCollege(null)}
+                                onClick={(state) => {
+                                  if (state && state.activeLabel && selectedCollege === 'All') {
+                                    const colName = state.activeLabel;
+                                    setSelectedCollege(colName);
+                                    setVisualizerMode('chips');
+                                    setPage(0);
+                                  }
+                                }}
                               >
                                 <defs>
                                   <linearGradient id="barDefaultGrad" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#1a237e" />
-                                    <stop offset="100%" stopColor="#0288d1" />
+                                    <stop offset="0%" stopColor="#1a237e" stopOpacity={0.95} />
+                                    <stop offset="100%" stopColor="#0288d1" stopOpacity={0.8} />
+                                  </linearGradient>
+                                  <linearGradient id="barActiveGrad" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#0f172a" stopOpacity={1} />
+                                    <stop offset="100%" stopColor="#334155" stopOpacity={0.9} />
+                                  </linearGradient>
+                                  <linearGradient id="barHoverGrad" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#0288d1" stopOpacity={0.95} />
+                                    <stop offset="100%" stopColor="#38bdf8" stopOpacity={0.85} />
                                   </linearGradient>
 
                                   {COURSE_COLORS.map((col, idx) => (
@@ -2193,45 +2354,24 @@ const LoginDashboard = () => {
                                 </defs>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                                 <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b', fontFamily: T.font.family }} interval={0} angle={-25} textAnchor="end" height={65} />
-                                <YAxis tick={{ fontSize: 12, fill: '#64748b', fontFamily: T.font.family }} />
+                                <YAxis tick={{ fontSize: 12, fill: '#64748b', fontFamily: T.font.family }} allowDecimals={false} />
                                 <RechartsTooltip content={<CustomBarTooltip />} />
-                                {activeChartSeries.map((course, courseIndex) => {
-                                  const isTopCourse = courseIndex === activeChartSeries.length - 1;
-                                  return (
-                                    <Bar
-                                      key={course}
-                                      dataKey={selectedCollege === 'All' ? course : 'total'}
-                                      stackId={selectedCollege === 'All' ? 'a' : undefined}
-                                      maxBarSize={45}
-                                      radius={isTopCourse ? [6, 6, 0, 0] : [0, 0, 0, 0]}
-                                    >
-                                      {mainChartData.map((entry, index) => {
-                                        const isHovered = hoveredCollege === entry.name;
-                                        let fillColor;
-                                        if (selectedCollege === 'All') {
-                                          fillColor = isHovered
-                                            ? `url(#barCourseGrad_${courseIndex % COURSE_COLORS.length})`
-                                            : '#0284c7';
-                                        } else {
-                                          fillColor = isHovered
-                                            ? `url(#barCourseGrad_${index % COURSE_COLORS.length})`
-                                            : '#0284c7';
-                                        }
-                                        return (
-                                          <Cell
-                                            key={`cell-${index}`}
-                                            fill={fillColor}
-                                            stroke="none"
-                                            strokeWidth={0}
-                                            onMouseEnter={() => setHoveredCollege(entry.name)}
-                                            onMouseLeave={() => setHoveredCollege(null)}
-                                            style={{ cursor: 'pointer', transition: 'fill 0.2s ease' }}
-                                          />
-                                        );
-                                      })}
-                                    </Bar>
-                                  );
-                                })}
+                                <Bar
+                                  dataKey="total"
+                                  name="Total Visits"
+                                  maxBarSize={45}
+                                  shape={renderCustomBar}
+                                  isAnimationActive={false}
+                                >
+                                  {mainChartData.map((entry, index) => (
+                                    <Cell
+                                      key={`bar-cell-${index}`}
+                                      onMouseEnter={() => setHoveredCollege(entry.name)}
+                                      onMouseLeave={() => setHoveredCollege(null)}
+                                      style={{ cursor: 'pointer' }}
+                                    />
+                                  ))}
+                                </Bar>
                               </RechartsBarChart>
                             </ResponsiveContainer>
                           )}
