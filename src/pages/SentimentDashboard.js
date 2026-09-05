@@ -680,12 +680,7 @@ function SentimentDashboard() {
   });
 
   const topPositive = useMemo(() => {
-    // Small pool guard: lexicon/frequency scoring is unreliable under 5 comments.
-    if (positivePool.length < 5) {
-      return [...positivePool]
-        .sort((a, b) => Math.abs(getSurveyScore(b)) - Math.abs(getSurveyScore(a)))
-        .slice(0, 5);
-    }
+    if (positivePool.length === 0) return [];
     const scoredPool = scoreCommentsWithLexicon(positivePool);
     scoredPool.sort((a, b) => {
       if (b.blendedScore !== a.blendedScore) {
@@ -697,12 +692,7 @@ function SentimentDashboard() {
   }, [positivePool]);
 
   const topNegative = useMemo(() => {
-    // Small pool guard: lexicon/frequency scoring is unreliable under 5 comments.
-    if (negativePool.length < 5) {
-      return [...negativePool]
-        .sort((a, b) => Math.abs(getSurveyScore(b)) - Math.abs(getSurveyScore(a)))
-        .slice(0, 5);
-    }
+    if (negativePool.length === 0) return [];
     const scoredPool = scoreCommentsWithLexicon(negativePool);
     scoredPool.sort((a, b) => {
       if (b.blendedScore !== a.blendedScore) {
@@ -770,7 +760,7 @@ function SentimentDashboard() {
         const scoredEvs = scoreCommentsWithLexicon(matchedItems);
         const topEvidences = scoredEvs
           .sort((a, b) => (b.blendedScore || 0) - (a.blendedScore || 0))
-          .slice(0, 2);
+          .slice(0, 3);
 
         const topicActionConfig = LEXICON_TOPIC_ACTIONS[topicName] || {};
         const threshold = topicActionConfig.defaultSeverity === 'HIGH' ? 4 : 7;
@@ -1518,17 +1508,17 @@ function SentimentDashboard() {
                       borderTop: '3.5px solid #16324f',
                       boxShadow: '0 2px 12px rgba(22, 50, 79, 0.04)',
                     }}>
-                      <Box sx={{ ...sectionHeaderSx, flexWrap: 'wrap', gap: 1 }}>
+                      <Box sx={{ ...sectionHeaderSx, flexWrap: 'wrap', gap: 1.2, py: 1.5, px: { xs: 1.8, sm: 2.2 } }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
                           <Box sx={{
                             bgcolor: '#edf4fa',
                             color: '#16324f',
-                            p: 0.55,
+                            p: 0.6,
                             borderRadius: '8px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            '& svg': { fontSize: 18 }
+                            '& svg': { fontSize: 19 }
                           }}>
                             <RateReviewIcon />
                           </Box>
@@ -1539,13 +1529,17 @@ function SentimentDashboard() {
                         </Box>
 
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, px: 1.2, py: 0.35, bgcolor: '#eafaf1', border: '1px solid #b7ebc9', borderRadius: '9999px' }}>
-                            <ThumbUpIcon sx={{ fontSize: 14, color: '#107c41' }} />
-                            <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, color: '#107c41', fontWeight: 700 }}>5 Positive</Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 1.2, py: 0.35, bgcolor: '#eafaf1', border: '1px solid #b7ebc9', borderRadius: '9999px' }}>
+                            <ThumbUpIcon sx={{ fontSize: 13, color: '#107c41' }} />
+                            <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, color: '#107c41', fontWeight: 700 }}>
+                              {topPositive.length} Positive
+                            </Typography>
                           </Box>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, px: 1.2, py: 0.35, bgcolor: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '9999px' }}>
-                            <ThumbDownIcon sx={{ fontSize: 14, color: '#be123c' }} />
-                            <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, color: '#be123c', fontWeight: 700 }}>5 Negative</Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 1.2, py: 0.35, bgcolor: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '9999px' }}>
+                            <ThumbDownIcon sx={{ fontSize: 13, color: '#be123c' }} />
+                            <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, color: '#be123c', fontWeight: 700 }}>
+                              {topNegative.length} Negative
+                            </Typography>
                           </Box>
                         </Box>
                       </Box>
@@ -1557,8 +1551,16 @@ function SentimentDashboard() {
                           gap: 2.5,
                           alignItems: 'stretch',
                         }}>
-                          <TopCommentsCard title="Top 5 Positive Comments" rows={topPositive} type="positive" icon={<ThumbUpIcon />} />
-                          <TopCommentsCard title="Top 5 Negative Comments" rows={topNegative} type="negative" icon={<ThumbDownIcon />} />
+                          <TopCommentsCard
+                            title="Top 5 Positive Comments"
+                            rows={topPositive}
+                            type="positive"
+                          />
+                          <TopCommentsCard
+                            title="Top 5 Negative Comments"
+                            rows={topNegative}
+                            type="negative"
+                          />
                         </Box>
                       </CardContent>
                     </Card>
@@ -1618,6 +1620,12 @@ function SentimentDashboard() {
                             <RecommendationCard
                               key={c.id || idx}
                               stat={c}
+                              onFilterCategory={(cat) => {
+                                if (cat && cat !== 'Other/Uncategorized') {
+                                  setFilterCategory(cat);
+                                }
+                                handleScrollToReviewTable();
+                              }}
                             />
                           ))}
                         </Box>
