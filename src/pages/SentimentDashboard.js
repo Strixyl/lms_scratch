@@ -760,7 +760,7 @@ function SentimentDashboard() {
         const scoredEvs = scoreCommentsWithLexicon(matchedItems);
         const topEvidences = scoredEvs
           .sort((a, b) => (b.blendedScore || 0) - (a.blendedScore || 0))
-          .slice(0, 2);
+          .slice(0, 3);
 
         const topicActionConfig = LEXICON_TOPIC_ACTIONS[topicName] || {};
         const threshold = topicActionConfig.defaultSeverity === 'HIGH' ? 4 : 7;
@@ -1620,6 +1620,12 @@ function SentimentDashboard() {
                             <RecommendationCard
                               key={c.id || idx}
                               stat={c}
+                              onFilterCategory={(cat) => {
+                                if (cat && cat !== 'Other/Uncategorized') {
+                                  setFilterCategory(cat);
+                                }
+                                handleScrollToReviewTable();
+                              }}
                             />
                           ))}
                         </Box>

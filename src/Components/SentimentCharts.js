@@ -315,6 +315,39 @@ export const SummaryCard = ({
   return cardContent;
 };
 
+// ── Shared String Formatters for Comments & Recommendations ─────────────────
+const cleanQuote = (msg) => {
+  if (!msg) return '';
+  let str = typeof msg === 'string' ? msg.trim() : (msg.Message || '').trim();
+  if (str.startsWith('"') && str.endsWith('"')) {
+    str = str.slice(1, -1).trim();
+  }
+  return str;
+};
+
+const formatCollege = (college) => {
+  if (!college) return '';
+  const upper = college.toUpperCase().trim();
+  const map = {
+    'BUSINESS & ACCOUNTANCY': 'CBA',
+    'BUSINESS AND ACCOUNTANCY': 'CBA',
+    'COMPUTER STUDIES': 'CCS',
+    'ENGINEERING': 'COE',
+    'ARTS & SCIENCES': 'CAS',
+    'ARTS AND SCIENCES': 'CAS',
+    'EDUCATION': 'COED',
+    'HOSPITALITY MANAGEMENT': 'CHM',
+    'GRADUATE STUDIES': 'SGS',
+    'THEOLOGY': 'COT',
+    'LAW': 'COL',
+    'MEDICINE': 'COM',
+    'NURSING': 'CON',
+    'PHARMACY': 'COP',
+    'AGRICULTURE': 'CAG',
+  };
+  return map[upper] || (upper.length > 9 ? `${upper.slice(0, 8)}.` : upper);
+};
+
 // ── Top Comments Card (Positive / Negative — Clean & Focused) ───────────────
 export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
   const isPositive = type === 'positive';
@@ -322,38 +355,6 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
   const badgeBg = isPositive ? '#eafaf1' : '#fff1f2';
   const badgeBorder = isPositive ? '#b7ebc9' : '#fecdd3';
   const badgeColor = isPositive ? '#107c41' : '#be123c';
-
-  const cleanQuote = (msg) => {
-    if (!msg) return '';
-    let str = typeof msg === 'string' ? msg.trim() : (msg.Message || '').trim();
-    if (str.startsWith('"') && str.endsWith('"')) {
-      str = str.slice(1, -1).trim();
-    }
-    return str;
-  };
-
-  const formatCollege = (college) => {
-    if (!college) return '';
-    const upper = college.toUpperCase().trim();
-    const map = {
-      'BUSINESS & ACCOUNTANCY': 'CBA',
-      'BUSINESS AND ACCOUNTANCY': 'CBA',
-      'COMPUTER STUDIES': 'CCS',
-      'ENGINEERING': 'COE',
-      'ARTS & SCIENCES': 'CAS',
-      'ARTS AND SCIENCES': 'CAS',
-      'EDUCATION': 'COED',
-      'HOSPITALITY MANAGEMENT': 'CHM',
-      'GRADUATE STUDIES': 'SGS',
-      'THEOLOGY': 'COT',
-      'LAW': 'COL',
-      'MEDICINE': 'COM',
-      'NURSING': 'CON',
-      'PHARMACY': 'COP',
-      'AGRICULTURE': 'CAG',
-    };
-    return map[upper] || (upper.length > 9 ? `${upper.slice(0, 8)}.` : upper);
-  };
 
   return (
     <Card
@@ -566,22 +567,57 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
 };
 
 // ── Recommendation Card for a specific flagged category / topic ───────────
-export const RecommendationCard = ({ stat }) => {
+// ── Recommendation Card for a specific flagged category / topic ───────────
+export const RecommendationCard = ({ stat, onFilterCategory }) => {
   if (!stat) return null;
   const isHigh = (stat.severity || '').toUpperCase() === 'HIGH';
-  const accentColor = isHigh ? '#ea580c' : '#f69d1b';
+  const category = stat.category || 'Other/Uncategorized';
 
-  const cleanQuote = (msg) => {
-    if (!msg) return '';
-    let str = typeof msg === 'string' ? msg.trim() : (msg.Message || '').trim();
-    if (str.startsWith('"') && str.endsWith('"')) {
-      str = str.slice(1, -1).trim();
-    }
-    return str;
+  // Category Color Theme Alignment (Fresh Teal for Facilities, Warm Amber for Staff, Royal Indigo for Collection)
+  const categoryThemeMap = {
+    Facilities: {
+      primary: '#0284c7', // Sky / Cyan
+      dark: '#0369a1',
+      light: '#f0f9ff',
+      border: '#bae6fd',
+      gradient: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+      badgeBg: '#e0f2fe',
+      icon: ApartmentIcon,
+    },
+    Staff: {
+      primary: '#d97706', // Amber / Gold
+      dark: '#b45309',
+      light: '#fffbeb',
+      border: '#fde68a',
+      gradient: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+      badgeBg: '#fef3c7',
+      icon: PeopleIcon,
+    },
+    Collection: {
+      primary: '#4f46e5', // Indigo
+      dark: '#4338ca',
+      light: '#eef2ff',
+      border: '#c7d2fe',
+      gradient: 'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)',
+      badgeBg: '#e0e7ff',
+      icon: MenuBookIcon,
+    },
   };
 
+  const theme = categoryThemeMap[category] || {
+    primary: '#64748b',
+    dark: '#475569',
+    light: '#f8fafc',
+    border: '#cbd5e1',
+    gradient: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+    badgeBg: '#f1f5f9',
+    icon: BoltIcon,
+  };
+
+  const CategoryIconComponent = theme.icon;
   const keywords = stat.keywords || [];
   const evidences = stat.evidences || stat.topEvidences || [];
+  const totalSignals = stat.matchCount || evidences.length;
 
   return (
     <Card
@@ -590,283 +626,303 @@ export const RecommendationCard = ({ stat }) => {
         bgcolor: '#ffffff',
         borderRadius: 3.5,
         border: '1.5px solid #e2e8f0',
-        borderTop: `4px solid ${accentColor}`,
-        p: { xs: 2, sm: 2.5 },
+        borderTop: `4px solid ${isHigh ? '#be123c' : theme.primary}`,
+        p: { xs: 2, sm: 2.3 },
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: '0 2px 12px rgba(0,0,0,0.02)',
+        boxShadow: '0 2px 12px rgba(22, 50, 79, 0.03)',
         overflow: 'hidden',
         transition: 'all 0.2s ease',
         '&:hover': {
-          boxShadow: '0 6px 20px rgba(0,0,0,0.05)',
+          boxShadow: '0 6px 22px rgba(22, 50, 79, 0.07)',
           borderColor: '#cbd5e1',
-          borderTopColor: accentColor,
+          borderTopColor: isHigh ? '#be123c' : theme.primary,
         }
       }}
     >
-      {/* Header: Severity Badge + Topic Title */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1.2, mb: 1.8 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, minWidth: 0 }}>
+      {/* Header Bar: Severity Badge + Category Pill + Signal Volume */}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 1.4, flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+          {/* Severity Badge */}
           <Box sx={{
-            bgcolor: isHigh ? '#ea580c' : '#f69d1b',
+            bgcolor: isHigh ? '#be123c' : '#d97706',
             color: '#ffffff',
-            px: 1.2,
-            py: 0.35,
+            px: 1,
+            py: 0.25,
             borderRadius: '5px',
             fontFamily: T.font.family,
-            fontSize: 11,
-            fontWeight: 800,
+            fontSize: 10,
+            fontWeight: 900,
             letterSpacing: '0.4px',
             textTransform: 'uppercase',
             lineHeight: 1.2,
-            flexShrink: 0,
           }}>
-            {isHigh ? 'HIGH' : 'MODERATE'}
+            {isHigh ? 'HIGH PRIORITY' : 'MODERATE'}
           </Box>
-          <Typography sx={{
-            fontFamily: T.font.family,
-            fontWeight: 800,
-            fontSize: { xs: 14, sm: 15 },
-            color: '#16324f',
-            letterSpacing: '-0.2px',
-            lineHeight: 1.3,
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}>
-            {stat.title}
-          </Typography>
-        </Box>
-        {stat.category && (
-          <Typography sx={{
-            fontFamily: T.font.family,
-            fontSize: 11.5,
-            fontWeight: 700,
-            color: '#64748b',
-            bgcolor: '#f1f5f9',
-            px: 1.2,
-            py: 0.3,
-            borderRadius: '9999px',
-            flexShrink: 0,
-          }}>
-            {stat.category}
-          </Typography>
-        )}
-      </Box>
 
-      {/* Priority Action Box (Hero High-Contrast Callout) */}
-      <Box sx={{
-        background: 'linear-gradient(135deg, #edf4fa 0%, #fff7ed 100%)',
-        borderRadius: 2.5,
-        p: { xs: 1.8, sm: 2 },
-        mb: 2.4,
-        border: '1.5px solid #fed7aa',
-        borderLeft: '5px solid #f69d1b',
-        boxShadow: '0 3px 12px rgba(246, 157, 27, 0.1)',
-      }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, mb: 0.8 }}>
+          {/* Category Pill with Icon */}
           <Box sx={{
-            bgcolor: '#16324f',
-            color: '#ffffff',
-            px: 1,
-            py: 0.3,
-            borderRadius: '5px',
             display: 'inline-flex',
             alignItems: 'center',
             gap: 0.4,
+            px: 0.9,
+            py: 0.25,
+            borderRadius: '9999px',
+            bgcolor: theme.badgeBg,
+            color: theme.dark,
+            border: `1px solid ${theme.border}`,
+            fontFamily: T.font.family,
+            fontSize: 10.5,
+            fontWeight: 700,
           }}>
-            <BoltIcon sx={{ fontSize: 13, color: '#ffd580' }} />
-            <Typography sx={{
-              fontFamily: T.font.family,
-              fontSize: 10.5,
-              fontWeight: 900,
-              letterSpacing: '0.6px',
-              textTransform: 'uppercase',
-              lineHeight: 1,
-            }}>
-              PRIORITY ACTION
-            </Typography>
+            <CategoryIconComponent sx={{ fontSize: 13 }} />
+            <span>{category}</span>
           </Box>
+        </Box>
+
+        {/* Signal Volume Indicator */}
+        <Tooltip title={`Identified from ${totalSignals} negative feedback entries`} arrow>
+          <Box sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 0.4,
+            px: 0.9,
+            py: 0.25,
+            borderRadius: '9999px',
+            bgcolor: '#f1f5f9',
+            color: '#475569',
+            border: '1px solid #cbd5e1',
+            fontFamily: T.font.family,
+            fontSize: 10.5,
+            fontWeight: 700,
+            cursor: 'help',
+          }}>
+            <span>{totalSignals} Negative {totalSignals === 1 ? 'Signal' : 'Signals'}</span>
+          </Box>
+        </Tooltip>
+      </Box>
+
+      {/* Topic Title */}
+      <Typography sx={{
+        fontFamily: T.font.family,
+        fontWeight: 800,
+        fontSize: { xs: 15, sm: 16 },
+        color: '#16324f',
+        letterSpacing: '-0.3px',
+        lineHeight: 1.3,
+        mb: 1.6,
+      }}>
+        {stat.title}
+      </Typography>
+
+      {/* Priority Action Callout Banner */}
+      <Box sx={{
+        background: theme.gradient,
+        borderRadius: 2.5,
+        p: { xs: 1.5, sm: 1.8 },
+        mb: 2,
+        border: `1.5px solid ${theme.border}`,
+        borderLeft: `5px solid ${theme.primary}`,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+      }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.6 }}>
+          <BoltIcon sx={{ fontSize: 14, color: theme.dark }} />
+          <Typography sx={{
+            fontFamily: T.font.family,
+            fontSize: 10.5,
+            fontWeight: 900,
+            color: theme.dark,
+            letterSpacing: '0.5px',
+            textTransform: 'uppercase',
+          }}>
+            RECOMMENDED INTERVENTION
+          </Typography>
         </Box>
         <Typography sx={{
           fontFamily: T.font.family,
-          fontSize: { xs: 13.5, sm: 14.5 },
-          fontWeight: 800,
+          fontSize: 13,
+          fontWeight: 700,
           color: '#16324f',
           lineHeight: 1.5,
-          letterSpacing: '-0.1px',
         }}>
           {stat.action}
         </Typography>
       </Box>
 
-      {/* Pain-Point Keywords Section */}
-      <Box sx={{ mb: 2.2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, mb: 1 }}>
-          <LocalOfferIcon sx={{ fontSize: 13, color: '#16324f' }} />
+      {/* Pain-Point Keywords */}
+      <Box sx={{ mb: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.8 }}>
+          <LocalOfferIcon sx={{ fontSize: 12.5, color: '#64748b' }} />
           <Typography sx={{
             fontFamily: T.font.family,
-            fontSize: 11,
+            fontSize: 10.5,
             fontWeight: 800,
-            color: '#16324f',
-            letterSpacing: '0.5px',
+            color: '#64748b',
+            letterSpacing: '0.4px',
             textTransform: 'uppercase',
           }}>
             PAIN-POINT KEYWORDS
           </Typography>
         </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, flexWrap: 'wrap' }}>
           {keywords.map((kw, i) => (
             <Box
               key={i}
               sx={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 0.7,
+                gap: 0.5,
                 bgcolor: '#ffffff',
-                border: '1.5px solid #cbdbe9',
+                border: `1px solid ${theme.border}`,
                 borderRadius: '9999px',
-                px: 1.4,
-                py: 0.4,
-                boxShadow: '0 1px 3px rgba(22, 50, 79, 0.02)',
-                transition: 'all 0.15s ease',
-                '&:hover': {
-                  bgcolor: '#f8fafc',
-                  borderColor: '#16324f',
-                }
+                px: 1.1,
+                py: 0.25,
+                boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
               }}
             >
               <Typography sx={{
                 fontFamily: T.font.family,
-                fontSize: 12.5,
-                fontWeight: 800,
-                color: '#16324f',
+                fontSize: 11.5,
+                fontWeight: 700,
+                color: '#1e293b',
                 lineHeight: 1.2,
-                textTransform: 'capitalize',
               }}>
                 {kw.word}
               </Typography>
               <Box sx={{
-                bgcolor: '#16324f',
+                bgcolor: theme.primary,
                 color: '#ffffff',
                 borderRadius: '9999px',
-                px: 0.8,
-                py: 0.15,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                px: 0.55,
+                py: 0.1,
+                fontSize: 9.5,
+                fontWeight: 800,
+                lineHeight: 1,
               }}>
-                <Typography sx={{
-                  fontFamily: T.font.family,
-                  fontSize: 11,
-                  fontWeight: 800,
-                  color: '#ffffff',
-                  lineHeight: 1,
-                }}>
-                  {kw.count}x
-                </Typography>
+                {kw.count}x
               </Box>
             </Box>
           ))}
         </Box>
       </Box>
 
-      {/* Patron Evidence Section (Clean Supporting Quotes) */}
-      <Box sx={{ mt: 'auto', pt: 1.8, borderTop: '1px solid #f1f5f9' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.1 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
-            <FormatQuoteIcon sx={{ fontSize: 15, color: '#94a3b8' }} />
+      {/* Patron Supporting Evidence Section */}
+      <Box sx={{ mt: 'auto', pt: 1.5, borderTop: '1px solid #f1f5f9' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <FormatQuoteIcon sx={{ fontSize: 15, color: theme.dark }} />
             <Typography sx={{
               fontFamily: T.font.family,
-              fontSize: 11,
+              fontSize: 10.5,
               fontWeight: 800,
               color: '#64748b',
-              letterSpacing: '0.5px',
+              letterSpacing: '0.4px',
               textTransform: 'uppercase',
             }}>
-              PATRON EVIDENCE
+              PATRON EVIDENCE ({evidences.length})
             </Typography>
           </Box>
-          <Typography sx={{
-            fontFamily: T.font.family,
-            fontSize: 11,
-            fontWeight: 700,
-            color: '#64748b',
-            bgcolor: '#f1f5f9',
-            px: 0.9,
-            py: 0.2,
-            borderRadius: '9999px',
-          }}>
-            {evidences.length} {evidences.length === 1 ? 'quote' : 'quotes'}
-          </Typography>
         </Box>
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.8 }}>
           {evidences.slice(0, 3).map((ev, idx) => {
             const rawQuote = typeof ev === 'string' ? ev : (ev.Message || '');
             const cleaned = cleanQuote(rawQuote);
+            const college = ev.College ? formatCollege(ev.College) : '';
 
             return (
               <Box
                 key={idx}
                 sx={{
-                  p: 1.3,
+                  p: 1.1,
                   borderRadius: 2,
                   bgcolor: '#f8fafc',
                   border: '1px solid #e2e8f0',
-                  transition: 'background-color 0.15s ease',
+                  borderLeft: `3px solid ${theme.primary}`,
+                  transition: 'all 0.15s ease',
                   '&:hover': {
-                    bgcolor: '#f1f5f9',
+                    bgcolor: '#ffffff',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
                   },
                 }}
               >
-                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.7, mb: 0.4 }}>
                   <Box sx={{
-                    width: 20,
-                    height: 20,
+                    width: 17,
+                    height: 17,
                     borderRadius: '50%',
-                    bgcolor: '#f1f5f9',
-                    color: '#475569',
-                    border: '1px solid #cbd5e1',
+                    bgcolor: '#edf4fa',
+                    color: '#16324f',
                     fontFamily: T.font.family,
-                    fontSize: 10.5,
-                    fontWeight: 700,
+                    fontSize: 9.5,
+                    fontWeight: 800,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    flexShrink: 0,
-                    mt: 0.15,
                   }}>
-                    #{idx + 1}
+                    {idx + 1}
                   </Box>
-
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography
-                      title={cleaned}
-                      sx={{
-                        fontFamily: T.font.family,
-                        fontSize: 12.5,
-                        fontWeight: 500,
-                        color: '#334155',
-                        fontStyle: 'italic',
-                        lineHeight: 1.5,
-                        wordBreak: 'break-word',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}
-                    >
-                      "{cleaned}"
-                    </Typography>
-                  </Box>
+                  {college && (
+                    <Box sx={{
+                      px: 0.6,
+                      py: 0.1,
+                      borderRadius: '3px',
+                      bgcolor: '#f1f5f9',
+                      color: '#475569',
+                      border: '1px solid #cbd5e1',
+                      fontFamily: T.font.family,
+                      fontSize: 9.5,
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      lineHeight: 1,
+                    }}>
+                      {college}
+                    </Box>
+                  )}
                 </Box>
+
+                <Typography sx={{
+                  fontFamily: T.font.family,
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: '#334155',
+                  fontStyle: 'italic',
+                  lineHeight: 1.45,
+                  wordBreak: 'break-word',
+                }}>
+                  "{cleaned}"
+                </Typography>
               </Box>
             );
           })}
         </Box>
+
+        {/* Filter Reviews Link */}
+        {onFilterCategory && (
+          <Box sx={{ mt: 1.2, textAlign: 'right' }}>
+            <Typography
+              onClick={() => onFilterCategory(category)}
+              sx={{
+                fontFamily: T.font.family,
+                fontSize: 11,
+                fontWeight: 700,
+                color: theme.dark,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 0.4,
+                transition: 'all 0.15s ease',
+                '&:hover': {
+                  textDecoration: 'underline',
+                  gap: 0.7,
+                }
+              }}
+            >
+              Filter {category} in Table →
+            </Typography>
+          </Box>
+        )}
       </Box>
     </Card>
   );
