@@ -185,6 +185,7 @@ export const scoreCommentsWithLexicon = (commentsPool) => {
       termScore: normalizedTopicScore,
       blendedScore,
       topTerm: assignedKeyword,
+      primaryTopic: bestTopic || (commentObj.Category ? commentObj.Category : 'General Feedback'),
       maxTermFreq: assignedFreq
     };
   });
