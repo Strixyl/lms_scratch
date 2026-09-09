@@ -27,6 +27,7 @@ import {
   ChatBubbleOutline as ChatBubbleOutlineIcon,
   Category as CategoryIcon,
   EventNote as EventNoteIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material';
 import {
   ResponsiveContainer,
@@ -1244,10 +1245,25 @@ function SentimentDashboard() {
                         <Chip label={`Sentiment: ${filterSentiment}`} onDelete={() => handleRemoveFilter('sentiment')} size="small"
                           sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: filterSentiment === 'Positive' ? '#eafaf1' : filterSentiment === 'Negative' ? '#fff1f2' : '#f1f5f9', color: filterSentiment === 'Positive' ? '#107c41' : filterSentiment === 'Negative' ? '#be123c' : '#475569', border: filterSentiment === 'Positive' ? '1px solid #b7ebc9' : filterSentiment === 'Negative' ? '1px solid #fecdd3' : '1px solid #cbd5e1', borderRadius: '9999px' }} />
                       )}
-                      {filterCategory && (
-                        <Chip label={`Category: ${filterCategory}`} onDelete={() => handleRemoveFilter('category')} size="small"
-                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#fff7ed', color: '#c2410c', border: '1px solid #fed7aa', borderRadius: '9999px' }} />
-                      )}
+                      {filterCategory && (() => {
+                        const catToken = T.category[filterCategory] || T.category['Other/Uncategorized'];
+                        return (
+                          <Chip
+                            label={`Category: ${filterCategory}`}
+                            onDelete={() => handleRemoveFilter('category')}
+                            size="small"
+                            sx={{
+                              fontFamily: T.font.family,
+                              fontWeight: 700,
+                              fontSize: 12,
+                              bgcolor: catToken.light,
+                              color: catToken.text,
+                              border: `1px solid ${catToken.border}`,
+                              borderRadius: '9999px',
+                            }}
+                          />
+                        );
+                      })()}
                       <Button size="small" onClick={handleClear} startIcon={<RestartAltIcon sx={{ fontSize: 15 }} />}
                         sx={{ fontFamily: T.font.family, textTransform: 'none', fontWeight: 700, fontSize: 12, color: '#ea580c', ml: 'auto' }}>
                         Clear All
@@ -1594,7 +1610,7 @@ function SentimentDashboard() {
                           </Box>
                         </Box>
 
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                           <Typography sx={{
                             fontFamily: T.font.family,
                             fontSize: 11.5,
@@ -1607,6 +1623,36 @@ function SentimentDashboard() {
                           }}>
                             {categoryStats.length} {categoryStats.length === 1 ? 'Category Flagged' : 'Categories Flagged'}
                           </Typography>
+
+                          {filterCategory && (
+                            <Button
+                              size="small"
+                              onClick={() => {
+                                setFilterCategory('');
+                                setPage(0);
+                              }}
+                              startIcon={<CloseIcon sx={{ fontSize: 13 }} />}
+                              sx={{
+                                fontFamily: T.font.family,
+                                fontSize: 11.5,
+                                fontWeight: 700,
+                                textTransform: 'none',
+                                color: '#be123c',
+                                border: '1px solid #fecdd3',
+                                bgcolor: '#fff1f2',
+                                borderRadius: '9999px',
+                                px: 1.4,
+                                py: 0.25,
+                                minHeight: 'auto',
+                                '&:hover': {
+                                  bgcolor: '#ffe4e6',
+                                  borderColor: '#fda4af',
+                                }
+                              }}
+                            >
+                              Clear Category Filter ({filterCategory})
+                            </Button>
+                          )}
                         </Box>
                       </Box>
 
@@ -1621,11 +1667,19 @@ function SentimentDashboard() {
                             <RecommendationCard
                               key={c.id || idx}
                               stat={c}
+                              isFiltered={filterCategory === c.category}
                               onFilterCategory={(cat) => {
-                                if (cat && cat !== 'Other/Uncategorized') {
+                                if (filterCategory === cat) {
+                                  setFilterCategory('');
+                                } else if (cat && cat !== 'Other/Uncategorized') {
                                   setFilterCategory(cat);
+                                  handleScrollToReviewTable();
                                 }
-                                handleScrollToReviewTable();
+                                setPage(0);
+                              }}
+                              onClearFilter={() => {
+                                setFilterCategory('');
+                                setPage(0);
                               }}
                             />
                           ))}
@@ -1662,15 +1716,39 @@ function SentimentDashboard() {
                         mb: 2.5,
                       }}>
                         <Box>
-                          <Typography sx={{
-                            fontFamily: T.font.family,
-                            fontWeight: 800,
-                            fontSize: { xs: 16, md: 18 },
-                            color: '#16324f',
-                            letterSpacing: '-0.2px'
-                          }}>
-                            Patron Review Submissions Table
-                          </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, flexWrap: 'wrap' }}>
+                            <Typography sx={{
+                              fontFamily: T.font.family,
+                              fontWeight: 800,
+                              fontSize: { xs: 16, md: 18 },
+                              color: '#16324f',
+                              letterSpacing: '-0.2px'
+                            }}>
+                              Patron Review Submissions Table
+                            </Typography>
+                            {filterCategory && (() => {
+                              const catToken = T.category[filterCategory] || T.category['Other/Uncategorized'];
+                              return (
+                                <Chip
+                                  label={`Category: ${filterCategory}`}
+                                  onDelete={() => {
+                                    setFilterCategory('');
+                                    setPage(0);
+                                  }}
+                                  size="small"
+                                  sx={{
+                                    fontFamily: T.font.family,
+                                    fontWeight: 700,
+                                    fontSize: 11.5,
+                                    bgcolor: catToken.light,
+                                    color: catToken.text,
+                                    border: `1px solid ${catToken.border}`,
+                                    borderRadius: '9999px',
+                                  }}
+                                />
+                              );
+                            })()}
+                          </Box>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, flexWrap: 'wrap', mt: 1.5 }}>
                             <Button
                               size="small"
