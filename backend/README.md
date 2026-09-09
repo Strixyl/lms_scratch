@@ -79,8 +79,8 @@ This directory houses the backend ecosystem supporting the **Henry Luce III Libr
 
 #### 📝 Patron Survey & Sentiment Analysis (Option A: Comment-First)
 - **`POST /api/survey`**: Accepts 10 Likert responses + open comment message. Supports both Student and Faculty clientele (with optional college/course for `FACULTY` or `ALUMNI`). Executes parallel BERT (`/analyze`) and Naïve Bayes (`/categorize`) calls. Computes **Option A (Comment-First Sentiment)**:
-  - If a written comment is present, overall sentiment is **100% determined by RoBERTa BERT text sentiment**.
-  - If the comment is blank, sentiment falls back to the 10-question emoji rating average.
+  - If a written comment is present, overall sentiment is **100% determined by RoBERTa BERT text sentiment**, and `SentimentScore` stores the exact signed confidence probability from RoBERTa (`+score` for Positive, `-score` for Negative).
+  - If the comment is blank, sentiment falls back to the 10-question emoji rating average (`ratingAvg`).
   - All 10 Likert responses (`Question1`–`Question10`) and computed `SentimentScore` are inserted into `dbo.SatisfactionSurveys`.
 - **`GET /api/surveys`**: Retrieves survey records with timezone-aligned (`Asia/Manila`, UTC+8) date range filtering (`YYYY-MM-DD 00:00:00` to `23:59:59.997`), clientele type (`STUDENT`, `FACULTY`, `ALUMNI`, etc.), college, and course filters.
 - **`DELETE /api/surveys/:id`**: Deletes a specific survey response entry.

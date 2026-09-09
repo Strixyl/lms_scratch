@@ -93,132 +93,76 @@ export const buildTermFrequencies = (pool) => {
   return { freq, displayMap, sentimentCounts };
 };
 
-// ── Controlled Domain Lexicon Keyword Ranking Engine ────────────────────────
-export const scoreCommentsWithLexicon = (commentsPool) => {
+// ── RoBERTa Model Confidence Comment Scorer ────────────────────────────────
+export const scoreCommentsWithRoBERTa = (commentsPool) => {
   if (!commentsPool || commentsPool.length === 0) return [];
 
-  const topicPoolCounts = {};
-  const kwPoolCounts = {};
-  const commentTopicMatches = commentsPool.map(s => {
-    if (!s.Message || !s.Message.trim()) return { matchedTopics: [] };
-    const msgLower = s.Message.toLowerCase();
-    const matchedTopics = [];
-
-    Object.entries(CONTROLLED_LEXICON).forEach(([catName, categoryTopics]) => {
-      Object.entries(categoryTopics).forEach(([topic, synonyms]) => {
-        let bestSynLen = 0;
-        let matchedSyn = '';
-        for (const syn of synonyms) {
-          const synLower = syn.toLowerCase();
-          const escaped = synLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          // Strict regex using non-word/boundary checks to avoid partial substring collisions
-          const regex = new RegExp(`(^|[^a-zA-Z0-9])${escaped}([^a-zA-Z0-9]|$)`, 'i');
-          if (regex.test(msgLower)) {
-            if (synLower.length > bestSynLen) {
-              bestSynLen = synLower.length;
-              matchedSyn = synLower;
-            }
-          }
-        }
-        if (bestSynLen > 0) {
-          matchedTopics.push({ topic, category: catName, matchLen: bestSynLen, keyword: matchedSyn });
-        }
-      });
-    });
-
-    matchedTopics.forEach(m => {
-      topicPoolCounts[m.topic] = (topicPoolCounts[m.topic] || 0) + 1;
-      if (m.keyword) {
-        kwPoolCounts[m.keyword] = (kwPoolCounts[m.keyword] || 0) + 1;
-      }
-    });
-
-    return { matchedTopics };
-  });
-
-  return commentsPool.map((commentObj, idx) => {
+  return commentsPool.map((commentObj) => {
     if (!commentObj || !commentObj.Message) {
-      return { ...commentObj, tfidfScore: 0, termScore: 0, blendedScore: 0, topTerm: '', maxTermFreq: 0 };
+      return {
+        ...commentObj,
+        confidence: 0,
+        confidencePct: '0.0',
+        blendedScore: 0,
+        termScore: 0,
+        primaryTopic: 'General Feedback',
+        topTerm: 'general',
+      };
     }
 
-    const { matchedTopics } = commentTopicMatches[idx];
-    let bestTopic = '';
-    let bestKw = '';
-    let bestTopicScore = -1;
-    let maxTopicFreq = 0;
-    let totalTopicScore = 0;
+    const rawScore = typeof commentObj.SentimentScore === 'number' && !isNaN(commentObj.SentimentScore)
+      ? Math.abs(commentObj.SentimentScore)
+      : 1.0;
 
-    matchedTopics.forEach(m => {
-      const count = topicPoolCounts[m.topic] || 0;
-      totalTopicScore += count;
-      if (count > maxTopicFreq) {
-        maxTopicFreq = count;
-      }
-
-      // Scoring weight:
-      // 1. Matches comment's assigned category (+15 points)
-      // 2. Longer, more specific phrase match (m.matchLen * 1.5)
-      // 3. Pool frequency of the topic (count * 0.5)
-      const isSameCategory = commentObj.Category && commentObj.Category === m.category ? 15 : 0;
-      const candidateScore = isSameCategory + (m.matchLen * 1.5) + (count * 0.5);
-
-      if (candidateScore > bestTopicScore) {
-        bestTopicScore = candidateScore;
-        bestTopic = m.topic;
-        bestKw = m.keyword;
-      }
-    });
-
-    const normalizedTopicScore = matchedTopics.length > 0
-      ? Number((totalTopicScore / Math.sqrt(matchedTopics.length)).toFixed(2))
-      : 0;
-
-    const magnitude = Math.abs(getSurveyScore(commentObj));
-    const blendedScore = Number(((0.7 * normalizedTopicScore) + (0.3 * magnitude * 10)).toFixed(2));
-
-    const assignedKeyword = bestKw || (commentObj.Category ? commentObj.Category.toLowerCase() : 'general');
-    const assignedFreq = (bestKw && kwPoolCounts[bestKw]) || topicPoolCounts[bestTopic] || maxTopicFreq || 1;
+    // Normalizes confidence between 0 and 1 (with precision)
+    const confidence = Math.min(Math.max(rawScore, 0), 1);
+    const confidencePct = (confidence * 100).toFixed(1);
 
     return {
       ...commentObj,
-      tfidfScore: normalizedTopicScore,
-      termScore: normalizedTopicScore,
-      blendedScore,
-      topTerm: assignedKeyword,
-      maxTermFreq: assignedFreq
+      confidence,
+      confidencePct,
+      // For backwards compatibility with UI components
+      blendedScore: Number(confidencePct),
+      termScore: Number(confidencePct),
+      primaryTopic: commentObj.Category || 'General Feedback',
+      topTerm: (commentObj.Category || 'general').toLowerCase(),
     };
   });
 };
 
-// ── Simple & Diverse Top Comment Selector (Clean Deduplication) ─────────────
+// Backwards-compatibility alias
+export const scoreCommentsWithLexicon = scoreCommentsWithRoBERTa;
+
+// ── Diverse Top Comment Selector (Clean Deduplication & Category Diversity) ──
 export const selectDiverseTopComments = (scoredList, limit = 5) => {
   if (!scoredList || scoredList.length === 0) return [];
 
   const selected = [];
   const seenTexts = new Set();
-  const keywordCounts = {};
+  const categoryCounts = {};
 
   const cleanTextKey = (msg) => {
     if (!msg) return '';
     const str = typeof msg === 'string' ? msg : (msg.Message || '');
-    return str.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 50);
+    return str.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 60);
   };
 
-  // 1. Pick unique comments, spreading across diverse keywords
+  // 1. Pick unique comments, spreading across categories (max 2 per category for diversity)
   for (const comment of scoredList) {
     if (selected.length >= limit) break;
     const textKey = cleanTextKey(comment.Message);
     if (!textKey || seenTexts.has(textKey)) continue;
 
-    const kw = (comment.topTerm || 'general').toLowerCase();
-    if ((keywordCounts[kw] || 0) < 2) {
+    const cat = comment.Category || 'Other';
+    if ((categoryCounts[cat] || 0) < 2) {
       selected.push(comment);
       seenTexts.add(textKey);
-      keywordCounts[kw] = (keywordCounts[kw] || 0) + 1;
+      categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
     }
   }
 
-  // 2. Fill any remaining slots with other unique comments
+  // 2. Fill any remaining slots with next highest confidence comments
   if (selected.length < limit) {
     for (const comment of scoredList) {
       if (selected.length >= limit) break;
@@ -232,3 +176,4 @@ export const selectDiverseTopComments = (scoredList, limit = 5) => {
 
   return selected;
 };
+

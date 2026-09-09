@@ -76,7 +76,7 @@ This is an enterprise-grade, web-based **Library Management System** developed f
   - **Custom Donut Chart Visualization**: Re-engineered Recharts Donut Chart (`innerRadius={75}`, `outerRadius={105}`) with centered metric overlays, styled percentage indicator badges, and responsive slice interactions.
   - **Philippine Timezone Alignment (`Asia/Manila` / UTC+8)**: SQL date bounds and date picker presets (**Today**, **Last 7 Days**, **Last 30 Days**, **This Month**, **Custom**) strictly aligned to local Philippine Standard Time (`00:00:00` to `23:59:59.997`).
   - **KPI Score Cards**: Average satisfaction score scaled from `-1.0` to `+1.0`, 1–5 CSAT scale averages, and Net Sentiment Score (NSS = `% Positive - % Negative`).
-  - **Top 5 Actionable Feedback Cards**: Ranks top 5 positive and negative comments by blending pool topic relevance ($70\%$) with sentiment magnitude ($30\%$), enforcing a 2-comment cap per topic for balanced feedback diversity.
+  - **Top 5 Actionable Feedback Cards**: Ranks top 5 positive and negative comments directly by **CardiffNLP RoBERTa Model Softmax Confidence Probability** with a category diversity guard ($\le 2$ comments per domain) ensuring balanced feedback coverage across Facilities, Staff, and Collections.
   - **Service Improvement Recommendations**: Rule-based action recommendations triggered when category negative response ratios hit $\ge 30\%$ (Moderate Concern) or $\ge 50\%$ (High Concern).
 
 ### 3. Technical Services: Book Card & Packet Encoding (`/card-and-packet`, `/book-catalogue`)
@@ -162,7 +162,7 @@ cardiffnlp/twitter-roberta-base-sentiment   TfidfVectorizer + MultinomialNB
 ```
 
 ### 1. Sentiment Score Calculation Specifications (Option A)
-1. **Comment-First Rule**: When patron commentary is submitted, `overallSentiment` is derived **strictly from RoBERTa BERT text analysis** (`Positive` $= +1.0$, `Neutral` $= 0.0$, `Negative` $= -1.0$).
+1. **Comment-First Rule**: When patron commentary is submitted, `overallSentiment` is derived **strictly from RoBERTa BERT text analysis** (`Positive`, `Neutral`, `Negative`), and `SentimentScore` stores the exact signed confidence probability (`+score` for Positive, `-score` for Negative, `0.0` for Neutral).
 2. **Emoji Fallback Rule**: If no comment is provided, `overallSentiment` calculates the average across the 10 Likert emoji responses:
    $$\text{Very Satisfied} = +1.0 \quad \text{Satisfied} = +0.5 \quad \text{Neutral} = 0.0 \quad \text{Dissatisfied} = -0.5 \quad \text{Very Dissatisfied} = -1.0$$
 3. **Continuous Decision Boundary (for fallback or continuous tracking)**:
@@ -197,7 +197,7 @@ Where:
 - **Animated Word Cloud**: Top 60 keyword cloud with animated zoom/hover effects, clean white card surface, and 17 vibrant modern colors.
 - **Respondent College Pill Badges**: Integrated color-coded college tag badges into the survey submissions table.
 - **Custom Donut Chart**: Interactive Recharts Donut Chart with centered volume indicators and responsive category pill legends.
-- **Top 5 Actionable Feedback Cards**: Ranks top comments by blending topic relevance ($70\%$) with sentiment magnitude ($30\%$) and enforcing a 2-comment cap per topic.
+- **Top 5 Actionable Feedback Cards**: Ranks top positive and negative comments directly by RoBERTa model confidence probability with verified badges and category diversity enforcement ($\le 2$ comments per domain).
 - **Philippine Standard Time (`Asia/Manila`, UTC+8) Synchronization**: Synchronized SQL date bounds and UI date pickers (`00:00:00` to `23:59:59.997`) with preset buttons (**Today**, **Last 7 Days**, **Last 30 Days**, **This Month**, **Custom**).
 - **KPI Metrics Overhaul**: Average CSAT (1–5 scale), Net Sentiment Score (NSS = `% Positive - % Negative`), and rule-based service recommendations with $\ge 30\%$ and $\ge 50\%$ severity thresholds.
 

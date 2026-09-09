@@ -18,10 +18,12 @@ import {
   LocalOffer as LocalOfferIcon,
   FormatQuote as FormatQuoteIcon,
   Bolt as BoltIcon,
+  Verified as VerifiedIcon,
   Assessment as AssessmentIcon,
   Apartment as ApartmentIcon,
   People as PeopleIcon,
   MenuBook as MenuBookIcon,
+  InfoOutlined as InfoOutlinedIcon,
 } from '@mui/icons-material';
 import {
   AreaChart,
@@ -100,7 +102,7 @@ export const SentimentChip = ({ label }) => {
 };
 
 
-export const CategoryChip = ({ label }) => {
+export const CategoryChip = ({ label, size = 'medium' }) => {
   const norm = label || 'Other/Uncategorized';
 
   const catStyles = {
@@ -110,6 +112,7 @@ export const CategoryChip = ({ label }) => {
     Environment: { bg: '#ecfdf5', border: '#a7f3d0', text: '#047857', dot: '#059669' },
     Services: { bg: '#f0fdfa', border: '#99f6e4', text: '#0f766e', dot: '#0d9488' },
     Technology: { bg: '#fdf2f8', border: '#fbcfe8', text: '#be185d', dot: '#db2777' },
+    General: { bg: '#f8fafc', border: '#cbd5e1', text: '#475569', dot: '#64748b' },
     'Other/Uncategorized': { bg: '#f8fafc', border: '#cbd5e1', text: '#475569', dot: '#64748b' },
     Other: { bg: '#f8fafc', border: '#cbd5e1', text: '#475569', dot: '#64748b' },
   };
@@ -121,27 +124,29 @@ export const CategoryChip = ({ label }) => {
     dot: '#64748b',
   };
 
+  const isSmall = size === 'small';
+
   return (
     <Box sx={{
       display: 'inline-flex',
       alignItems: 'center',
-      gap: 0.7,
+      gap: isSmall ? 0.6 : 0.7,
       bgcolor: config.bg,
       border: `1.5px solid ${config.border}`,
       borderRadius: '9999px',
-      px: 1.3,
-      py: 0.35,
+      px: isSmall ? 1.1 : 1.3,
+      py: isSmall ? 0.25 : 0.35,
       lineHeight: 1,
     }}>
       <Box sx={{
-        width: 6,
-        height: 6,
+        width: isSmall ? 5 : 6,
+        height: isSmall ? 5 : 6,
         borderRadius: '50%',
         bgcolor: config.dot,
         flexShrink: 0,
       }} />
       <Typography sx={{
-        fontSize: 12,
+        fontSize: isSmall ? 10.5 : 12,
         fontWeight: 700,
         color: config.text,
         fontFamily: T.font.family,
@@ -401,15 +406,32 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
           }}>
             {isPositive ? <ThumbUpIcon /> : <ThumbDownIcon />}
           </Box>
-          <Typography sx={{
-            fontFamily: T.font.family,
-            fontWeight: 800,
-            fontSize: { xs: 14, sm: 15 },
-            color: badgeColor,
-            letterSpacing: '-0.2px',
-          }}>
-            {title}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+            <Typography sx={{
+              fontFamily: T.font.family,
+              fontWeight: 800,
+              fontSize: { xs: 14, sm: 15 },
+              color: badgeColor,
+              letterSpacing: '-0.2px',
+            }}>
+              {title}
+            </Typography>
+            <Tooltip
+              title="Top comments are ranked directly by RoBERTa model confidence probability, with category diversity filtering to ensure balanced representation across library operational areas."
+              arrow
+            >
+              <Box sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                color: badgeColor,
+                opacity: 0.75,
+                cursor: 'help',
+                '&:hover': { opacity: 1 }
+              }}>
+                <InfoOutlinedIcon sx={{ fontSize: 15 }} />
+              </Box>
+            </Tooltip>
+          </Box>
         </Box>
         <Typography sx={{
           fontFamily: T.font.family,
@@ -454,8 +476,18 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
             const rawCollege = row.College || '';
             const collegeAbbr = formatCollege(rawCollege);
             const category = row.Category || 'General';
-            const catToken = T.category[category] || T.category['Other/Uncategorized'];
             const rawQuote = cleanQuote(row.Message);
+
+            // RoBERTa confidence metrics
+            const rawTopic = row.primaryTopic || row.topTerm || category || 'General';
+            const detectedTopic = rawTopic.charAt(0).toUpperCase() + rawTopic.slice(1);
+            const rawConf = typeof row.confidence === 'number'
+              ? row.confidence
+              : (typeof row.SentimentScore === 'number' ? Math.abs(row.SentimentScore) : 1.0);
+            const confidenceVal = Math.min(Math.max(rawConf, 0), 1);
+            const confidencePct = typeof row.confidencePct === 'string'
+              ? row.confidencePct
+              : (confidenceVal * 100).toFixed(1);
 
             return (
               <Box
@@ -521,26 +553,94 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
                     </Tooltip>
                   )}
 
-                  {/* Category Pill (Aligned to Right — Clean & Eye-Pleasing) */}
-                  <Box sx={{
-                    ml: 'auto',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 0.6,
-                    px: 1.2,
-                    py: 0.3,
-                    borderRadius: '9999px',
-                    bgcolor: catToken.light,
-                    color: catToken.text,
-                    border: `1px solid ${catToken.border}`,
-                    fontFamily: T.font.family,
-                    fontSize: 10.5,
-                    fontWeight: 700,
-                    lineHeight: 1,
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
-                  }}>
-                    <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: catToken.dot }} />
-                    <span>{category}</span>
+                  {/* Detected Topic Indicator Badge */}
+                  {detectedTopic && (
+                    <Tooltip
+                      title={
+                        <Box sx={{ p: 0.4, fontSize: 11, lineHeight: 1.4 }}>
+                          <Box sx={{ fontWeight: 800, mb: 0.4 }}>Category & Topic Focus:</Box>
+                          <Box>• Operational Domain: <b>{category}</b></Box>
+                          <Box>• Topic Focus: <b>{detectedTopic}</b></Box>
+                        </Box>
+                      }
+                      arrow
+                    >
+                      <Box sx={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 0.5,
+                        px: 0.85,
+                        py: 0.2,
+                        borderRadius: '4px',
+                        bgcolor: '#f1f5f9',
+                        color: '#334155',
+                        border: '1px solid #e2e8f0',
+                        fontFamily: T.font.family,
+                        fontSize: 10,
+                        fontWeight: 600,
+                        cursor: 'help',
+                        maxWidth: { xs: 150, sm: 220 },
+                        lineHeight: 1.2,
+                        '&:hover': {
+                          bgcolor: '#e2e8f0',
+                          borderColor: '#cbd5e1',
+                        }
+                      }}>
+                        <LocalOfferIcon sx={{ fontSize: 10, color: '#64748b', flexShrink: 0 }} />
+                        <Typography component="span" sx={{
+                          fontFamily: T.font.family,
+                          fontSize: 10,
+                          fontWeight: 600,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          lineHeight: 1.2,
+                        }}>
+                          {detectedTopic}
+                        </Typography>
+                      </Box>
+                    </Tooltip>
+                  )}
+
+                  {/* RoBERTa Model Confidence Score Badge */}
+                  <Tooltip
+                    title={
+                      <Box sx={{ p: 0.5, fontSize: 11, lineHeight: 1.45 }}>
+                        <Box sx={{ fontWeight: 800, mb: 0.4 }}>RoBERTa Model Ranking: #{i + 1}</Box>
+                        <Box>• Model Confidence: <b>{confidencePct}%</b></Box>
+                        <Box>• Predicted Sentiment: <b>{isPositive ? 'Positive' : 'Negative'}</b></Box>
+                      </Box>
+                    }
+                    arrow
+                  >
+                    <Box sx={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 0.35,
+                      px: 0.75,
+                      py: 0.2,
+                      borderRadius: '4px',
+                      bgcolor: isPositive ? '#ecfdf5' : '#fff1f2',
+                      color: isPositive ? '#065f46' : '#9f1239',
+                      border: `1px solid ${isPositive ? '#a7f3d0' : '#fecdd3'}`,
+                      fontFamily: T.font.family,
+                      fontSize: 10,
+                      fontWeight: 700,
+                      lineHeight: 1.2,
+                      cursor: 'help',
+                      flexShrink: 0,
+                      '&:hover': {
+                        boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                      }
+                    }}>
+                      <VerifiedIcon sx={{ fontSize: 11, color: isPositive ? '#059669' : '#e11d48' }} />
+                      <span>{confidencePct}% Confidence</span>
+                    </Box>
+                  </Tooltip>
+
+                  {/* Category Pill (Aligned to Right — Exact Table Color Coded) */}
+                  <Box sx={{ ml: 'auto', flexShrink: 0 }}>
+                    <CategoryChip label={category} size="small" />
                   </Box>
                 </Box>
 
@@ -568,38 +668,38 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
 
 // ── Recommendation Card for a specific flagged category / topic ───────────
 // ── Recommendation Card for a specific flagged category / topic ───────────
-export const RecommendationCard = ({ stat, onFilterCategory }) => {
+export const RecommendationCard = ({ stat, onFilterCategory, isFiltered = false, onClearFilter }) => {
   if (!stat) return null;
   const isHigh = (stat.severity || '').toUpperCase() === 'HIGH';
   const category = stat.category || 'Other/Uncategorized';
 
-  // Category Color Theme Alignment (Fresh Teal for Facilities, Warm Amber for Staff, Royal Indigo for Collection)
+  // Category Color Theme Alignment (Soft Blue for Facilities, Warm Orange for Staff, Soft Purple for Collection - matching table)
   const categoryThemeMap = {
     Facilities: {
-      primary: '#0284c7', // Sky / Cyan
-      dark: '#0369a1',
-      light: '#f0f9ff',
-      border: '#bae6fd',
-      gradient: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
-      badgeBg: '#e0f2fe',
+      primary: '#1d4ed8', // Soft Blue (matches table)
+      dark: '#1e40af',
+      light: '#eff6ff',
+      border: '#bfdbfe',
+      gradient: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
+      badgeBg: '#dbeafe',
       icon: ApartmentIcon,
     },
     Staff: {
-      primary: '#d97706', // Amber / Gold
-      dark: '#b45309',
-      light: '#fffbeb',
-      border: '#fde68a',
-      gradient: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
-      badgeBg: '#fef3c7',
+      primary: '#c2410c', // Warm Orange (matches table)
+      dark: '#9a3412',
+      light: '#fff7ed',
+      border: '#fed7aa',
+      gradient: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)',
+      badgeBg: '#ffedd5',
       icon: PeopleIcon,
     },
     Collection: {
-      primary: '#4f46e5', // Indigo
-      dark: '#4338ca',
-      light: '#eef2ff',
-      border: '#c7d2fe',
-      gradient: 'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)',
-      badgeBg: '#e0e7ff',
+      primary: '#7e22ce', // Soft Purple (matches table)
+      dark: '#6b21a8',
+      light: '#faf5ff',
+      border: '#e9d5ff',
+      gradient: 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)',
+      badgeBg: '#f3e8ff',
       icon: MenuBookIcon,
     },
   };
@@ -623,19 +723,19 @@ export const RecommendationCard = ({ stat, onFilterCategory }) => {
     <Card
       elevation={0}
       sx={{
-        bgcolor: '#ffffff',
+        bgcolor: isFiltered ? '#fbfcfe' : '#ffffff',
         borderRadius: 3.5,
-        border: '1.5px solid #e2e8f0',
+        border: isFiltered ? `2px solid ${theme.primary}` : '1.5px solid #e2e8f0',
         borderTop: `4px solid ${isHigh ? '#be123c' : theme.primary}`,
         p: { xs: 2, sm: 2.3 },
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: '0 2px 12px rgba(22, 50, 79, 0.03)',
+        boxShadow: isFiltered ? `0 4px 18px rgba(0, 0, 0, 0.08)` : '0 2px 12px rgba(22, 50, 79, 0.03)',
         overflow: 'hidden',
         transition: 'all 0.2s ease',
         '&:hover': {
           boxShadow: '0 6px 22px rgba(22, 50, 79, 0.07)',
-          borderColor: '#cbd5e1',
+          borderColor: isFiltered ? theme.primary : '#cbd5e1',
           borderTopColor: isHigh ? '#be123c' : theme.primary,
         }
       }}
@@ -898,29 +998,70 @@ export const RecommendationCard = ({ stat, onFilterCategory }) => {
           })}
         </Box>
 
-        {/* Filter Reviews Link */}
+        {/* Filter Reviews Link / Clear Filter Option */}
         {onFilterCategory && (
-          <Box sx={{ mt: 1.2, textAlign: 'right' }}>
-            <Typography
-              onClick={() => onFilterCategory(category)}
-              sx={{
-                fontFamily: T.font.family,
-                fontSize: 11,
-                fontWeight: 700,
-                color: theme.dark,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 0.4,
-                transition: 'all 0.15s ease',
-                '&:hover': {
-                  textDecoration: 'underline',
-                  gap: 0.7,
-                }
-              }}
-            >
-              Filter {category} in Table →
-            </Typography>
+          <Box sx={{ mt: 1.2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 0.8 }}>
+            {isFiltered ? (
+              <>
+                <Box sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  bgcolor: theme.badgeBg,
+                  px: 1,
+                  py: 0.25,
+                  borderRadius: '9999px',
+                  border: `1px solid ${theme.border}`,
+                }}>
+                  <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: theme.primary }} />
+                  <Typography sx={{ fontFamily: T.font.family, fontSize: 10.5, fontWeight: 700, color: theme.dark }}>
+                    Currently Filtering Table
+                  </Typography>
+                </Box>
+                <Typography
+                  onClick={() => onClearFilter ? onClearFilter() : onFilterCategory(category)}
+                  sx={{
+                    fontFamily: T.font.family,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: '#e11d48',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 0.3,
+                    transition: 'all 0.15s ease',
+                    '&:hover': {
+                      textDecoration: 'underline',
+                    }
+                  }}
+                >
+                  ✕ Remove Filter (Show All)
+                </Typography>
+              </>
+            ) : (
+              <Box sx={{ ml: 'auto' }}>
+                <Typography
+                  onClick={() => onFilterCategory(category)}
+                  sx={{
+                    fontFamily: T.font.family,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: theme.dark,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 0.4,
+                    transition: 'all 0.15s ease',
+                    '&:hover': {
+                      textDecoration: 'underline',
+                      gap: 0.7,
+                    }
+                  }}
+                >
+                  Filter {category} in Table →
+                </Typography>
+              </Box>
+            )}
           </Box>
         )}
       </Box>
@@ -1776,10 +1917,10 @@ export const SourceSentimentBreakdownCard = ({
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, pt: 1 }}>
               {categoryBreakdown.map((item, idx) => {
                 const catConfig = {
-                  Facilities: { icon: <ApartmentIcon sx={{ fontSize: 17 }} />, color: '#16324f', bg: '#edf4fa', border: '#cbdbe9' },
+                  Facilities: { icon: <ApartmentIcon sx={{ fontSize: 17 }} />, color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe' },
                   Staff: { icon: <PeopleIcon sx={{ fontSize: 17 }} />, color: '#c2410c', bg: '#fff7ed', border: '#fed7aa' },
-                  Collection: { icon: <MenuBookIcon sx={{ fontSize: 17 }} />, color: '#254b73', bg: '#f0f4f9', border: '#cbdbe9' },
-                }[item.name] || { icon: <AssessmentIcon sx={{ fontSize: 17 }} />, color: '#16324f', bg: '#f8fafc', border: '#e2e8f0' };
+                  Collection: { icon: <MenuBookIcon sx={{ fontSize: 17 }} />, color: '#7e22ce', bg: '#faf5ff', border: '#e9d5ff' },
+                }[item.name] || { icon: <AssessmentIcon sx={{ fontSize: 17 }} />, color: '#475569', bg: '#f8fafc', border: '#cbd5e1' };
 
                 return (
                   <Box

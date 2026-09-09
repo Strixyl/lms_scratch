@@ -30,19 +30,24 @@ export const THEME = {
     Negative: { bg: '#e11d48', light: '#fff1f2', text: '#be123c', dot: '#f43f5e', border: '#fecdd3' },
   },
 
-  // ── Category Palette (CPU Service Areas — Deep Navy, Warm Orange & Slate) ───
+  // ── Category Palette (CPU Service Areas — Matching Table Colors) ───────────
   category: {
-    Facilities:           { bg: '#16324f', light: '#edf4fa', text: '#16324f', dot: '#254b73', border: '#cbdbe9' },
-    Staff:                { bg: '#f69d1b', light: '#fff7ed', text: '#c2410c', dot: '#ea580c', border: '#fed7aa' },
-    Collection:           { bg: '#254b73', light: '#f0f4f9', text: '#16324f', dot: '#486581', border: '#cbdbe9' },
-    'Other/Uncategorized':{ bg: '#64748b', light: '#f8fafc', text: '#475569', dot: '#94a3b8', border: '#e2e8f0' },
+    Staff:                { bg: '#ea580c', light: '#fff7ed', text: '#c2410c', dot: '#ea580c', border: '#fed7aa' },
+    Facilities:           { bg: '#2563eb', light: '#eff6ff', text: '#1d4ed8', dot: '#2563eb', border: '#bfdbfe' },
+    Collection:           { bg: '#9333ea', light: '#faf5ff', text: '#7e22ce', dot: '#9333ea', border: '#e9d5ff' },
+    Environment:          { bg: '#059669', light: '#ecfdf5', text: '#047857', dot: '#059669', border: '#a7f3d0' },
+    Services:             { bg: '#0d9488', light: '#f0fdfa', text: '#0f766e', dot: '#0d9488', border: '#99f6e4' },
+    Technology:           { bg: '#db2777', light: '#fdf2f8', text: '#be185d', dot: '#db2777', border: '#fbcfe8' },
+    General:              { bg: '#64748b', light: '#f8fafc', text: '#475569', dot: '#64748b', border: '#cbd5e1' },
+    'Other/Uncategorized':{ bg: '#64748b', light: '#f8fafc', text: '#475569', dot: '#64748b', border: '#cbd5e1' },
+    Other:                { bg: '#64748b', light: '#f8fafc', text: '#475569', dot: '#64748b', border: '#cbd5e1' },
   },
 
   // ── Category Donut Ring Colors ────────────────────────────────────────────
   categoryDonut: {
-    Facilities: '#16324f',
-    Staff: '#f69d1b',
-    Collection: '#254b73',
+    Facilities: '#2563eb',
+    Staff: '#ea580c',
+    Collection: '#9333ea',
   },
 
   // ── Chart Colors (Green = Positive, Slate = Neutral, Red = Negative) ──────

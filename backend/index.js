@@ -48,6 +48,7 @@ async function analyzeSentiment(responses, message) {
   // ── BERT text sentiment + Naive Bayes category (run in parallel, same input) ──
   let textSentiment = 'Neutral';
   let category = 'Other/Uncategorized';
+  let textConfidence = 1.0;
   if (message && message.trim().length > 0) {
     const [sentimentResult, categoryResult] = await Promise.all([
       axios.post('http://localhost:5001/analyze', { text: message }).catch(err => {
@@ -61,6 +62,7 @@ async function analyzeSentiment(responses, message) {
     ]);
 
     textSentiment = sentimentResult?.data?.sentiment ?? 'Neutral';
+    textConfidence = typeof sentimentResult?.data?.score === 'number' ? sentimentResult.data.score : 1.0;
     category = categoryResult?.data?.category ?? 'Other/Uncategorized';
   }
 
@@ -74,10 +76,10 @@ async function analyzeSentiment(responses, message) {
   } else {
     // Open-ended comment submitted -> sentiment is strictly based on the patron's written feedback (BERT)
     overallSentiment = textSentiment;
-    sentimentScore = textSentiment === 'Positive' ? 1.0 : textSentiment === 'Negative' ? -1.0 : 0.0;
+    sentimentScore = textSentiment === 'Positive' ? textConfidence : textSentiment === 'Negative' ? -textConfidence : 0.0;
   }
 
-  console.log(`📊 Emoji: ${emojiSentiment} | BERT: ${textSentiment} | Category: ${category} | Overall: ${overallSentiment}`);
+  console.log(`📊 Emoji: ${emojiSentiment} | BERT: ${textSentiment} (${(textConfidence * 100).toFixed(1)}%) | Category: ${category} | Overall: ${overallSentiment}`);
   return { emojiSentiment, textSentiment, overallSentiment, category, sentimentScore };
 }
 
