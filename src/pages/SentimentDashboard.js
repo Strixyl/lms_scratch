@@ -78,6 +78,7 @@ import {
   getSurveyScore,
   stemWord,
   buildTermFrequencies,
+  scoreCommentsWithRoBERTa,
   scoreCommentsWithLexicon,
   selectDiverseTopComments,
 } from '../constants/sentimentUtils';
@@ -681,24 +682,24 @@ function SentimentDashboard() {
 
   const topPositive = useMemo(() => {
     if (positivePool.length === 0) return [];
-    const scoredPool = scoreCommentsWithLexicon(positivePool);
+    const scoredPool = scoreCommentsWithRoBERTa(positivePool);
     scoredPool.sort((a, b) => {
-      if (b.blendedScore !== a.blendedScore) {
-        return b.blendedScore - a.blendedScore;
+      if (b.confidence !== a.confidence) {
+        return b.confidence - a.confidence;
       }
-      return Math.abs(getSurveyScore(b)) - Math.abs(getSurveyScore(a));
+      return new Date(b.DateSubmitted || 0) - new Date(a.DateSubmitted || 0);
     });
     return selectDiverseTopComments(scoredPool, 5);
   }, [positivePool]);
 
   const topNegative = useMemo(() => {
     if (negativePool.length === 0) return [];
-    const scoredPool = scoreCommentsWithLexicon(negativePool);
+    const scoredPool = scoreCommentsWithRoBERTa(negativePool);
     scoredPool.sort((a, b) => {
-      if (b.blendedScore !== a.blendedScore) {
-        return b.blendedScore - a.blendedScore;
+      if (b.confidence !== a.confidence) {
+        return b.confidence - a.confidence;
       }
-      return Math.abs(getSurveyScore(b)) - Math.abs(getSurveyScore(a));
+      return new Date(b.DateSubmitted || 0) - new Date(a.DateSubmitted || 0);
     });
     return selectDiverseTopComments(scoredPool, 5);
   }, [negativePool]);

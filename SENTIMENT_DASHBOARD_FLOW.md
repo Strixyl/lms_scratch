@@ -91,29 +91,26 @@ To eliminate noisy tokens and standardize keyword labels across patron comments,
 
 ---
 
-### C. Controlled Lexicon Scoring Engine (`scoreCommentsWithLexicon`)
-Ranks written English comments by matching domain entities within sentiment pools:
-1. **Synonym Matching**: Scans comments against canonical synonym lists (e.g. `'cr'`, `'restroom'`, `'toilet'` $\rightarrow$ `Comfort Room`; `'catalog'`, `'opac'` $\rightarrow$ `Catalogue & OPAC`).
-2. **Pool-Wide Topic Frequency**: Counts how often each canonical topic appears across the sentiment pool.
-3. **Topic Relevance Score**:
-   $$\text{normalizedTopicScore} = \frac{\sum_{\text{topic} \in d} \text{poolCount}(\text{topic})}{\sqrt{\text{Count}(\text{unique matched topics in } d)}}$$
-4. **Blended Score**: Combines topic relevance ($70\%$) with sentiment magnitude ($30\%$):
-   $$\text{blendedScore} = (0.7 \times \text{normalizedTopicScore}) + (0.3 \times |\text{SurveyScore}| \times 10)$$
+### C. RoBERTa Model Confidence Scoring Engine (`scoreCommentsWithRoBERTa`)
+Ranks written English comments directly by transformer model prediction certainty:
+1. **Softmax Confidence Extraction**: Extracts normalized model confidence ($0.0 \dots 1.0$) and percentage directly from the CardiffNLP RoBERTa pipeline output stored in SQL:
+   $$\text{Confidence} = |\text{SentimentScore}|$$
+   $$\text{ConfidencePct} = (\text{Confidence} \times 100)\%$$
+2. **Direct Model Certainty**: Surfaces the comments where the deep learning transformer exhibited the highest mathematical certainty.
 
 ---
 
-### D. Sorting, Tie-Breakers & Small Pool Guard
-1. **Primary Sort**: Comments in `topPositive` and `topNegative` are sorted descending by `blendedScore`.
-2. **Tie-Breaker**: Identical topic scores are broken using sentiment magnitude `Math.abs(getSurveyScore(comment))`.
-3. **Small Pool Guard**: If a pool has $< 5$ comments (where IDF values become near-uniform), TF-IDF is bypassed and comments are sorted directly by $|\text{getSurveyScore}|$.
+### D. Sorting & Tie-Breakers
+1. **Primary Sort**: Comments in `topPositive` and `topNegative` are sorted descending by `confidence`.
+2. **Tie-Breaker**: Identical confidence scores are broken chronologically by `DateSubmitted` descending (newest feedback first).
 
 ---
 
-### E. Topic Diversity Filter (`selectDiverseTopComments`)
-Ensures top 5 comment cards cover varied topics rather than repeating the same theme:
-* Iterates over sorted comments.
-* Limits selection to **at most 2 comments per top keyword**.
-* Fills remaining slots if fewer than 5 unique topics exist.
+### E. Category Diversity Filter (`selectDiverseTopComments`)
+Ensures top 5 comment cards cover varied library operational domains rather than repeating the same department:
+* Iterates over confidence-sorted comments.
+* Limits selection to **at most 2 comments per category** (`Facilities`, `Staff`, `Collection`, `Other`).
+* Fills remaining slots with the next highest confidence comments to guarantee 5 slots are presented.
 
 ---
 

@@ -18,6 +18,7 @@ import {
   LocalOffer as LocalOfferIcon,
   FormatQuote as FormatQuoteIcon,
   Bolt as BoltIcon,
+  Verified as VerifiedIcon,
   Assessment as AssessmentIcon,
   Apartment as ApartmentIcon,
   People as PeopleIcon,
@@ -413,7 +414,7 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
               {title}
             </Typography>
             <Tooltip
-              title="Top comments are chosen by blending topic relevance across patrons (70%) with sentiment intensity (30%), capped at 2 per topic for diversity."
+              title="Top comments are ranked directly by RoBERTa model confidence probability, with category diversity filtering to ensure balanced representation across library operational areas."
               arrow
             >
               <Box sx={{
@@ -475,15 +476,16 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
             const catToken = T.category[category] || T.category['Other/Uncategorized'];
             const rawQuote = cleanQuote(row.Message);
 
-            // Selection indicator metrics (Option 1)
+            // RoBERTa confidence metrics
             const rawTopic = row.primaryTopic || row.topTerm || category || 'General';
             const detectedTopic = rawTopic.charAt(0).toUpperCase() + rawTopic.slice(1);
-            const mentionCount = row.maxTermFreq || 1;
-            const matchedKw = row.topTerm;
-            const hasScore = typeof row.blendedScore === 'number';
-            const scoreVal = hasScore ? row.blendedScore.toFixed(1) : null;
-            const termScore = typeof row.termScore === 'number' ? row.termScore : (typeof row.tfidfScore === 'number' ? row.tfidfScore : 0);
-            const intensityVal = typeof row.SentimentScore === 'number' ? Math.abs(row.SentimentScore) : 1;
+            const rawConf = typeof row.confidence === 'number'
+              ? row.confidence
+              : (typeof row.SentimentScore === 'number' ? Math.abs(row.SentimentScore) : 1.0);
+            const confidenceVal = Math.min(Math.max(rawConf, 0), 1);
+            const confidencePct = typeof row.confidencePct === 'string'
+              ? row.confidencePct
+              : (confidenceVal * 100).toFixed(1);
 
             return (
               <Box
@@ -549,80 +551,14 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
                     </Tooltip>
                   )}
 
-                  {/* Option 1: Detected Topic Indicator Badge */}
-                  <Tooltip
-                    title={
-                      <Box sx={{ p: 0.4, fontSize: 11, lineHeight: 1.4 }}>
-                        <Box sx={{ fontWeight: 800, mb: 0.4 }}>Why this was chosen:</Box>
-                        <Box>• Matched Topic: <b>{detectedTopic}</b>{matchedKw && matchedKw.toLowerCase() !== detectedTopic.toLowerCase() ? ` ("${matchedKw}")` : ''}</Box>
-                        <Box>• Pool Prevalence: <b>{mentionCount} {mentionCount === 1 ? 'patron mention' : 'patron mentions'}</b></Box>
-                        {hasScore && (
-                          <Box>• 70% Topic Relevance: <b>{termScore.toFixed(1)}</b></Box>
-                        )}
-                      </Box>
-                    }
-                    arrow
-                  >
-                    <Box sx={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 0.5,
-                      px: 0.85,
-                      py: 0.2,
-                      borderRadius: '4px',
-                      bgcolor: '#f1f5f9',
-                      color: '#334155',
-                      border: '1px solid #e2e8f0',
-                      fontFamily: T.font.family,
-                      fontSize: 10,
-                      fontWeight: 600,
-                      cursor: 'help',
-                      maxWidth: { xs: 150, sm: 220 },
-                      lineHeight: 1.2,
-                      '&:hover': {
-                        bgcolor: '#e2e8f0',
-                        borderColor: '#cbd5e1',
-                      }
-                    }}>
-                      <LocalOfferIcon sx={{ fontSize: 10, color: '#64748b', flexShrink: 0 }} />
-                      <Typography component="span" sx={{
-                        fontFamily: T.font.family,
-                        fontSize: 10,
-                        fontWeight: 600,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        lineHeight: 1.2,
-                      }}>
-                        {detectedTopic}
-                      </Typography>
-                      {mentionCount > 1 && (
-                        <Box component="span" sx={{
-                          fontSize: 9,
-                          fontWeight: 700,
-                          color: '#64748b',
-                          bgcolor: '#e2e8f0',
-                          px: 0.4,
-                          py: 0.05,
-                          borderRadius: '3px',
-                          lineHeight: 1,
-                          flexShrink: 0,
-                        }}>
-                          {mentionCount}×
-                        </Box>
-                      )}
-                    </Box>
-                  </Tooltip>
-
-                  {/* Option 1: Algorithmic Impact Score Badge */}
-                  {hasScore && (
+                  {/* Detected Topic Indicator Badge */}
+                  {detectedTopic && (
                     <Tooltip
                       title={
                         <Box sx={{ p: 0.4, fontSize: 11, lineHeight: 1.4 }}>
-                          <Box sx={{ fontWeight: 800, mb: 0.4 }}>Algorithmic Ranking: #{i + 1}</Box>
-                          <Box>• Blended Score: <b>{row.blendedScore.toFixed(2)}</b></Box>
-                          <Box>• 70% Topic Relevance: <b>{termScore.toFixed(2)}</b></Box>
-                          <Box>• 30% Sentiment Intensity: <b>{(intensityVal * 10).toFixed(1)}/10</b></Box>
+                          <Box sx={{ fontWeight: 800, mb: 0.4 }}>Category & Topic Focus:</Box>
+                          <Box>• Operational Domain: <b>{category}</b></Box>
+                          <Box>• Topic Focus: <b>{detectedTopic}</b></Box>
                         </Box>
                       }
                       arrow
@@ -630,28 +566,76 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
                       <Box sx={{
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: 0.35,
-                        px: 0.75,
+                        gap: 0.5,
+                        px: 0.85,
                         py: 0.2,
                         borderRadius: '4px',
-                        bgcolor: isPositive ? '#ecfdf5' : '#fff1f2',
-                        color: isPositive ? '#065f46' : '#9f1239',
-                        border: `1px solid ${isPositive ? '#a7f3d0' : '#fecdd3'}`,
+                        bgcolor: '#f1f5f9',
+                        color: '#334155',
+                        border: '1px solid #e2e8f0',
                         fontFamily: T.font.family,
                         fontSize: 10,
-                        fontWeight: 700,
-                        lineHeight: 1.2,
+                        fontWeight: 600,
                         cursor: 'help',
-                        flexShrink: 0,
+                        maxWidth: { xs: 150, sm: 220 },
+                        lineHeight: 1.2,
                         '&:hover': {
-                          boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                          bgcolor: '#e2e8f0',
+                          borderColor: '#cbd5e1',
                         }
                       }}>
-                        <BoltIcon sx={{ fontSize: 11, color: isPositive ? '#059669' : '#e11d48' }} />
-                        <span>Impact {scoreVal}</span>
+                        <LocalOfferIcon sx={{ fontSize: 10, color: '#64748b', flexShrink: 0 }} />
+                        <Typography component="span" sx={{
+                          fontFamily: T.font.family,
+                          fontSize: 10,
+                          fontWeight: 600,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          lineHeight: 1.2,
+                        }}>
+                          {detectedTopic}
+                        </Typography>
                       </Box>
                     </Tooltip>
                   )}
+
+                  {/* RoBERTa Model Confidence Score Badge */}
+                  <Tooltip
+                    title={
+                      <Box sx={{ p: 0.5, fontSize: 11, lineHeight: 1.45 }}>
+                        <Box sx={{ fontWeight: 800, mb: 0.4 }}>RoBERTa Model Ranking: #{i + 1}</Box>
+                        <Box>• Model Confidence: <b>{confidencePct}%</b></Box>
+                        <Box>• Predicted Sentiment: <b>{isPositive ? 'Positive' : 'Negative'}</b></Box>
+                        <Box>• Architecture: <b>CardiffNLP RoBERTa-Base</b></Box>
+                      </Box>
+                    }
+                    arrow
+                  >
+                    <Box sx={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 0.35,
+                      px: 0.75,
+                      py: 0.2,
+                      borderRadius: '4px',
+                      bgcolor: isPositive ? '#ecfdf5' : '#fff1f2',
+                      color: isPositive ? '#065f46' : '#9f1239',
+                      border: `1px solid ${isPositive ? '#a7f3d0' : '#fecdd3'}`,
+                      fontFamily: T.font.family,
+                      fontSize: 10,
+                      fontWeight: 700,
+                      lineHeight: 1.2,
+                      cursor: 'help',
+                      flexShrink: 0,
+                      '&:hover': {
+                        boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                      }
+                    }}>
+                      <VerifiedIcon sx={{ fontSize: 11, color: isPositive ? '#059669' : '#e11d48' }} />
+                      <span>{confidencePct}% Confidence</span>
+                    </Box>
+                  </Tooltip>
 
                   {/* Category Pill (Aligned to Right — Clean & Eye-Pleasing) */}
                   <Box sx={{

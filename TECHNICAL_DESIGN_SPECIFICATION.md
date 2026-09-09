@@ -219,8 +219,8 @@ Assume a student patron submits the following survey:
 | **2** | Average Satisfaction Score | KPI card displaying average sentiment score scaled from `-1.0` to `+1.0`. Uses `getSurveyScore(s)` helper function which provides dynamic fallback calculations for pre-existing SQL records with null scores. |
 | **3** | Positive / Neutral / Negative Percentages | Rendered in Summary Cards and Donut Chart legend: $\% = \frac{N_{\text{label}}}{N_{\text{total}}} \times 100\%$. |
 | **4** | Sentiment Trend by Month | Stacked `BarChart` (via Recharts) displaying monthly Positive, Neutral, and Negative response distributions (`YYYY-MM`). |
-| **5** | Top 5 Positive Comments | Score-ranked list of top 5 positive comments sorted in descending order of `SentimentScore`. Kept independent of Sentiment dropdown per locked-in design decisions. |
-| **6** | Top 5 Negative Comments | Score-ranked list of top 5 negative comments sorted in ascending order of `SentimentScore`. |
+| **5** | Top 5 Positive Comments | Score-ranked list of top 5 positive comments sorted in descending order of RoBERTa model confidence probability (`|SentimentScore|`) with category diversity constraints ($\le 2$ comments per domain). Kept independent of Sentiment dropdown per locked-in design decisions. |
+| **6** | Top 5 Negative Comments | Score-ranked list of top 5 negative comments sorted in descending order of RoBERTa model confidence probability (`|SentimentScore|`) with category diversity constraints ($\le 2$ comments per domain). |
 | **7** | Word Cloud Visualization | Renders top 60 frequent comment keywords across all survey responses using `ReactWordcloud` with `rotations: 1, rotationAngles: [0, 0]` for 100% horizontal legibility. |
 | **8** | Service Improvement Recommendations | Rule-based recommendation engine for operational categories triggering Moderate Concern ($\ge 30\%$ negative) or High Concern ($\ge 50\%$ negative). Incorporates **Option A (Keyword Signals)** and **Option B (Raw Supporting Evidence)**. |
 
