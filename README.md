@@ -233,6 +233,37 @@ Where:
 - **Print Alignment**: Fixed print layout alignment for 4-slot book packet printouts in `CardAndPacket.js`.
 - **Sign-in Modal Exit Flow**: Added close/exit functionality on the patron login portal (`Login.js`).
 
+### 7. Top Patron Comments Ranking & Visual Consistency (September 2026)
+
+#### A. RoBERTa Model Softmax Confidence Ranking
+- **Direct Mathematical Certainty**: Ranked Top 5 positive and negative comments directly by the **CardiffNLP RoBERTa-Base transformer model's softmax confidence probability** (`b.confidence - a.confidence`), eliminating subjective lexicon weighting formulas for thesis defense rigor.
+- **Softmax Probability Meaning**: The confidence score ($0\% \text{ to } 100\%$) represents the model's posterior probability that the comment belongs to the predicted sentiment class ($P(\text{Positive})$ or $P(\text{Negative})$).
+- **What Drives High Scores (Trigger Words & Signal Density)**:
+  - **Multi-Token Reinforcement**: High confidence is driven by multiple co-occurring, unambiguous polarity anchors (e.g., *"clean"* + *"well-maintained"* + *"great"*), intensifiers (*"super"*, *"very"*), and zero conflicting clauses (*no "but" or "however"*).
+  - **Sentence Length Independence**: Longer sentences do not automatically rank higher; neutral filler (times, dates, mundane context) can dilute confidence, whereas punchy, focused comments achieve peak probability.
+- **Domain Focus (Excluding Uncategorized)**: Filtered out `Other/Uncategorized` and `General` comments from the Top 5 to ensure that all highlighted patron feedback corresponds to actionable library service areas (**Facilities**, **Staff**, **Collection**), with a maximum of 2 comments per category for balanced representation.
+
+#### B. Unified Category Color Coding (`CategoryChip` Scheme)
+- **Harmonized Color Standard**: Synchronized category badge styling across all dashboard cards (Top Comments, Recommendations, Source Breakdown, Active Category Filter Chips, and Survey Review Table):
+  - 🏢 **Facilities**: Soft Blue (`#eff6ff` bg, `#bfdbfe` border, `#1d4ed8` text, `#2563eb` dot)
+  - 👥 **Staff**: Warm Orange (`#fff7ed` bg, `#fed7aa` border, `#c2410c` text, `#ea580c` dot)
+  - 📚 **Collection**: Soft Purple (`#faf5ff` bg, `#e9d5ff` border, `#7e22ce` text, `#9333ea` dot)
+  - ⚙️ **Other / Uncategorized**: Slate Grey (`#f8fafc` bg, `#cbd5e1` border, `#475569` text, `#64748b` dot)
+
+#### C. Service Improvement Recommendations — Quick Filter & Reset Controls
+- **One-Click Reset Options**: When filtering the dashboard by category from a recommendation card (*"Filter [Category] in Table →"*), users can reset the filter with a single click from three intuitive locations:
+  1. **Directly on the Active Recommendation Card**: Click **`✕ Remove Filter (Show All)`** or re-click the active card.
+  2. **In the Recommendations Section Header**: Click **`Clear Category Filter ({category})`** next to the category count.
+  3. **In the Survey Review Table Header**: Click the removable `[Category: {category} ✕]` chip beside the table title.
+
+#### D. End-to-End Pipeline Quick Reference
+| Layer | File & Location | Functionality |
+|---|---|---|
+| **NLP Microservice** | [`backend/sentiment_service.py`](file:///c:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/sentiment_service.py) (L16–19, L79–81) | Loads `cardiffnlp/twitter-roberta-base-sentiment-latest`, runs inference, returns Softmax `score` |
+| **API & Database** | [`backend/index.js`](file:///c:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/backend/index.js) (L53–65, L79) | Express backend receives score, stores into SQL Server column `SatisfactionSurveys.SentimentScore` |
+| **Data Preparation** | [`src/constants/sentimentUtils.js`](file:///c:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/src/constants/sentimentUtils.js) (L116–178) | `scoreCommentsWithRoBERTa` normalizes score; `selectDiverseTopComments` prioritizes core library domains |
+| **Ranking & UI View** | [`src/pages/SentimentDashboard.js`](file:///c:/Users/LENOVO/OneDrive/Documents/Library%20Management%20System/hllsystem%20-%20Oct10-2025/src/pages/SentimentDashboard.js) (L684–706) | Sorts comments by `b.confidence - a.confidence` and renders `<TopCommentsCard />` |
+
 ---
 
 ## 📦 Dependencies & Required Packages
