@@ -1,5 +1,5 @@
-// ── Sentiment Dashboard — Pure Utility Functions ────────────────────────────
-// Non-React helpers for scoring, formatting, stemming, and term frequency.
+// sentiment dashboard pure utility functions
+// helpers for scoring, formatting, stemming, and term frequency
 
 import {
   RATING_SCORES,
@@ -8,7 +8,7 @@ import {
   CONTROLLED_LEXICON,
 } from './sentimentConstants';
 
-// ── Rating Formatter ────────────────────────────────────────────────────────
+// rating formatter
 const RATING_SHORT_MAP = {
   very_satisfied: '5',
   satisfied: '4',
@@ -23,7 +23,7 @@ export const formatRatingShort = (val) => {
   return RATING_SHORT_MAP[val] || val;
 };
 
-// ── Satisfaction Average (plain 1-5 scale) ──────────────────────────────────
+// formula: satisfaction average = sum(question ratings 1-5) / count
 export const getSatisfactionAverage = (s) => {
   const qList = [
     s.Question1, s.Question2, s.Question3, s.Question4, s.Question5,
@@ -32,7 +32,7 @@ export const getSatisfactionAverage = (s) => {
   return qList.length > 0 ? qList.reduce((a, b) => a + b, 0) / qList.length : 0;
 };
 
-// ── Survey Sentiment Score ──────────────────────────────────────────────────
+// formula: score = rating average if no message, else positive (1.0), negative (-1.0), neutral (0.0)
 export const getSurveyScore = (s) => {
   if (typeof s.SentimentScore === 'number' && !isNaN(s.SentimentScore)) {
     return s.SentimentScore;
@@ -54,7 +54,7 @@ export const getSurveyScore = (s) => {
   return s.SentimentResult === 'Positive' ? 1.0 : s.SentimentResult === 'Negative' ? -1.0 : 0.0;
 };
 
-// ── Word Stemmer ────────────────────────────────────────────────────────────
+// word stemmer
 export const stemWord = (word) => {
   if (!word || word.length <= 3) return word;
   return word
@@ -63,7 +63,7 @@ export const stemWord = (word) => {
     .toLowerCase();
 };
 
-// ── Term Frequency Builder (for word cloud) ─────────────────────────────────
+// term frequency builder for word cloud
 export const buildTermFrequencies = (pool) => {
   const freq = {};
   const origCounts = {};
@@ -93,7 +93,7 @@ export const buildTermFrequencies = (pool) => {
   return { freq, displayMap, sentimentCounts };
 };
 
-// ── RoBERTa Model Confidence Comment Scorer ────────────────────────────────
+// roberta model confidence comment scorer
 export const scoreCommentsWithRoBERTa = (commentsPool) => {
   if (!commentsPool || commentsPool.length === 0) return [];
 
@@ -114,7 +114,7 @@ export const scoreCommentsWithRoBERTa = (commentsPool) => {
       ? Math.abs(commentObj.SentimentScore)
       : 1.0;
 
-    // Normalizes confidence between 0 and 1 (with precision)
+    // formula: confidence = Math.min(Math.max(rawScore, 0), 1)
     const confidence = Math.min(Math.max(rawScore, 0), 1);
     const confidencePct = (confidence * 100).toFixed(1);
 
@@ -122,7 +122,7 @@ export const scoreCommentsWithRoBERTa = (commentsPool) => {
       ...commentObj,
       confidence,
       confidencePct,
-      // For backwards compatibility with UI components
+      // backwards compatibility with ui components
       blendedScore: Number(confidencePct),
       termScore: Number(confidencePct),
       primaryTopic: commentObj.Category || 'General Feedback',
@@ -131,10 +131,10 @@ export const scoreCommentsWithRoBERTa = (commentsPool) => {
   });
 };
 
-// Backwards-compatibility alias
+// backwards-compatibility alias
 export const scoreCommentsWithLexicon = scoreCommentsWithRoBERTa;
 
-// ── Diverse Top Comment Selector (Clean Deduplication & Category Diversity) ──
+// diverse top comment selector (deduplication & category diversity)
 export const selectDiverseTopComments = (scoredList, limit = 5) => {
   if (!scoredList || scoredList.length === 0) return [];
 
@@ -148,16 +148,16 @@ export const selectDiverseTopComments = (scoredList, limit = 5) => {
     return str.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 60);
   };
 
-  const isUncategorized = (cat) => !cat || cat === 'Other' || cat === 'Other/Uncategorized' || cat === 'General';
+  const isUncategorized = (cat) => !cat || cat === 'Other' || cat === 'Other/Uncategorized' || cat === 'General'; // defines uncategorized
 
-  // 1. Pick unique categorized comments first, spreading across domains (max 2 per category for diversity)
+  // 1. pick unique categorized comments first, max 2 per category for diversity
   for (const comment of scoredList) {
     if (selected.length >= limit) break;
     const cat = comment.Category || 'Other';
     if (isUncategorized(cat)) continue;
 
     const textKey = cleanTextKey(comment.Message);
-    if (!textKey || seenTexts.has(textKey)) continue;
+    if (!textKey || seenTexts.has(textKey)) continue; // skip duplicates
 
     if ((categoryCounts[cat] || 0) < 2) {
       selected.push(comment);
@@ -166,12 +166,12 @@ export const selectDiverseTopComments = (scoredList, limit = 5) => {
     }
   }
 
-  // 2. Fill remaining slots with next highest confidence categorized comments
+  // 2. fill remaining slots with next highest confidence categorized comments
   if (selected.length < limit) {
     for (const comment of scoredList) {
       if (selected.length >= limit) break;
       const cat = comment.Category || 'Other';
-      if (isUncategorized(cat)) continue;
+      if (isUncategorized(cat)) continue; // skip uncategorized
 
       const textKey = cleanTextKey(comment.Message);
       if (textKey && !seenTexts.has(textKey)) {
@@ -181,7 +181,7 @@ export const selectDiverseTopComments = (scoredList, limit = 5) => {
     }
   }
 
-  // 3. Graceful fallback for any remaining slots only if categorized comments are exhausted
+  // 3. fallback for remaining slots if categorized comments are exhausted
   if (selected.length < limit) {
     for (const comment of scoredList) {
       if (selected.length >= limit) break;

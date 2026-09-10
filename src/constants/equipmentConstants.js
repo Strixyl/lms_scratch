@@ -1,6 +1,6 @@
-// src/constants/equipmentConstants.js
+// equipment constants and inventory stock thresholds
 
-// University theme (kept consistent with existing pages)
+// university theme colors
 export const THEME = {
   navy: '#1b0892',
   gold: '#c9a227',
@@ -8,7 +8,7 @@ export const THEME = {
   font: 'Poppins, sans-serif',
 };
 
-// Where an asset physically lives / can be encoded to
+// physical room and shelf locations
 export const LOCATION_OPTIONS = [
   'Entrance', 'Reference', 'Circulation', 'Theology', 'Filipiniana',
   'Serials', 'Law', 'American Corner', 'Graduate Studies', 'Cyber Library',
@@ -16,7 +16,7 @@ export const LOCATION_OPTIONS = [
   'Office', 'Storage Room',
 ];
 
-// Sections/departments assets can be transferred TO (Send Asset module)
+// target library sections for asset transfer
 export const SECTION_OPTIONS = [
   'General Library',
   'Elementary Library',
@@ -24,11 +24,10 @@ export const SECTION_OPTIONS = [
   'Graduate Library',
 ];
 
-// Below this quantity (and above 0) an item is flagged "Low Stock"
+// low stock indicator threshold
 export const LOW_STOCK_THRESHOLD = 4;
 
-// Status is DERIVED from quantity, not hand-picked, so it can never
-// drift out of sync with the real inventory count.
+// status derived from quantity count
 export const getStockStatus = (quantity) => {
   const qty = Number(quantity) || 0;
   if (qty <= 0) return 'Out of Stock';
@@ -48,7 +47,7 @@ export const statusColor = (status) => {
 export const emptyAssetForm = {
   itemName: '',
   brand: '',
-  brandOption: '',   // holds the <Select> value ('__new__' when "Others" chosen)
+  brandOption: '', // custom brand input flag
   quantity: '',
   location: '',
   specifications: '',

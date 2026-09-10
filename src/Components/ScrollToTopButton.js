@@ -8,13 +8,13 @@ const ScrollToTopButton = () => {
   const [scrollProgress, setScrollProgress] = useState(0);
   const location = useLocation();
 
-  // Calculate scroll position and progress
+  // calculate scroll position and progress
   const calculateScroll = useCallback(() => {
-    // 1. Check window/document scroll
+    // window scroll offset
     const windowScrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
     const windowScrollHeight = document.documentElement.scrollHeight - window.innerHeight;
 
-    // 2. Check any scrolled inner container
+    // check inner scroll containers
     let maxElementScrollTop = 0;
     let maxElementProgress = 0;
 
@@ -54,11 +54,11 @@ const ScrollToTopButton = () => {
       }
     };
 
-    // Use capture: true so scroll events on inner containers are also captured
+    // capture inner container scroll events
     window.addEventListener('scroll', handleScroll, true);
     window.addEventListener('resize', handleScroll);
 
-    // Initial check
+    // initial check
     calculateScroll();
 
     return () => {
@@ -67,7 +67,7 @@ const ScrollToTopButton = () => {
     };
   }, [calculateScroll]);
 
-  // When route changes, scroll to top and reset state
+  // reset scroll position on route change
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     setIsVisible(false);
@@ -75,7 +75,7 @@ const ScrollToTopButton = () => {
   }, [location.pathname]);
 
   const scrollToTop = () => {
-    // Smoothly scroll the window
+    // scroll window to top
     window.scrollTo({
       top: 0,
       behavior: 'smooth',
@@ -89,7 +89,7 @@ const ScrollToTopButton = () => {
       behavior: 'smooth',
     });
 
-    // Smoothly scroll any inner scroll containers
+    // scroll any inner scroll containers
     const scrollContainers = document.querySelectorAll('*');
     scrollContainers.forEach((el) => {
       if (el.scrollTop > 0 && el.scrollHeight > el.clientHeight) {
@@ -101,7 +101,7 @@ const ScrollToTopButton = () => {
     });
   };
 
-  // Circular progress calculations
+  // formula: strokeDashoffset = circumference - (scrollProgress / 100) * circumference
   const size = 52;
   const strokeWidth = 3;
   const center = size / 2;
@@ -187,7 +187,7 @@ const ScrollToTopButton = () => {
               },
             }}
           >
-            {/* SVG Progress Ring */}
+            {/* progress ring */}
             <svg
               width={size}
               height={size}
@@ -199,7 +199,7 @@ const ScrollToTopButton = () => {
                 pointerEvents: 'none',
               }}
             >
-              {/* Background Track Ring */}
+              {/* background track */}
               <circle
                 cx={center}
                 cy={center}
@@ -208,7 +208,7 @@ const ScrollToTopButton = () => {
                 stroke="rgba(255, 255, 255, 0.12)"
                 strokeWidth={strokeWidth}
               />
-              {/* Animated Progress Indicator Ring */}
+              {/* animated progress ring */}
               <circle
                 className="progress-circle"
                 cx={center}
@@ -226,7 +226,7 @@ const ScrollToTopButton = () => {
               />
             </svg>
 
-            {/* Inner Gold Arrow Icon */}
+            {/* scroll up arrow icon */}
             <KeyboardArrowUpIcon
               className="scroll-arrow-icon"
               sx={{

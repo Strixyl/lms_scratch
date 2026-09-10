@@ -1,7 +1,6 @@
-// ── Sentiment Dashboard — Domain Constants ──────────────────────────────────
-// All static domain data: lexicons, recommendations, scales, dropdown options.
+// survey filter options, college styles, and domain lexicons
 
-// ── Dropdown Options ────────────────────────────────────────────────────────
+// dropdown filter options
 export const CLIENTELE_OPTIONS = ['Student', 'Faculty', 'Staff', 'Researcher', 'CPU Admin', 'Alumnus/Alumni'];
 
 export const COLLEGE_OPTIONS = [
@@ -13,59 +12,59 @@ export const COLLEGE_OPTIONS = [
 export const cleanCollegeName = (collegeStr) => {
   if (!collegeStr) return 'N/A';
   let s = String(collegeStr).trim();
-  // Fix typo error: Comouter Studies -> Computer Studies
+  // fix typo from legacy survey logs
   s = s.replace(/comouter/gi, 'Computer');
   return s || 'N/A';
 };
 
-// ── Distinct Curated Color Palette per College / Department ────────────────
+// college badge colors
 export const getCollegeStyle = (collegeStr) => {
   const norm = cleanCollegeName(collegeStr).toLowerCase();
 
   if (norm.includes('comput') || norm === 'ccs') {
-    return { bg: '#eef2ff', text: '#4338ca', border: '#c7d2fe', dot: '#6366f1', shadow: 'rgba(67, 56, 202, 0.08)' }; // Indigo / Tech
+    return { bg: '#eef2ff', text: '#4338ca', border: '#c7d2fe', dot: '#6366f1', shadow: 'rgba(67, 56, 202, 0.08)' }; // ccs
   }
   if (norm.includes('engin') || norm === 'coe') {
-    return { bg: '#fff7ed', text: '#c2410c', border: '#fed7aa', dot: '#f97316', shadow: 'rgba(194, 65, 12, 0.08)' }; // Amber / Orange
+    return { bg: '#fff7ed', text: '#c2410c', border: '#fed7aa', dot: '#f97316', shadow: 'rgba(194, 65, 12, 0.08)' }; // coe
   }
   if (norm.includes('nurs') || norm === 'con') {
-    return { bg: '#fff1f2', text: '#be123c', border: '#fecdd3', dot: '#f43f5e', shadow: 'rgba(190, 18, 60, 0.08)' }; // Rose / Coral
+    return { bg: '#fff1f2', text: '#be123c', border: '#fecdd3', dot: '#f43f5e', shadow: 'rgba(190, 18, 60, 0.08)' }; // con
   }
   if ((norm.includes('med') && norm.includes('lab')) || norm === 'cmls') {
-    return { bg: '#ecfdf5', text: '#047857', border: '#a7f3d0', dot: '#10b981', shadow: 'rgba(4, 120, 87, 0.08)' }; // Emerald / Mint
+    return { bg: '#ecfdf5', text: '#047857', border: '#a7f3d0', dot: '#10b981', shadow: 'rgba(4, 120, 87, 0.08)' }; // cmls
   }
   if (norm.includes('pharm') || norm === 'cop') {
-    return { bg: '#f0fdfa', text: '#0f766e', border: '#99f6e4', dot: '#14b8a6', shadow: 'rgba(15, 118, 110, 0.08)' }; // Teal / Cyan
+    return { bg: '#f0fdfa', text: '#0f766e', border: '#99f6e4', dot: '#14b8a6', shadow: 'rgba(15, 118, 110, 0.08)' }; // cop
   }
   if (norm.includes('bus') || norm.includes('account') || norm === 'cba') {
-    return { bg: '#eff6ff', text: '#1d4ed8', border: '#bfdbfe', dot: '#3b82f6', shadow: 'rgba(29, 78, 216, 0.08)' }; // Sapphire Blue
+    return { bg: '#eff6ff', text: '#1d4ed8', border: '#bfdbfe', dot: '#3b82f6', shadow: 'rgba(29, 78, 216, 0.08)' }; // cba
   }
   if (norm.includes('art') || norm.includes('scien') || norm === 'cas') {
-    return { bg: '#faf5ff', text: '#7e22ce', border: '#e9d5ff', dot: '#a855f7', shadow: 'rgba(126, 34, 206, 0.08)' }; // Purple / Violet
+    return { bg: '#faf5ff', text: '#7e22ce', border: '#e9d5ff', dot: '#a855f7', shadow: 'rgba(126, 34, 206, 0.08)' }; // cas
   }
   if (norm.includes('hosp') || norm.includes('tour') || norm === 'chm') {
-    return { bg: '#fefce8', text: '#a16207', border: '#fef08a', dot: '#eab308', shadow: 'rgba(161, 98, 7, 0.08)' }; // Warm Gold
+    return { bg: '#fefce8', text: '#a16207', border: '#fef08a', dot: '#eab308', shadow: 'rgba(161, 98, 7, 0.08)' }; // chm
   }
   if (norm.includes('educ') || norm === 'coed') {
-    return { bg: '#ecfeff', text: '#0e7490', border: '#a5f3fc', dot: '#06b6d4', shadow: 'rgba(14, 116, 144, 0.08)' }; // Sky Cyan
+    return { bg: '#ecfeff', text: '#0e7490', border: '#a5f3fc', dot: '#06b6d4', shadow: 'rgba(14, 116, 144, 0.08)' }; // coed
   }
   if (norm.includes('agri') || norm === 'cares') {
-    return { bg: '#f7fee7', text: '#4d7c0f', border: '#d9f99d', dot: '#84cc16', shadow: 'rgba(77, 124, 15, 0.08)' }; // Lime Green
+    return { bg: '#f7fee7', text: '#4d7c0f', border: '#d9f99d', dot: '#84cc16', shadow: 'rgba(77, 124, 15, 0.08)' }; // cares
   }
   if (norm.includes('law') || norm === 'col') {
-    return { bg: '#f8fafc', text: '#334155', border: '#cbd5e1', dot: '#64748b', shadow: 'rgba(51, 65, 85, 0.08)' }; // Slate
+    return { bg: '#f8fafc', text: '#334155', border: '#cbd5e1', dot: '#64748b', shadow: 'rgba(51, 65, 85, 0.08)' }; // col
   }
   if (norm.includes('theol') || norm === 'cot') {
-    return { bg: '#fdf4ff', text: '#86198f', border: '#f5d0fe', dot: '#d946ef', shadow: 'rgba(134, 25, 143, 0.08)' }; // Fuchsia
+    return { bg: '#fdf4ff', text: '#86198f', border: '#f5d0fe', dot: '#d946ef', shadow: 'rgba(134, 25, 143, 0.08)' }; // cot
   }
   if (norm.includes('faculty') || norm.includes('staff')) {
-    return { bg: '#f1f5f9', text: '#475569', border: '#cbd5e1', dot: '#94a3b8', shadow: 'rgba(71, 85, 105, 0.08)' }; // Neutral Grey
+    return { bg: '#f1f5f9', text: '#475569', border: '#cbd5e1', dot: '#94a3b8', shadow: 'rgba(71, 85, 105, 0.08)' }; // faculty and staff
   }
   if (norm.includes('shs') || norm.includes('high')) {
-    return { bg: '#fffbe6', text: '#b78103', border: '#ffe58f', dot: '#faad14', shadow: 'rgba(183, 129, 3, 0.08)' }; // Soft Amber
+    return { bg: '#fffbe6', text: '#b78103', border: '#ffe58f', dot: '#faad14', shadow: 'rgba(183, 129, 3, 0.08)' }; // shs
   }
 
-  // Default fallback
+  // fallback style
   return { bg: '#edf4fa', text: '#16324f', border: '#cbdbe9', dot: '#254b73', shadow: 'rgba(22, 50, 79, 0.08)' };
 };
 
@@ -121,7 +120,7 @@ export const COLLEGE_COURSES = {
 
 export const CATEGORY_OPTIONS = ['Facilities', 'Staff', 'Collection', 'Other/Uncategorized'];
 
-// ── Rating Scores & Satisfaction Scale ───────────────────────────────────────
+// numeric scores for likert scale questions
 export const RATING_SCORES = {
   very_satisfied: 1.0, satisfied: 0.5, neutral: 0.0,
   dissatisfied: -0.5, very_dissatisfied: -1.0, na: 0.0,
@@ -143,20 +142,20 @@ export const QUARTER_OPTIONS = [
 
 export const ROWS_PER_PAGE = 10;
 
-// ── Stopwords (filtered from word cloud) ────────────────────────────────────
+// common stopwords excluded from word frequency
 export const STOPWORDS = new Set([
   'the', 'a', 'an', 'and', 'or', 'but', 'is', 'are', 'was', 'were', 'to', 'of', 'in', 'on',
   'for', 'it', 'this', 'that', 'i', 'we', 'you', 'my', 'our', 'with', 'be', 'have', 'has',
   'very', 'so', 'too', 'library', 'cpu', 'student', 'students', 'just', 'also', 'can', 'will',
   'more', 'get', 'make', 'please', 'really', 'there', 'they', 'their', 'them', 'from', 'all',
   'would', 'could', 'should', 'about', 'out', 'up', 'been', 'when', 'what', 'which', 'than',
-  // Quantifiers, degree words & generic English fillers (prevents terms like "lot" or "quality" from overriding subject nouns)
+  // generic qualifiers excluded from subject extraction
   'lot', 'lots', 'many', 'much', 'few', 'some', 'several', 'every', 'each', 'huge', 'lack',
   'bad', 'good', 'nice', 'great', 'better', 'best', 'worst', 'poor', 'quality', 'high', 'low',
   'one', 'two', 'new', 'old', 'big', 'small', 'thing', 'things', 'way', 'ways', 'kind', 'kinds'
 ]);
 
-// ── Controlled Domain Lexicon ───────────────────────────────────────────────
+// keyword lexicon by library area
 export const CONTROLLED_LEXICON = {
   Facilities: {
     'Restroom & Hygiene': [
@@ -244,7 +243,7 @@ export const CONTROLLED_LEXICON = {
   }
 };
 
-// ── Service Improvement Recommendations ─────────────────────────────────────
+// recommendations for flagged categories
 export const RECOMMENDATIONS = {
   Facilities: {
     moderate: 'Consider a facilities walkthrough to address recurring comfort/accessibility complaints (lighting, seating, temperature, cleanliness).',
@@ -260,7 +259,7 @@ export const RECOMMENDATIONS = {
   },
 };
 
-// ── Category Keywords for Analytics ─────────────────────────────────────────
+// keyword mappings for complaints
 export const CATEGORY_KEYWORDS = {
   Facilities: {
     Aircon: 'Poor air conditioning/temperature control',
@@ -301,7 +300,7 @@ export const CATEGORY_KEYWORDS = {
   },
 };
 
-// ── Lexicon Topic Priority Action Recommendations ──────────────────────────
+// action steps per topic
 export const LEXICON_TOPIC_ACTIONS = {
   'Restroom & Hygiene': {
     action: 'Increase custodial sanitation frequency and maintain consistent supplies of soap, tissues, and paper towels.',
