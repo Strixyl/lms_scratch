@@ -357,9 +357,15 @@ const formatCollege = (college) => {
 export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
   const isPositive = type === 'positive';
   const borderColor = isPositive ? '#107c41' : '#e11d48';
-  const badgeBg = isPositive ? '#eafaf1' : '#fff1f2';
-  const badgeBorder = isPositive ? '#b7ebc9' : '#fecdd3';
-  const badgeColor = isPositive ? '#107c41' : '#be123c';
+  const accentBorder = isPositive ? '#107c41' : '#f43f5e';
+  const headerBg = isPositive ? 'rgba(16, 124, 65, 0.035)' : 'rgba(225, 29, 72, 0.035)';
+  const headerBorder = isPositive ? '#d1fae5' : '#ffe4e6';
+  const iconBg = isPositive ? '#dcfce7' : '#fee2e2';
+  const iconColor = isPositive ? '#15803d' : '#be123c';
+  const iconBorder = isPositive ? '#bbf7d0' : '#fecaca';
+  const badgeBg = isPositive ? '#ecfdf5' : '#fef2f2';
+  const badgeBorder = isPositive ? '#a7f3d0' : '#fecaca';
+  const badgeColor = isPositive ? '#047857' : '#991b1b';
 
   return (
     <Card
@@ -368,7 +374,7 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
         bgcolor: '#ffffff',
         borderRadius: 3,
         border: '1.5px solid #e2e8f0',
-        borderTop: `4px solid ${borderColor}`,
+        borderTop: `3.5px solid ${borderColor}`,
         p: { xs: 1.8, sm: 2.2 },
         display: 'flex',
         flexDirection: 'column',
@@ -376,16 +382,13 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
         overflow: 'hidden',
       }}
     >
-      {/* Header Container */}
+      {/* Refined Header Container — Executive Clean Tone */}
       <Box sx={{
-        background: isPositive
-          ? 'linear-gradient(135deg, #eafaf1 0%, #dcfce7 100%)'
-          : 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)',
+        bgcolor: headerBg,
         borderRadius: 2.5,
-        p: { xs: 1.3, sm: 1.5 },
+        p: { xs: 1.2, sm: 1.4 },
         mb: 2,
-        border: isPositive ? '1.5px solid #b7ebc9' : '1.5px solid #fecdd3',
-        borderLeft: isPositive ? '5px solid #107c41' : '5px solid #e11d48',
+        border: `1px solid ${headerBorder}`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -394,14 +397,14 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
           <Box sx={{
-            bgcolor: borderColor,
-            color: '#ffffff',
-            p: 0.55,
-            borderRadius: '6px',
+            bgcolor: iconBg,
+            color: iconColor,
+            border: `1px solid ${iconBorder}`,
+            p: 0.6,
+            borderRadius: '8px',
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
             '& svg': { fontSize: 16 }
           }}>
             {isPositive ? <ThumbUpIcon /> : <ThumbDownIcon />}
@@ -411,7 +414,7 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
               fontFamily: T.font.family,
               fontWeight: 800,
               fontSize: { xs: 14, sm: 15 },
-              color: badgeColor,
+              color: '#16324f',
               letterSpacing: '-0.2px',
             }}>
               {title}
@@ -423,10 +426,10 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
               <Box sx={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                color: badgeColor,
+                color: '#64748b',
                 opacity: 0.75,
                 cursor: 'help',
-                '&:hover': { opacity: 1 }
+                '&:hover': { opacity: 1, color: '#16324f' }
               }}>
                 <InfoOutlinedIcon sx={{ fontSize: 15 }} />
               </Box>
@@ -438,8 +441,8 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
           fontSize: 11,
           fontWeight: 700,
           color: badgeColor,
-          bgcolor: '#ffffff',
-          border: `1.5px solid ${badgeBorder}`,
+          bgcolor: badgeBg,
+          border: `1px solid ${badgeBorder}`,
           px: 1.2,
           py: 0.25,
           borderRadius: '9999px',
@@ -493,18 +496,19 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
               <Box
                 key={i}
                 sx={{
-                  bgcolor: '#f8fafc',
-                  border: '1.5px solid #e2e8f0',
-                  borderLeft: `4px solid ${borderColor}`,
+                  bgcolor: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderLeft: `3px solid ${accentBorder}`,
                   borderRadius: '8px',
                   p: { xs: 1.2, sm: 1.4 },
                   display: 'flex',
                   flexDirection: 'column',
                   gap: 0.7,
+                  boxShadow: '0 1px 3px rgba(22, 50, 79, 0.02)',
                   transition: 'all 0.15s ease',
                   '&:hover': {
-                    bgcolor: '#ffffff',
-                    boxShadow: '0 3px 12px rgba(22, 50, 79, 0.05)',
+                    bgcolor: '#fbfcfe',
+                    boxShadow: '0 3px 12px rgba(22, 50, 79, 0.06)',
                     borderColor: '#cbd5e1',
                     borderLeftColor: borderColor,
                   }
@@ -512,24 +516,30 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
               >
                 {/* Clean, Pleasing Metadata Row */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, flexWrap: 'wrap' }}>
-                  {/* Number Badge */}
-                  <Box sx={{
-                    width: 22,
-                    height: 22,
-                    minWidth: 22,
-                    borderRadius: '50%',
-                    bgcolor: borderColor,
-                    color: '#ffffff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontFamily: T.font.family,
-                    fontSize: 11,
-                    fontWeight: 800,
-                    lineHeight: 1,
-                  }}>
-                    {i + 1}
-                  </Box>
+                  {/* Refined Rank Badge (#1 to #5) */}
+                  <Tooltip title={`RoBERTa Model Ranked #${i + 1} by Confidence`} arrow>
+                    <Box sx={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      minWidth: 26,
+                      height: 22,
+                      px: 0.65,
+                      borderRadius: '6px',
+                      bgcolor: badgeBg,
+                      color: badgeColor,
+                      border: `1px solid ${badgeBorder}`,
+                      fontFamily: T.font.family,
+                      fontSize: 10.5,
+                      fontWeight: 800,
+                      lineHeight: 1,
+                      letterSpacing: '-0.2px',
+                      flexShrink: 0,
+                      cursor: 'help',
+                    }}>
+                      #{i + 1}
+                    </Box>
+                  </Tooltip>
 
                   {/* College Badge */}
                   {rawCollege && (
@@ -602,12 +612,12 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
                     </Tooltip>
                   )}
 
-                  {/* RoBERTa Model Confidence Score Badge */}
+                  {/* RoBERTa Model Classification Score Badge */}
                   <Tooltip
                     title={
                       <Box sx={{ p: 0.5, fontSize: 11, lineHeight: 1.45 }}>
                         <Box sx={{ fontWeight: 800, mb: 0.4 }}>RoBERTa Model Ranking: #{i + 1}</Box>
-                        <Box>• Model Confidence: <b>{confidencePct}%</b></Box>
+                        <Box>• Classification Score: <b>{confidencePct}%</b></Box>
                         <Box>• Predicted Sentiment: <b>{isPositive ? 'Positive' : 'Negative'}</b></Box>
                       </Box>
                     }
@@ -634,7 +644,7 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
                       }
                     }}>
                       <VerifiedIcon sx={{ fontSize: 11, color: isPositive ? '#059669' : '#e11d48' }} />
-                      <span>{confidencePct}% Confidence</span>
+                      <span>{confidencePct}% Score</span>
                     </Box>
                   </Tooltip>
 
@@ -665,6 +675,7 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
     </Card>
   );
 };
+
 
 // ── Recommendation Card for a specific flagged category / topic ───────────
 // ── Recommendation Card for a specific flagged category / topic ───────────
