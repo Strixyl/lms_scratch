@@ -26,10 +26,7 @@ const Header = ({ children }) => {
 
   return (
     <>
-      {/* 🚀 HYBRID SAFE CHECK: 
-        If children is a function, execute it with toggleDrawer.
-        Otherwise, just render the children normally. 
-      */}
+      {/* execute children as function if drawer callback is expected */}
       {typeof children === 'function' ? children(toggleDrawer) : children}
 
       <Drawer anchor="left" open={open} onClose={toggleDrawer}>

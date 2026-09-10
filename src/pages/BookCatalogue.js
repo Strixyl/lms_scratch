@@ -102,11 +102,11 @@ const BookCatalogue = () => {
   const [selectedLibraryFilter, setSelectedLibraryFilter] = useState('ALL');
   const [selectedSectionFilter, setSelectedSectionFilter] = useState('ALL');
 
-  // Preview & Delete states
+  // preview and delete modal states
   const [previewBook, setPreviewBook] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  // Staff Encoding Modal states
+  // staff encoding modal states
   const [encodeModalOpen, setEncodeModalOpen] = useState(false);
   const [encodeData, setEncodeData] = useState(initialEncodeState);
 
@@ -228,7 +228,7 @@ const BookCatalogue = () => {
     fetchCardPackets();
   }, []);
 
-  // Helper to format full author name from record
+  // format full author name
   const getAuthorName = (record, i) => {
     const directName = record[`authorName${i}`] || '';
     if (directName && directName.trim()) return directName.trim();
@@ -240,7 +240,7 @@ const BookCatalogue = () => {
     return `${last}${last && first ? ', ' : ''}${first}${mi ? ' ' + mi : ''}`.trim();
   };
 
-  // Flatten book entries (1-4)
+  // flatten book entries 1-4
   const flatBookData = useMemo(() => {
     const list = [];
     cardPackets.forEach((record, recordIndex) => {
@@ -255,7 +255,7 @@ const BookCatalogue = () => {
         const publisher = (record[`publisherAuthor${i}`] || record[`publisher${i}`] || '').trim();
         const barcode = (record[`barcodeValue${i}`] || '').trim();
 
-        // Only include columns that actually contain a book title or accession number
+        // only include books with title or accession
         if (title || acc) {
           list.push({
             id: `${recId}-${i}`,
@@ -278,7 +278,7 @@ const BookCatalogue = () => {
     return list;
   }, [cardPackets]);
 
-  // Unique Library and Section values matching CardAndPacket
+  // library and section options
   const availableLibraries = useMemo(() => {
     const libs = new Set([...librariesList, ...flatBookData.map((b) => b.library).filter((l) => l && l !== 'N/A')]);
     return ['ALL', ...Array.from(libs).sort()];
@@ -299,7 +299,7 @@ const BookCatalogue = () => {
     return Array.from(secs).sort();
   }, [flatBookData]);
 
-  // Selection set helper (Handles both 'include' and 'exclude' DataGrid v8 models)
+  // selection set helper
   const selectedSet = useMemo(() => {
     if (!rowSelectionModel) return new Set();
 
@@ -332,16 +332,16 @@ const BookCatalogue = () => {
     return rawIds;
   }, [rowSelectionModel, flatBookData]);
 
-  // Always guaranteed object with valid .ids Set for DataGrid v8
+  // selection model helper
   const normalizedSelectionModel = useMemo(() => {
     if (rowSelectionModel && rowSelectionModel.ids instanceof Set) return rowSelectionModel;
     return { type: 'include', ids: selectedSet };
   }, [rowSelectionModel, selectedSet]);
 
-  // Filtered book records (Always keeps checked/selected books visible)
+  // filtered book records
   const filteredBookData = useMemo(() => {
     return flatBookData.filter((book) => {
-      // Always include checked/selected books so searching does NOT filter them out
+      // keep selected books visible during search
       if (selectedSet.has(book.id)) return true;
 
       const matchesLib = selectedLibraryFilter === 'ALL' || book.library === selectedLibraryFilter;
@@ -403,7 +403,7 @@ const BookCatalogue = () => {
     }
   };
 
-  // Export Excel
+  // export excel
   const handleExportExcel = () => {
     const dataToExport = selectedRows.length > 0 ? selectedRows : filteredBookData;
     if (dataToExport.length === 0) {
@@ -432,8 +432,7 @@ const BookCatalogue = () => {
     XLSX.writeFile(workbook, `HLL_CardAndPacket_${dateStamp}.xlsx`);
   };
 
-  // Print selected rows as book cards
-  // Print selected rows as book cards (Page 1 Front & Page 2 Back for every 4 books)
+  // print selected book cards (4 books per sheet)
   const handlePrintSelected = () => {
     if (selectedRows.length === 0) {
       alert('Select at least one book to print.');
@@ -443,7 +442,7 @@ const BookCatalogue = () => {
     const frontEmptyRows = Array(12).fill('<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>').join('');
     const backEmptyRows = Array(20).fill('<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>').join('');
 
-    // Chunk selectedRows into groups of 4
+    // chunk rows into groups of 4
     const chunks = [];
     for (let i = 0; i < selectedRows.length; i += 4) {
       chunks.push(selectedRows.slice(i, i + 4));
@@ -789,7 +788,7 @@ const BookCatalogue = () => {
     };
   };
 
-  // Delete Action
+  // delete action
   const handleExecuteDelete = async () => {
     const target = deleteTarget;
     setDeleteTarget(null);
@@ -897,7 +896,7 @@ const BookCatalogue = () => {
 
           <Box sx={{ p: { xs: 2, md: 3 } }}>
 
-            {/* System Themed Summary Stat Cards */}
+            {/* summary stat cards */}
             <Grid container spacing={2} sx={{ mb: 2.5 }}>
               <Grid item xs={6} sm={3}>
                 <Paper
@@ -981,10 +980,10 @@ const BookCatalogue = () => {
               </Grid>
             </Grid>
 
-            {/* Controls Bar: Search, Filters, View Switcher & Action Buttons */}
+            {/* controls bar: search, filters, view switcher and action buttons */}
             <Paper elevation={0} sx={{ p: 2, mb: 2.5, borderRadius: 2, border: '1px solid #e2e8f0', bgcolor: '#ffffff' }}>
               <Grid container spacing={2} alignItems="center" sx={{ mb: 2 }}>
-                {/* Search */}
+                {/* search input */}
                 <Grid item xs={12} sm={4}>
                   <TextField
                     fullWidth
@@ -1011,7 +1010,7 @@ const BookCatalogue = () => {
                   />
                 </Grid>
 
-                {/* Library Filter */}
+                {/* library filter */}
                 <Grid item xs={6} sm={3}>
                   <FormControl fullWidth size="small">
                     <InputLabel id="library-filter-label" sx={{ fontFamily: FONT_FAMILY }}>Library</InputLabel>
@@ -1031,7 +1030,7 @@ const BookCatalogue = () => {
                   </FormControl>
                 </Grid>
 
-                {/* Section Filter */}
+                {/* section filter */}
                 <Grid item xs={6} sm={3}>
                   <FormControl fullWidth size="small">
                     <InputLabel id="section-filter-label" sx={{ fontFamily: FONT_FAMILY }}>Section</InputLabel>
@@ -1051,7 +1050,7 @@ const BookCatalogue = () => {
                   </FormControl>
                 </Grid>
 
-                {/* View Mode Switcher */}
+                {/* view mode switcher */}
                 <Grid item xs={12} sm={2} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                   <ToggleButtonGroup
                     value={viewMode}
@@ -1092,7 +1091,7 @@ const BookCatalogue = () => {
 
               <Divider sx={{ mb: 2 }} />
 
-              {/* Action Buttons */}
+              {/* action buttons */}
               <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
                 <Button
                   variant="contained"
@@ -1179,7 +1178,7 @@ const BookCatalogue = () => {
               </Box>
             </Paper>
 
-            {/* CONTENT AREA: TABLE VIEW OR CARD GRID VIEW */}
+            {/* table or card grid view */}
             {viewMode === 'table' ? (
               <Paper elevation={0} sx={{ height: 600, width: '100%', borderRadius: 2, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
                 <DataGrid
@@ -1378,7 +1377,7 @@ const BookCatalogue = () => {
 
           </Box>
 
-          {/* Quick CPU Card Preview Dialog */}
+          {/* card preview dialog */}
           <Dialog open={Boolean(previewBook)} onClose={() => setPreviewBook(null)} maxWidth="xs" fullWidth>
             <DialogTitle sx={{ bgcolor: '#1b365d', color: '#ffffff', fontSize: '1rem', fontWeight: 600, fontFamily: FONT_FAMILY }}>
               CPU Book Card Preview
@@ -1408,7 +1407,7 @@ const BookCatalogue = () => {
             </DialogActions>
           </Dialog>
 
-          {/* Delete Confirmation Dialog */}
+          {/* delete confirmation dialog */}
           <Dialog open={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)} maxWidth="xs" fullWidth>
             <DialogTitle sx={{ fontSize: '1rem', fontWeight: 600, color: '#ef4444', fontFamily: FONT_FAMILY }}>
               Confirm Delete
@@ -1430,7 +1429,7 @@ const BookCatalogue = () => {
             </DialogActions>
           </Dialog>
 
-          {/* Staff Single Book Encoding Modal */}
+          {/* book encoding modal */}
           <Dialog open={encodeModalOpen} onClose={() => setEncodeModalOpen(false)} maxWidth="md" fullWidth>
             <DialogTitle sx={{ bgcolor: '#1b365d', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 3, py: 2 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -1447,7 +1446,7 @@ const BookCatalogue = () => {
             <DialogContent sx={{ p: 3, bgcolor: '#f8fafc', fontFamily: FONT_FAMILY }}>
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2.5, pt: 1 }}>
 
-                {/* Library */}
+                {/* library */}
                 <Box>
                   <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a', fontFamily: FONT_FAMILY }}>
                     Library <span style={{ color: '#ef4444' }}>*</span>
@@ -1461,7 +1460,7 @@ const BookCatalogue = () => {
                   />
                 </Box>
 
-                {/* Section */}
+                {/* section */}
                 <Box>
                   <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a', fontFamily: FONT_FAMILY }}>
                     Section
@@ -1475,7 +1474,7 @@ const BookCatalogue = () => {
                   />
                 </Box>
 
-                {/* Author */}
+                {/* author */}
                 <Box>
                   <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a', fontFamily: FONT_FAMILY }}>
                     Author (Full Name)
@@ -1490,7 +1489,7 @@ const BookCatalogue = () => {
                   />
                 </Box>
 
-                {/* Publisher */}
+                {/* publisher */}
                 <Box>
                   <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a', fontFamily: FONT_FAMILY }}>
                     Publisher / Corporate Author
@@ -1505,7 +1504,7 @@ const BookCatalogue = () => {
                   />
                 </Box>
 
-                {/* Book Title - Full Width */}
+                {/* book title */}
                 <Box sx={{ gridColumn: { xs: 'span 1', sm: 'span 2' } }}>
                   <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a', fontFamily: FONT_FAMILY }}>
                     Book Title <span style={{ color: '#ef4444' }}>*</span>
@@ -1522,7 +1521,7 @@ const BookCatalogue = () => {
                   />
                 </Box>
 
-                {/* Accession Number */}
+                {/* accession number */}
                 <Box>
                   <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a', fontFamily: FONT_FAMILY }}>
                     Accession Number <span style={{ color: '#ef4444' }}>*</span>
@@ -1537,7 +1536,7 @@ const BookCatalogue = () => {
                   />
                 </Box>
 
-                {/* Barcode */}
+                {/* barcode */}
                 <Box>
                   <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a', fontFamily: FONT_FAMILY }}>
                     Barcode (Auto-generated)
@@ -1551,7 +1550,7 @@ const BookCatalogue = () => {
                   />
                 </Box>
 
-                {/* Copy Number */}
+                {/* copy number */}
                 <Box>
                   <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a', fontFamily: FONT_FAMILY }}>
                     Copy Number (Optional)
@@ -1566,7 +1565,7 @@ const BookCatalogue = () => {
                   />
                 </Box>
 
-                {/* ISO Code */}
+                {/* iso code */}
                 <Box>
                   <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a', fontFamily: FONT_FAMILY }}>
                     ISO Code (Auto-generated)
@@ -1580,7 +1579,7 @@ const BookCatalogue = () => {
                   />
                 </Box>
 
-                {/* Call Number - Full Width */}
+                {/* call number */}
                 <Box sx={{ gridColumn: { xs: 'span 1', sm: 'span 2' } }}>
                   <Typography fontWeight="bold" variant="body2" sx={{ mb: 0.8, color: '#0f172a', fontFamily: FONT_FAMILY }}>
                     Call Number

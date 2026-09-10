@@ -82,6 +82,7 @@ This directory houses the backend ecosystem supporting the **Henry Luce III Libr
   - If a written comment is present, overall sentiment is **100% determined by RoBERTa BERT text sentiment**, and `SentimentScore` stores the exact signed confidence probability from RoBERTa (`+score` for Positive, `-score` for Negative).
   - If the comment is blank, sentiment falls back to the 10-question emoji rating average (`ratingAvg`).
   - All 10 Likert responses (`Question1`–`Question10`) and computed `SentimentScore` are inserted into `dbo.SatisfactionSurveys`.
+  - **RoBERTa Softmax Confidence for Dashboard Ranking**: The stored `SentimentScore` serves as the direct ranking criterion for the dashboard's Top 5 Positive and Negative comment highlights, ensuring mathematical objectivity during thesis evaluation.
 - **`GET /api/surveys`**: Retrieves survey records with timezone-aligned (`Asia/Manila`, UTC+8) date range filtering (`YYYY-MM-DD 00:00:00` to `23:59:59.997`), clientele type (`STUDENT`, `FACULTY`, `ALUMNI`, etc.), college, and course filters.
 - **`DELETE /api/surveys/:id`**: Deletes a specific survey response entry.
 

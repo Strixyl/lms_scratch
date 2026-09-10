@@ -1,92 +1,88 @@
-// ── HLL Library System — Centralized Design Tokens ─────────────────────────
-// Single source of truth for all colors, fonts, and reusable MUI sx presets.
-// Palette inspired by Modern Executive Analytics Dashboard: Deep Navy (#16324f),
-// Vibrant Warm Golden-Orange (#f69d1b), Clean Slate Grey, and Soft Cool-Grey Surface (#eef1f6).
-
 export const THEME = {
-  // ── Brand Colors (Deep Executive Navy & Vibrant Golden Orange) ───────────
+  // cpu color pallettte
+
   brand: {
-    primary: '#16324f',       // Deep Navy — headers, primary buttons, table heads, container outlines
-    primaryHover: '#0f243a',  // Hover state for primary
-    accent: '#f69d1b',        // Vibrant Warm Golden Orange — highlights, gold badges
-    accentHover: '#df8208',   // Hover state for orange accent
-    excel: '#107c41',         // Microsoft Excel Forest Green
-    excelHover: '#0b5a2f',    // Excel Green Hover
+    primary: '#16324f',       // deep navy for headers, buttons, borders
+    primaryHover: '#0f243a',  // hover state
+    accent: '#f69d1b',        // warm golden orange
+    accentHover: '#df8208',   // accent hover
+    excel: '#107c41',         // excel forest green
+    excelHover: '#0b5a2f',    // excel hover
     excelShadow: 'rgba(16, 124, 65, 0.28)',
-    indigo: '#1b3a5b',        // Sapphire Navy
-    indigoHover: '#10253d',   // Darker Navy Hover
-    goldLight: '#fff8eb',     // Soft Gold/Orange Tint
-    goldBorder: '#fed7aa',    // Gold/Orange Border
-    blueLight: '#edf4fa',     // Soft Navy/Blue Tint
-    blueBorder: '#cbdbe9',    // Blue Border
-    violet: '#16324f',        // Primary Deep Navy
+    indigo: '#1b3a5b',        // sapphire navy
+    indigoHover: '#10253d',   // navy hover
+    goldLight: '#fff8eb',     // gold tint
+    goldBorder: '#fed7aa',    // gold border
+    blueLight: '#edf4fa',     // blue tint
+    blueBorder: '#cbdbe9',    // blue border
+    violet: '#16324f',        // deep navy
     violetHover: '#0f243a',
   },
 
-  // ── Sentiment Palette (Excel Green, Slate Grey, and Red for all Sentiment Signals)
+  // sentiment colors
   sentiment: {
     Positive: { bg: '#107c41', light: '#eafaf1', text: '#107c41', dot: '#107c41', border: '#b7ebc9' },
-    Neutral:  { bg: '#64748b', light: '#f1f5f9', text: '#475569', dot: '#94a3b8', border: '#cbd5e1' },
+    Neutral: { bg: '#64748b', light: '#f1f5f9', text: '#475569', dot: '#94a3b8', border: '#cbd5e1' },
     Negative: { bg: '#e11d48', light: '#fff1f2', text: '#be123c', dot: '#f43f5e', border: '#fecdd3' },
   },
 
-  // ── Category Palette (CPU Service Areas — Matching Table Colors) ───────────
+  // category palette matching table chips
   category: {
-    Staff:                { bg: '#ea580c', light: '#fff7ed', text: '#c2410c', dot: '#ea580c', border: '#fed7aa' },
-    Facilities:           { bg: '#2563eb', light: '#eff6ff', text: '#1d4ed8', dot: '#2563eb', border: '#bfdbfe' },
-    Collection:           { bg: '#9333ea', light: '#faf5ff', text: '#7e22ce', dot: '#9333ea', border: '#e9d5ff' },
-    Environment:          { bg: '#059669', light: '#ecfdf5', text: '#047857', dot: '#059669', border: '#a7f3d0' },
-    Services:             { bg: '#0d9488', light: '#f0fdfa', text: '#0f766e', dot: '#0d9488', border: '#99f6e4' },
-    Technology:           { bg: '#db2777', light: '#fdf2f8', text: '#be185d', dot: '#db2777', border: '#fbcfe8' },
-    General:              { bg: '#64748b', light: '#f8fafc', text: '#475569', dot: '#64748b', border: '#cbd5e1' },
-    'Other/Uncategorized':{ bg: '#64748b', light: '#f8fafc', text: '#475569', dot: '#64748b', border: '#cbd5e1' },
-    Other:                { bg: '#64748b', light: '#f8fafc', text: '#475569', dot: '#64748b', border: '#cbd5e1' },
+    Staff: { bg: '#ea580c', light: '#fff7ed', text: '#c2410c', dot: '#ea580c', border: '#fed7aa' },
+    Facilities: { bg: '#2563eb', light: '#eff6ff', text: '#1d4ed8', dot: '#2563eb', border: '#bfdbfe' },
+    Collection: { bg: '#9333ea', light: '#faf5ff', text: '#7e22ce', dot: '#9333ea', border: '#e9d5ff' },
+    Environment: { bg: '#059669', light: '#ecfdf5', text: '#047857', dot: '#059669', border: '#a7f3d0' },
+    Services: { bg: '#0d9488', light: '#f0fdfa', text: '#0f766e', dot: '#0d9488', border: '#99f6e4' },
+    Technology: { bg: '#db2777', light: '#fdf2f8', text: '#be185d', dot: '#db2777', border: '#fbcfe8' },
+    General: { bg: '#64748b', light: '#f8fafc', text: '#475569', dot: '#64748b', border: '#cbd5e1' },
+    'Other/Uncategorized': { bg: '#64748b', light: '#f8fafc', text: '#475569', dot: '#64748b', border: '#cbd5e1' },
+    Other: { bg: '#64748b', light: '#f8fafc', text: '#475569', dot: '#64748b', border: '#cbd5e1' },
   },
 
-  // ── Category Donut Ring Colors ────────────────────────────────────────────
+  // category colors for donut charts
   categoryDonut: {
     Facilities: '#2563eb',
     Staff: '#ea580c',
     Collection: '#9333ea',
   },
 
-  // ── Chart Colors (Green = Positive, Slate = Neutral, Red = Negative) ──────
+  // chart gradients
   chart: {
     colors: ['#107c41', '#64748b', '#e11d48'],
     gradients: {
       positive: { start: '#107c41', end: '#16a34a' },
-      neutral:  { start: '#64748b', end: '#94a3b8' },
+      neutral: { start: '#64748b', end: '#94a3b8' },
       negative: { start: '#f43f5e', end: '#fb7185' },
     },
     donutGradients: {
       positive: { start: '#107c41', end: '#16a34a' },
-      neutral:  { start: '#64748b', end: '#cbd5e1' },
+      neutral: { start: '#64748b', end: '#cbd5e1' },
       negative: { start: '#f43f5e', end: '#fecdd3' },
     },
   },
 
-  // ── Word Cloud Colors (Vibrant, Colorful & Modern Palette) ───────────────
+  // word cloud color rotation
   wordCloudColors: [
-    '#0284c7', // Sky Blue
-    '#7c3aed', // Royal Purple
-    '#f59e0b', // Amber Gold
-    '#10b981', // Emerald Green
-    '#e11d48', // Crimson Rose
-    '#4f46e5', // Electric Indigo
-    '#ea580c', // Vibrant Orange
-    '#0d9488', // Teal
-    '#9333ea', // Bright Purple
-    '#2563eb', // Sapphire Blue
-    '#ec4899', // Pink
-    '#059669', // Forest Mint
-    '#d97706', // Warm Amber
-    '#0891b2', // Ocean Cyan
-    '#be123c', // Deep Crimson
-    '#6366f1', // Indigo
-    '#16324f', // Deep Navy
+    '#0284c7',
+    '#7c3aed',
+    '#f59e0b',
+    '#10b981',
+    '#e11d48',
+    '#4f46e5',
+    '#ea580c',
+    '#0d9488',
+    '#9333ea',
+    '#2563eb',
+    '#ec4899',
+    '#059669',
+    '#d97706',
+    '#0891b2',
+    '#be123c',
+    '#6366f1',
+    '#16324f',
   ],
 
-  // ── Surface / UI Neutral Palette ──────────────────────────────────────────
+  // border color
   surface: {
     background: '#eef1f6',
     backgroundGrad: 'linear-gradient(180deg, #eef1f6 0%, #e5e9f0 100%)',
@@ -96,10 +92,10 @@ export const THEME = {
     border: '#d9e2ec',
     borderLight: '#e2e8f0',
     borderHover: '#94a3b8',
-    wordCloudBg: '#ffffff', // Clean crisp white background
+    wordCloudBg: '#ffffff',
   },
 
-  // ── Text Palette ──────────────────────────────────────────────────────────
+  // text colors
   text: {
     primary: '#16324f',
     heading: '#16324f',
@@ -111,44 +107,43 @@ export const THEME = {
     link: '#16324f',
   },
 
-  // ── Status / Feedback Colors ──────────────────────────────────────────────
+  // status feedback
   status: {
-    success:       '#107c41',
-    successHover:  '#0b5a2f',
-    successLight:  '#eafaf1',
+    success: '#107c41',
+    successHover: '#0b5a2f',
+    successLight: '#eafaf1',
     successBorder: '#b7ebc9',
     successShadow: 'rgba(16, 124, 65, 0.25)',
-    error:         '#e11d48',
-    errorHover:    '#be123c',
-    errorLight:    '#fff1f2',
-    errorBorder:   '#fecdd3',
-    errorText:     '#be123c',
-    warningLight:  '#fff8eb',
+    error: '#e11d48',
+    errorHover: '#be123c',
+    errorLight: '#fff1f2',
+    errorBorder: '#fecdd3',
+    errorText: '#be123c',
+    warningLight: '#fff8eb',
     warningBorder: '#fed7aa',
-    warningText:   '#d97706',
-    warningBold:   '#b45309',
-    info:          '#16324f',
+    warningText: '#d97706',
+    warningBold: '#b45309',
+    info: '#16324f',
     wordHighlight: '#f69d1b',
   },
 
-  // ── Filter Chip Colors (Active filter badges) ─────────────────────────────
+  // active filter chips
   filterChips: {
-    date:       { bg: '#ffffff', color: '#16324f', border: '#d9e2ec' },
-    clientele:  { bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' },
-    college:    { bg: '#edf4fa', color: '#16324f', border: '#cbdbe9' },
-    course:     { bg: '#edf4fa', color: '#254b73', border: '#cbdbe9' },
-    sentimentPos:{ bg: '#eafaf1', color: '#107c41', border: '#b7ebc9' },
-    sentimentNeu:{ bg: '#f1f5f9', color: '#475569', border: '#cbd5e1' },
-    sentimentNeg:{ bg: '#fff1f2', color: '#be123c', border: '#fecdd3' },
-    category:   { bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' },
+    date: { bg: '#ffffff', color: '#16324f', border: '#d9e2ec' },
+    clientele: { bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' },
+    college: { bg: '#edf4fa', color: '#16324f', border: '#cbdbe9' },
+    course: { bg: '#edf4fa', color: '#254b73', border: '#cbdbe9' },
+    sentimentPos: { bg: '#eafaf1', color: '#107c41', border: '#b7ebc9' },
+    sentimentNeu: { bg: '#f1f5f9', color: '#475569', border: '#cbd5e1' },
+    sentimentNeg: { bg: '#fff1f2', color: '#be123c', border: '#fecdd3' },
+    category: { bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' },
   },
 
-  // ── Typography ────────────────────────────────────────────────────────────
+  // font family
   font: {
     family: 'Poppins, sans-serif',
   },
 
-  // ── Common Radii ──────────────────────────────────────────────────────────
   radius: {
     card: 3.5,
     input: 2.5,
@@ -158,7 +153,6 @@ export const THEME = {
     pill: 1.5,
   },
 
-  // ── Shadows ───────────────────────────────────────────────────────────────
   shadow: {
     card: '0 2px 10px rgba(22, 50, 79, 0.04)',
     cardHover: '0 8px 24px -4px rgba(22, 50, 79, 0.12)',
@@ -166,9 +160,8 @@ export const THEME = {
   },
 };
 
-// ── Reusable MUI sx Presets ─────────────────────────────────────────────────
 
-/** Standard clean minimalist section header bar */
+// section header container
 export const sectionHeaderSx = {
   bgcolor: '#ffffff',
   px: { xs: 2, md: 3 },
@@ -179,7 +172,7 @@ export const sectionHeaderSx = {
   justifyContent: 'space-between',
 };
 
-/** Standard card shell (white card with subtle light border and soft shadow) */
+// card shell container
 export const cardShellSx = {
   border: `1.5px solid ${THEME.surface.borderLight}`,
   borderRadius: THEME.radius.card,
@@ -188,7 +181,6 @@ export const cardShellSx = {
   overflow: 'hidden',
 };
 
-/** Section header title text */
 export const sectionTitleSx = {
   fontFamily: THEME.font.family,
   fontWeight: 800,
@@ -197,7 +189,6 @@ export const sectionTitleSx = {
   letterSpacing: '-0.2px',
 };
 
-/** Section header subtitle text */
 export const sectionSubtitleSx = {
   fontFamily: THEME.font.family,
   fontSize: 12.5,
@@ -206,13 +197,11 @@ export const sectionSubtitleSx = {
   mt: 0.2,
 };
 
-/** Section header icon style */
 export const sectionIconSx = {
   fontSize: 20,
   color: '#16324f',
 };
 
-/** Standard select/text field styling */
 export const selectSx = {
   backgroundColor: THEME.surface.card,
   borderRadius: THEME.radius.input,
@@ -256,14 +245,12 @@ export const selectSx = {
   },
 };
 
-/** Menu item sx for dropdown selects */
 export const menuItemSx = {
   fontFamily: THEME.font.family,
   fontWeight: 600,
   fontSize: 13.5,
 };
 
-/** Standard date preset / quick-action button style (soft pill) */
 export const datePresetBtnSx = {
   borderRadius: '9999px',
   textTransform: 'none',
@@ -284,7 +271,7 @@ export const datePresetBtnSx = {
   },
 };
 
-/** Standard pagination button sx */
+// pagination button 
 export const paginationBtnSx = {
   fontFamily: THEME.font.family,
   textTransform: 'none',
@@ -299,7 +286,7 @@ export const paginationBtnSx = {
   '&:hover': { bgcolor: '#f8fafc', borderColor: '#cbd5e1' },
 };
 
-/** Table header row sx */
+// table header 
 export const tableHeaderRowSx = {
   backgroundColor: '#ffffff',
   borderBottom: `1px solid ${THEME.surface.borderLight}`,
@@ -316,7 +303,7 @@ export const tableHeaderRowSx = {
   },
 };
 
-/** Table sort label on light header */
+// table sort header label
 export const tableSortLabelSx = {
   color: `${THEME.text.secondary} !important`,
   '& .MuiTableSortLabel-icon': { color: `${THEME.text.faint} !important` },

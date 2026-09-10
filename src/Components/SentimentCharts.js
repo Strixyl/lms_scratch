@@ -1,5 +1,4 @@
-// ── Sentiment Dashboard — Reusable Sub-Components ───────────────────────────
-// Chart components, chips, tooltips, and cards extracted from SentimentDashboard.
+// reusable chart cards, tooltips, and sentiment chips
 
 import React, { useMemo, useState } from 'react';
 import {
@@ -48,7 +47,7 @@ import {
 
 const T = THEME;
 
-// ── Sentiment Status Pill Chip (Soft Rounded Badge with Indicator Icon) ───
+// sentiment status chip
 export const SentimentChip = ({ label }) => {
   const norm = label || 'Neutral';
   const isPos = norm === 'Positive';
@@ -158,7 +157,7 @@ export const CategoryChip = ({ label, size = 'medium' }) => {
   );
 };
 
-// ── Summary KPI Card ────────────────────────────────────────────────────────
+// summary kpi metric card
 export const SummaryCard = ({
   title,
   value,
@@ -261,7 +260,7 @@ export const SummaryCard = ({
     return cardContent;
   }
 
-  // Normal white cards
+  // default card styling
   const cardContent = (
     <Card elevation={0} sx={{
       borderRadius: 3.5,
@@ -320,7 +319,7 @@ export const SummaryCard = ({
   return cardContent;
 };
 
-// ── Shared String Formatters for Comments & Recommendations ─────────────────
+// string helpers for quotes and college abbreviations
 const cleanQuote = (msg) => {
   if (!msg) return '';
   let str = typeof msg === 'string' ? msg.trim() : (msg.Message || '').trim();
@@ -353,13 +352,19 @@ const formatCollege = (college) => {
   return map[upper] || (upper.length > 9 ? `${upper.slice(0, 8)}.` : upper);
 };
 
-// ── Top Comments Card (Positive / Negative — Clean & Focused) ───────────────
+// top comments card
 export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
   const isPositive = type === 'positive';
   const borderColor = isPositive ? '#107c41' : '#e11d48';
-  const badgeBg = isPositive ? '#eafaf1' : '#fff1f2';
-  const badgeBorder = isPositive ? '#b7ebc9' : '#fecdd3';
-  const badgeColor = isPositive ? '#107c41' : '#be123c';
+  const accentBorder = isPositive ? '#107c41' : '#f43f5e';
+  const headerBg = isPositive ? 'rgba(16, 124, 65, 0.035)' : 'rgba(225, 29, 72, 0.035)';
+  const headerBorder = isPositive ? '#d1fae5' : '#ffe4e6';
+  const iconBg = isPositive ? '#dcfce7' : '#fee2e2';
+  const iconColor = isPositive ? '#15803d' : '#be123c';
+  const iconBorder = isPositive ? '#bbf7d0' : '#fecaca';
+  const badgeBg = isPositive ? '#ecfdf5' : '#fef2f2';
+  const badgeBorder = isPositive ? '#a7f3d0' : '#fecaca';
+  const badgeColor = isPositive ? '#047857' : '#991b1b';
 
   return (
     <Card
@@ -368,7 +373,7 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
         bgcolor: '#ffffff',
         borderRadius: 3,
         border: '1.5px solid #e2e8f0',
-        borderTop: `4px solid ${borderColor}`,
+        borderTop: `3.5px solid ${borderColor}`,
         p: { xs: 1.8, sm: 2.2 },
         display: 'flex',
         flexDirection: 'column',
@@ -376,16 +381,13 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
         overflow: 'hidden',
       }}
     >
-      {/* Header Container */}
+      {/* header container */}
       <Box sx={{
-        background: isPositive
-          ? 'linear-gradient(135deg, #eafaf1 0%, #dcfce7 100%)'
-          : 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)',
+        bgcolor: headerBg,
         borderRadius: 2.5,
-        p: { xs: 1.3, sm: 1.5 },
+        p: { xs: 1.2, sm: 1.4 },
         mb: 2,
-        border: isPositive ? '1.5px solid #b7ebc9' : '1.5px solid #fecdd3',
-        borderLeft: isPositive ? '5px solid #107c41' : '5px solid #e11d48',
+        border: `1px solid ${headerBorder}`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -394,14 +396,14 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
           <Box sx={{
-            bgcolor: borderColor,
-            color: '#ffffff',
-            p: 0.55,
-            borderRadius: '6px',
+            bgcolor: iconBg,
+            color: iconColor,
+            border: `1px solid ${iconBorder}`,
+            p: 0.6,
+            borderRadius: '8px',
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
             '& svg': { fontSize: 16 }
           }}>
             {isPositive ? <ThumbUpIcon /> : <ThumbDownIcon />}
@@ -411,7 +413,7 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
               fontFamily: T.font.family,
               fontWeight: 800,
               fontSize: { xs: 14, sm: 15 },
-              color: badgeColor,
+              color: '#16324f',
               letterSpacing: '-0.2px',
             }}>
               {title}
@@ -423,10 +425,10 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
               <Box sx={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                color: badgeColor,
+                color: '#64748b',
                 opacity: 0.75,
                 cursor: 'help',
-                '&:hover': { opacity: 1 }
+                '&:hover': { opacity: 1, color: '#16324f' }
               }}>
                 <InfoOutlinedIcon sx={{ fontSize: 15 }} />
               </Box>
@@ -438,8 +440,8 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
           fontSize: 11,
           fontWeight: 700,
           color: badgeColor,
-          bgcolor: '#ffffff',
-          border: `1.5px solid ${badgeBorder}`,
+          bgcolor: badgeBg,
+          border: `1px solid ${badgeBorder}`,
           px: 1.2,
           py: 0.25,
           borderRadius: '9999px',
@@ -449,7 +451,7 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
         </Typography>
       </Box>
 
-      {/* Comments List */}
+      {/* comments list */}
       {rows.length === 0 ? (
         <Box sx={{
           display: 'flex',
@@ -478,7 +480,7 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
             const category = row.Category || 'General';
             const rawQuote = cleanQuote(row.Message);
 
-            // RoBERTa confidence metrics
+            // formula: confidence = Math.min(Math.max(rawScore, 0), 1)
             const rawTopic = row.primaryTopic || row.topTerm || category || 'General';
             const detectedTopic = rawTopic.charAt(0).toUpperCase() + rawTopic.slice(1);
             const rawConf = typeof row.confidence === 'number'
@@ -493,45 +495,52 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
               <Box
                 key={i}
                 sx={{
-                  bgcolor: '#f8fafc',
-                  border: '1.5px solid #e2e8f0',
-                  borderLeft: `4px solid ${borderColor}`,
+                  bgcolor: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderLeft: `3px solid ${accentBorder}`,
                   borderRadius: '8px',
                   p: { xs: 1.2, sm: 1.4 },
                   display: 'flex',
                   flexDirection: 'column',
                   gap: 0.7,
+                  boxShadow: '0 1px 3px rgba(22, 50, 79, 0.02)',
                   transition: 'all 0.15s ease',
                   '&:hover': {
-                    bgcolor: '#ffffff',
-                    boxShadow: '0 3px 12px rgba(22, 50, 79, 0.05)',
+                    bgcolor: '#fbfcfe',
+                    boxShadow: '0 3px 12px rgba(22, 50, 79, 0.06)',
                     borderColor: '#cbd5e1',
                     borderLeftColor: borderColor,
                   }
                 }}
               >
-                {/* Clean, Pleasing Metadata Row */}
+                {/* metadata row */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, flexWrap: 'wrap' }}>
-                  {/* Number Badge */}
-                  <Box sx={{
-                    width: 22,
-                    height: 22,
-                    minWidth: 22,
-                    borderRadius: '50%',
-                    bgcolor: borderColor,
-                    color: '#ffffff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontFamily: T.font.family,
-                    fontSize: 11,
-                    fontWeight: 800,
-                    lineHeight: 1,
-                  }}>
-                    {i + 1}
-                  </Box>
+                  {/* rank badge */}
+                  <Tooltip title={`RoBERTa Model Ranked #${i + 1} by Confidence`} arrow>
+                    <Box sx={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      minWidth: 26,
+                      height: 22,
+                      px: 0.65,
+                      borderRadius: '6px',
+                      bgcolor: badgeBg,
+                      color: badgeColor,
+                      border: `1px solid ${badgeBorder}`,
+                      fontFamily: T.font.family,
+                      fontSize: 10.5,
+                      fontWeight: 800,
+                      lineHeight: 1,
+                      letterSpacing: '-0.2px',
+                      flexShrink: 0,
+                      cursor: 'help',
+                    }}>
+                      #{i + 1}
+                    </Box>
+                  </Tooltip>
 
-                  {/* College Badge */}
+                  {/* college badge */}
                   {rawCollege && (
                     <Tooltip title={rawCollege} arrow>
                       <Box sx={{
@@ -553,7 +562,7 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
                     </Tooltip>
                   )}
 
-                  {/* Detected Topic Indicator Badge */}
+                  {/* topic indicator badge */}
                   {detectedTopic && (
                     <Tooltip
                       title={
@@ -602,12 +611,12 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
                     </Tooltip>
                   )}
 
-                  {/* RoBERTa Model Confidence Score Badge */}
+                  {/* classification score badge */}
                   <Tooltip
                     title={
                       <Box sx={{ p: 0.5, fontSize: 11, lineHeight: 1.45 }}>
                         <Box sx={{ fontWeight: 800, mb: 0.4 }}>RoBERTa Model Ranking: #{i + 1}</Box>
-                        <Box>• Model Confidence: <b>{confidencePct}%</b></Box>
+                        <Box>• Classification Score: <b>{confidencePct}%</b></Box>
                         <Box>• Predicted Sentiment: <b>{isPositive ? 'Positive' : 'Negative'}</b></Box>
                       </Box>
                     }
@@ -634,17 +643,17 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
                       }
                     }}>
                       <VerifiedIcon sx={{ fontSize: 11, color: isPositive ? '#059669' : '#e11d48' }} />
-                      <span>{confidencePct}% Confidence</span>
+                      <span>{confidencePct}% Score</span>
                     </Box>
                   </Tooltip>
 
-                  {/* Category Pill (Aligned to Right — Exact Table Color Coded) */}
+                  {/* category chip */}
                   <Box sx={{ ml: 'auto', flexShrink: 0 }}>
                     <CategoryChip label={category} size="small" />
                   </Box>
                 </Box>
 
-                {/* Verbatim Comment — Clean Normal Text */}
+                {/* verbatim comment */}
                 <Typography sx={{
                   fontFamily: T.font.family,
                   fontSize: 13,
@@ -666,17 +675,17 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
   );
 };
 
-// ── Recommendation Card for a specific flagged category / topic ───────────
-// ── Recommendation Card for a specific flagged category / topic ───────────
+
+// recommendation card for flagged category
 export const RecommendationCard = ({ stat, onFilterCategory, isFiltered = false, onClearFilter }) => {
   if (!stat) return null;
   const isHigh = (stat.severity || '').toUpperCase() === 'HIGH';
   const category = stat.category || 'Other/Uncategorized';
 
-  // Category Color Theme Alignment (Soft Blue for Facilities, Warm Orange for Staff, Soft Purple for Collection - matching table)
+  // category theme colors
   const categoryThemeMap = {
     Facilities: {
-      primary: '#1d4ed8', // Soft Blue (matches table)
+      primary: '#1d4ed8', // facilities blue
       dark: '#1e40af',
       light: '#eff6ff',
       border: '#bfdbfe',
@@ -685,7 +694,7 @@ export const RecommendationCard = ({ stat, onFilterCategory, isFiltered = false,
       icon: ApartmentIcon,
     },
     Staff: {
-      primary: '#c2410c', // Warm Orange (matches table)
+      primary: '#c2410c', // staff orange
       dark: '#9a3412',
       light: '#fff7ed',
       border: '#fed7aa',
@@ -694,7 +703,7 @@ export const RecommendationCard = ({ stat, onFilterCategory, isFiltered = false,
       icon: PeopleIcon,
     },
     Collection: {
-      primary: '#7e22ce', // Soft Purple (matches table)
+      primary: '#7e22ce', // collection purple
       dark: '#6b21a8',
       light: '#faf5ff',
       border: '#e9d5ff',
@@ -740,10 +749,10 @@ export const RecommendationCard = ({ stat, onFilterCategory, isFiltered = false,
         }
       }}
     >
-      {/* Header Bar: Severity Badge + Category Pill + Signal Volume */}
+      {/* header row */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 1.4, flexWrap: 'wrap' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-          {/* Severity Badge */}
+          {/* severity badge */}
           <Box sx={{
             bgcolor: isHigh ? '#be123c' : '#d97706',
             color: '#ffffff',
@@ -760,7 +769,7 @@ export const RecommendationCard = ({ stat, onFilterCategory, isFiltered = false,
             {isHigh ? 'HIGH PRIORITY' : 'MODERATE'}
           </Box>
 
-          {/* Category Pill with Icon */}
+          {/* category pill */}
           <Box sx={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -780,7 +789,7 @@ export const RecommendationCard = ({ stat, onFilterCategory, isFiltered = false,
           </Box>
         </Box>
 
-        {/* Signal Volume Indicator */}
+        {/* signal volume indicator */}
         <Tooltip title={`Identified from ${totalSignals} negative feedback entries`} arrow>
           <Box sx={{
             display: 'inline-flex',
@@ -802,7 +811,7 @@ export const RecommendationCard = ({ stat, onFilterCategory, isFiltered = false,
         </Tooltip>
       </Box>
 
-      {/* Topic Title */}
+      {/* topic title */}
       <Typography sx={{
         fontFamily: T.font.family,
         fontWeight: 800,
@@ -815,7 +824,7 @@ export const RecommendationCard = ({ stat, onFilterCategory, isFiltered = false,
         {stat.title}
       </Typography>
 
-      {/* Priority Action Callout Banner */}
+      {/* action banner */}
       <Box sx={{
         background: theme.gradient,
         borderRadius: 2.5,
@@ -849,7 +858,7 @@ export const RecommendationCard = ({ stat, onFilterCategory, isFiltered = false,
         </Typography>
       </Box>
 
-      {/* Pain-Point Keywords */}
+      {/* pain-point keywords */}
       <Box sx={{ mb: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.8 }}>
           <LocalOfferIcon sx={{ fontSize: 12.5, color: '#64748b' }} />
@@ -907,7 +916,7 @@ export const RecommendationCard = ({ stat, onFilterCategory, isFiltered = false,
         </Box>
       </Box>
 
-      {/* Patron Supporting Evidence Section */}
+      {/* patron evidence */}
       <Box sx={{ mt: 'auto', pt: 1.5, borderTop: '1px solid #f1f5f9' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -998,7 +1007,7 @@ export const RecommendationCard = ({ stat, onFilterCategory, isFiltered = false,
           })}
         </Box>
 
-        {/* Filter Reviews Link / Clear Filter Option */}
+        {/* filter toggle */}
         {onFilterCategory && (
           <Box sx={{ mt: 1.2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 0.8 }}>
             {isFiltered ? (
@@ -1069,7 +1078,7 @@ export const RecommendationCard = ({ stat, onFilterCategory, isFiltered = false,
   );
 };
 
-// ── Custom Tooltip for Sentiment Stacked Bar Chart ──────────────────────────
+// tooltip for stacked bar chart
 export const CustomSentimentStackedTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     const total = payload.reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
@@ -1104,7 +1113,7 @@ export const CustomSentimentStackedTooltip = ({ active, payload, label }) => {
   return null;
 };
 
-// ── Custom Tooltip for Category Donut Gauge ─────────────────────────────────
+// tooltip for category donut
 export const CustomDonutGaugeTooltip = ({ active, payload }) => {
   if (active && payload && payload.length) {
     const item = payload[0];
@@ -1129,7 +1138,7 @@ export const CustomDonutGaugeTooltip = ({ active, payload }) => {
   return null;
 };
 
-// ── Pie Chart Custom Label Renderer ─────────────────────────────────────────
+// custom pie label renderer
 const RADIAN = Math.PI / 180;
 export const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
   if (percent < 0.05) return null;
@@ -1144,7 +1153,7 @@ export const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, 
   );
 };
 
-// ── Custom Tooltip for Diverging Sentiment Balance Trend Chart ─────────────
+// tooltip for sentiment balance chart
 export const CustomDivergingTrendTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     const dataObj = payload[0]?.payload || {};
@@ -1172,7 +1181,7 @@ export const CustomDivergingTrendTooltip = ({ active, payload, label }) => {
         </Box>
 
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.8 }}>
-          {/* Positive Balance Inflow */}
+          {/* positive inflow */}
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 0.8, px: 1.2, borderRadius: 2, bgcolor: T.sentiment.Positive.light, border: `1px solid ${T.sentiment.Positive.dot}60` }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
               <ArrowDropUpIcon sx={{ fontSize: 18, color: T.sentiment.Positive.text, ml: -0.3, mr: -0.2 }} />
@@ -1185,7 +1194,7 @@ export const CustomDivergingTrendTooltip = ({ active, payload, label }) => {
             </Typography>
           </Box>
 
-          {/* Negative Balance Outflow */}
+          {/* negative outflow */}
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 0.8, px: 1.2, borderRadius: 2, bgcolor: T.sentiment.Negative.light, border: `1px solid ${T.sentiment.Negative.dot}60` }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
               <ArrowDropDownIcon sx={{ fontSize: 18, color: T.sentiment.Negative.text, ml: -0.3, mr: -0.2 }} />
@@ -1198,7 +1207,7 @@ export const CustomDivergingTrendTooltip = ({ active, payload, label }) => {
             </Typography>
           </Box>
 
-          {/* Neutral count if any */}
+          {/* neutral count */}
           {neu > 0 && (
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 0.6, px: 1.2, borderRadius: 2, bgcolor: T.sentiment.Neutral.light, border: `1px solid ${T.sentiment.Neutral.dot}40` }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
@@ -1213,7 +1222,7 @@ export const CustomDivergingTrendTooltip = ({ active, payload, label }) => {
             </Box>
           )}
 
-          {/* Average Satisfaction Score */}
+          {/* average satisfaction */}
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 0.5, pt: 0.8, borderTop: `1px dashed ${T.surface.borderLight}` }}>
             <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, color: T.text.secondary, fontWeight: 600 }}>
               Avg Satisfaction Score:
@@ -1234,10 +1243,10 @@ export const CustomDivergingTrendTooltip = ({ active, payload, label }) => {
   return null;
 };
 
-// Stable minSize array so reference never changes across re-renders
+// stable min size reference
 const WORD_CLOUD_MIN_SIZE = [300, 300];
 
-// ── Memoized Word Cloud Section Component ──────────────────────────────────
+// word cloud section component
 export const WordCloudSection = React.memo(({
   words = [],
   selectedWordFilter = '',
@@ -1248,14 +1257,14 @@ export const WordCloudSection = React.memo(({
     deterministic: true,
     randomSeed: 'hll-library-wordcloud-poster-v1',
     rotations: 1,
-    rotationAngles: [0, 0], // Strictly horizontal words only, no vertical rotation
+    rotationAngles: [0, 0], // horizontal orientation only
     fontFamily: '"Arial Black", Impact, "Trebuchet MS", "Poppins", sans-serif',
     fontSizes: [16, 76],
     fontStyle: 'normal',
     fontWeight: '900',
     padding: 3,
     enableTooltip: true,
-    transitionDuration: 650, // Fluid, smooth layout transition duration for d3-cloud
+    transitionDuration: 650, // transition duration
     scale: 'sqrt',
     spiral: 'archimedean',
   }), []);
@@ -1266,7 +1275,7 @@ export const WordCloudSection = React.memo(({
         return '#ea580c';
       }
       if (words.length > 0 && word.text === words[0]?.text) {
-        return '#ea580c'; // Vibrant warm orange for the #1 prominent word
+        return '#ea580c'; // prominent word highlight
       }
       const charCodeSum = (word.text || '').split('').reduce((acc, char, i) => acc + char.charCodeAt(0) * (i + 1), 0);
       return T.wordCloudColors[charCodeSum % T.wordCloudColors.length];
@@ -1391,15 +1400,15 @@ export const WordCloudSection = React.memo(({
   );
 });
 
-// ── Modern KPI Metric Card (Matching Reference Design with Top-Right Pill Badge) ─────
+// kpi metric card
 export const ModernKpiCard = ({
   title,
   value,
   badgeText,
-  badgeType = 'positive', // 'positive' | 'negative' | 'neutral' | 'purple' | 'blue'
+  badgeType = 'positive', // badge type options
   subtitle,
   highlighted = false,
-  borderColorTheme = 'gold', // 'gold' | 'blue'
+  borderColorTheme = 'gold', // border accent theme
 }) => {
   const badgeConfig = {
     positive: { bg: '#eafaf1', text: '#107c41', border: '#b7ebc9' },
@@ -1533,7 +1542,7 @@ export const ModernKpiCard = ({
   );
 };
 
-// ── Custom Tooltip for Revenue-Style Sentiment Trend Area Chart ────────────
+// tooltip for monthly area chart
 export const CustomRevenueTooltip = ({ active, payload, label, metricMode = 'percent' }) => {
   if (active && payload && payload.length) {
     const dataObj = payload[0]?.payload || {};
@@ -1574,7 +1583,7 @@ export const CustomRevenueTooltip = ({ active, payload, label, metricMode = 'per
   return null;
 };
 
-// ── Revenue-Style Monthly Sentiment Trend Container ────────────────────────
+// monthly sentiment trend container
 export const RevenueStyleSentimentChart = ({
   data = [],
   title = "Monthly Sentiment Overview",
@@ -1610,7 +1619,7 @@ export const RevenueStyleSentimentChart = ({
         }
       }}
     >
-      {/* Header Container */}
+      {/* header container */}
       <Box sx={{
         display: 'flex',
         alignItems: { xs: 'flex-start', sm: 'center' },
@@ -1643,9 +1652,9 @@ export const RevenueStyleSentimentChart = ({
           </Box>
         </Box>
 
-        {/* Timeframe & View Controls */}
+        {/* timeframe controls */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', alignSelf: { xs: 'stretch', sm: 'auto' }, justifyContent: { xs: 'space-between', sm: 'flex-end' } }}>
-          {/* 1M 3M 6M 1Y ALL Segmented Controls */}
+          {/* quick timeframe presets */}
           <ToggleButtonGroup
             value={timeframe}
             exclusive
@@ -1682,7 +1691,7 @@ export const RevenueStyleSentimentChart = ({
             <ToggleButton value="ALL">ALL</ToggleButton>
           </ToggleButtonGroup>
 
-          {/* Optional Year Selector */}
+          {/* year selector */}
           {availableYears.length > 0 && onYearChange && (
             <FormControl size="small" sx={{ minWidth: 90 }}>
               <Select
@@ -1709,7 +1718,7 @@ export const RevenueStyleSentimentChart = ({
         </Box>
       </Box>
 
-      {/* Smooth Curved Area Chart */}
+      {/* area chart */}
       <Box sx={{ width: '100%', height: 290, mt: 1 }}>
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 15, right: 15, left: -15, bottom: 0 }}>
@@ -1750,7 +1759,7 @@ export const RevenueStyleSentimentChart = ({
   );
 };
 
-// ── Source & Category Sentiment Breakdown Container (Right-Side Card) ────────
+// category sentiment breakdown container
 export const SourceSentimentBreakdownCard = ({
   totalSurveys = 0,
   positiveCount = 0,
@@ -1768,7 +1777,7 @@ export const SourceSentimentBreakdownCard = ({
   const neuPct = total > 0 ? Math.round((neutralCount / total) * 100) : 0;
   const negPct = total > 0 ? Math.max(0, 100 - posPct - neuPct) : 0;
 
-  // Sentiment Donut: Green for Positive, Slate Grey for Neutral, Red for Negative
+  // sentiment donut chart
   const donutData = total > 0 ? [
     { name: 'Positive', value: positiveCount, color: '#107c41' },
     { name: 'Neutral', value: neutralCount, color: '#64748b' },
@@ -1800,7 +1809,7 @@ export const SourceSentimentBreakdownCard = ({
         }
       }}
     >
-      {/* Header with Title and Category Dropdown Filter */}
+      {/* header and filter */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, flexWrap: 'wrap', gap: 1 }}>
         <Box>
           <Typography sx={{ fontFamily: T.font.family, fontSize: 16.5, fontWeight: 800, color: '#16324f' }}>
@@ -1837,7 +1846,7 @@ export const SourceSentimentBreakdownCard = ({
         )}
       </Box>
 
-      {/* Donut Chart with Centered Total */}
+      {/* donut chart */}
       <Box sx={{ width: '100%', position: 'relative', height: 180, my: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
@@ -1863,7 +1872,7 @@ export const SourceSentimentBreakdownCard = ({
           </PieChart>
         </ResponsiveContainer>
 
-        {/* Centered Total Label */}
+        {/* centered total */}
         <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', pointerEvents: 'none' }}>
           <Typography sx={{ fontFamily: T.font.family, fontWeight: 900, fontSize: 20, color: '#16324f', lineHeight: 1.1 }}>
             {formattedTotal}
@@ -1874,7 +1883,7 @@ export const SourceSentimentBreakdownCard = ({
         </Box>
       </Box>
 
-      {/* Legend Indicators below Donut */}
+      {/* legend indicators */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 1.2, flexWrap: 'wrap' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: '#eafaf1', border: '1px solid #b7ebc9', px: 0.8, py: 0.2, borderRadius: '9999px' }}>
           <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#107c41' }} />
@@ -1896,11 +1905,11 @@ export const SourceSentimentBreakdownCard = ({
         </Box>
       </Box>
 
-      {/* Category or Sentiment Breakdown Details Section */}
+      {/* breakdown details */}
       <Box sx={{ width: '100%', mb: 1.5, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
         {selectedCategory === 'All Categories' ? (
           <>
-            {/* Table Header for All Categories Comparison */}
+            {/* table header */}
             <Box sx={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr', pb: 0.8, px: 0.5, borderBottom: '1px solid #f1f5f9' }}>
               <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#94a3b8' }}>
                 Category
@@ -1913,7 +1922,7 @@ export const SourceSentimentBreakdownCard = ({
               </Typography>
             </Box>
 
-            {/* Table Rows for All Categories */}
+            {/* table rows */}
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, pt: 1 }}>
               {categoryBreakdown.map((item, idx) => {
                 const catConfig = {
@@ -1948,7 +1957,7 @@ export const SourceSentimentBreakdownCard = ({
                       }
                     }}
                   >
-                    {/* Category Icon & Prominent Name */}
+                    {/* category cell */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.9 }}>
                       <Box sx={{
                         width: 28,
@@ -1969,7 +1978,7 @@ export const SourceSentimentBreakdownCard = ({
                       </Typography>
                     </Box>
 
-                    {/* Rating Metric */}
+                    {/* rating metric */}
                     <Typography sx={{
                       fontFamily: T.font.family,
                       fontSize: 13.5,
@@ -1984,7 +1993,7 @@ export const SourceSentimentBreakdownCard = ({
                       {item.metric || '4.5 ★'}
                     </Typography>
 
-                    {/* Total Submissions Count */}
+                    {/* submissions count */}
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
                       <Box sx={{
                         display: 'inline-flex',
@@ -2009,7 +2018,7 @@ export const SourceSentimentBreakdownCard = ({
           </>
         ) : (
           <>
-            {/* Table Header for Single Category Breakdown */}
+            {/* category breakdown header */}
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 0.8, px: 0.5, borderBottom: '1px solid #f1f5f9' }}>
               <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#94a3b8' }}>
                 {selectedCategory} Breakdown
@@ -2032,9 +2041,9 @@ export const SourceSentimentBreakdownCard = ({
               </Button>
             </Box>
 
-            {/* Rows for Single Category Sentiment Shares */}
+            {/* category share rows */}
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, pt: 1 }}>
-              {/* Positive Row */}
+              {/* positive share row */}
               <Box sx={{
                 display: 'grid',
                 gridTemplateColumns: '1.4fr 1fr 1fr',
@@ -2059,7 +2068,7 @@ export const SourceSentimentBreakdownCard = ({
                 </Typography>
               </Box>
 
-              {/* Neutral Row */}
+              {/* neutral share row */}
               <Box sx={{
                 display: 'grid',
                 gridTemplateColumns: '1.4fr 1fr 1fr',
@@ -2084,7 +2093,7 @@ export const SourceSentimentBreakdownCard = ({
                 </Typography>
               </Box>
 
-              {/* Negative Row */}
+              {/* negative share row */}
               <Box sx={{
                 display: 'grid',
                 gridTemplateColumns: '1.4fr 1fr 1fr',
@@ -2113,7 +2122,7 @@ export const SourceSentimentBreakdownCard = ({
         )}
       </Box>
 
-      {/* Action Button at bottom */}
+      {/* action button */}
       <Button
         variant="outlined"
         fullWidth

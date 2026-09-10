@@ -45,7 +45,7 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../Components/Header';
 import TopBar from '../Components/TopBar';
 
-// ── Centralized imports from extracted modules ──────────────────────────────
+// centralized module imports
 import {
   THEME,
   sectionHeaderSx,
@@ -165,7 +165,7 @@ function SentimentDashboard() {
     setPage(0);
   };
 
-  // Word Cloud interactive states & filters
+  // word cloud states and filters
   const [, setWcSearch] = useState('');
   const [, setWcSentimentFilter] = useState('All');
   const [selectedWordFilter, setSelectedWordFilter] = useState('');
@@ -180,21 +180,21 @@ function SentimentDashboard() {
     setPage(0);
   }, []);
 
-  // Live Search & Sort states
+  // search and sort states
   const [sortField, setSortField] = useState('DateSubmitted');
   const [sortOrder, setSortOrder] = useState('desc');
 
-  // Batch Selection & Deletion states
+  // batch selection and deletion states
   const [selectedRowIds, setSelectedRowIds] = useState([]);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [recordToDelete, setRecordToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [snackbarMsg, setSnackbarMsg] = useState('');
 
-  // Trend Container Scale state ('percent' = Symmetric 100% | 'count' = Volume Counts)
+  // trend scale mode: percent (100%) or count (volume)
   const [trendScaleMode, setTrendScaleMode] = useState('percent');
 
-  // Upper Section Modern Layout Controls
+  // layout controls
   const [sourceCategoryFilter, setSourceCategoryFilter] = useState('All Categories');
 
   const printRef = useRef();
@@ -519,7 +519,7 @@ function SentimentDashboard() {
     (filterYear && filterYear !== 'All' && filterYear !== '2026')
   );
 
-  // Overall Satisfaction Average (plain 1-5 scale from survey questions)
+  // average satisfaction rating: sum of survey questions / count
   const avgSatisfaction = filtered.length
     ? filtered.reduce((sum, s) => sum + getSatisfactionAverage(s), 0) / filtered.length
     : 0;
@@ -537,7 +537,7 @@ function SentimentDashboard() {
     return arr;
   }, [surveys]);
 
-  // ── Diverging Sentiment Balance & Monthly Trend Data ────────────────────────
+  // monthly diverging sentiment balance and trend data
   const divergingTrendData = useMemo(() => {
     const targetYear = filterYear === 'All' ? null : (filterYear || '2026');
 
@@ -601,7 +601,7 @@ function SentimentDashboard() {
     });
   }, [surveys, filterYear, filterClientele, filterCollege, filterCourse, filterSentiment, filterCategory, filterMonth]);
 
-  // Dynamic Y-Axis scale for balanced positive and negative headroom
+  // dynamic y-axis headroom: maxVal * 1.2
   const maxVolume = useMemo(() => {
     let maxVal = 5;
     divergingTrendData.forEach(d => {
@@ -611,7 +611,7 @@ function SentimentDashboard() {
     return Math.ceil(maxVal * 1.2);
   }, [divergingTrendData]);
 
-  // Category Breakdown for the Source Card
+  // category breakdown for source card
   const categoryBreakdownData = useMemo(() => {
     const categories = ['Facilities', 'Staff', 'Collection'];
     return categories.map(cat => {
@@ -633,7 +633,7 @@ function SentimentDashboard() {
     });
   }, [filtered]);
 
-  // Sentiment counts dynamically filtered by the Source card's selected category
+  // sentiment counts filtered by selected category
   const sourceCardSentimentData = useMemo(() => {
     if (sourceCategoryFilter === 'All Categories' || sourceCategoryFilter === 'All') {
       return {
@@ -665,7 +665,7 @@ function SentimentDashboard() {
 
 
 
-  // ── Word/Term Frequency for Word Cloud ────────────────────────────────────
+  // word frequency for word cloud
   const { freq: termFrequencies = {}, displayMap: stemToOriginalMap = {} } = useMemo(() => {
     return buildTermFrequencies(filtered.length > 0 ? filtered : surveys);
   }, [filtered, surveys]);
@@ -945,7 +945,7 @@ function SentimentDashboard() {
 
             {!showLoginModal && (
               <Box sx={{ p: { xs: 2, md: 3 }, bgcolor: '#eef1f6', minHeight: '100vh' }}>
-                {/* ── Modern Header Action Bar Banner ───── */}
+                {/* header action bar banner */}
                 <Paper elevation={0} sx={{
                   p: { xs: 2, md: 2.5 }, mb: 3, borderRadius: 3.5,
                   bgcolor: '#ffffff',
@@ -1010,7 +1010,7 @@ function SentimentDashboard() {
                   </Box>
                 </Paper>
 
-                {/* ── Filter Controls Container ───── */}
+                {/* filter controls */}
                 <Paper elevation={0} sx={{
                   mb: 3, ...cardShellSx,
                   border: '1.5px solid #cbdbe9',
@@ -1049,7 +1049,7 @@ function SentimentDashboard() {
                     </Typography>
                   </Box>
 
-                  {/* ── Quick Date Presets Row ───── */}
+                  {/* quick date presets */}
                   <Box sx={{ px: 3, pt: 1.8, pb: 1.5, bgcolor: '#ffffff', borderBottom: `1px solid ${T.surface.borderLight}`, display: 'flex', alignItems: 'center', gap: 0.8, flexWrap: 'wrap' }}>
                     <Typography sx={{ fontFamily: T.font.family, fontSize: 12.5, fontWeight: 700, color: '#64748b', mr: 0.8, display: 'flex', alignItems: 'center', gap: 0.5 }}>
                       <CalendarTodayIcon sx={{ fontSize: 15, color: '#16324f' }} /> Quick Date Range:
@@ -1207,7 +1207,7 @@ function SentimentDashboard() {
                     </Button>
                   </Box>
 
-                  {/* ── Active Filter Chips Row ───── */}
+                  {/* active filter chips */}
                   {hasActiveFilter && (
                     <Box sx={{ px: 3, pb: 2, pt: 1.5, bgcolor: '#f8fafc', display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', borderTop: `1px solid ${T.surface.borderLight}` }}>
                       <Typography sx={{ fontFamily: T.font.family, fontSize: 12.5, fontWeight: 700, color: '#64748b' }}>
@@ -1278,7 +1278,7 @@ function SentimentDashboard() {
                   </Box>
                 ) : (
                   <>
-                    {/* ── Modern Upper Section: 2-Column Revenue & Source Architecture ───── */}
+                    {/* upper dashboard section: kpi cards and source donut */}
                     <Box sx={{
                       display: 'grid',
                       gridTemplateColumns: { xs: '1fr', lg: '3fr 1fr' },
@@ -1286,9 +1286,9 @@ function SentimentDashboard() {
                       mb: 3.5,
                       alignItems: 'stretch'
                     }}>
-                      {/* Left Column: Top 3 KPI Cards + Original Monthly Sentiment Bar Chart Container */}
+                      {/* left column: kpi cards and monthly diverging bar chart */}
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-                        {/* Top 3 KPI Cards */}
+                        {/* top 3 kpi cards */}
                         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2 }}>
                           <ModernKpiCard
                             title="Total Surveys"
@@ -1311,7 +1311,7 @@ function SentimentDashboard() {
                           />
                         </Box>
 
-                        {/* Monthly Sentiment Balance & Bar Comparison (Original Diverging Bar Chart with Revenue Header Styling) */}
+                        {/* monthly sentiment diverging bar chart */}
                         <Card elevation={0} sx={{
                           bgcolor: '#ffffff',
                           borderRadius: '16px',
@@ -1327,7 +1327,7 @@ function SentimentDashboard() {
                             borderColor: '#16324f',
                           }
                         }}>
-                          {/* Header Container */}
+                          {/* header container */}
                           <Box sx={{
                             display: 'flex',
                             alignItems: { xs: 'flex-start', sm: 'center' },
@@ -1347,7 +1347,7 @@ function SentimentDashboard() {
                               </Box>
                             </Box>
 
-                            {/* View Controls: % Share vs Counts + Year Selector */}
+                            {/* view controls: share percentage vs volume counts */}
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                               <ToggleButtonGroup
                                 value={trendScaleMode}
@@ -1406,7 +1406,7 @@ function SentimentDashboard() {
                             </Box>
                           </Box>
 
-                          {/* Original Diverging Bar Chart */}
+                          {/* diverging bar chart */}
                           <Box sx={{ width: '100%', height: 310, mt: 0.5 }}>
                             <ResponsiveContainer width="100%" height="100%">
                               <BarChart
@@ -1500,7 +1500,7 @@ function SentimentDashboard() {
                         </Card>
                       </Box>
 
-                      {/* Right Column: Source & Category Sentiment Breakdown Donut Card */}
+                      {/* right column: source and category breakdown donut card */}
                       <Box sx={{ height: '87%' }}>
                         <SourceSentimentBreakdownCard
                           totalSurveys={sourceCardSentimentData.total}
@@ -1517,7 +1517,7 @@ function SentimentDashboard() {
                     </Box>
 
 
-                    {/* ── Top Patron Comments Container (Bluish Shell) ───── */}
+                    {/* top patron comments container */}
                     <Card elevation={0} sx={{
                       ...cardShellSx,
                       mb: 3,
@@ -1582,7 +1582,7 @@ function SentimentDashboard() {
                       </CardContent>
                     </Card>
 
-                    {/* ── Service Improvement Recommendations Container (Gold Shell) ───── */}
+                    {/* service improvement recommendations */}
                     <Card elevation={0} sx={{
                       ...cardShellSx,
                       mb: 3.5,
@@ -1687,7 +1687,7 @@ function SentimentDashboard() {
                       </CardContent>
                     </Card>
 
-                    {/* ── Frequently Used Words (Word Cloud) Container ───── */}
+                    {/* word cloud container */}
                     <WordCloudSection
                       words={wordCloudWords}
                       selectedWordFilter={selectedWordFilter}
@@ -1695,7 +1695,7 @@ function SentimentDashboard() {
                       onClearWordFilter={handleClearWordFilter}
                     />
 
-                    {/* ── Granular Survey Review Table (Gold Shell) ───── */}
+                    {/* granular survey review table */}
                     <Paper id="review-table-section" elevation={0} sx={{
                       borderRadius: 3.5,
                       bgcolor: '#ffffff',
@@ -1706,7 +1706,7 @@ function SentimentDashboard() {
                       p: { xs: 2, md: 3 },
                       mb: 3,
                     }}>
-                      {/* Header with Title and Month Filter Pills */}
+                      {/* table header with title and month pills */}
                       <Box sx={{
                         display: 'flex',
                         justifyContent: 'space-between',
@@ -1848,7 +1848,7 @@ function SentimentDashboard() {
                         </Box>
                       </Box>
 
-                      {/* ── Table Content - Modern Spreadsheet Grid with Section Highlighting ───── */}
+                      {/* table content grid */}
                       <TableContainer
                         component={Box}
                         sx={{
@@ -1861,7 +1861,7 @@ function SentimentDashboard() {
                       >
                         <Table size="small" sx={{ minWidth: 920, borderCollapse: 'separate', borderSpacing: 0 }}>
                           <TableHead>
-                            {/* Top Tier: Spreadsheet Section Category Headers */}
+                            {/* top tier: section headers */}
                             <TableRow sx={{
                               bgcolor: '#ffffff',
                               '& th': {
@@ -1910,7 +1910,7 @@ function SentimentDashboard() {
                               </TableCell>
                             </TableRow>
 
-                            {/* Second Tier: Column Field Names with Sort Labels and Grid Dividers */}
+                            {/* second tier: column headers with sort labels */}
                             <TableRow sx={{
                               bgcolor: '#fafbfc',
                               '& th': {
@@ -2123,7 +2123,7 @@ function SentimentDashboard() {
                         </Table>
                       </TableContainer>
 
-                      {/* ── Pagination Controls ───── */}
+                      {/* pagination controls */}
                       <Box sx={{
                         display: 'flex',
                         justifyContent: 'space-between',
@@ -2194,7 +2194,7 @@ function SentimentDashboard() {
               </Box>
             )}
 
-            {/* ── Custom Deletion Confirmation Dialog ───── */}
+            {/* deletion confirmation dialog */}
             <Dialog open={deleteConfirmOpen} onClose={() => !deleting && setDeleteConfirmOpen(false)} PaperProps={{ sx: { borderRadius: T.radius.card, p: 1, maxWidth: 440 } }}>
               <DialogTitle sx={{ fontFamily: T.font.family, fontWeight: 800, fontSize: 18, color: T.text.primary }}>
                 {recordToDelete ? 'Confirm Review Deletion' : `Confirm Batch Deletion (${selectedRowIds.length} Records)`}
@@ -2226,7 +2226,7 @@ function SentimentDashboard() {
               </DialogActions>
             </Dialog>
 
-            {/* ── Snackbar Alert Toasts ───── */}
+            {/* snackbar alert toasts */}
             <Snackbar open={Boolean(snackbarMsg)} autoHideDuration={4000} onClose={() => setSnackbarMsg('')} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
               <Alert onClose={() => setSnackbarMsg('')} severity="info" sx={{ width: '100%', fontFamily: T.font.family, fontWeight: 600, borderRadius: 3 }}>
                 {snackbarMsg}
