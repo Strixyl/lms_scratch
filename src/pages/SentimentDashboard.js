@@ -102,6 +102,36 @@ const MONTH_CODE_MAP = {
 
 const T = THEME;
 
+// renders pill-shaped bars with fully rounded capsule ends
+const renderPillBar = (props) => {
+  const { x, y, width, height, fill, stroke, strokeWidth, payload } = props;
+  if (!height || Math.abs(height) < 0.5 || !width || width <= 0) return null;
+
+  const actualY = height < 0 ? y + height : y;
+  const actualHeight = Math.abs(height);
+  const r = Math.min(width / 2, actualHeight / 2);
+  const isSelected = payload?.isSelectedMonth;
+
+  return (
+    <rect
+      x={x}
+      y={actualY}
+      width={width}
+      height={actualHeight}
+      rx={r}
+      ry={r}
+      fill={fill}
+      stroke={isSelected ? '#0f172a' : stroke}
+      strokeWidth={isSelected ? 2 : (strokeWidth || 0)}
+      style={{
+        transition: 'all 0.2s ease',
+        cursor: 'pointer',
+        filter: isSelected ? 'drop-shadow(0 2px 4px rgba(0,0,0,0.18))' : 'none',
+      }}
+    />
+  );
+};
+
 function SentimentDashboard() {
   const navigate = useNavigate();
   const [showLoginModal, setShowLoginModal] = useState(true);
@@ -1338,7 +1368,7 @@ function SentimentDashboard() {
                           }}>
                             <Box>
                               <Typography sx={{ fontFamily: T.font.family, fontSize: 14, fontWeight: 700, color: '#64748b' }}>
-                                Monthly Sentiment Balance & Comparison
+                                Monthly Sentiment Comparison
                               </Typography>
                               <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.2, mt: 0.4, flexWrap: 'wrap' }}>
                                 <Typography sx={{ fontFamily: T.font.family, fontSize: { xs: 24, sm: 28 }, fontWeight: 800, color: '#16324f', lineHeight: 1.1 }}>
@@ -1406,13 +1436,14 @@ function SentimentDashboard() {
                             </Box>
                           </Box>
 
-                          {/* diverging bar chart */}
-                          <Box sx={{ width: '100%', height: 310, mt: 0.5 }}>
+                          {/* monthly side-by-side grouped pill chart */}
+                          <Box sx={{ width: '100%', height: 340, mt: 0.5 }}>
                             <ResponsiveContainer width="100%" height="100%">
                               <BarChart
                                 data={divergingTrendData}
                                 margin={{ top: 15, right: 15, left: -10, bottom: 5 }}
-                                stackOffset="sign"
+                                barGap={5}
+                                barCategoryGap="16%"
                                 style={{ cursor: 'pointer' }}
                                 onClick={(state) => {
                                   if (state && state.activeLabel) {
@@ -1438,61 +1469,62 @@ function SentimentDashboard() {
                                 }}
                               >
                                 <defs>
-                                  <linearGradient id="divPosGrad" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#107c41" stopOpacity={0.95} />
-                                    <stop offset="100%" stopColor="#16a34a" stopOpacity={0.88} />
+                                  {/* pastel mint green gradient sampled from reference photo */}
+                                  <linearGradient id="photoPastelGreen" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#6ee6b7" stopOpacity={0.95} />
+                                    <stop offset="100%" stopColor="#34d399" stopOpacity={0.9} />
                                   </linearGradient>
-                                  <linearGradient id="divNegGrad" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#fca5a5" stopOpacity={0.9} />
-                                    <stop offset="100%" stopColor="#f43f5e" stopOpacity={0.95} />
+                                  {/* complementary soft pastel rose gradient for negative */}
+                                  <linearGradient id="photoPastelRose" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#fda4af" stopOpacity={0.95} />
+                                    <stop offset="100%" stopColor="#fb7185" stopOpacity={0.9} />
                                   </linearGradient>
                                 </defs>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={T.surface.borderLight} />
-                                <XAxis dataKey="month" tick={{ fontFamily: T.font.family, fontSize: 11.5, fill: T.text.secondary, fontWeight: 700 }} />
+                                <XAxis dataKey="month" tick={{ fontFamily: T.font.family, fontSize: 12, fill: T.text.secondary, fontWeight: 700 }} />
 
                                 {trendScaleMode === 'percent' ? (
                                   <YAxis
-                                    domain={[-100, 100]}
-                                    ticks={[-100, -50, 0, 50, 100]}
-                                    tickFormatter={(val) => `${Math.abs(val)}%`}
+                                    domain={[0, 100]}
+                                    ticks={[0, 25, 50, 75, 100]}
+                                    tickFormatter={(val) => `${val}%`}
                                     tick={{ fontFamily: T.font.family, fontSize: 11, fill: T.text.secondary, fontWeight: 600 }}
                                     allowDecimals={false}
                                   />
                                 ) : (
                                   <YAxis
-                                    domain={[-maxVolume, maxVolume]}
-                                    tickFormatter={(val) => Math.abs(val)}
+                                    domain={[0, maxVolume]}
+                                    tickFormatter={(val) => val}
                                     tick={{ fontFamily: T.font.family, fontSize: 11, fill: T.text.secondary, fontWeight: 600 }}
                                     allowDecimals={false}
                                   />
                                 )}
 
-                                <ReferenceLine y={0} stroke="#94a3b8" strokeWidth={1.5} />
+                                <ReferenceLine y={0} stroke="#cbd5e1" strokeWidth={1.5} />
                                 <RechartsTooltip content={<CustomDivergingTrendTooltip />} />
                                 <Legend
+                                  iconType="circle"
                                   wrapperStyle={{ fontFamily: T.font.family, fontSize: 12, paddingTop: 8 }}
                                   formatter={(value) => <span style={{ color: T.text.heading, fontWeight: 600 }}>{value}</span>}
                                 />
 
                                 <Bar
                                   dataKey={trendScaleMode === 'percent' ? 'posPct' : 'Positive'}
-                                  stackId="sentimentPillar"
-                                  name={trendScaleMode === 'percent' ? 'Positive (%)' : 'Positive (Inflow)'}
-                                  fill="url(#divPosGrad)"
-                                  stroke="#107c41"
+                                  name={trendScaleMode === 'percent' ? 'Positive (%)' : 'Positive'}
+                                  fill="url(#photoPastelGreen)"
+                                  stroke="#0fb87f"
                                   strokeWidth={1}
-                                  radius={[4, 4, 0, 0]}
-                                  maxBarSize={32}
+                                  shape={renderPillBar}
+                                  barSize={24}
                                 />
                                 <Bar
-                                  dataKey={trendScaleMode === 'percent' ? 'negPctDiverging' : 'Negative'}
-                                  stackId="sentimentPillar"
-                                  name={trendScaleMode === 'percent' ? 'Negative (%)' : 'Negative (Outflow)'}
-                                  fill="url(#divNegGrad)"
+                                  dataKey={trendScaleMode === 'percent' ? 'negPct' : 'rawNegative'}
+                                  name={trendScaleMode === 'percent' ? 'Negative (%)' : 'Negative'}
+                                  fill="url(#photoPastelRose)"
                                   stroke="#f43f5e"
                                   strokeWidth={1}
-                                  radius={[0, 0, 4, 4]}
-                                  maxBarSize={32}
+                                  shape={renderPillBar}
+                                  barSize={24}
                                 />
                               </BarChart>
                             </ResponsiveContainer>
