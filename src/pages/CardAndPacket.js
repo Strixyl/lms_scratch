@@ -99,7 +99,7 @@ export default function CardAndPacket() {
     };
   };
 
-  // ✅ Save with duplicate check
+  // save with duplicate check
   const handleSave = async () => {
     try {
       const payload = preparePayload();
@@ -108,7 +108,7 @@ export default function CardAndPacket() {
       handleClear();
     } catch (error) {
       if (error.response?.status === 400) {
-        alert(error.response.data.message); // ✅ shows duplicate error
+        alert(error.response.data.message); // show duplicate error
       } else {
         console.error('Error saving:', error);
         alert('Error saving data.');
@@ -859,7 +859,7 @@ export default function CardAndPacket() {
                 },
               }}
             >
-              {/* Form Column Banner Header */}
+              {/* form column header */}
               <Box
                 sx={{
                   bgcolor: '#1b365d',
@@ -896,10 +896,10 @@ export default function CardAndPacket() {
                 </Box>
               </Box>
 
-              {/* Form Body - Visual Separation for every inputting part */}
+              {/* form body */}
               <Box sx={{ p: { xs: 2, sm: 2.25 }, display: 'flex', flexDirection: 'column', gap: 2 }}>
                 
-                {/* Part 1: Location & Department */}
+                {/* location & department */}
                 <Box
                   sx={{
                     p: 2,
@@ -970,7 +970,7 @@ export default function CardAndPacket() {
                   />
                 </Box>
 
-                {/* Part 2: Bibliographic Information */}
+                {/* bibliographic details */}
                 <Box
                   sx={{
                     p: 2,
@@ -1043,7 +1043,7 @@ export default function CardAndPacket() {
                   />
                 </Box>
 
-                {/* Part 3: Accession & Classification */}
+                {/* accession and classification */}
                 <Box
                   sx={{
                     p: 2,
@@ -1102,7 +1102,7 @@ export default function CardAndPacket() {
                   />
                 </Box>
 
-                {/* Part 4: Barcode & System Codes */}
+                {/* barcode and system codes */}
                 <Box
                   sx={{
                     p: 2,

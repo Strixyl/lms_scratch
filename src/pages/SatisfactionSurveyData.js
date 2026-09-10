@@ -73,7 +73,7 @@ const SatisfactionSurveyData = () => {
   const [availableCourses, setAvailableCourses] = useState([]);
 
   useEffect(() => {
-    // Populate default list of all courses across colleges
+    // populate default list of all courses across colleges
     const allCourses = Object.values(COLLEGE_COURSES).flat();
     setAvailableCourses(Array.from(new Set(allCourses)).sort());
   }, []);
@@ -81,7 +81,7 @@ const SatisfactionSurveyData = () => {
   const handleCollegeChange = (e) => {
     const selectedCollege = e.target.value;
     setCollege(selectedCollege);
-    setCourse(''); // Reset course when college changes
+    setCourse(''); // reset course on college change
 
     if (selectedCollege && COLLEGE_COURSES[selectedCollege]) {
       setAvailableCourses(COLLEGE_COURSES[selectedCollege]);
@@ -105,7 +105,7 @@ const SatisfactionSurveyData = () => {
       const response = await axios.get('http://localhost:5000/api/surveys', { params });
 
       const formatted = response.data.map((row, index) => ({
-        id: row.Id || index + 1, // ✅ Prefer SQL Id
+        id: row.Id || index + 1, // prefer sql id
         ...row,
       }));
 
@@ -116,7 +116,7 @@ const SatisfactionSurveyData = () => {
   };
 
   useEffect(() => {
-    fetchSurveys(); // Load initial data
+    fetchSurveys(); // load initial data
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -154,7 +154,7 @@ const SatisfactionSurveyData = () => {
       renderCell: (params) => {
         if (!params.value) return '';
 
-        // ✅ params.value is already "yyyy-MM-dd HH:mm:ss" in PH time
+        // params.value formatted in ph time
         return new Date(params.value.replace(' ', 'T')).toLocaleString('en-PH', {
           year: 'numeric',
           month: 'long',
@@ -176,7 +176,7 @@ const SatisfactionSurveyData = () => {
 
           <Box sx={{ p: 3 }}>
             <Box sx={{ height: 600, width: '100%' }}>
-              {/* Filter Controls */}
+              {/* filter controls */}
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2, alignItems: 'center' }}>
                 <TextField
                   type="date"
@@ -255,7 +255,7 @@ const SatisfactionSurveyData = () => {
                 </Button>
               </Box>
 
-              {/* DataGrid */}
+              {/* data table grid */}
               <DataGrid
                 rows={surveys}
                 columns={columns}

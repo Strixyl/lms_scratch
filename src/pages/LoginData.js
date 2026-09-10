@@ -7,8 +7,7 @@ import Header from '../Components/Header';
 import TopBar from '../Components/TopBar';
 import { COLLEGE_OPTIONS, SECTION_OPTIONS, getCollegeGroup, formatDate } from '../constants/collegeMap';
 
-// Deduplicates logins so multiple logins by the same patron on the same day count as ONE entrance visit (100% Entrance).
-// Includes all libraries (Senior High, Junior High, Elementary, Kindergarten, and Main Library).
+// deduplicate logins per patron per day across libraries
 const deduplicateLogins = (loginList) => {
   if (!loginList || !Array.isArray(loginList)) return [];
 

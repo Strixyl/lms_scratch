@@ -47,7 +47,7 @@ import TopBar from '../Components/TopBar';
 import { COLLEGE_OPTIONS, SECTION_OPTIONS, getCollegeGroup, formatDate } from '../constants/collegeMap';
 import { MONTH_NAMES, QUARTER_OPTIONS } from '../constants/sentimentConstants';
 
-// ── Centralized theme design tokens ──────────────────────────────────────────
+// centralized theme design tokens
 import {
   THEME,
   sectionHeaderSx,
@@ -149,7 +149,7 @@ const COURSE_LIGHT_COLORS = [
   '#64748b'
 ];
 
-// ── Hover Tooltip Component listing all departments by library activity ─────────
+// hover tooltip for department library activity
 const DepartmentsHoverList = ({ sortedColleges = [], totalEntries = 0 }) => {
   const activeColleges = sortedColleges.filter(c => c.total > 0);
   const inactiveColleges = sortedColleges.filter(c => c.total === 0);
@@ -251,7 +251,7 @@ const DepartmentsHoverList = ({ sortedColleges = [], totalEntries = 0 }) => {
   );
 };
 
-// ── Summary KPI Card (Styled with Sentiment Dashboard executive tokens & featured banner) ───────
+// summary kpi card
 const SummaryCard = ({ title, value, subtitle, icon, color = '#16324f', tooltipContent = null, isFeatured = false, footnote = null }) => {
   if (isFeatured) {
     const cardContent = (
@@ -410,7 +410,7 @@ const SummaryCard = ({ title, value, subtitle, icon, color = '#16324f', tooltipC
   return cardContent;
 };
 
-// ── Item Chips Breakdown Component (With colored containers matching sentiment style) ───────
+// item chips breakdown component
 const ItemChipsView = ({ data = [], totalVisits = 0, isCollegeLevel = false, selectedCollege = 'All' }) => {
   const maxVal = useMemo(() => Math.max(...data.map(d => d.total || 0), 1), [data]);
 
@@ -520,14 +520,14 @@ const ItemChipsView = ({ data = [], totalVisits = 0, isCollegeLevel = false, sel
 };
 
 
-// ── Dynamic Custom Tooltip for Stacked & Standard Bar Chart ───────────────
+// custom tooltip for bar charts
 const CustomBarTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     const entryData = payload[0]?.payload;
     let activeItems = [];
 
     if (entryData) {
-      // Check if entryData has child course keys (College-level breakdown)
+      // check if entry has course breakdowns
       activeItems = Object.entries(entryData)
         .filter(([key, val]) => key !== 'name' && key !== 'total' && key !== 'fullName' && typeof val === 'number' && val > 0)
         .map(([name, value]) => ({ name, value }))
@@ -594,7 +594,7 @@ const CustomBarTooltip = ({ active, payload, label }) => {
   return null;
 };
 
-// ── Dynamic Custom Tooltip for Monthly Foot Traffic Trend Bar Chart ────────
+// tooltip for monthly foot traffic trend
 const CustomMonthlyTrendTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
@@ -726,15 +726,15 @@ const isCourseMatch = (studCourse, targetOption) => {
   const c = studCourse.trim().toLowerCase();
   const target = targetOption.trim().toLowerCase();
 
-  // 1. Direct equality or substring match
+  // 1. direct match
   if (c === target || c.includes(target) || target.includes(c)) return true;
 
-  // 2. Remove non-alphanumeric (e.g. "bs cs" vs "bscs")
+  // 2. clean non-alphanumeric comparison
   const cleanC = c.replace(/[^a-z0-9]/g, '');
   const cleanTarget = target.replace(/[^a-z0-9]/g, '');
   if (cleanC && cleanTarget && (cleanC.includes(cleanTarget) || cleanTarget.includes(cleanC))) return true;
 
-  // 3. Check ACRONYMS map
+  // 3. acronym lookup
   for (const [fullTitle, aliases] of Object.entries(COURSE_ACRONYMS_MAP)) {
     const titleLower = fullTitle.toLowerCase();
     const allMatches = [titleLower, ...aliases];
@@ -748,7 +748,7 @@ const isCourseMatch = (studCourse, targetOption) => {
   return false;
 };
 
-// ── Strict College Course Isolation Helper ─────────────────────────────────
+// college course isolation helper
 const getCoursesForCollege = (collegeCode, loginItems) => {
   if (!collegeCode || collegeCode === 'All') return [];
   const surveyCourses = COLLEGE_COURSES_SURVEY_MAP[collegeCode] || [];
@@ -784,7 +784,7 @@ const getCoursesForCollege = (collegeCode, loginItems) => {
   return Array.from(normalizedSet);
 };
 
-// Deduplicates logins so multiple logins by the same patron on the same day count as ONE entrance visit.
+// patron same-day visit deduplication
 const deduplicateLogins = (loginList) => {
   if (!loginList || !Array.isArray(loginList)) return [];
 
@@ -832,7 +832,7 @@ const LoginDashboard = () => {
   const [snackbarMsg, setSnackbarMsg] = useState('');
   const [visualizerMode, setVisualizerMode] = useState('auto');
 
-  // Live Search & Sort states
+  // search and sort states
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState('TimeLogged');
   const [sortOrder, setSortOrder] = useState('desc');
@@ -1024,11 +1024,11 @@ const LoginDashboard = () => {
     fetchLogins();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Reactive Logins List (Dynamically Filtered & Deduplicated) ─────────
+  // filtered and deduplicated logins list
   const logins = useMemo(() => {
     let filtered = rawLogins;
 
-    // Filter by Date Range
+    // filter by date range
     if (startDate && endDate) {
       const start = new Date(startDate);
       const end = new Date(endDate);
@@ -1057,7 +1057,7 @@ const LoginDashboard = () => {
       });
     }
 
-    // Filter by Year, Quarter, Month
+    // filter by year, quarter, month
     filtered = filtered.filter((item) => {
       if (!item.TimeLogged) return false;
       const str = String(item.TimeLogged).trim();
@@ -1077,28 +1077,28 @@ const LoginDashboard = () => {
       return true;
     });
 
-    // Filter by College
+    // filter by college
     if (selectedCollege && selectedCollege !== 'All') {
       filtered = filtered.filter(
         (item) => getCollegeGroup(item.studCollege, item.studCourse, item.studLogType) === selectedCollege
       );
     }
 
-    // Filter by Section
+    // filter by section
     if (selectedSection && selectedSection !== 'All') {
       filtered = filtered.filter((item) => item.Section === selectedSection);
     }
 
-    // Filter by Course
+    // filter by course
     if (selectedCourse && selectedCourse !== 'All') {
       filtered = filtered.filter((item) => isCourseMatch(item.studCourse, selectedCourse));
     }
 
-    // Apply Henry Luce III Main Library entrance & section deduplication
+    // main library entrance and section deduplication
     return deduplicateLogins(filtered);
   }, [rawLogins, startDate, endDate, filterYear, filterQuarter, filterMonth, selectedCollege, selectedSection, selectedCourse]);
 
-  // ── Monthly Foot Traffic Trend & Table Month Counter Data ──────────────
+  // monthly foot traffic and month counter data
   const monthlyTrendData = useMemo(() => {
     const targetYear = filterYear === 'All' ? null : (filterYear || '2026');
     const monthsMap = {};
@@ -1113,7 +1113,7 @@ const LoginDashboard = () => {
       };
     });
 
-    // Base list filtered by College, Section, Course, Year
+    // base list filtered by college, section, course, year
     const baseList = rawLogins.filter(item => {
       if (selectedCollege && selectedCollege !== 'All') {
         if (getCollegeGroup(item.studCollege, item.studCourse, item.studLogType) !== selectedCollege) return false;
@@ -1172,12 +1172,12 @@ const LoginDashboard = () => {
     return counts;
   }, [monthlyTrendData]);
 
-  // Reset pagination to Page 1 when any filter or search changes
+  // reset page on filter or search change
   useEffect(() => {
     setPage(0);
   }, [startDate, endDate, filterYear, filterQuarter, filterMonth, selectedCollege, selectedSection, selectedCourse, searchTerm]);
 
-  // ── Dynamic Available Courses Options (Strict College Isolation) ─────────
+  // available courses options by college
   const availableCourses = useMemo(() => {
     if (!selectedCollege || selectedCollege === 'All') {
       return ['All'];
@@ -1194,7 +1194,7 @@ const LoginDashboard = () => {
     }
   }, [selectedCollege, availableCourses, selectedCourse]);
 
-  // ── Computations for KPI Cards & Visual Charts ───────────────────────
+  // kpi cards and visual chart computations
   const totalEntries = logins.length;
 
   const { mainChartData, activeChartSeries, collegeChartData } = useMemo(() => {
@@ -1226,7 +1226,7 @@ const LoginDashboard = () => {
         collegeChartData: colChartData
       };
     } else {
-      // Specific College Selected -> Strictly get courses for this college ONLY!
+      // get courses for selected college
       const allCourses = getCoursesForCollege(selectedCollege, logins);
 
       const courseCounts = {};
@@ -1280,12 +1280,12 @@ const LoginDashboard = () => {
     return 'bar';
   }, [visualizerMode, selectedCollege]);
 
-  // Section distribution for Section Pie Chart & Donut Visualizer
+  // section distribution for donut chart
   const { sectionChartData, donutSlices, collegeSectionTotal, internalSections } = useMemo(() => {
     const sectionCounts = {};
     let listToCount = rawLogins;
 
-    // Apply Date, Year, Quarter, Month Filter
+    // apply date, year, quarter, month filters
     if (startDate && endDate) {
       const start = new Date(startDate);
       const end = new Date(endDate);
@@ -1333,14 +1333,14 @@ const LoginDashboard = () => {
       return true;
     });
 
-    // Apply College Filter
+    // apply college filter
     if (selectedCollege && selectedCollege !== 'All') {
       listToCount = listToCount.filter(
         (item) => getCollegeGroup(item.studCollege, item.studCourse, item.studLogType) === selectedCollege
       );
     }
 
-    // Apply Course Filter
+    // apply course filter
     if (selectedCourse && selectedCourse !== 'All') {
       listToCount = listToCount.filter((item) => isCourseMatch(item.studCourse, selectedCourse));
     }
@@ -1387,7 +1387,7 @@ const LoginDashboard = () => {
   const peakSection = topInternalSection ? topInternalSection.name : 'N/A';
   const peakSectionCount = topInternalSection ? topInternalSection.value : 0;
 
-  // Gender Distribution for Sidebar Widget
+  // gender distribution for sidebar widget
   const genderCounts = useMemo(() => {
     const counts = { Male: 0, Female: 0, Other: 0 };
     logins.forEach(item => {
@@ -1399,11 +1399,11 @@ const LoginDashboard = () => {
     return counts;
   }, [logins]);
 
-  // Live Search & Table Column Sorting
+  // live search and column sorting
   const processedLogins = useMemo(() => {
     let result = [...logins];
 
-    // Live Search Filter
+    // live search filter
     if (searchTerm.trim()) {
       const q = searchTerm.trim().toLowerCase();
       result = result.filter(item => {
@@ -1418,7 +1418,7 @@ const LoginDashboard = () => {
       });
     }
 
-    // Column Sorting
+    // column sorting
     result.sort((a, b) => {
       let valA = a[sortField] || '';
       let valB = b[sortField] || '';
@@ -1442,11 +1442,11 @@ const LoginDashboard = () => {
     return result;
   }, [logins, searchTerm, sortField, sortOrder]);
 
-  // Pagination
+  // pagination
   const totalPages = Math.ceil(processedLogins.length / ROWS_PER_PAGE);
   const pageRows = processedLogins.slice(page * ROWS_PER_PAGE, (page + 1) * ROWS_PER_PAGE);
 
-  // ── Record Selection & Delete Handlers ─────────────────────────────
+  // record selection and delete handlers
   const pageIds = useMemo(() => pageRows.map(row => row.LogID).filter(Boolean), [pageRows]);
   const isAllPageSelected = pageIds.length > 0 && pageIds.every(id => selectedLogIds.includes(id));
   const isSomePageSelected = pageIds.some(id => selectedLogIds.includes(id)) && !isAllPageSelected;
@@ -1508,7 +1508,7 @@ const LoginDashboard = () => {
     }
   };
 
-  // ── Excel Export Handler ──────────────────────────────────────────────
+  // excel export handler
   const handleExportExcel = () => {
     if (logins.length === 0) {
       alert('No entry data available to export for the selected criteria.');
@@ -1571,7 +1571,7 @@ const LoginDashboard = () => {
     XLSX.writeFile(workbook, filename);
   };
 
-  // ── Print Handler ────────────────────────────────────────────────────
+  // print handler
   const handlePrint = () => {
     if (!printRef.current) return;
     const printContents = printRef.current.innerHTML;
@@ -1617,7 +1617,7 @@ const LoginDashboard = () => {
     }, 500);
   };
 
-  // ── Custom Bar Renderer: Consistent Gradient by Default, Respective Course Colors on Hover ──
+  // custom bar renderer with gradient and hover colors
   const renderCustomBar = (props) => {
     const { x, y, width, height, payload, index } = props;
     if (!height || height <= 0 || !width || width <= 0) return null;
@@ -1661,7 +1661,7 @@ const LoginDashboard = () => {
       );
     }
 
-    // On hover: extract active courses matching CustomBarTooltip
+    // on hover: extract active courses
     let courses = [];
     if (selectedCollege === 'All' && payload) {
       courses = Object.entries(payload)
@@ -1733,7 +1733,7 @@ const LoginDashboard = () => {
 
             {!showLoginModal && (
               <Box sx={{ p: { xs: 2, md: 3 }, bgcolor: '#eef1f6', minHeight: '100vh' }}>
-                {/* ── Modern Header Action Bar Banner ───── */}
+                {/* header action bar banner */}
                 <Paper elevation={0} sx={{
                   p: { xs: 2, md: 2.5 }, mb: 3, borderRadius: 3.5,
                   bgcolor: '#ffffff',
@@ -1798,7 +1798,7 @@ const LoginDashboard = () => {
                   </Box>
                 </Paper>
 
-                {/* ── Filter Controls Container ───── */}
+                {/* filter controls */}
                 <Paper elevation={0} sx={{
                   mb: 3,
                   borderRadius: 3.5,
@@ -1840,7 +1840,7 @@ const LoginDashboard = () => {
                     </Typography>
                   </Box>
 
-                  {/* ── Quick Date Range Presets Bar ───── */}
+                  {/* quick date range presets */}
                   <Box sx={{ px: 3, pt: 1.8, pb: 1.5, bgcolor: '#ffffff', borderBottom: `1px solid ${T.surface.borderLight}`, display: 'flex', alignItems: 'center', gap: 0.8, flexWrap: 'wrap' }}>
                     <Typography sx={{ fontFamily: T.font.family, fontSize: 12.5, fontWeight: 700, color: '#64748b', mr: 0.8, display: 'flex', alignItems: 'center', gap: 0.5 }}>
                       <CalendarTodayIcon sx={{ fontSize: 15, color: '#16324f' }} /> Quick Date Range:
@@ -2020,7 +2020,7 @@ const LoginDashboard = () => {
                     </Button>
                   </Box>
 
-                  {/* ── Active Filter Badges Bar (Removable Tags) ───── */}
+                  {/* active filter badges */}
                   {hasActiveFilter && (
                     <Box sx={{ px: 3, pb: 2, pt: 1.5, bgcolor: '#f8fafc', borderTop: `1px solid ${T.surface.borderLight}`, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                       <Typography sx={{ fontFamily: T.font.family, fontSize: 12.5, fontWeight: 700, color: '#64748b' }}>
@@ -2108,7 +2108,7 @@ const LoginDashboard = () => {
                   </Box>
                 ) : (
                   <>
-                    {/* ── Top Metric KPI Cards Grid (Themed with Executive Palette Colors & Glow) ───── */}
+                    {/* top metric kpi cards grid */}
                     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 2.2, mb: 3 }}>
                       <SummaryCard
                         title="Total Patron Visits"
@@ -2153,9 +2153,9 @@ const LoginDashboard = () => {
                       />
                     </Box>
 
-                    {/* ── Middle Visualizer Section (Main Chart + Side Donut with Themed Color Borders) ── */}
+                    {/* main chart and section donut */}
                     <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', mb: 3 }}>
-                      {/* Left: Main Visualizer Bar Chart (~70% width) - Blueish Themed Container */}
+                      {/* main visualizer bar chart */}
                       <Paper elevation={0} sx={{
                         borderRadius: 3.5,
                         border: '1.5px solid #cbdbe9',
@@ -2205,7 +2205,7 @@ const LoginDashboard = () => {
                             </Box>
                           </Box>
 
-                          {/* Visualizer Mode Select Dropdown */}
+                          {/* visualizer mode select dropdown */}
                           <FormControl size="small" sx={{ minWidth: 210 }}>
                             <InputLabel id="visualizer-mode-select-label" sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#0284c7' }}>
                               Visualization View
@@ -2378,7 +2378,7 @@ const LoginDashboard = () => {
                         </CardContent>
                       </Paper>
 
-                      {/* Right: Section Donut Chart + Side Legends (~30% width) - Sky Blue Themed Container */}
+                      {/* section donut chart and side legends */}
                       <Paper elevation={0} sx={{
                         borderRadius: 3.5,
                         border: '1.5px solid #cbdbe9',
@@ -2480,7 +2480,7 @@ const LoginDashboard = () => {
                                     <RechartsTooltip />
                                   </PieChart>
                                 </ResponsiveContainer>
-                                {/* Center Donut Label */}
+                                {/* center donut label */}
                                 <Box sx={{
                                   position: 'absolute', top: '50%', left: '50%',
                                   transform: 'translate(-50%, -50%)', textAlign: 'center'
@@ -2494,7 +2494,7 @@ const LoginDashboard = () => {
                                 </Box>
                               </Box>
 
-                              {/* Custom Legend Pill List */}
+                              {/* custom legend pill list */}
                               <Box sx={{
                                 mt: 2, display: 'flex', flexDirection: 'column', gap: 1, maxHeight: 170, overflowY: 'auto', pr: 1,
                                 '&::-webkit-scrollbar': { width: '5px' },
@@ -2542,9 +2542,9 @@ const LoginDashboard = () => {
                       </Paper>
                     </Box>
 
-                    {/* ── Bottom Section (Table + Demographics Sidebar with Distinct Themed Colors) ────── */}
+                    {/* visitor records table and demographics sidebar */}
                     <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-                      {/* Left: Detailed Visitor Entry Records Table (~70% width) - Deep Navy Themed Container */}
+                      {/* visitor records table */}
                       <Paper elevation={0} sx={{
                         borderRadius: 3.5,
                         bgcolor: '#ffffff',
@@ -2576,7 +2576,7 @@ const LoginDashboard = () => {
                               </Typography>
                             </Box>
 
-                            {/* ── Month Pill Strip (Table-Top 1-Click Monthly Review) ── */}
+                            {/* month pill strip */}
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, flexWrap: 'wrap', mt: 1.5 }}>
                               <Button
                                 size="small"
@@ -2633,7 +2633,7 @@ const LoginDashboard = () => {
                           </Box>
 
                           <Box sx={{ display: 'flex', gap: 1.2, alignItems: 'center', flexWrap: 'wrap' }}>
-                            {/* Live Search Input */}
+                            {/* live search input */}
                             <TextField
                               size="small"
                               placeholder="Search name, ID, course, section..."
@@ -2945,7 +2945,7 @@ const LoginDashboard = () => {
                           </Table>
                         </TableContainer>
 
-                        {/* Pagination Controls */}
+                        {/* pagination controls */}
                         {totalPages > 1 && (
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2.5, flexWrap: 'wrap', gap: 1 }}>
                             <Typography sx={{ fontSize: 12.5, color: '#64748b', fontWeight: 500, fontFamily: T.font.family }}>
@@ -2975,7 +2975,7 @@ const LoginDashboard = () => {
                         )}
                       </Paper>
 
-                      {/* Right: Demographic Breakdown Widget (~30% width) - Deep Navy Themed Container */}
+                      {/* demographic breakdown widget */}
                       <Paper elevation={0} sx={{
                         borderRadius: 3.5,
                         border: '1.5px solid #cbdbe9',
@@ -3005,7 +3005,7 @@ const LoginDashboard = () => {
                           </Typography>
                         </Box>
 
-                        {/* Top Colleges Progress List */}
+                        {/* top colleges progress list */}
                         <Box sx={{ mb: 3 }}>
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
                             <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5 }}>
@@ -3037,7 +3037,7 @@ const LoginDashboard = () => {
                             );
                           })}
 
-                          {/* Others Hover Trigger Badge */}
+                          {/* others hover trigger badge */}
                           {sortedColleges.length > 5 && (
                             <Tooltip title={<DepartmentsHoverList sortedColleges={sortedColleges} totalEntries={totalEntries} />} arrow placement="top">
                               <Box sx={{
@@ -3059,13 +3059,13 @@ const LoginDashboard = () => {
                           )}
                         </Box>
 
-                        {/* Gender Demographics List with Light Blue (Male) and Pink (Female) Cards */}
+                        {/* gender demographics list */}
                         <Box>
                           <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, fontWeight: 700, color: '#64748b', mb: 1.5, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                             Patron Gender Split
                           </Typography>
                           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                            {/* Male Visitors - Light Blue */}
+                            {/* male visitors */}
                             <Box sx={{
                               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                               p: 1.8, borderRadius: 2.5, bgcolor: '#f0f9ff',
@@ -3081,7 +3081,7 @@ const LoginDashboard = () => {
                               <Typography sx={{ fontFamily: T.font.family, fontSize: 18, fontWeight: 900, color: '#0284c7' }}>{genderCounts.Male}</Typography>
                             </Box>
 
-                            {/* Female Visitors - Pink */}
+                            {/* female visitors */}
                             <Box sx={{
                               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                               p: 1.8, borderRadius: 2.5, bgcolor: '#fdf2f8',
@@ -3108,7 +3108,7 @@ const LoginDashboard = () => {
         )}
       </Header>
 
-      {/* Delete Confirmation Dialog */}
+      {/* delete confirmation dialog */}
       <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ fontFamily: T.font.family, fontWeight: 700, color: '#c62828' }}>
           Confirm Record Deletion
@@ -3135,7 +3135,7 @@ const LoginDashboard = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar Toast Feedback */}
+      {/* toast feedback */}
       <Snackbar
         open={Boolean(snackbarMsg)}
         autoHideDuration={4000}
@@ -3147,7 +3147,7 @@ const LoginDashboard = () => {
         </Alert>
       </Snackbar>
 
-      {/* Admin Login Dialog */}
+      {/* admin login dialog */}
       {showLoginModal && (
         <Dialog
           open={true}
@@ -3258,7 +3258,7 @@ const LoginDashboard = () => {
         </Dialog>
       )}
 
-      {/* 🖨️ Hidden Printable Section bound to printRef */}
+      {/* hidden printable section */}
       <div ref={printRef} style={{ display: 'none' }}>
         <h1>Henry Luce III Library</h1>
         <h2>Library Entry Visitor Analytics & Detailed Records Report</h2>

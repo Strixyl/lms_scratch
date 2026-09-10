@@ -20,9 +20,9 @@ import CloseIcon from '@mui/icons-material/Close';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PlaceIcon from '@mui/icons-material/Place';
 import axios from 'axios';
-// TODO: point this at the actual Henry Luce III library logo asset.
+// library logo asset
 import henryLuceLogo from '../assets/henryluce.png';
-// TODO: point this at the footer banner (institutional repository / QR code) asset.
+// footer banner asset
 import footerBanner from '../assets/login-pic.png';
 
 const sections = [
@@ -31,8 +31,7 @@ const sections = [
   'Senior High School', 'Junior High School', 'Elementary', 'Kindergarten',
 ];
 
-// CPU school color palette — adjust these two hexes to match the exact
-// gold/yellow used elsewhere in the system if this isn't quite right.
+// cpu color palette
 const GOLD = '#c99a2e';
 const GOLD_DARK = '#a67c1e';
 const NAVY = '#0f172a';
@@ -141,7 +140,7 @@ const Login = () => {
 
   const isScanned = !!formData.idNumber;
 
-  // Icon-badge stat boxes — arranged 2 per row like the reference design.
+  // stat box rows
   const statRows = [
     [
       { label: 'Time In', value: timeIn, active: !!timeIn, icon: ScheduleIcon, color: '#16a34a', bg: '#dcfce7' },
@@ -162,7 +161,7 @@ const Login = () => {
       {(toggleDrawer) => (
         <Box sx={{ minHeight: '100vh', bgcolor: '#f1f5f9', display: 'flex', flexDirection: 'column' }}>
 
-          {/* ── Section Selector Dialog ── */}
+          {/* section selector dialog */}
           <Dialog
             open={!sectionConfirmed}
             onClose={handleCloseDialog}
@@ -175,7 +174,7 @@ const Login = () => {
               },
             }}
           >
-            {/* Top-Right X Close Button */}
+            {/* close button */}
             <IconButton
               aria-label="close section modal"
               onClick={handleCloseDialog}
@@ -229,7 +228,7 @@ const Login = () => {
                 Confirm Section
               </Button>
 
-              {/* Back to Dashboard Button */}
+              {/* back to dashboard button */}
               <Button
                 onClick={handleBackToDashboard}
                 variant="outlined"
@@ -250,7 +249,7 @@ const Login = () => {
             </DialogActions>
           </Dialog>
 
-          {/* ── CUSTOM TOP BAR (gold, hamburger + date/time + logo + station chip) ── */}
+          {/* top bar */}
           <Box
             sx={{
               bgcolor: GOLD,
@@ -263,13 +262,13 @@ const Login = () => {
               boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
             }}
           >
-            {/* Left: hamburger + logo + title */}
+            {/* left: menu, logo, title */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
               <IconButton onClick={toggleDrawer} sx={{ color: '#fff' }}>
                 <MenuIcon />
               </IconButton>
 
-              {/* Henry Luce III logo — CPU logo intentionally removed */}
+              {/* library logo */}
               <Box
                 component="img"
                 src={henryLuceLogo}
@@ -291,7 +290,7 @@ const Login = () => {
               </Box>
             </Box>
 
-            {/* Right: station chip + live date + time */}
+            {/* right: station chip and date time */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, md: 3 } }}>
               {selectedSection && (
                 <Chip
@@ -333,7 +332,7 @@ const Login = () => {
             </Box>
           </Box>
 
-          {/* ── MAIN CONTENT ── */}
+          {/* main content */}
           <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', p: { xs: 2, md: 3 } }}>
             <Paper
               elevation={0}
@@ -346,7 +345,7 @@ const Login = () => {
                 p: { xs: 3, md: 5 },
               }}
             >
-              {/* Title block */}
+              {/* title block */}
               <Box sx={{ textAlign: 'center', mb: 4 }}>
                 <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: { xs: 24, md: 30 }, color: NAVY, letterSpacing: 1 }}>
                   LIBRARY SIGN IN
@@ -357,10 +356,10 @@ const Login = () => {
                 <Box sx={{ width: 60, height: 3, bgcolor: GOLD, borderRadius: 2, mx: 'auto', mt: 2 }} />
               </Box>
 
-              {/* Two-column workspace */}
+              {/* two-column layout */}
               <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 4 }}>
 
-                {/* LEFT: Photo + ID input */}
+                {/* patron photo */}
                 <Box sx={{ width: { xs: '100%', md: 300 }, flexShrink: 0 }}>
                   <Box
                     sx={{
@@ -415,10 +414,10 @@ const Login = () => {
                   </Box>
                 </Box>
 
-                {/* RIGHT: ID input + info stat grid */}
+                {/* id input and patron stats */}
                 <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
 
-                  {/* ID Entry field */}
+                  {/* id entry field */}
                   <Box sx={{ p: 2.5, borderRadius: 3, border: '1px solid #e2e8f0', bgcolor: '#f8fafc' }}>
                     <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 13, color: NAVY, mb: 1 }}>
                       Enter or Scan ID Number
@@ -442,7 +441,7 @@ const Login = () => {
                     />
                   </Box>
 
-                  {/* Employee/Patron information header */}
+                  {/* patron info header */}
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <BadgeIcon sx={{ color: GOLD_DARK, fontSize: 20 }} />
                     <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 14, color: NAVY, textTransform: 'uppercase', letterSpacing: 0.5 }}>
@@ -450,7 +449,7 @@ const Login = () => {
                     </Typography>
                   </Box>
 
-                  {/* Stat grid — 2 columns, matching reference layout */}
+                  {/* stat grid */}
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                     {statRows.map((row, rowIdx) => (
                       <Box key={rowIdx} sx={{ display: 'flex', gap: 1.5 }}>
@@ -517,7 +516,7 @@ const Login = () => {
               alt="Bahandian Banner"
               style={{
                 width: '100%',
-                height: 'auto', // Forces the container height to perfectly follow the image ratio
+                height: 'auto', // keep image ratio
                 display: 'block'
               }}
             />

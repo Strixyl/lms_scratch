@@ -13,7 +13,7 @@ const Home = () => {
             padding: '20px',
             minHeight: 'calc(80vh - 64px)'
           }}>
-            {/* Welcome message or content goes here */}
+            {/* welcome message */}
             <h2>Welcome to the Henry Luce III Library Management App</h2>
             <p>This is your dashboard. Use the menu to navigate.</p>
           </div>

@@ -38,7 +38,7 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 
-// ── Rating Options (Clean Number-Based) ──────────────────────────────────────
+// rating options
 const RATING_OPTIONS = [
   { id: 'very_dissatisfied', label: 'Very Dissatisfied', ciscoLabel: '1' },
   { id: 'dissatisfied', label: 'Dissatisfied', ciscoLabel: '2' },
@@ -48,7 +48,7 @@ const RATING_OPTIONS = [
   { id: 'na', label: 'N/A', ciscoLabel: 'N/A' },
 ];
 
-// ── Patron Types with Icons (Modern Left Sidebar) ───────────────────────────
+// patron types with icons
 const PATRON_TYPES = [
   { id: 'student', label: 'Student', icon: SchoolIcon, desc: 'College & Course req.' },
   { id: 'faculty', label: 'Faculty', icon: FacultyIcon, desc: 'College req.' },
@@ -58,7 +58,7 @@ const PATRON_TYPES = [
   { id: 'alumni', label: 'Alumnus/Alumni', icon: AlumniIcon, desc: 'CPU Graduate' },
 ];
 
-// ── College Courses Lookup ──────────────────────────────────────────────────
+// college courses lookup
 const COLLEGE_COURSES = {
   CARES: ['Agriculture', 'Agricultural and Biosystems Engineering', 'Environmental Management'],
   CAS: ['English Language Studies', 'Biology with specialization in Medical Biology', 'Biology with specialization in Microbiology', 'Chemistry', 'Psychology', 'Social Work'],
@@ -93,7 +93,7 @@ const surveyQuestions = [
   "Your general satisfaction with your experience at the library.",
 ];
 
-// ── Cisco CSAT Style Rating Component (Original Minimalist Pure White Theme) ─
+// cisco csat style rating component
 const CiscoQuestionItem = ({ qIdx, question, selectedId, onSelect }) => {
   const [hoveredId, setHoveredId] = useState(null);
   const activeId = hoveredId || selectedId;
@@ -103,24 +103,22 @@ const CiscoQuestionItem = ({ qIdx, question, selectedId, onSelect }) => {
     <Paper
       elevation={0}
       sx={{
-        p: 2.5,
+        p: { xs: 1.8, sm: 2.2 },
         borderRadius: '16px',
         bgcolor: '#ffffff',
         border: '1.5px solid #e2e8f0',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
-        width: '100%',
-        minWidth: 0,
-        height: '182px',
-        minHeight: '182px',
-        maxHeight: '182px',
-        boxSizing: 'border-box',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
+        height: '185px',
+        minHeight: '185px',
+        maxHeight: '185px',
+        boxSizing: 'border-box',
         overflow: 'hidden',
       }}
     >
-      {/* Header Box (Fixed height for longest question) */}
+      {/* header box */}
       <Box sx={{ height: '56px', minHeight: '56px', maxHeight: '56px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1.5, overflow: 'hidden' }}>
         <Typography
           variant="subtitle1"
@@ -158,7 +156,7 @@ const CiscoQuestionItem = ({ qIdx, question, selectedId, onSelect }) => {
         />
       </Box>
 
-      {/* Symmetrical 6-Column Radio Buttons Rating Row */}
+      {/* rating buttons row */}
       <Box sx={{ display: 'flex', width: '100%', gap: 0.8, mt: 'auto', alignItems: 'stretch' }}>
         {RATING_OPTIONS.map((opt) => {
           const isSelected = selectedId === opt.id;
@@ -194,7 +192,7 @@ const CiscoQuestionItem = ({ qIdx, question, selectedId, onSelect }) => {
                 },
               }}
             >
-              {/* Fixed Height Text Label Box */}
+              {/* text label box */}
               <Box
                 sx={{
                   height: '28px',
@@ -257,7 +255,7 @@ const CiscoQuestionItem = ({ qIdx, question, selectedId, onSelect }) => {
   );
 };
 
-// ── Single-Question Focus Wizard Rating Component (Symmetrical & Clean) ─
+// single question wizard rating component
 const WizardQuestionItem = ({ qIdx, question, selectedId, onSelect, isAdvancing, justSelectedId }) => {
   const [hoveredId, setHoveredId] = useState(null);
   const activeId = hoveredId || selectedId;
@@ -276,7 +274,7 @@ const WizardQuestionItem = ({ qIdx, question, selectedId, onSelect, isAdvancing,
         boxSizing: 'border-box',
       }}
     >
-      {/* Question Header Row: Fixed minHeight based on the longest question */}
+      {/* question header row */}
       <Box
         sx={{
           display: 'flex',
@@ -318,7 +316,7 @@ const WizardQuestionItem = ({ qIdx, question, selectedId, onSelect, isAdvancing,
         />
       </Box>
 
-      {/* Symmetrical 6-Column Radio Buttons Rating Row (Zero Jitter / Steady Boundaries) */}
+      {/* rating buttons row */}
       <Box sx={{ display: 'flex', width: '100%', gap: { xs: 1, sm: 1.5 }, alignItems: 'stretch' }}>
         {RATING_OPTIONS.map((opt) => {
           const isSelected = selectedId === opt.id;
@@ -356,7 +354,7 @@ const WizardQuestionItem = ({ qIdx, question, selectedId, onSelect, isAdvancing,
                 },
               }}
             >
-              {/* Top: Fixed 38px Text Label Box for Perfect Alignment */}
+              {/* label box */}
               <Box
                 sx={{
                   height: '38px',
@@ -384,7 +382,7 @@ const WizardQuestionItem = ({ qIdx, question, selectedId, onSelect, isAdvancing,
                 </Typography>
               </Box>
 
-              {/* Middle: Centered Radio Button */}
+              {/* radio button */}
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', my: 'auto' }}>
                 <Radio
                   checked={isSelected}
@@ -400,7 +398,7 @@ const WizardQuestionItem = ({ qIdx, question, selectedId, onSelect, isAdvancing,
                 />
               </Box>
 
-              {/* Bottom: Number Label (1, 2, 3, 4, 5, N/A) */}
+              {/* number label */}
               <Box sx={{ height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
                 <Typography
                   sx={{
@@ -422,7 +420,7 @@ const WizardQuestionItem = ({ qIdx, question, selectedId, onSelect, isAdvancing,
   );
 };
 
-// ── Main Satisfaction Survey Page ───────────────────────────────────────────
+// main satisfaction survey page
 const SatisfactionSurvey = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -485,7 +483,7 @@ const SatisfactionSurvey = () => {
   const completedCount = responses.filter((r) => r !== null).length;
   const progressPercent = (completedCount / 10) * 100;
 
-  // Validation state for Patron Profile
+  // validation state for patron profile
   const isStudent = clientele === 'student';
   const isFaculty = clientele === 'faculty';
   const isCollegeRequired = isStudent || isFaculty;
@@ -568,7 +566,7 @@ const SatisfactionSurvey = () => {
 
           <Box sx={{ flex: '1 1 auto', overflow: 'hidden', display: 'flex', flexDirection: { xs: 'column', md: 'row' }, bgcolor: '#f8fafc', fontFamily: 'Poppins, sans-serif' }}>
 
-            {/* ── Left Sidebar (Modern Elevated Patron Dock with Divider Glow) ── */}
+            {/* left sidebar patron dock */}
             <Box
               sx={{
                 width: { xs: '100%', md: '350px', lg: '375px' },
@@ -589,7 +587,7 @@ const SatisfactionSurvey = () => {
                 position: 'relative',
               }}
             >
-              {/* Section Header */}
+              {/* section header */}
               <Box sx={{ mb: 1.8 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.8 }}>
                   <Typography
@@ -605,7 +603,7 @@ const SatisfactionSurvey = () => {
                     Clientele Profile:
                   </Typography>
 
-                  {/* Live Profile Readiness Chip */}
+                  {/* live profile readiness chip */}
                   <Chip
                     icon={isPatronProfileValid ? <CheckMarkIcon sx={{ fontSize: '14px !important', color: '#ffffff !important' }} /> : <UncheckedIcon sx={{ fontSize: '13px !important', color: '#94a3b8 !important' }} />}
                     label={isPatronProfileValid ? 'Ready' : 'Incomplete'}
@@ -627,7 +625,7 @@ const SatisfactionSurvey = () => {
                 </Typography>
               </Box>
 
-              {/* Moved UP: Live System Time & Date Card */}
+              {/* live system time and date card */}
               <Box
                 sx={{
                   p: 1.3,
@@ -685,7 +683,7 @@ const SatisfactionSurvey = () => {
                   </Box>
                 </Box>
 
-                {/* Pulsing Live Dot */}
+                {/* live indicator dot */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, flexShrink: 0 }}>
                   <Box
                     sx={{
@@ -711,7 +709,7 @@ const SatisfactionSurvey = () => {
                 </Box>
               </Box>
 
-              {/* Interactive Patron Category List (Enlarged 1-to-6 Vertical Stack) */}
+              {/* patron category list */}
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.2, mb: 2 }}>
                 {PATRON_TYPES.map((type, index) => {
                   const isSelected = clientele === type.id;
@@ -790,7 +788,7 @@ const SatisfactionSurvey = () => {
                         </Box>
                       </Box>
 
-                      {/* Number Badge (1 to 6) / Selected Check Indicator */}
+                      {/* number badge and check indicator */}
                       <Box
                         sx={{
                           width: 28,
@@ -815,7 +813,7 @@ const SatisfactionSurvey = () => {
                 })}
               </Box>
 
-              {/* College & Course Dropdowns (Smoothly Expands for Student & Faculty) */}
+              {/* college and course dropdowns */}
               <Collapse in={isCollegeRequired} timeout={300} sx={{ width: '100%' }}>
                 <Box
                   sx={{
@@ -906,7 +904,7 @@ const SatisfactionSurvey = () => {
               </Collapse>
             </Box>
 
-            {/* ── Right Content Panel (Symmetrical & Spacious Satisfaction Survey Questionnaire) ── */}
+            {/* right content panel */}
             <Box
               sx={{
                 flex: '1 1 auto',
@@ -922,7 +920,7 @@ const SatisfactionSurvey = () => {
             >
               <Box sx={{ maxWidth: '1400px', width: '100%', mx: 'auto', display: 'flex', flexDirection: 'column', gap: 2.5 }}>
 
-                {/* Header Progress Banner (Symmetrical) */}
+                {/* header progress banner */}
                 <Paper
                   elevation={0}
                   sx={{
@@ -978,7 +976,7 @@ const SatisfactionSurvey = () => {
                   />
                 </Paper>
 
-                {/* View Mode Controls Bar */}
+                {/* view mode controls bar */}
                 <Box
                   sx={{
                     display: 'flex',
@@ -1035,7 +1033,7 @@ const SatisfactionSurvey = () => {
                   </Box>
                 </Box>
 
-                {/* Cisco CSAT Style Renderer (2 Equal Columns Grid) */}
+                {/* cisco csat style renderer */}
                 {viewMode === 'cisco' && (
                   <Box
                     sx={{
@@ -1057,7 +1055,7 @@ const SatisfactionSurvey = () => {
                   </Box>
                 )}
 
-                {/* Single-Question Focus Wizard Renderer (Symmetrical Fixed Size Card) */}
+                {/* single question wizard renderer */}
                 {viewMode === 'wizard' && (
                   <Paper
                     elevation={0}
@@ -1079,7 +1077,7 @@ const SatisfactionSurvey = () => {
                       boxSizing: 'border-box',
                     }}
                   >
-                    {/* Wizard Header Bar */}
+                    {/* wizard header bar */}
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1.2, borderBottom: '1px solid #f1f5f9' }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                         <Chip
@@ -1093,7 +1091,7 @@ const SatisfactionSurvey = () => {
                         </Typography>
                       </Box>
 
-                      {/* Animated Selection Feedback Badge */}
+                      {/* animated feedback badge */}
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
                         {isAdvancing ? (
                           <Chip
@@ -1121,7 +1119,7 @@ const SatisfactionSurvey = () => {
                       </Box>
                     </Box>
 
-                    {/* Mini Step Progress Bar */}
+                    {/* mini step progress bar */}
                     <LinearProgress
                       variant="determinate"
                       value={((wizardIndex + 1) / 10) * 100}
@@ -1137,7 +1135,7 @@ const SatisfactionSurvey = () => {
                       }}
                     />
 
-                    {/* Question Card Container */}
+                    {/* question card container */}
                     <Box
                       key={wizardIndex}
                       sx={{
@@ -1156,7 +1154,7 @@ const SatisfactionSurvey = () => {
                       />
                     </Box>
 
-                    {/* Wizard Controls Navigation Footer (Steady Non-Jitter Buttons) */}
+                    {/* wizard navigation footer */}
                     <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', justifyContent: 'space-between', mt: 0.5 }}>
                       <Button
                         size="large"
@@ -1231,7 +1229,7 @@ const SatisfactionSurvey = () => {
                   </Paper>
                 )}
 
-                {/* Feedback Message Box Section (Symmetrical) */}
+                {/* feedback message box */}
                 <Paper
                   elevation={0}
                   sx={{
@@ -1262,7 +1260,7 @@ const SatisfactionSurvey = () => {
                   />
                 </Paper>
 
-                {/* SUBMIT SURVEY BUTTON SECTION (Symmetrical) */}
+                {/* submit survey button section */}
                 <Paper
                   elevation={0}
                   sx={{
