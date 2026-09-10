@@ -1779,9 +1779,9 @@ export const SourceSentimentBreakdownCard = ({
 
   // sentiment donut chart
   const donutData = total > 0 ? [
-    { name: 'Positive', value: positiveCount, color: '#107c41' },
-    { name: 'Neutral', value: neutralCount, color: '#64748b' },
-    { name: 'Negative', value: negativeCount, color: '#e11d48' },
+    { name: 'Positive', value: positiveCount, color: '#34d399' },
+    { name: 'Neutral', value: neutralCount, color: '#94a3b8' },
+    { name: 'Negative', value: negativeCount, color: '#fb7185' },
   ].filter(d => d.value > 0) : [
     { name: 'No Data', value: 1, color: '#e2e8f0' }
   ];
@@ -1885,20 +1885,20 @@ export const SourceSentimentBreakdownCard = ({
 
       {/* legend indicators */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 1.2, flexWrap: 'wrap' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: '#eafaf1', border: '1px solid #b7ebc9', px: 0.8, py: 0.2, borderRadius: '9999px' }}>
-          <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#107c41' }} />
-          <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 700, color: '#107c41' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: '#ecfdf5', border: '1px solid #a7f3d0', px: 0.8, py: 0.2, borderRadius: '9999px' }}>
+          <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#34d399' }} />
+          <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 700, color: '#059669' }}>
             Pos ({posPct}%)
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: '#f1f5f9', border: '1px solid #cbd5e1', px: 0.8, py: 0.2, borderRadius: '9999px' }}>
-          <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#64748b' }} />
-          <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 700, color: '#475569' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: '#f8fafc', border: '1px solid #e2e8f0', px: 0.8, py: 0.2, borderRadius: '9999px' }}>
+          <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#94a3b8' }} />
+          <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 700, color: '#64748b' }}>
             Neu ({neuPct}%)
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: '#fff1f2', border: '1px solid #fecdd3', px: 0.8, py: 0.2, borderRadius: '9999px' }}>
-          <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#e11d48' }} />
+          <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#fb7185' }} />
           <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 700, color: '#be123c' }}>
             Neg ({negPct}%)
           </Typography>
@@ -2051,19 +2051,19 @@ export const SourceSentimentBreakdownCard = ({
                 py: 0.9,
                 px: 1,
                 borderRadius: '10px',
-                bgcolor: '#eafaf1',
-                border: '1px solid #b7ebc9',
+                bgcolor: '#ecfdf5',
+                border: '1px solid #a7f3d0',
               }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-                  <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#107c41' }} />
-                  <Typography sx={{ fontFamily: T.font.family, fontSize: 13.5, fontWeight: 800, color: '#107c41' }}>
+                  <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#34d399' }} />
+                  <Typography sx={{ fontFamily: T.font.family, fontSize: 13.5, fontWeight: 800, color: '#059669' }}>
                     Positive
                   </Typography>
                 </Box>
-                <Typography sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 700, color: '#107c41', textAlign: 'center' }}>
+                <Typography sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 700, color: '#059669', textAlign: 'center' }}>
                   {positiveCount}
                 </Typography>
-                <Typography sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 800, color: '#107c41', textAlign: 'right' }}>
+                <Typography sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 800, color: '#059669', textAlign: 'right' }}>
                   {posPct}%
                 </Typography>
               </Box>
@@ -2076,19 +2076,19 @@ export const SourceSentimentBreakdownCard = ({
                 py: 0.9,
                 px: 1,
                 borderRadius: '10px',
-                bgcolor: '#f1f5f9',
-                border: '1px solid #cbd5e1',
+                bgcolor: '#f8fafc',
+                border: '1px solid #e2e8f0',
               }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-                  <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#64748b' }} />
-                  <Typography sx={{ fontFamily: T.font.family, fontSize: 13.5, fontWeight: 800, color: '#475569' }}>
+                  <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#94a3b8' }} />
+                  <Typography sx={{ fontFamily: T.font.family, fontSize: 13.5, fontWeight: 800, color: '#64748b' }}>
                     Neutral
                   </Typography>
                 </Box>
-                <Typography sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 700, color: '#475569', textAlign: 'center' }}>
+                <Typography sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 700, color: '#64748b', textAlign: 'center' }}>
                   {neutralCount}
                 </Typography>
-                <Typography sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 800, color: '#475569', textAlign: 'right' }}>
+                <Typography sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 800, color: '#64748b', textAlign: 'right' }}>
                   {neuPct}%
                 </Typography>
               </Box>
@@ -2105,7 +2105,7 @@ export const SourceSentimentBreakdownCard = ({
                 border: '1px solid #fecdd3',
               }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-                  <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#e11d48' }} />
+                  <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#fb7185' }} />
                   <Typography sx={{ fontFamily: T.font.family, fontSize: 13.5, fontWeight: 800, color: '#be123c' }}>
                     Negative
                   </Typography>
