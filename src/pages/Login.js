@@ -432,8 +432,26 @@ const Login = () => {
                       InputProps={{
                         startAdornment: <PersonIcon sx={{ color: '#94a3b8', mr: 1 }} />,
                         endAdornment: (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: GOLD_DARK, color: '#fff', px: 1.5, py: 0.7, borderRadius: 2, fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 12 }}>
-                            <CreditCardIcon sx={{ fontSize: 16 }} /> SCAN
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 0.7,
+                              background: 'linear-gradient(145deg, #16324f 0%, #0e2237 100%)',
+                              color: '#ffffff',
+                              px: 1.8,
+                              py: 0.8,
+                              borderRadius: 2,
+                              fontFamily: 'Poppins, sans-serif',
+                              fontWeight: 700,
+                              fontSize: 12,
+                              letterSpacing: '0.5px',
+                              boxShadow: '0 4px 12px rgba(22, 50, 79, 0.35)',
+                              border: '1px solid rgba(255, 255, 255, 0.12)',
+                              userSelect: 'none',
+                            }}
+                          >
+                            <CreditCardIcon sx={{ fontSize: 16, color: '#ffd580' }} /> SCAN
                           </Box>
                         ),
                         sx: { height: 52, borderRadius: 2.5, fontFamily: 'monospace', fontSize: '1rem', bgcolor: '#fff' },
