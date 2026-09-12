@@ -6,7 +6,7 @@ import {
   TableRow, Paper, Button, TextField, CircularProgress,
   MenuItem, Select, FormControl, InputLabel,
   Dialog, DialogTitle, DialogContent, DialogActions,
-  Avatar, LinearProgress, Checkbox, IconButton, Snackbar, Alert, Tooltip, Chip,
+  Avatar, LinearProgress, Checkbox, IconButton, Snackbar, Alert, Chip,
   InputAdornment, TableSortLabel
 } from '@mui/material';
 import {
@@ -150,112 +150,10 @@ const COURSE_LIGHT_COLORS = [
   '#64748b'
 ];
 
-// hover tooltip for department library activity
-const DepartmentsHoverList = ({ sortedColleges = [], totalEntries = 0 }) => {
-  const activeColleges = sortedColleges.filter(c => c.total > 0);
-  const inactiveColleges = sortedColleges.filter(c => c.total === 0);
-
-  return (
-    <Paper
-      elevation={8}
-      sx={{
-        p: 2,
-        bgcolor: '#ffffff',
-        color: '#0f172a',
-        borderRadius: 3.5,
-        maxWidth: 340,
-        width: 320,
-        boxShadow: '0 20px 40px -10px rgba(22, 50, 79, 0.18)',
-        border: '1.5px solid #cbdbe9'
-      }}
-    >
-      <Box sx={{ pb: 1.2, mb: 1.5, borderBottom: '1.5px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-          <AccountBalanceIcon sx={{ fontSize: 17, color: '#16324f' }} />
-          <Typography sx={{ fontFamily: T.font.family, fontWeight: 800, fontSize: 13.5, color: '#16324f' }}>
-            Department Library Activity
-          </Typography>
-        </Box>
-        <Chip
-          label={`${activeColleges.length} Active`}
-          size="small"
-          sx={{ fontFamily: T.font.family, fontWeight: 800, fontSize: 16, bgcolor: '#edf4fa', color: '#16324f', height: 22, borderRadius: '9999px' }}
-        />
-      </Box>
-
-      <Box sx={{ maxHeight: 280, overflowY: 'auto', pr: 0.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
-        {activeColleges.length === 0 ? (
-          <Typography sx={{ fontFamily: T.font.family, fontSize: 12, color: '#64748b' }}>
-            No recorded department visits yet.
-          </Typography>
-        ) : (
-          activeColleges.map((col, idx) => {
-            const pct = totalEntries > 0 ? ((col.total / totalEntries) * 100).toFixed(1) : '0.0';
-            return (
-              <Box
-                key={col.name}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  p: 1.2,
-                  borderRadius: 2.5,
-                  bgcolor: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  transition: 'all 0.2s ease',
-                  '&:hover': {
-                    bgcolor: '#edf4fa',
-                    borderColor: '#cbdbe9'
-                  }
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-                  <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 900, color: '#16324f', width: 24 }}>
-                    #{idx + 1}
-                  </Typography>
-                  <Typography noWrap sx={{ fontFamily: T.font.family, fontSize: 14, fontWeight: 700, color: '#0f172a' }}>
-                    {col.name}
-                  </Typography>
-                </Box>
-                <Chip
-                  label={`${col.total} (${pct}%)`}
-                  size="small"
-                  sx={{
-                    fontFamily: T.font.family,
-                    fontSize: 12,
-                    fontWeight: 800,
-                    bgcolor: '#16324f',
-                    color: '#ffffff',
-                    height: 22,
-                    flexShrink: 0,
-                    borderRadius: '9999px',
-                    ml: 1
-                  }}
-                />
-              </Box>
-            );
-          })
-        )}
-
-        {inactiveColleges.length > 0 && (
-          <Box sx={{ mt: 1, pt: 1.2, borderTop: '1.5px dashed #cbd5e1' }}>
-            <Typography sx={{ fontFamily: T.font.family, fontSize: 11, color: '#64748b', fontWeight: 700, mb: 0.5 }}>
-              Inactive Departments (0 Visits):
-            </Typography>
-            <Typography sx={{ fontFamily: T.font.family, fontSize: 11, color: '#94a3b8', lineHeight: 1.4, fontWeight: 500 }}>
-              {inactiveColleges.map(c => c.name).join(', ')}
-            </Typography>
-          </Box>
-        )}
-      </Box>
-    </Paper>
-  );
-};
-
 // summary kpi card
-const SummaryCard = ({ title, value, subtitle, icon, color = '#16324f', tooltipContent = null, isFeatured = false, footnote = null }) => {
+const SummaryCard = ({ title, value, subtitle, icon, color = '#16324f', isFeatured = false, footnote = null }) => {
   if (isFeatured) {
-    const cardContent = (
+    return (
       <Card elevation={0} sx={{
         borderRadius: 3.5,
         bgcolor: '#16324f',
@@ -266,7 +164,6 @@ const SummaryCard = ({ title, value, subtitle, icon, color = '#16324f', tooltipC
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
-        cursor: tooltipContent ? 'pointer' : 'default',
         boxShadow: '0 4px 16px -2px rgba(22, 50, 79, 0.35)',
         transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
         '&:hover': {
@@ -333,20 +230,9 @@ const SummaryCard = ({ title, value, subtitle, icon, color = '#16324f', tooltipC
         </Box>
       </Card>
     );
-
-    if (tooltipContent) {
-      return (
-        <Tooltip title={tooltipContent} arrow placement="top">
-          <Box sx={{ flex: 1, minWidth: 180, display: 'flex' }}>
-            {cardContent}
-          </Box>
-        </Tooltip>
-      );
-    }
-    return cardContent;
   }
 
-  const cardContent = (
+  return (
     <Card elevation={0} sx={{
       borderRadius: 3.5,
       bgcolor: '#ffffff',
@@ -359,7 +245,6 @@ const SummaryCard = ({ title, value, subtitle, icon, color = '#16324f', tooltipC
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'space-between',
-      cursor: tooltipContent ? 'pointer' : 'default',
       boxShadow: `0 2px 10px -2px ${color}18`,
       transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
       '&:hover': {
@@ -397,18 +282,6 @@ const SummaryCard = ({ title, value, subtitle, icon, color = '#16324f', tooltipC
       </Box>
     </Card>
   );
-
-  if (tooltipContent) {
-    return (
-      <Tooltip title={tooltipContent} arrow placement="top">
-        <Box sx={{ flex: 1, minWidth: 180, display: 'flex' }}>
-          {cardContent}
-        </Box>
-      </Tooltip>
-    );
-  }
-
-  return cardContent;
 };
 
 // item chips breakdown component
@@ -539,17 +412,49 @@ const CustomBarTooltip = ({ active, payload, label }) => {
     const isCollegeBreakdown = activeItems.length > 0;
 
     return (
-      <Paper elevation={4} sx={{ p: 2, bgcolor: '#ffffff', border: '1.5px solid #cbdbe9', borderRadius: 3, maxWidth: 360, boxShadow: '0 10px 25px -5px rgba(22, 50, 79, 0.12)' }}>
-        <Typography variant="subtitle2" sx={{ fontFamily: T.font.family, fontWeight: 800, color: '#16324f', mb: 1.5, borderBottom: '1px solid #e2e8f0', pb: 1, fontSize: 14 }}>
-          {entryData?.fullName || label} — {total} Total Patron Visit{total !== 1 ? 's' : ''}
-        </Typography>
+      <Paper
+        elevation={0}
+        sx={{
+          p: 2,
+          bgcolor: '#ffffff',
+          border: '1.5px solid #cbdbe9',
+          borderTop: '3.5px solid #0284c7',
+          borderRadius: 3.5,
+          maxWidth: 360,
+          boxShadow: '0 20px 40px -10px rgba(22, 50, 79, 0.22), 0 8px 16px -4px rgba(22, 50, 79, 0.08)'
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.2, borderBottom: '1px solid #e2e8f0', pb: 1 }}>
+          <Typography variant="subtitle2" sx={{ fontFamily: T.font.family, fontWeight: 800, color: '#16324f', fontSize: 13.5, lineHeight: 1.3 }}>
+            {entryData?.fullName || label}
+          </Typography>
+          <Box sx={{
+            bgcolor: '#edf4fa',
+            color: '#0284c7',
+            px: 1,
+            py: 0.3,
+            borderRadius: '9999px',
+            fontSize: 11,
+            fontWeight: 800,
+            fontFamily: T.font.family,
+            flexShrink: 0,
+            ml: 1
+          }}>
+            {total} Visit{total !== 1 ? 's' : ''}
+          </Box>
+        </Box>
 
         {isCollegeBreakdown ? (
           <>
             <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 700, color: '#64748b', mb: 1, textTransform: 'uppercase', letterSpacing: 0.5 }}>
               {entryData?.name === 'Guest / Visitor' ? 'Guest Type Breakdown:' : 'Course Breakdown & Color Key:'}
             </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, maxHeight: 240, overflowY: 'auto' }}>
+            <Box sx={{
+              display: 'flex', flexDirection: 'column', gap: 0.8, maxHeight: 240, overflowY: 'auto', pr: 0.5,
+              '&::-webkit-scrollbar': { width: '4px' },
+              '&::-webkit-scrollbar-track': { backgroundColor: '#f1f5f9', borderRadius: '4px' },
+              '&::-webkit-scrollbar-thumb': { backgroundColor: '#cbd5e1', borderRadius: '4px' }
+            }}>
               {activeItems.map((item, idx) => {
                 const percent = total > 0 ? ((item.value / total) * 100).toFixed(1) : 0;
                 const swatchColor = COURSE_COLORS[idx % COURSE_COLORS.length];
@@ -558,16 +463,17 @@ const CustomBarTooltip = ({ active, payload, label }) => {
                 return (
                   <Box key={idx} sx={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    p: 1, borderRadius: 2, bgcolor: '#f8fafc', border: '1px solid #f1f5f9'
+                    p: 0.9, px: 1.2, borderRadius: 2, bgcolor: '#f8fafc', border: '1px solid #f1f5f9',
+                    transition: 'all 0.15s ease', '&:hover': { bgcolor: '#edf4fa' }
                   }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, minWidth: 0 }}>
                       <Box sx={{
-                        width: 14, height: 14, borderRadius: '4px',
+                        width: 12, height: 12, borderRadius: '3px',
                         background: `linear-gradient(135deg, ${swatchColor} 0%, ${lightColor} 100%)`,
                         boxShadow: `0 2px 6px ${swatchColor}40`,
                         flexShrink: 0
                       }} />
-                      <Typography variant="body2" sx={{ fontFamily: T.font.family, fontSize: 12.5, fontWeight: 700, color: '#1e293b' }}>
+                      <Typography noWrap variant="body2" sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#1e293b' }}>
                         {item.name}
                       </Typography>
                     </Box>
@@ -580,7 +486,7 @@ const CustomBarTooltip = ({ active, payload, label }) => {
             </Box>
           </>
         ) : (
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1, borderRadius: 2, bgcolor: '#f8fafc', border: '1px solid #f1f5f9' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1.2, borderRadius: 2, bgcolor: '#f8fafc', border: '1px solid #f1f5f9' }}>
             <Typography variant="body2" sx={{ fontFamily: T.font.family, fontSize: 12.5, fontWeight: 700, color: '#1e293b' }}>
               Recorded Foot Traffic
             </Typography>
@@ -607,8 +513,20 @@ const CustomMonthlyTrendTooltip = ({ active, payload, label }) => {
     const isSelected = data.isSelectedMonth;
 
     return (
-      <Paper elevation={4} sx={{ p: 2, bgcolor: '#ffffff', border: '1.5px solid #cbdbe9', borderRadius: 3, minWidth: 250, maxWidth: 330, boxShadow: '0 10px 25px -5px rgba(22, 50, 79, 0.12)' }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1, borderBottom: '1px solid #e2e8f0', pb: 1 }}>
+      <Paper
+        elevation={0}
+        sx={{
+          p: 2,
+          bgcolor: '#ffffff',
+          border: '1.5px solid #cbdbe9',
+          borderTop: '3.5px solid #16324f',
+          borderRadius: 3.5,
+          minWidth: 260,
+          maxWidth: 330,
+          boxShadow: '0 20px 40px -10px rgba(22, 50, 79, 0.22), 0 8px 16px -4px rgba(22, 50, 79, 0.08)'
+        }}
+      >
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.2, borderBottom: '1px solid #e2e8f0', pb: 1 }}>
           <Typography variant="subtitle2" sx={{ fontFamily: T.font.family, fontWeight: 800, color: '#16324f', fontSize: 14 }}>
             {label}
           </Typography>
@@ -631,8 +549,8 @@ const CustomMonthlyTrendTooltip = ({ active, payload, label }) => {
         </Typography>
 
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.6 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 0.6, px: 1, borderRadius: 1.5, bgcolor: '#f8fafc' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
               <MaleIcon sx={{ fontSize: 16, color: '#16324f' }} />
               <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 600, color: '#334155' }}>Male</Typography>
             </Box>
@@ -640,8 +558,8 @@ const CustomMonthlyTrendTooltip = ({ active, payload, label }) => {
               {males} {total > 0 ? `(${Math.round((males / total) * 100)}%)` : ''}
             </Typography>
           </Box>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 0.6, px: 1, borderRadius: 1.5, bgcolor: '#f8fafc' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
               <FemaleIcon sx={{ fontSize: 16, color: '#c2410c' }} />
               <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 600, color: '#334155' }}>Female</Typography>
             </Box>
@@ -650,8 +568,8 @@ const CustomMonthlyTrendTooltip = ({ active, payload, label }) => {
             </Typography>
           </Box>
           {otherGender > 0 && (
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
-              <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 600, color: '#64748b', ml: 2.6 }}>Unspecified</Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 0.6, px: 1, borderRadius: 1.5, bgcolor: '#f8fafc' }}>
+              <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 600, color: '#64748b', ml: 2.8 }}>Unspecified</Typography>
               <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#64748b' }}>{otherGender}</Typography>
             </Box>
           )}
@@ -2299,22 +2217,6 @@ const LoginDashboard = () => {
                         icon={<GroupIcon sx={{ fontSize: 24 }} />}
                         color="#16324f"
                         isFeatured={true}
-                        tooltipContent={
-                          <Box sx={{ p: 0.5 }}>
-                            <Typography sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 13, mb: 0.5 }}>
-                              Patron Breakdown ({totalEntries} Total):
-                            </Typography>
-                            <Typography sx={{ fontFamily: T.font.family, fontSize: 12 }}>
-                              • Students: {patronBreakdown.students}
-                            </Typography>
-                            <Typography sx={{ fontFamily: T.font.family, fontSize: 12 }}>
-                              • Faculty & Staff: {patronBreakdown.faculty}
-                            </Typography>
-                            <Typography sx={{ fontFamily: T.font.family, fontSize: 12 }}>
-                              • External Guests & Visitors: {patronBreakdown.guests} ({patronBreakdown.guestPct}%)
-                            </Typography>
-                          </Box>
-                        }
                       />
                       <SummaryCard
                         title="Top Visiting Dept"
@@ -2322,7 +2224,6 @@ const LoginDashboard = () => {
                         subtitle={`${topCollegeCount} Total Logged Entries`}
                         icon={<AccountBalanceIcon sx={{ fontSize: 24 }} />}
                         color="#f69d1b"
-                        tooltipContent={`Top Department: ${topCollege} (${topCollegeCount} visits)`}
                       />
                       <SummaryCard
                         title="Peak Library Section"
@@ -2330,15 +2231,13 @@ const LoginDashboard = () => {
                         subtitle={topInternalSection ? `${peakSectionCount} Logged Section Visits` : 'No section entries recorded'}
                         icon={<LocationOnIcon sx={{ fontSize: 24 }} />}
                         color="#005960"
-                        tooltipContent={`Peak Section: ${peakSection} (${peakSectionCount} visits)`}
                       />
                       <SummaryCard
                         title="Active Departments"
                         value={collegeChartData.filter(c => c.total > 0).length}
-                        subtitle="Hover to view all department activity"
+                        subtitle="Across university programs"
                         icon={<SchoolIcon sx={{ fontSize: 24 }} />}
                         color="#254b73"
-                        tooltipContent={<DepartmentsHoverList sortedColleges={sortedColleges} totalEntries={totalEntries} />}
                       />
                     </Box>
 
@@ -2689,7 +2588,7 @@ const LoginDashboard = () => {
 
                               {/* custom legend pill list */}
                               <Box sx={{
-                                mt: 2, display: 'flex', flexDirection: 'column', gap: 1, maxHeight: 170, overflowY: 'auto', pr: 1,
+                                mt: 2, display: 'flex', flexDirection: 'column', gap: 0.8, maxHeight: 170, overflowY: 'auto', pr: 1,
                                 '&::-webkit-scrollbar': { width: '5px' },
                                 '&::-webkit-scrollbar-track': { backgroundColor: '#f1f5f9', borderRadius: '4px' },
                                 '&::-webkit-scrollbar-thumb': { backgroundColor: '#cbd5e1', borderRadius: '4px', '&:hover': { backgroundColor: '#94a3b8' } }
@@ -2704,7 +2603,12 @@ const LoginDashboard = () => {
                                       : '0.0';
 
                                   return (
-                                    <Box key={sec.name} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12, gap: 1 }}>
+                                    <Box key={sec.name} sx={{
+                                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12, gap: 1,
+                                      p: 0.6, px: 1, borderRadius: 1.5,
+                                      transition: 'all 0.15s ease',
+                                      '&:hover': { bgcolor: '#f1f5f9' }
+                                    }}>
                                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
                                         <Box sx={{
                                           width: 9, height: 9, borderRadius: '50%', flexShrink: 0,
@@ -3104,34 +3008,9 @@ const LoginDashboard = () => {
                                           : `${(row.studCourse || 'N/A').replace(/comouter/gi, 'Computer')}${row.studYear ? ` - ${row.studYear}` : ''}`}
                                       </TableCell>
                                       <TableCell sx={{ py: 1.1, px: 1.4, borderBottom: '1px solid #f1f5f9' }}>
-                                        <Tooltip
+                                        <Box
                                           title={tooltipCollege}
-                                          arrow
-                                          placement="top"
-                                          slotProps={{
-                                            tooltip: {
-                                              sx: {
-                                                fontSize: 14,
-                                                fontWeight: 600,
-                                                fontFamily: T.font.family,
-                                                bgcolor: '#0f172a',
-                                                py: 0.8,
-                                                px: 1.5,
-                                                borderRadius: 2,
-                                                boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.3)',
-                                                maxWidth: 380,
-                                                lineHeight: 1.4,
-                                                textAlign: 'center'
-                                              }
-                                            },
-                                            arrow: {
-                                              sx: {
-                                                color: '#0f172a'
-                                              }
-                                            }
-                                          }}
-                                        >
-                                          <Box sx={{
+                                          sx={{
                                             display: 'inline-flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
@@ -3149,10 +3028,10 @@ const LoginDashboard = () => {
                                             cursor: 'default',
                                             transition: 'all 0.15s ease',
                                             '&:hover': { bgcolor: '#dbeafe', borderColor: '#93c5fd' }
-                                          }}>
-                                            {collegeCode}
-                                          </Box>
-                                        </Tooltip>
+                                          }}
+                                        >
+                                          {collegeCode}
+                                        </Box>
                                       </TableCell>
                                       <TableCell sx={{ py: 1.1, px: 1.4, borderBottom: '1px solid #f1f5f9' }}>
                                         <Chip
@@ -3195,19 +3074,18 @@ const LoginDashboard = () => {
                                         )}
                                       </TableCell>
                                       <TableCell align="center" sx={{ py: 1.1, px: 1, borderBottom: '1px solid #f1f5f9' }}>
-                                        <Tooltip title="Delete Record">
-                                          <IconButton
-                                            size="small"
-                                            onClick={() => openDeleteSingleDialog(row)}
-                                            sx={{
-                                              color: '#dc2626',
-                                              p: 0.4,
-                                              '&:hover': { color: '#b91c1c', bgcolor: '#fef2f2' }
-                                            }}
-                                          >
-                                            <DeleteOutlineIcon fontSize="small" />
-                                          </IconButton>
-                                        </Tooltip>
+                                        <IconButton
+                                          title="Delete Record"
+                                          size="small"
+                                          onClick={() => openDeleteSingleDialog(row)}
+                                          sx={{
+                                            color: '#dc2626',
+                                            p: 0.4,
+                                            '&:hover': { color: '#b91c1c', bgcolor: '#fef2f2' }
+                                          }}
+                                        >
+                                          <DeleteOutlineIcon fontSize="small" />
+                                        </IconButton>
                                       </TableCell>
                                     </TableRow>
                                   );
@@ -3283,13 +3161,11 @@ const LoginDashboard = () => {
                             <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                               Top Department Traffic (Top 5)
                             </Typography>
-                            <Tooltip title={<DepartmentsHoverList sortedColleges={sortedColleges} totalEntries={totalEntries} />} arrow placement="left">
-                              <Chip
-                                label="View All Activity"
-                                size="small"
-                                sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 10.5, bgcolor: '#edf4fa', color: '#16324f', cursor: 'pointer', height: 22, borderRadius: '9999px' }}
-                              />
-                            </Tooltip>
+                            <Chip
+                              label={`${sortedColleges.length} Total`}
+                              size="small"
+                              sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 10.5, bgcolor: '#edf4fa', color: '#16324f', height: 22, borderRadius: '9999px' }}
+                            />
                           </Box>
 
                           {sortedColleges.slice(0, 5).map((col, idx) => {
@@ -3309,25 +3185,19 @@ const LoginDashboard = () => {
                             );
                           })}
 
-                          {/* others hover trigger badge */}
+                          {/* others count banner */}
                           {sortedColleges.length > 5 && (
-                            <Tooltip title={<DepartmentsHoverList sortedColleges={sortedColleges} totalEntries={totalEntries} />} arrow placement="top">
-                              <Box sx={{
-                                mt: 1.5, p: 1.2, borderRadius: 2.5, bgcolor: '#f8fafc', border: '1.5px dashed #cbdbe9',
-                                display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer',
-                                transition: 'all 0.2s ease', '&:hover': { bgcolor: '#edf4fa', borderColor: '#16324f' }
-                              }}>
-                                <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#16324f' }}>
-                                  + {sortedColleges.length - 5} Other Departments
-                                </Typography>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3 }}>
-                                  <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 600, color: '#64748b' }}>
-                                    Hover for full list
-                                  </Typography>
-                                  <ArrowForwardIcon sx={{ fontSize: 13, color: '#16324f' }} />
-                                </Box>
-                              </Box>
-                            </Tooltip>
+                            <Box sx={{
+                              mt: 1.5, p: 1.2, borderRadius: 2.5, bgcolor: '#f8fafc', border: '1px dashed #cbdbe9',
+                              display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                            }}>
+                              <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#64748b' }}>
+                                + {sortedColleges.length - 5} Other Departments
+                              </Typography>
+                              <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, fontWeight: 700, color: '#16324f' }}>
+                                {sortedColleges.slice(5).reduce((acc, c) => acc + c.total, 0)} visits
+                              </Typography>
+                            </Box>
                           )}
                         </Box>
 
