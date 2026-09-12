@@ -44,7 +44,7 @@ import * as XLSX from 'xlsx';
 import { useNavigate } from 'react-router-dom';
 import Header from '../Components/Header';
 import TopBar from '../Components/TopBar';
-import { COLLEGE_OPTIONS, SECTION_OPTIONS, getCollegeGroup, formatDate } from '../constants/collegeMap';
+import { COLLEGE_OPTIONS, SECTION_OPTIONS, getCollegeGroup, formatDate, inferGuestType } from '../constants/collegeMap';
 import { MONTH_NAMES, QUARTER_OPTIONS } from '../constants/sentimentConstants';
 
 // centralized theme design tokens
@@ -100,7 +100,8 @@ const COLLEGE_FULL_NAMES = {
   JHS: 'Junior High School',
   ELEM: 'Elementary School',
   KINDER: 'Kindergarten',
-  'Faculty / Staff': 'Faculty & Staff'
+  'Faculty / Staff': 'Faculty & Staff',
+  'Guest / Visitor': 'External Guests, Visitors & Visiting Researchers'
 };
 
 const COURSE_COLORS = [
@@ -546,7 +547,7 @@ const CustomBarTooltip = ({ active, payload, label }) => {
         {isCollegeBreakdown ? (
           <>
             <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 700, color: '#64748b', mb: 1, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-              Course Breakdown & Color Key:
+              {entryData?.name === 'Guest / Visitor' ? 'Guest Type Breakdown:' : 'Course Breakdown & Color Key:'}
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, maxHeight: 240, overflowY: 'auto' }}>
               {activeItems.map((item, idx) => {
@@ -700,6 +701,7 @@ const COURSE_ACRONYMS_MAP = {
 
 const COLLEGE_COURSES_SURVEY_MAP = {
   'Faculty / Staff': ['Faculty Member', 'Staff Member'],
+  'Guest / Visitor': ['Visitor', 'Researcher'],
   CARES: ['BSA', 'BSABE', 'BSEM'],
   CAS: ['BAELS', 'BSBIO', 'BSCHEM', 'BSPSYC', 'BSSW'],
   CBA: ['BSA', 'BSMA', 'BSBA-HRM', 'BSBA-FM', 'BSBA-MM', 'BSENT'],
@@ -1091,7 +1093,14 @@ const LoginDashboard = () => {
 
     // filter by course
     if (selectedCourse && selectedCourse !== 'All') {
-      filtered = filtered.filter((item) => isCourseMatch(item.studCourse, selectedCourse));
+      filtered = filtered.filter((item) => {
+        const crs = item.studCourse && item.studCourse.trim()
+          ? item.studCourse.trim()
+          : (getCollegeGroup(item.studCollege, item.studCourse, item.studLogType, item.studIDnumber) === 'Guest / Visitor'
+            ? inferGuestType(item.studIDnumber, item.studLname, item.studFname)
+            : '');
+        return isCourseMatch(crs, selectedCourse);
+      });
     }
 
     // main library entrance and section deduplication
@@ -1122,7 +1131,12 @@ const LoginDashboard = () => {
         if (item.Section !== selectedSection) return false;
       }
       if (selectedCourse && selectedCourse !== 'All') {
-        if (!isCourseMatch(item.studCourse, selectedCourse)) return false;
+        const crs = item.studCourse && item.studCourse.trim()
+          ? item.studCourse.trim()
+          : (getCollegeGroup(item.studCollege, item.studCourse, item.studLogType, item.studIDnumber) === 'Guest / Visitor'
+            ? inferGuestType(item.studIDnumber, item.studLname, item.studFname)
+            : '');
+        if (!isCourseMatch(crs, selectedCourse)) return false;
       }
       if (item.TimeLogged) {
         const dateStr = String(item.TimeLogged).trim();
@@ -1205,8 +1219,10 @@ const LoginDashboard = () => {
 
     const coursesSet = new Set();
     logins.forEach((item) => {
-      const col = getCollegeGroup(item.studCollege, item.studCourse, item.studLogType);
-      const crs = item.studCourse && item.studCourse.trim() ? item.studCourse.trim() : 'Unspecified';
+      const col = getCollegeGroup(item.studCollege, item.studCourse, item.studLogType, item.studIDnumber);
+      const crs = item.studCourse && item.studCourse.trim()
+        ? item.studCourse.trim()
+        : (col === 'Guest / Visitor' ? inferGuestType(item.studIDnumber, item.studLname, item.studFname) : 'Unspecified');
       coursesSet.add(crs);
 
       if (!collegeMap[col]) collegeMap[col] = { total: 0 };
@@ -1233,9 +1249,11 @@ const LoginDashboard = () => {
       allCourses.forEach(c => { courseCounts[c] = 0; });
 
       logins.forEach(item => {
-        const itemGroup = getCollegeGroup(item.studCollege, item.studCourse, item.studLogType);
+        const itemGroup = getCollegeGroup(item.studCollege, item.studCourse, item.studLogType, item.studIDnumber);
         if (itemGroup === selectedCollege) {
-          const crs = item.studCourse ? item.studCourse.trim() : 'Unspecified';
+          const crs = item.studCourse && item.studCourse.trim()
+            ? item.studCourse.trim()
+            : (itemGroup === 'Guest / Visitor' ? inferGuestType(item.studIDnumber, item.studLname, item.studFname) : 'Unspecified');
 
           let matched = false;
           for (const target of allCourses) {
@@ -1413,8 +1431,9 @@ const LoginDashboard = () => {
         const fullname = `${lname}, ${fname}`.toLowerCase();
         const course = String(item.studCourse || '').toLowerCase();
         const college = String(item.studCollege || '').toLowerCase();
+        const collegeGroup = getCollegeGroup(item.studCollege, item.studCourse, item.studLogType).toLowerCase();
         const section = String(item.Section || '').toLowerCase();
-        return id.includes(q) || fname.includes(q) || lname.includes(q) || fullname.includes(q) || course.includes(q) || college.includes(q) || section.includes(q);
+        return id.includes(q) || fname.includes(q) || lname.includes(q) || fullname.includes(q) || course.includes(q) || college.includes(q) || collegeGroup.includes(q) || section.includes(q);
       });
     }
 
@@ -1528,19 +1547,23 @@ const LoginDashboard = () => {
       { 'Analytics Metric': 'Section Filter Applied', 'Count': selectedSection }
     ];
 
-    const detailedLogs = logins.map((row, idx) => ({
-      'No.': idx + 1,
-      'ID Number': row.studIDnumber || 'N/A',
-      'Last Name': row.studLname || '',
-      'First Name': row.studFname || '',
-      'Course': row.studCourse || 'N/A',
-      'Year': row.studYear || 'N/A',
-      'College/Department': row.studCollege || 'N/A',
-      'Library Section': row.Section || 'N/A',
-      'Time Logged': formatDate(row.TimeLogged),
-      'Log Type': row.studLogType || 'In',
-      'Gender': row.studGender || ''
-    }));
+    const detailedLogs = logins.map((row, idx) => {
+      const collegeCode = getCollegeGroup(row.studCollege, row.studCourse, row.studLogType, row.studIDnumber);
+      const guestType = inferGuestType(row.studIDnumber, row.studLname, row.studFname);
+      return {
+        'No.': idx + 1,
+        'ID Number': row.studIDnumber || 'N/A',
+        'Last Name': row.studLname || '',
+        'First Name': row.studFname || '',
+        'Course': row.studCourse || (collegeCode === 'Guest / Visitor' ? guestType : 'N/A'),
+        'Year': row.studYear || (collegeCode === 'Guest / Visitor' ? 'Guest' : 'N/A'),
+        'College/Department': row.studCollege || collegeCode || 'N/A',
+        'Library Section': row.Section || 'N/A',
+        'Time Logged': formatDate(row.TimeLogged),
+        'Log Type': row.studLogType || 'In',
+        'Gender': row.studGender || ''
+      };
+    });
 
     const workbook = XLSX.utils.book_new();
     const wsSummary = XLSX.utils.json_to_sheet(summaryKPIs);
@@ -1624,6 +1647,7 @@ const LoginDashboard = () => {
 
     const isSelected = selectedCollege === payload?.name;
     const isHovered = hoveredCollege === payload?.name;
+    const isGuest = payload?.name === 'Guest / Visitor';
 
     if (isSelected) {
       return (
@@ -1653,7 +1677,7 @@ const LoginDashboard = () => {
           height={height}
           rx={6}
           ry={6}
-          fill="url(#barDefaultGrad)"
+          fill={isGuest ? 'url(#barGuestGrad)' : 'url(#barDefaultGrad)'}
           style={{ cursor: 'pointer', transition: 'all 0.15s ease' }}
           onMouseEnter={() => setHoveredCollege(payload?.name)}
           onMouseLeave={() => setHoveredCollege(null)}
@@ -1679,7 +1703,7 @@ const LoginDashboard = () => {
           height={height}
           rx={6}
           ry={6}
-          fill={`url(#barCourseGrad_${index % COURSE_COLORS.length})`}
+          fill={isGuest ? 'url(#barGuestHoverGrad)' : `url(#barCourseGrad_${index % COURSE_COLORS.length})`}
           style={{ cursor: 'pointer', transition: 'all 0.15s ease' }}
           onMouseEnter={() => setHoveredCollege(payload?.name)}
           onMouseLeave={() => setHoveredCollege(null)}
@@ -2190,7 +2214,7 @@ const LoginDashboard = () => {
                                       ? 'Colleges Foot Traffic (Item Chips)'
                                       : `Available Course Foot Traffic (${selectedCollege})`
                                     : selectedCollege === 'All'
-                                      ? 'Visits by College Breakdown'
+                                      ? 'Visits Breakdown'
                                       : `Available Course Foot Traffic (${selectedCollege})`}
                               </Typography>
                               <Typography sx={sectionSubtitleSx}>
@@ -2343,6 +2367,14 @@ const LoginDashboard = () => {
                                   <linearGradient id="barHoverGrad" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="0%" stopColor="#0288d1" stopOpacity={0.95} />
                                     <stop offset="100%" stopColor="#38bdf8" stopOpacity={0.85} />
+                                  </linearGradient>
+                                  <linearGradient id="barGuestGrad" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#d97706" stopOpacity={0.95} />
+                                    <stop offset="100%" stopColor="#fbbf24" stopOpacity={0.85} />
+                                  </linearGradient>
+                                  <linearGradient id="barGuestHoverGrad" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#b45309" stopOpacity={1} />
+                                    <stop offset="100%" stopColor="#f59e0b" stopOpacity={0.9} />
                                   </linearGradient>
 
                                   {COURSE_COLORS.map((col, idx) => (
@@ -2829,7 +2861,23 @@ const LoginDashboard = () => {
                                         {`${row.studLname || ''}, ${row.studFname || ''}`}
                                       </TableCell>
                                       <TableCell sx={{ py: 1.1, px: 1.4, borderBottom: '1px solid #f1f5f9', fontFamily: T.font.family, fontSize: 12.5, color: '#475569', fontWeight: 500 }}>
-                                        {`${(row.studCourse || 'N/A').replace(/comouter/gi, 'Computer')} - ${row.studYear || ''}`}
+                                        {collegeCode === 'Guest / Visitor' ? (
+                                          <Chip
+                                            label={row.studCourse || inferGuestType(row.studIDnumber, row.studLname, row.studFname)}
+                                            size="small"
+                                            sx={{
+                                              bgcolor: '#fef3c7',
+                                              color: '#92400e',
+                                              border: '1px solid #fde68a',
+                                              fontWeight: 700,
+                                              fontSize: 11.5,
+                                              height: 24,
+                                              fontFamily: T.font.family,
+                                            }}
+                                          />
+                                        ) : (
+                                          `${(row.studCourse || 'N/A').replace(/comouter/gi, 'Computer')}${row.studYear ? ` - ${row.studYear}` : ''}`
+                                        )}
                                       </TableCell>
                                       <TableCell sx={{ py: 1.1, px: 1.4, borderBottom: '1px solid #f1f5f9' }}>
                                         <Tooltip
@@ -2867,16 +2915,19 @@ const LoginDashboard = () => {
                                             px: 1.3,
                                             py: 0.35,
                                             borderRadius: '9999px',
-                                            bgcolor: '#edf4fa',
-                                            color: '#16324f',
-                                            border: '1px solid #cbdbe9',
+                                            bgcolor: collegeCode === 'Guest / Visitor' ? '#fef3c7' : '#edf4fa',
+                                            color: collegeCode === 'Guest / Visitor' ? '#92400e' : '#16324f',
+                                            border: collegeCode === 'Guest / Visitor' ? '1px solid #fde68a' : '1px solid #cbdbe9',
                                             fontSize: 12,
                                             fontWeight: 800,
                                             fontFamily: T.font.family,
                                             lineHeight: 1.2,
                                             cursor: 'default',
                                             transition: 'all 0.15s ease',
-                                            '&:hover': { bgcolor: '#dbeafe', borderColor: '#93c5fd' }
+                                            '&:hover': {
+                                              bgcolor: collegeCode === 'Guest / Visitor' ? '#fde68a' : '#dbeafe',
+                                              borderColor: collegeCode === 'Guest / Visitor' ? '#f59e0b' : '#93c5fd'
+                                            }
                                           }}>
                                             {collegeCode}
                                           </Box>

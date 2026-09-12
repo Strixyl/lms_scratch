@@ -1,5 +1,5 @@
 export const COLLEGE_OPTIONS = [
-  'All', 'Faculty / Staff', 'CARES', 'CAS', 'CBA', 'CCS', 'COED', 'COE', 'CHM',
+  'All', 'Faculty / Staff', 'Guest / Visitor', 'CARES', 'CAS', 'CBA', 'CCS', 'COED', 'COE', 'CHM',
   'CMLS', 'CON', 'COP', 'COL', 'COM', 'COT', 'SGS',
   'SHS', 'JHS', 'ELEM', 'KINDER'
 ];
@@ -12,6 +12,7 @@ export const SECTION_OPTIONS = [
 
 export const COLLEGE_MAP_GROUPS = {
   'Faculty / Staff': ['FACULTY', 'STAFF'],
+  'Guest / Visitor': ['GUEST', 'VISITOR', 'RESEARCHER'],
   CARES: ['CARES', 'AGRICULTURE', 'ENVIRONMENTAL', 'BSA', 'BSABE', 'BSEM'],
   CAS: ['CAS', 'ARTS', 'SCIENCES', 'BACOMM', 'BAELS', 'BAPOLSCI', 'BSBIO', 'BSCHEM', 'BSPSYC', 'BSSW', 'ABPSPA'],
   CBA: ['CBA', 'BUSINESS', 'ACCOUNTANCY', 'BSACTY', 'BSAD', 'BSBABM', 'BSBAFM', 'BSBAMM', 'BSENT', 'BSBAMA'],
@@ -32,18 +33,45 @@ export const COLLEGE_MAP_GROUPS = {
   SHS: ['SHS', 'SENIOR HIGH SCHOOL', 'SHSTEM', 'SHGAS', 'SHHUMSS', 'SHABM']
 };
 
-export const getCollegeGroup = (collegeStr, courseStr, logTypeStr) => {
-  const text = `${collegeStr || ''} ${courseStr || ''} ${logTypeStr || ''}`.trim().toUpperCase();
-  if (!text) return 'N/A';
+export const inferGuestType = (idNumber, lname, fname) => {
+  const id = String(idNumber || '').toUpperCase();
+  const ln = String(lname || '').toUpperCase();
+  const fn = String(fname || '').toUpperCase();
+
+  if (id.includes('-R') || ln.includes('RESEARCHER') || fn.includes('RESEARCHER')) {
+    return 'Researcher';
+  }
+  if (id.includes('-V') || ln.includes('VISITOR') || fn.includes('VISITOR')) {
+    return 'Visitor';
+  }
+  return 'Visitor';
+};
+
+export const getCollegeGroup = (collegeStr, courseStr, logTypeStr, idNumber) => {
+  const colClean = (collegeStr || '').trim();
+  const crsClean = (courseStr || '').trim();
+  const idClean = String(idNumber || '').toUpperCase();
+
+  // If both college and course are empty, or ID matches guest pattern (e.g. 26-V..., 26-R...), infer as Guest / Visitor
+  if ((!colClean && !crsClean) || idClean.startsWith('26-V') || idClean.startsWith('26-R') || idClean.includes('-V1') || idClean.includes('-R1')) {
+    return 'Guest / Visitor';
+  }
+
+  const text = `${colClean} ${crsClean} ${logTypeStr || ''}`.trim().toUpperCase();
+  if (!text) return 'Guest / Visitor';
+
   if (text.includes('FACULTY') || text.includes('STAFF')) {
     return 'Faculty / Staff';
+  }
+  if (text.includes('GUEST') || text.includes('VISITOR') || text.includes('RESEARCHER')) {
+    return 'Guest / Visitor';
   }
   for (const [colCode, terms] of Object.entries(COLLEGE_MAP_GROUPS)) {
     for (const term of terms) {
       if (text.includes(term.toUpperCase())) return colCode;
     }
   }
-  return collegeStr || courseStr || 'N/A';
+  return colClean || crsClean || 'N/A';
 };
 
 export const formatDate = (dateStr) => {
