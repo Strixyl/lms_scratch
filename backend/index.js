@@ -267,11 +267,35 @@ app.post('/api/student-lookup', async (req, res) => {
         WHERE si.studIDnumber = @idNumber;
       `);
 
-    if (studentResult.recordset.length === 0) {
-      return res.status(404).json({ message: 'Student not found' });
-    }
+    let student;
 
-    const student = studentResult.recordset[0];
+    if (studentResult.recordset.length > 0) {
+      student = { ...studentResult.recordset[0], patronType: 'Student' };
+    } else {
+      // Fallback: check GuestPatrons (Visitors / Researchers)
+      const guestResult = await pool.request()
+        .input('idNumber', sql.VarChar, idNumber)
+        .query(`
+          SELECT GuestID AS studID, IDNumber AS studIDnumber, LastName AS studLname,
+                 FirstName AS studFname, GuestType
+          FROM GuestPatrons
+          WHERE IDNumber = @idNumber;
+        `);
+
+      if (guestResult.recordset.length === 0) {
+        return res.status(404).json({ message: 'Student not found' });
+      }
+
+      const guest = guestResult.recordset[0];
+      student = {
+        ...guest,
+        studCourse: null,
+        studYear: null,
+        studCollege: null,
+        studGender: null,
+        patronType: guest.GuestType, // VISIOTRR OR RESEARCHERSS
+      };
+    }
 
     const todayLogs = await pool.request()
       .input('idNumber', sql.VarChar, idNumber)

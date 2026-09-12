@@ -6,7 +6,7 @@ import {
   TableRow, Paper, Button, TextField, CircularProgress,
   MenuItem, Select, FormControl, InputLabel,
   Dialog, DialogTitle, DialogContent, DialogActions,
-  Avatar, LinearProgress, Checkbox, IconButton, Snackbar, Alert, Tooltip, Chip,
+  Avatar, LinearProgress, Checkbox, IconButton, Snackbar, Alert, Chip,
   InputAdornment, TableSortLabel
 } from '@mui/material';
 import {
@@ -44,7 +44,7 @@ import * as XLSX from 'xlsx';
 import { useNavigate } from 'react-router-dom';
 import Header from '../Components/Header';
 import TopBar from '../Components/TopBar';
-import { COLLEGE_OPTIONS, SECTION_OPTIONS, getCollegeGroup, formatDate } from '../constants/collegeMap';
+import { COLLEGE_OPTIONS, SECTION_OPTIONS, getCollegeGroup, formatDate, inferGuestType } from '../constants/collegeMap';
 import { MONTH_NAMES, QUARTER_OPTIONS } from '../constants/sentimentConstants';
 
 // centralized theme design tokens
@@ -100,7 +100,8 @@ const COLLEGE_FULL_NAMES = {
   JHS: 'Junior High School',
   ELEM: 'Elementary School',
   KINDER: 'Kindergarten',
-  'Faculty / Staff': 'Faculty & Staff'
+  'Faculty / Staff': 'Faculty & Staff',
+  'Guest / Visitor': 'External Guests, Visitors & Visiting Researchers'
 };
 
 const COURSE_COLORS = [
@@ -149,112 +150,10 @@ const COURSE_LIGHT_COLORS = [
   '#64748b'
 ];
 
-// hover tooltip for department library activity
-const DepartmentsHoverList = ({ sortedColleges = [], totalEntries = 0 }) => {
-  const activeColleges = sortedColleges.filter(c => c.total > 0);
-  const inactiveColleges = sortedColleges.filter(c => c.total === 0);
-
-  return (
-    <Paper
-      elevation={8}
-      sx={{
-        p: 2,
-        bgcolor: '#ffffff',
-        color: '#0f172a',
-        borderRadius: 3.5,
-        maxWidth: 340,
-        width: 320,
-        boxShadow: '0 20px 40px -10px rgba(22, 50, 79, 0.18)',
-        border: '1.5px solid #cbdbe9'
-      }}
-    >
-      <Box sx={{ pb: 1.2, mb: 1.5, borderBottom: '1.5px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-          <AccountBalanceIcon sx={{ fontSize: 17, color: '#16324f' }} />
-          <Typography sx={{ fontFamily: T.font.family, fontWeight: 800, fontSize: 13.5, color: '#16324f' }}>
-            Department Library Activity
-          </Typography>
-        </Box>
-        <Chip
-          label={`${activeColleges.length} Active`}
-          size="small"
-          sx={{ fontFamily: T.font.family, fontWeight: 800, fontSize: 16, bgcolor: '#edf4fa', color: '#16324f', height: 22, borderRadius: '9999px' }}
-        />
-      </Box>
-
-      <Box sx={{ maxHeight: 280, overflowY: 'auto', pr: 0.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
-        {activeColleges.length === 0 ? (
-          <Typography sx={{ fontFamily: T.font.family, fontSize: 12, color: '#64748b' }}>
-            No recorded department visits yet.
-          </Typography>
-        ) : (
-          activeColleges.map((col, idx) => {
-            const pct = totalEntries > 0 ? ((col.total / totalEntries) * 100).toFixed(1) : '0.0';
-            return (
-              <Box
-                key={col.name}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  p: 1.2,
-                  borderRadius: 2.5,
-                  bgcolor: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  transition: 'all 0.2s ease',
-                  '&:hover': {
-                    bgcolor: '#edf4fa',
-                    borderColor: '#cbdbe9'
-                  }
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-                  <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 900, color: '#16324f', width: 24 }}>
-                    #{idx + 1}
-                  </Typography>
-                  <Typography noWrap sx={{ fontFamily: T.font.family, fontSize: 14, fontWeight: 700, color: '#0f172a' }}>
-                    {col.name}
-                  </Typography>
-                </Box>
-                <Chip
-                  label={`${col.total} (${pct}%)`}
-                  size="small"
-                  sx={{
-                    fontFamily: T.font.family,
-                    fontSize: 12,
-                    fontWeight: 800,
-                    bgcolor: '#16324f',
-                    color: '#ffffff',
-                    height: 22,
-                    flexShrink: 0,
-                    borderRadius: '9999px',
-                    ml: 1
-                  }}
-                />
-              </Box>
-            );
-          })
-        )}
-
-        {inactiveColleges.length > 0 && (
-          <Box sx={{ mt: 1, pt: 1.2, borderTop: '1.5px dashed #cbd5e1' }}>
-            <Typography sx={{ fontFamily: T.font.family, fontSize: 11, color: '#64748b', fontWeight: 700, mb: 0.5 }}>
-              Inactive Departments (0 Visits):
-            </Typography>
-            <Typography sx={{ fontFamily: T.font.family, fontSize: 11, color: '#94a3b8', lineHeight: 1.4, fontWeight: 500 }}>
-              {inactiveColleges.map(c => c.name).join(', ')}
-            </Typography>
-          </Box>
-        )}
-      </Box>
-    </Paper>
-  );
-};
-
 // summary kpi card
-const SummaryCard = ({ title, value, subtitle, icon, color = '#16324f', tooltipContent = null, isFeatured = false, footnote = null }) => {
+const SummaryCard = ({ title, value, subtitle, icon, color = '#16324f', isFeatured = false, footnote = null }) => {
   if (isFeatured) {
-    const cardContent = (
+    return (
       <Card elevation={0} sx={{
         borderRadius: 3.5,
         bgcolor: '#16324f',
@@ -265,7 +164,6 @@ const SummaryCard = ({ title, value, subtitle, icon, color = '#16324f', tooltipC
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
-        cursor: tooltipContent ? 'pointer' : 'default',
         boxShadow: '0 4px 16px -2px rgba(22, 50, 79, 0.35)',
         transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
         '&:hover': {
@@ -332,20 +230,9 @@ const SummaryCard = ({ title, value, subtitle, icon, color = '#16324f', tooltipC
         </Box>
       </Card>
     );
-
-    if (tooltipContent) {
-      return (
-        <Tooltip title={tooltipContent} arrow placement="top">
-          <Box sx={{ flex: 1, minWidth: 180, display: 'flex' }}>
-            {cardContent}
-          </Box>
-        </Tooltip>
-      );
-    }
-    return cardContent;
   }
 
-  const cardContent = (
+  return (
     <Card elevation={0} sx={{
       borderRadius: 3.5,
       bgcolor: '#ffffff',
@@ -358,7 +245,6 @@ const SummaryCard = ({ title, value, subtitle, icon, color = '#16324f', tooltipC
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'space-between',
-      cursor: tooltipContent ? 'pointer' : 'default',
       boxShadow: `0 2px 10px -2px ${color}18`,
       transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
       '&:hover': {
@@ -396,18 +282,6 @@ const SummaryCard = ({ title, value, subtitle, icon, color = '#16324f', tooltipC
       </Box>
     </Card>
   );
-
-  if (tooltipContent) {
-    return (
-      <Tooltip title={tooltipContent} arrow placement="top">
-        <Box sx={{ flex: 1, minWidth: 180, display: 'flex' }}>
-          {cardContent}
-        </Box>
-      </Tooltip>
-    );
-  }
-
-  return cardContent;
 };
 
 // item chips breakdown component
@@ -538,17 +412,49 @@ const CustomBarTooltip = ({ active, payload, label }) => {
     const isCollegeBreakdown = activeItems.length > 0;
 
     return (
-      <Paper elevation={4} sx={{ p: 2, bgcolor: '#ffffff', border: '1.5px solid #cbdbe9', borderRadius: 3, maxWidth: 360, boxShadow: '0 10px 25px -5px rgba(22, 50, 79, 0.12)' }}>
-        <Typography variant="subtitle2" sx={{ fontFamily: T.font.family, fontWeight: 800, color: '#16324f', mb: 1.5, borderBottom: '1px solid #e2e8f0', pb: 1, fontSize: 14 }}>
-          {entryData?.fullName || label} — {total} Total Patron Visit{total !== 1 ? 's' : ''}
-        </Typography>
+      <Paper
+        elevation={0}
+        sx={{
+          p: 2,
+          bgcolor: '#ffffff',
+          border: '1.5px solid #cbdbe9',
+          borderTop: '3.5px solid #0284c7',
+          borderRadius: 3.5,
+          maxWidth: 360,
+          boxShadow: '0 20px 40px -10px rgba(22, 50, 79, 0.22), 0 8px 16px -4px rgba(22, 50, 79, 0.08)'
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.2, borderBottom: '1px solid #e2e8f0', pb: 1 }}>
+          <Typography variant="subtitle2" sx={{ fontFamily: T.font.family, fontWeight: 800, color: '#16324f', fontSize: 13.5, lineHeight: 1.3 }}>
+            {entryData?.fullName || label}
+          </Typography>
+          <Box sx={{
+            bgcolor: '#edf4fa',
+            color: '#0284c7',
+            px: 1,
+            py: 0.3,
+            borderRadius: '9999px',
+            fontSize: 11,
+            fontWeight: 800,
+            fontFamily: T.font.family,
+            flexShrink: 0,
+            ml: 1
+          }}>
+            {total} Visit{total !== 1 ? 's' : ''}
+          </Box>
+        </Box>
 
         {isCollegeBreakdown ? (
           <>
             <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 700, color: '#64748b', mb: 1, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-              Course Breakdown & Color Key:
+              {entryData?.name === 'Guest / Visitor' ? 'Guest Type Breakdown:' : 'Course Breakdown & Color Key:'}
             </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, maxHeight: 240, overflowY: 'auto' }}>
+            <Box sx={{
+              display: 'flex', flexDirection: 'column', gap: 0.8, maxHeight: 240, overflowY: 'auto', pr: 0.5,
+              '&::-webkit-scrollbar': { width: '4px' },
+              '&::-webkit-scrollbar-track': { backgroundColor: '#f1f5f9', borderRadius: '4px' },
+              '&::-webkit-scrollbar-thumb': { backgroundColor: '#cbd5e1', borderRadius: '4px' }
+            }}>
               {activeItems.map((item, idx) => {
                 const percent = total > 0 ? ((item.value / total) * 100).toFixed(1) : 0;
                 const swatchColor = COURSE_COLORS[idx % COURSE_COLORS.length];
@@ -557,16 +463,17 @@ const CustomBarTooltip = ({ active, payload, label }) => {
                 return (
                   <Box key={idx} sx={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    p: 1, borderRadius: 2, bgcolor: '#f8fafc', border: '1px solid #f1f5f9'
+                    p: 0.9, px: 1.2, borderRadius: 2, bgcolor: '#f8fafc', border: '1px solid #f1f5f9',
+                    transition: 'all 0.15s ease', '&:hover': { bgcolor: '#edf4fa' }
                   }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, minWidth: 0 }}>
                       <Box sx={{
-                        width: 14, height: 14, borderRadius: '4px',
+                        width: 12, height: 12, borderRadius: '3px',
                         background: `linear-gradient(135deg, ${swatchColor} 0%, ${lightColor} 100%)`,
                         boxShadow: `0 2px 6px ${swatchColor}40`,
                         flexShrink: 0
                       }} />
-                      <Typography variant="body2" sx={{ fontFamily: T.font.family, fontSize: 12.5, fontWeight: 700, color: '#1e293b' }}>
+                      <Typography noWrap variant="body2" sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#1e293b' }}>
                         {item.name}
                       </Typography>
                     </Box>
@@ -579,7 +486,7 @@ const CustomBarTooltip = ({ active, payload, label }) => {
             </Box>
           </>
         ) : (
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1, borderRadius: 2, bgcolor: '#f8fafc', border: '1px solid #f1f5f9' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1.2, borderRadius: 2, bgcolor: '#f8fafc', border: '1px solid #f1f5f9' }}>
             <Typography variant="body2" sx={{ fontFamily: T.font.family, fontSize: 12.5, fontWeight: 700, color: '#1e293b' }}>
               Recorded Foot Traffic
             </Typography>
@@ -606,8 +513,20 @@ const CustomMonthlyTrendTooltip = ({ active, payload, label }) => {
     const isSelected = data.isSelectedMonth;
 
     return (
-      <Paper elevation={4} sx={{ p: 2, bgcolor: '#ffffff', border: '1.5px solid #cbdbe9', borderRadius: 3, minWidth: 250, maxWidth: 330, boxShadow: '0 10px 25px -5px rgba(22, 50, 79, 0.12)' }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1, borderBottom: '1px solid #e2e8f0', pb: 1 }}>
+      <Paper
+        elevation={0}
+        sx={{
+          p: 2,
+          bgcolor: '#ffffff',
+          border: '1.5px solid #cbdbe9',
+          borderTop: '3.5px solid #16324f',
+          borderRadius: 3.5,
+          minWidth: 260,
+          maxWidth: 330,
+          boxShadow: '0 20px 40px -10px rgba(22, 50, 79, 0.22), 0 8px 16px -4px rgba(22, 50, 79, 0.08)'
+        }}
+      >
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.2, borderBottom: '1px solid #e2e8f0', pb: 1 }}>
           <Typography variant="subtitle2" sx={{ fontFamily: T.font.family, fontWeight: 800, color: '#16324f', fontSize: 14 }}>
             {label}
           </Typography>
@@ -630,8 +549,8 @@ const CustomMonthlyTrendTooltip = ({ active, payload, label }) => {
         </Typography>
 
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.6 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 0.6, px: 1, borderRadius: 1.5, bgcolor: '#f8fafc' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
               <MaleIcon sx={{ fontSize: 16, color: '#16324f' }} />
               <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 600, color: '#334155' }}>Male</Typography>
             </Box>
@@ -639,8 +558,8 @@ const CustomMonthlyTrendTooltip = ({ active, payload, label }) => {
               {males} {total > 0 ? `(${Math.round((males / total) * 100)}%)` : ''}
             </Typography>
           </Box>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 0.6, px: 1, borderRadius: 1.5, bgcolor: '#f8fafc' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
               <FemaleIcon sx={{ fontSize: 16, color: '#c2410c' }} />
               <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 600, color: '#334155' }}>Female</Typography>
             </Box>
@@ -649,8 +568,8 @@ const CustomMonthlyTrendTooltip = ({ active, payload, label }) => {
             </Typography>
           </Box>
           {otherGender > 0 && (
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
-              <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 600, color: '#64748b', ml: 2.6 }}>Unspecified</Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 0.6, px: 1, borderRadius: 1.5, bgcolor: '#f8fafc' }}>
+              <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 600, color: '#64748b', ml: 2.8 }}>Unspecified</Typography>
               <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#64748b' }}>{otherGender}</Typography>
             </Box>
           )}
@@ -700,6 +619,7 @@ const COURSE_ACRONYMS_MAP = {
 
 const COLLEGE_COURSES_SURVEY_MAP = {
   'Faculty / Staff': ['Faculty Member', 'Staff Member'],
+  'Guest / Visitor': ['Visitor', 'Researcher'],
   CARES: ['BSA', 'BSABE', 'BSEM'],
   CAS: ['BAELS', 'BSBIO', 'BSCHEM', 'BSPSYC', 'BSSW'],
   CBA: ['BSA', 'BSMA', 'BSBA-HRM', 'BSBA-FM', 'BSBA-MM', 'BSENT'],
@@ -823,6 +743,7 @@ const LoginDashboard = () => {
   const [selectedCollege, setSelectedCollege] = useState('All');
   const [selectedSection, setSelectedSection] = useState('All');
   const [selectedCourse, setSelectedCourse] = useState('All');
+  const [selectedPatronCategory, setSelectedPatronCategory] = useState('All');
   const [page, setPage] = useState(0);
   const [hoveredCollege, setHoveredCollege] = useState(null);
   const [selectedLogIds, setSelectedLogIds] = useState([]);
@@ -942,6 +863,12 @@ const LoginDashboard = () => {
       setFilterMonth('All');
     } else if (key === 'year') {
       setFilterYear('All');
+    } else if (key === 'patron') {
+      setSelectedPatronCategory('All');
+      if (selectedCollege === 'Guest / Visitor' || selectedCollege === 'Faculty / Staff') {
+        setSelectedCollege('All');
+        setVisualizerMode('bar');
+      }
     } else if (key === 'college') {
       setSelectedCollege('All');
       setSelectedCourse('All');
@@ -960,6 +887,39 @@ const LoginDashboard = () => {
     const isAsc = sortField === field && sortOrder === 'asc';
     setSortOrder(isAsc ? 'desc' : 'asc');
     setSortField(field);
+  };
+
+  // computed active patron category
+  const activePatronCategory = useMemo(() => {
+    if (selectedCollege === 'Guest / Visitor') return 'Guests';
+    if (selectedCollege === 'Faculty / Staff') return 'Faculty';
+    if (selectedPatronCategory === 'Students') return 'Students';
+    if (selectedCollege !== 'All') return 'Students';
+    return selectedPatronCategory;
+  }, [selectedCollege, selectedPatronCategory]);
+
+  const handleSelectPatronCategory = (category) => {
+    setSelectedPatronCategory(category);
+    if (category === 'All') {
+      setSelectedCollege('All');
+      setSelectedCourse('All');
+      setVisualizerMode('bar');
+    } else if (category === 'Guests') {
+      setSelectedCollege('Guest / Visitor');
+      setSelectedCourse('All');
+      setVisualizerMode('chips');
+    } else if (category === 'Faculty') {
+      setSelectedCollege('Faculty / Staff');
+      setSelectedCourse('All');
+      setVisualizerMode('chips');
+    } else if (category === 'Students') {
+      if (selectedCollege === 'Guest / Visitor' || selectedCollege === 'Faculty / Staff') {
+        setSelectedCollege('All');
+      }
+      setSelectedCourse('All');
+      setVisualizerMode('bar');
+    }
+    setPage(0);
   };
 
   const fetchLogins = async () => {
@@ -990,6 +950,7 @@ const LoginDashboard = () => {
     setSelectedCollege('All');
     setSelectedSection('All');
     setSelectedCourse('All');
+    setSelectedPatronCategory('All');
     setSearchTerm('');
     setVisualizerMode('bar');
     setPage(0);
@@ -1001,6 +962,7 @@ const LoginDashboard = () => {
     (filterQuarter && filterQuarter !== 'All') ||
     (filterMonth && filterMonth !== 'All') ||
     (filterYear && filterYear !== 'All' && filterYear !== '2026') ||
+    (selectedPatronCategory && selectedPatronCategory !== 'All') ||
     (selectedCollege && selectedCollege !== 'All') ||
     (selectedCourse && selectedCourse !== 'All') ||
     (selectedSection && selectedSection !== 'All') ||
@@ -1024,8 +986,8 @@ const LoginDashboard = () => {
     fetchLogins();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // filtered and deduplicated logins list
-  const logins = useMemo(() => {
+  // base logins filtered by date range, year, quarter, month, and section
+  const baseScopeLogins = useMemo(() => {
     let filtered = rawLogins;
 
     // filter by date range
@@ -1077,26 +1039,58 @@ const LoginDashboard = () => {
       return true;
     });
 
-    // filter by college
-    if (selectedCollege && selectedCollege !== 'All') {
-      filtered = filtered.filter(
-        (item) => getCollegeGroup(item.studCollege, item.studCourse, item.studLogType) === selectedCollege
-      );
-    }
-
     // filter by section
     if (selectedSection && selectedSection !== 'All') {
       filtered = filtered.filter((item) => item.Section === selectedSection);
     }
 
-    // filter by course
-    if (selectedCourse && selectedCourse !== 'All') {
-      filtered = filtered.filter((item) => isCourseMatch(item.studCourse, selectedCourse));
-    }
-
     // main library entrance and section deduplication
     return deduplicateLogins(filtered);
-  }, [rawLogins, startDate, endDate, filterYear, filterQuarter, filterMonth, selectedCollege, selectedSection, selectedCourse]);
+  }, [rawLogins, startDate, endDate, filterYear, filterQuarter, filterMonth, selectedSection]);
+
+  // filtered and deduplicated logins list
+  const logins = useMemo(() => {
+    let filtered = baseScopeLogins;
+
+    // filter by patron category
+    if (selectedPatronCategory === 'Students') {
+      filtered = filtered.filter((item) => {
+        const col = getCollegeGroup(item.studCollege, item.studCourse, item.studLogType, item.studIDnumber);
+        return col !== 'Guest / Visitor' && col !== 'Faculty / Staff';
+      });
+    } else if (selectedPatronCategory === 'Guests') {
+      filtered = filtered.filter((item) => {
+        const col = getCollegeGroup(item.studCollege, item.studCourse, item.studLogType, item.studIDnumber);
+        return col === 'Guest / Visitor';
+      });
+    } else if (selectedPatronCategory === 'Faculty') {
+      filtered = filtered.filter((item) => {
+        const col = getCollegeGroup(item.studCollege, item.studCourse, item.studLogType, item.studIDnumber);
+        return col === 'Faculty / Staff';
+      });
+    }
+
+    // filter by college
+    if (selectedCollege && selectedCollege !== 'All') {
+      filtered = filtered.filter(
+        (item) => getCollegeGroup(item.studCollege, item.studCourse, item.studLogType, item.studIDnumber) === selectedCollege
+      );
+    }
+
+    // filter by course
+    if (selectedCourse && selectedCourse !== 'All') {
+      filtered = filtered.filter((item) => {
+        const crs = item.studCourse && item.studCourse.trim()
+          ? item.studCourse.trim()
+          : (getCollegeGroup(item.studCollege, item.studCourse, item.studLogType, item.studIDnumber) === 'Guest / Visitor'
+            ? inferGuestType(item.studIDnumber, item.studLname, item.studFname)
+            : '');
+        return isCourseMatch(crs, selectedCourse);
+      });
+    }
+
+    return filtered;
+  }, [baseScopeLogins, selectedPatronCategory, selectedCollege, selectedCourse]);
 
   // monthly foot traffic and month counter data
   const monthlyTrendData = useMemo(() => {
@@ -1122,7 +1116,12 @@ const LoginDashboard = () => {
         if (item.Section !== selectedSection) return false;
       }
       if (selectedCourse && selectedCourse !== 'All') {
-        if (!isCourseMatch(item.studCourse, selectedCourse)) return false;
+        const crs = item.studCourse && item.studCourse.trim()
+          ? item.studCourse.trim()
+          : (getCollegeGroup(item.studCollege, item.studCourse, item.studLogType, item.studIDnumber) === 'Guest / Visitor'
+            ? inferGuestType(item.studIDnumber, item.studLname, item.studFname)
+            : '');
+        if (!isCourseMatch(crs, selectedCourse)) return false;
       }
       if (item.TimeLogged) {
         const dateStr = String(item.TimeLogged).trim();
@@ -1205,8 +1204,10 @@ const LoginDashboard = () => {
 
     const coursesSet = new Set();
     logins.forEach((item) => {
-      const col = getCollegeGroup(item.studCollege, item.studCourse, item.studLogType);
-      const crs = item.studCourse && item.studCourse.trim() ? item.studCourse.trim() : 'Unspecified';
+      const col = getCollegeGroup(item.studCollege, item.studCourse, item.studLogType, item.studIDnumber);
+      const crs = item.studCourse && item.studCourse.trim()
+        ? item.studCourse.trim()
+        : (col === 'Guest / Visitor' ? inferGuestType(item.studIDnumber, item.studLname, item.studFname) : 'Unspecified');
       coursesSet.add(crs);
 
       if (!collegeMap[col]) collegeMap[col] = { total: 0 };
@@ -1214,7 +1215,11 @@ const LoginDashboard = () => {
       collegeMap[col].total += 1;
     });
 
-    const colChartData = ALL_COLLEGES.map((col) => ({
+    const targetColleges = selectedPatronCategory === 'Students'
+      ? ALL_COLLEGES.filter(c => c !== 'Guest / Visitor' && c !== 'Faculty / Staff')
+      : ALL_COLLEGES;
+
+    const colChartData = targetColleges.map((col) => ({
       name: col,
       ...collegeMap[col],
     }));
@@ -1233,9 +1238,11 @@ const LoginDashboard = () => {
       allCourses.forEach(c => { courseCounts[c] = 0; });
 
       logins.forEach(item => {
-        const itemGroup = getCollegeGroup(item.studCollege, item.studCourse, item.studLogType);
+        const itemGroup = getCollegeGroup(item.studCollege, item.studCourse, item.studLogType, item.studIDnumber);
         if (itemGroup === selectedCollege) {
-          const crs = item.studCourse ? item.studCourse.trim() : 'Unspecified';
+          const crs = item.studCourse && item.studCourse.trim()
+            ? item.studCourse.trim()
+            : (itemGroup === 'Guest / Visitor' ? inferGuestType(item.studIDnumber, item.studLname, item.studFname) : 'Unspecified');
 
           let matched = false;
           for (const target of allCourses) {
@@ -1263,7 +1270,7 @@ const LoginDashboard = () => {
         collegeChartData: colChartData
       };
     }
-  }, [selectedCollege, logins]);
+  }, [selectedCollege, selectedPatronCategory, logins]);
 
   const sortedColleges = useMemo(() => {
     return [...collegeChartData].sort((a, b) => b.total - a.total);
@@ -1271,6 +1278,28 @@ const LoginDashboard = () => {
 
   const topCollege = sortedColleges.length > 0 && sortedColleges[0].total > 0 ? sortedColleges[0].name : 'N/A';
   const topCollegeCount = sortedColleges.length > 0 ? sortedColleges[0].total : 0;
+
+  // patron category breakdown (Students vs Faculty vs Guests)
+  const patronBreakdown = useMemo(() => {
+    let students = 0;
+    let faculty = 0;
+    let guests = 0;
+
+    baseScopeLogins.forEach((item) => {
+      const col = getCollegeGroup(item.studCollege, item.studCourse, item.studLogType, item.studIDnumber);
+      if (col === 'Guest / Visitor') {
+        guests += 1;
+      } else if (col === 'Faculty / Staff') {
+        faculty += 1;
+      } else {
+        students += 1;
+      }
+    });
+
+    const total = students + faculty + guests;
+    const guestPct = total > 0 ? ((guests / total) * 100).toFixed(1) : '0.0';
+    return { students, faculty, guests, total, guestPct };
+  }, [baseScopeLogins]);
 
   const effectiveMode = useMemo(() => {
     if (visualizerMode !== 'auto') return visualizerMode;
@@ -1413,8 +1442,9 @@ const LoginDashboard = () => {
         const fullname = `${lname}, ${fname}`.toLowerCase();
         const course = String(item.studCourse || '').toLowerCase();
         const college = String(item.studCollege || '').toLowerCase();
+        const collegeGroup = getCollegeGroup(item.studCollege, item.studCourse, item.studLogType).toLowerCase();
         const section = String(item.Section || '').toLowerCase();
-        return id.includes(q) || fname.includes(q) || lname.includes(q) || fullname.includes(q) || course.includes(q) || college.includes(q) || section.includes(q);
+        return id.includes(q) || fname.includes(q) || lname.includes(q) || fullname.includes(q) || course.includes(q) || college.includes(q) || collegeGroup.includes(q) || section.includes(q);
       });
     }
 
@@ -1528,19 +1558,23 @@ const LoginDashboard = () => {
       { 'Analytics Metric': 'Section Filter Applied', 'Count': selectedSection }
     ];
 
-    const detailedLogs = logins.map((row, idx) => ({
-      'No.': idx + 1,
-      'ID Number': row.studIDnumber || 'N/A',
-      'Last Name': row.studLname || '',
-      'First Name': row.studFname || '',
-      'Course': row.studCourse || 'N/A',
-      'Year': row.studYear || 'N/A',
-      'College/Department': row.studCollege || 'N/A',
-      'Library Section': row.Section || 'N/A',
-      'Time Logged': formatDate(row.TimeLogged),
-      'Log Type': row.studLogType || 'In',
-      'Gender': row.studGender || ''
-    }));
+    const detailedLogs = logins.map((row, idx) => {
+      const collegeCode = getCollegeGroup(row.studCollege, row.studCourse, row.studLogType, row.studIDnumber);
+      const guestType = inferGuestType(row.studIDnumber, row.studLname, row.studFname);
+      return {
+        'No.': idx + 1,
+        'ID Number': row.studIDnumber || 'N/A',
+        'Last Name': row.studLname || '',
+        'First Name': row.studFname || '',
+        'Course': row.studCourse || (collegeCode === 'Guest / Visitor' ? guestType : 'N/A'),
+        'Year': row.studYear || (collegeCode === 'Guest / Visitor' ? 'Guest' : 'N/A'),
+        'College/Department': row.studCollege || collegeCode || 'N/A',
+        'Library Section': row.Section || 'N/A',
+        'Time Logged': formatDate(row.TimeLogged),
+        'Log Type': row.studLogType || 'In',
+        'Gender': row.studGender || ''
+      };
+    });
 
     const workbook = XLSX.utils.book_new();
     const wsSummary = XLSX.utils.json_to_sheet(summaryKPIs);
@@ -1855,6 +1889,45 @@ const LoginDashboard = () => {
                     <Button size="small" variant="outlined" onClick={() => handleDatePreset('all')} sx={datePresetBtnSx}>All Dates</Button>
                   </Box>
 
+                  {/* quick patron category presets */}
+                  <Box sx={{ px: 3, py: 1.2, bgcolor: '#f8fafc', borderBottom: `1px solid ${T.surface.borderLight}`, display: 'flex', alignItems: 'center', gap: 0.8, flexWrap: 'wrap' }}>
+                    <Typography sx={{ fontFamily: T.font.family, fontSize: 12.5, fontWeight: 700, color: '#64748b', mr: 0.8, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <PeopleIcon sx={{ fontSize: 15, color: '#16324f' }} /> Quick Patron Category:
+                    </Typography>
+                    <Button
+                      size="small"
+                      variant={activePatronCategory === 'All' ? 'contained' : 'outlined'}
+                      onClick={() => handleSelectPatronCategory('All')}
+                      sx={activePatronCategory === 'All' ? { ...datePresetBtnSx, bgcolor: '#16324f', color: '#ffffff', '&:hover': { bgcolor: '#0e2237' } } : datePresetBtnSx}
+                    >
+                      All Patrons ({patronBreakdown.total})
+                    </Button>
+                    <Button
+                      size="small"
+                      variant={activePatronCategory === 'Students' ? 'contained' : 'outlined'}
+                      onClick={() => handleSelectPatronCategory('Students')}
+                      sx={activePatronCategory === 'Students' ? { ...datePresetBtnSx, bgcolor: '#16324f', color: '#ffffff', '&:hover': { bgcolor: '#0e2237' } } : datePresetBtnSx}
+                    >
+                      Students ({patronBreakdown.students})
+                    </Button>
+                    <Button
+                      size="small"
+                      variant={activePatronCategory === 'Faculty' ? 'contained' : 'outlined'}
+                      onClick={() => handleSelectPatronCategory('Faculty')}
+                      sx={activePatronCategory === 'Faculty' ? { ...datePresetBtnSx, bgcolor: '#16324f', color: '#ffffff', '&:hover': { bgcolor: '#0e2237' } } : datePresetBtnSx}
+                    >
+                      Faculty & Staff ({patronBreakdown.faculty})
+                    </Button>
+                    <Button
+                      size="small"
+                      variant={activePatronCategory === 'Guests' ? 'contained' : 'outlined'}
+                      onClick={() => handleSelectPatronCategory('Guests')}
+                      sx={activePatronCategory === 'Guests' ? { ...datePresetBtnSx, bgcolor: '#0284c7', color: '#ffffff', '&:hover': { bgcolor: '#0369a1' } } : datePresetBtnSx}
+                    >
+                      Guests & Visitors ({patronBreakdown.guests})
+                    </Button>
+                  </Box>
+
                   <Box sx={{ p: 3, display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
                     <TextField
                       type="date"
@@ -2058,6 +2131,14 @@ const LoginDashboard = () => {
                           sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#ffffff', color: '#16324f', border: `1px solid ${T.surface.borderLight}`, borderRadius: '9999px' }}
                         />
                       )}
+                      {selectedPatronCategory !== 'All' && (
+                        <Chip
+                          label={`Patron: ${selectedPatronCategory === 'Guests' ? 'Guests & Visitors' : (selectedPatronCategory === 'Faculty' ? 'Faculty & Staff' : 'Students Only')}`}
+                          onDelete={() => handleRemoveFilter('patron')}
+                          size="small"
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#edf4fa', color: '#16324f', border: '1px solid #cbdbe9', borderRadius: '9999px' }}
+                        />
+                      )}
                       {selectedCollege !== 'All' && (
                         <Chip
                           label={`College: ${selectedCollege}`}
@@ -2122,10 +2203,20 @@ const LoginDashboard = () => {
                                 ? `Filtered by ${selectedCollege}`
                                 : 'All departments included'
                         }
+                        footnote={
+                          selectedCollege === 'All' && selectedPatronCategory === 'All' && totalEntries > 0
+                            ? `${patronBreakdown.students} Students · ${patronBreakdown.faculty} Faculty · ${patronBreakdown.guests} Guests (${patronBreakdown.guestPct}%)`
+                            : activePatronCategory === 'Guests'
+                              ? `${totalEntries} External Visitors & Researchers`
+                              : activePatronCategory === 'Students'
+                                ? `${totalEntries} Enrolled Student Visits`
+                                : activePatronCategory === 'Faculty'
+                                  ? `${totalEntries} Faculty & Staff Visits`
+                                  : null
+                        }
                         icon={<GroupIcon sx={{ fontSize: 24 }} />}
                         color="#16324f"
                         isFeatured={true}
-                        tooltipContent={`Total Patron Visits: ${totalEntries} entries recorded`}
                       />
                       <SummaryCard
                         title="Top Visiting Dept"
@@ -2133,7 +2224,6 @@ const LoginDashboard = () => {
                         subtitle={`${topCollegeCount} Total Logged Entries`}
                         icon={<AccountBalanceIcon sx={{ fontSize: 24 }} />}
                         color="#f69d1b"
-                        tooltipContent={`Top Department: ${topCollege} (${topCollegeCount} visits)`}
                       />
                       <SummaryCard
                         title="Peak Library Section"
@@ -2141,15 +2231,13 @@ const LoginDashboard = () => {
                         subtitle={topInternalSection ? `${peakSectionCount} Logged Section Visits` : 'No section entries recorded'}
                         icon={<LocationOnIcon sx={{ fontSize: 24 }} />}
                         color="#005960"
-                        tooltipContent={`Peak Section: ${peakSection} (${peakSectionCount} visits)`}
                       />
                       <SummaryCard
                         title="Active Departments"
                         value={collegeChartData.filter(c => c.total > 0).length}
-                        subtitle="Hover to view all department activity"
+                        subtitle="Across university programs"
                         icon={<SchoolIcon sx={{ fontSize: 24 }} />}
                         color="#254b73"
-                        tooltipContent={<DepartmentsHoverList sortedColleges={sortedColleges} totalEntries={totalEntries} />}
                       />
                     </Box>
 
@@ -2190,7 +2278,7 @@ const LoginDashboard = () => {
                                       ? 'Colleges Foot Traffic (Item Chips)'
                                       : `Available Course Foot Traffic (${selectedCollege})`
                                     : selectedCollege === 'All'
-                                      ? 'Visits by College Breakdown'
+                                      ? 'Visits Breakdown'
                                       : `Available Course Foot Traffic (${selectedCollege})`}
                               </Typography>
                               <Typography sx={sectionSubtitleSx}>
@@ -2407,10 +2495,14 @@ const LoginDashboard = () => {
                             </Box>
                             <Box>
                               <Typography sx={{ ...sectionTitleSx, color: '#16324f' }}>
-                                Traffic by Library Section {selectedCollege !== 'All' ? `(${selectedCollege})` : ''}
+                                {selectedCollege === 'Guest / Visitor'
+                                  ? 'External Visitor Destinations'
+                                  : `Traffic by Library Section ${selectedCollege !== 'All' ? `(${selectedCollege})` : ''}`}
                               </Typography>
                               <Typography sx={sectionSubtitleSx}>
-                                Area visit breakdown
+                                {selectedCollege === 'Guest / Visitor'
+                                  ? 'Where visiting researchers & guests spend their time'
+                                  : 'Area visit breakdown'}
                               </Typography>
                             </Box>
                           </Box>
@@ -2496,7 +2588,7 @@ const LoginDashboard = () => {
 
                               {/* custom legend pill list */}
                               <Box sx={{
-                                mt: 2, display: 'flex', flexDirection: 'column', gap: 1, maxHeight: 170, overflowY: 'auto', pr: 1,
+                                mt: 2, display: 'flex', flexDirection: 'column', gap: 0.8, maxHeight: 170, overflowY: 'auto', pr: 1,
                                 '&::-webkit-scrollbar': { width: '5px' },
                                 '&::-webkit-scrollbar-track': { backgroundColor: '#f1f5f9', borderRadius: '4px' },
                                 '&::-webkit-scrollbar-thumb': { backgroundColor: '#cbd5e1', borderRadius: '4px', '&:hover': { backgroundColor: '#94a3b8' } }
@@ -2511,7 +2603,12 @@ const LoginDashboard = () => {
                                       : '0.0';
 
                                   return (
-                                    <Box key={sec.name} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12, gap: 1 }}>
+                                    <Box key={sec.name} sx={{
+                                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12, gap: 1,
+                                      p: 0.6, px: 1, borderRadius: 1.5,
+                                      transition: 'all 0.15s ease',
+                                      '&:hover': { bgcolor: '#f1f5f9' }
+                                    }}>
                                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
                                         <Box sx={{
                                           width: 9, height: 9, borderRadius: '50%', flexShrink: 0,
@@ -2520,7 +2617,7 @@ const LoginDashboard = () => {
                                         <Typography noWrap sx={{
                                           fontFamily: T.font.family, fontSize: 12,
                                           fontWeight: isBaseline ? 800 : (isEntranceOnly ? 700 : 500),
-                                          color: isBaseline ? '#1a237e' : (isEntranceOnly ? '#0288d1' : '#334155')
+                                          color: isBaseline ? '#16324f' : '#334155'
                                         }}>
                                           {sec.name}
                                         </Typography>
@@ -2528,7 +2625,7 @@ const LoginDashboard = () => {
                                       <Typography sx={{
                                         fontFamily: T.font.family, fontSize: 12,
                                         fontWeight: 700, flexShrink: 0,
-                                        color: isBaseline ? '#1a237e' : (isEntranceOnly ? '#0288d1' : '#64748b')
+                                        color: isBaseline ? '#16324f' : '#64748b'
                                       }}>
                                         {pct}% ({sec.value})
                                       </Typography>
@@ -2536,6 +2633,43 @@ const LoginDashboard = () => {
                                   );
                                 })}
                               </Box>
+
+                              {/* dynamic guest destination qualitative insight */}
+                              {selectedCollege === 'Guest / Visitor' && (
+                                <Box sx={{
+                                  mt: 2,
+                                  p: 1.4,
+                                  borderRadius: '10px',
+                                  bgcolor: '#f0f9ff',
+                                  border: '1px solid #bae6fd',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 1.2
+                                }}>
+                                  <Box sx={{
+                                    bgcolor: '#e0f2fe',
+                                    color: '#0284c7',
+                                    p: 0.5,
+                                    borderRadius: '8px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    flexShrink: 0
+                                  }}>
+                                    <LocationOnIcon sx={{ fontSize: 18 }} />
+                                  </Box>
+                                  <Box sx={{ minWidth: 0 }}>
+                                    <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 700, color: '#0369a1', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                                      Guest Foot Traffic Insight
+                                    </Typography>
+                                    <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 600, color: '#0c4a6e' }}>
+                                      {internalSections.length > 0 && internalSections[0].value > 0
+                                        ? `Top Destination: ${internalSections[0].name} (${internalSections[0].value} visit${internalSections[0].value === 1 ? '' : 's'})`
+                                        : 'Entrance Only: No internal library sections visited yet'}
+                                    </Typography>
+                                  </Box>
+                                </Box>
+                              )}
                             </>
                           )}
                         </CardContent>
@@ -2576,8 +2710,48 @@ const LoginDashboard = () => {
                               </Typography>
                             </Box>
 
-                            {/* month pill strip */}
+                            {/* quick patron category segmented pill strip */}
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, flexWrap: 'wrap', mt: 1.5 }}>
+                              <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#64748b', mr: 0.4, display: 'flex', alignItems: 'center', gap: 0.4 }}>
+                                <PeopleIcon sx={{ fontSize: 15, color: '#16324f' }} /> Patron:
+                              </Typography>
+                              {[
+                                { id: 'All', label: 'All Patrons', count: patronBreakdown.total },
+                                { id: 'Students', label: 'Students', count: patronBreakdown.students },
+                                { id: 'Faculty', label: 'Faculty & Staff', count: patronBreakdown.faculty },
+                                { id: 'Guests', label: 'Guests & Visitors', count: patronBreakdown.guests },
+                              ].map(cat => {
+                                const isSelected = activePatronCategory === cat.id;
+                                return (
+                                  <Button
+                                    key={cat.id}
+                                    size="small"
+                                    onClick={() => handleSelectPatronCategory(cat.id)}
+                                    sx={{
+                                      borderRadius: '9999px',
+                                      textTransform: 'none',
+                                      fontFamily: T.font.family,
+                                      fontWeight: isSelected ? 700 : 600,
+                                      fontSize: 12,
+                                      px: 1.6,
+                                      py: 0.35,
+                                      minWidth: 'auto',
+                                      height: 28,
+                                      boxShadow: 'none',
+                                      ...(isSelected
+                                        ? { bgcolor: cat.id === 'Guests' ? '#0284c7' : '#16324f', color: '#ffffff', '&:hover': { bgcolor: cat.id === 'Guests' ? '#0369a1' : '#0f243a' } }
+                                        : { bgcolor: '#f1f5f9', color: cat.count > 0 ? '#334155' : '#94a3b8', border: '1px solid #cbdbe9', '&:hover': { bgcolor: '#edf4fa' } }
+                                      )
+                                    }}
+                                  >
+                                    {cat.label} ({cat.count})
+                                  </Button>
+                                );
+                              })}
+                            </Box>
+
+                            {/* month pill strip */}
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, flexWrap: 'wrap', mt: 1.2 }}>
                               <Button
                                 size="small"
                                 onClick={() => { setFilterMonth('All'); setPage(0); }}
@@ -2829,37 +3003,14 @@ const LoginDashboard = () => {
                                         {`${row.studLname || ''}, ${row.studFname || ''}`}
                                       </TableCell>
                                       <TableCell sx={{ py: 1.1, px: 1.4, borderBottom: '1px solid #f1f5f9', fontFamily: T.font.family, fontSize: 12.5, color: '#475569', fontWeight: 500 }}>
-                                        {`${(row.studCourse || 'N/A').replace(/comouter/gi, 'Computer')} - ${row.studYear || ''}`}
+                                        {collegeCode === 'Guest / Visitor'
+                                          ? (row.studCourse || inferGuestType(row.studIDnumber, row.studLname, row.studFname))
+                                          : `${(row.studCourse || 'N/A').replace(/comouter/gi, 'Computer')}${row.studYear ? ` - ${row.studYear}` : ''}`}
                                       </TableCell>
                                       <TableCell sx={{ py: 1.1, px: 1.4, borderBottom: '1px solid #f1f5f9' }}>
-                                        <Tooltip
+                                        <Box
                                           title={tooltipCollege}
-                                          arrow
-                                          placement="top"
-                                          slotProps={{
-                                            tooltip: {
-                                              sx: {
-                                                fontSize: 14,
-                                                fontWeight: 600,
-                                                fontFamily: T.font.family,
-                                                bgcolor: '#0f172a',
-                                                py: 0.8,
-                                                px: 1.5,
-                                                borderRadius: 2,
-                                                boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.3)',
-                                                maxWidth: 380,
-                                                lineHeight: 1.4,
-                                                textAlign: 'center'
-                                              }
-                                            },
-                                            arrow: {
-                                              sx: {
-                                                color: '#0f172a'
-                                              }
-                                            }
-                                          }}
-                                        >
-                                          <Box sx={{
+                                          sx={{
                                             display: 'inline-flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
@@ -2877,10 +3028,10 @@ const LoginDashboard = () => {
                                             cursor: 'default',
                                             transition: 'all 0.15s ease',
                                             '&:hover': { bgcolor: '#dbeafe', borderColor: '#93c5fd' }
-                                          }}>
-                                            {collegeCode}
-                                          </Box>
-                                        </Tooltip>
+                                          }}
+                                        >
+                                          {collegeCode}
+                                        </Box>
                                       </TableCell>
                                       <TableCell sx={{ py: 1.1, px: 1.4, borderBottom: '1px solid #f1f5f9' }}>
                                         <Chip
@@ -2923,19 +3074,18 @@ const LoginDashboard = () => {
                                         )}
                                       </TableCell>
                                       <TableCell align="center" sx={{ py: 1.1, px: 1, borderBottom: '1px solid #f1f5f9' }}>
-                                        <Tooltip title="Delete Record">
-                                          <IconButton
-                                            size="small"
-                                            onClick={() => openDeleteSingleDialog(row)}
-                                            sx={{
-                                              color: '#dc2626',
-                                              p: 0.4,
-                                              '&:hover': { color: '#b91c1c', bgcolor: '#fef2f2' }
-                                            }}
-                                          >
-                                            <DeleteOutlineIcon fontSize="small" />
-                                          </IconButton>
-                                        </Tooltip>
+                                        <IconButton
+                                          title="Delete Record"
+                                          size="small"
+                                          onClick={() => openDeleteSingleDialog(row)}
+                                          sx={{
+                                            color: '#dc2626',
+                                            p: 0.4,
+                                            '&:hover': { color: '#b91c1c', bgcolor: '#fef2f2' }
+                                          }}
+                                        >
+                                          <DeleteOutlineIcon fontSize="small" />
+                                        </IconButton>
                                       </TableCell>
                                     </TableRow>
                                   );
@@ -3011,13 +3161,11 @@ const LoginDashboard = () => {
                             <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                               Top Department Traffic (Top 5)
                             </Typography>
-                            <Tooltip title={<DepartmentsHoverList sortedColleges={sortedColleges} totalEntries={totalEntries} />} arrow placement="left">
-                              <Chip
-                                label="View All Activity"
-                                size="small"
-                                sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 10.5, bgcolor: '#edf4fa', color: '#16324f', cursor: 'pointer', height: 22, borderRadius: '9999px' }}
-                              />
-                            </Tooltip>
+                            <Chip
+                              label={`${sortedColleges.length} Total`}
+                              size="small"
+                              sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 10.5, bgcolor: '#edf4fa', color: '#16324f', height: 22, borderRadius: '9999px' }}
+                            />
                           </Box>
 
                           {sortedColleges.slice(0, 5).map((col, idx) => {
@@ -3037,25 +3185,19 @@ const LoginDashboard = () => {
                             );
                           })}
 
-                          {/* others hover trigger badge */}
+                          {/* others count banner */}
                           {sortedColleges.length > 5 && (
-                            <Tooltip title={<DepartmentsHoverList sortedColleges={sortedColleges} totalEntries={totalEntries} />} arrow placement="top">
-                              <Box sx={{
-                                mt: 1.5, p: 1.2, borderRadius: 2.5, bgcolor: '#f8fafc', border: '1.5px dashed #cbdbe9',
-                                display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer',
-                                transition: 'all 0.2s ease', '&:hover': { bgcolor: '#edf4fa', borderColor: '#16324f' }
-                              }}>
-                                <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#16324f' }}>
-                                  + {sortedColleges.length - 5} Other Departments
-                                </Typography>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3 }}>
-                                  <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 600, color: '#64748b' }}>
-                                    Hover for full list
-                                  </Typography>
-                                  <ArrowForwardIcon sx={{ fontSize: 13, color: '#16324f' }} />
-                                </Box>
-                              </Box>
-                            </Tooltip>
+                            <Box sx={{
+                              mt: 1.5, p: 1.2, borderRadius: 2.5, bgcolor: '#f8fafc', border: '1px dashed #cbdbe9',
+                              display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                            }}>
+                              <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#64748b' }}>
+                                + {sortedColleges.length - 5} Other Departments
+                              </Typography>
+                              <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, fontWeight: 700, color: '#16324f' }}>
+                                {sortedColleges.slice(5).reduce((acc, c) => acc + c.total, 0)} visits
+                              </Typography>
+                            </Box>
                           )}
                         </Box>
 
