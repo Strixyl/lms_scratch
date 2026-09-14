@@ -23,6 +23,7 @@ import {
   People as PeopleIcon,
   MenuBook as MenuBookIcon,
   InfoOutlined as InfoOutlinedIcon,
+  SentimentNeutral as SentimentNeutralIcon,
 } from '@mui/icons-material';
 import {
   AreaChart,
@@ -355,16 +356,21 @@ const formatCollege = (college) => {
 // top comments card
 export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
   const isPositive = type === 'positive';
-  const borderColor = isPositive ? '#107c41' : '#e11d48';
-  const accentBorder = isPositive ? '#107c41' : '#f43f5e';
-  const headerBg = isPositive ? 'rgba(16, 124, 65, 0.035)' : 'rgba(225, 29, 72, 0.035)';
-  const headerBorder = isPositive ? '#d1fae5' : '#ffe4e6';
-  const iconBg = isPositive ? '#dcfce7' : '#fee2e2';
-  const iconColor = isPositive ? '#15803d' : '#be123c';
-  const iconBorder = isPositive ? '#bbf7d0' : '#fecaca';
-  const badgeBg = isPositive ? '#ecfdf5' : '#fef2f2';
-  const badgeBorder = isPositive ? '#a7f3d0' : '#fecaca';
-  const badgeColor = isPositive ? '#047857' : '#991b1b';
+  const isNeutral = type === 'neutral';
+  const borderColor = isPositive ? '#107c41' : isNeutral ? '#475569' : '#e11d48';
+  const accentBorder = isPositive ? '#107c41' : isNeutral ? '#64748b' : '#f43f5e';
+  const headerBg = isPositive
+    ? 'rgba(16, 124, 65, 0.035)'
+    : isNeutral
+    ? 'rgba(71, 85, 105, 0.04)'
+    : 'rgba(225, 29, 72, 0.035)';
+  const headerBorder = isPositive ? '#d1fae5' : isNeutral ? '#e2e8f0' : '#ffe4e6';
+  const iconBg = isPositive ? '#dcfce7' : isNeutral ? '#f1f5f9' : '#fee2e2';
+  const iconColor = isPositive ? '#15803d' : isNeutral ? '#475569' : '#be123c';
+  const iconBorder = isPositive ? '#bbf7d0' : isNeutral ? '#cbd5e1' : '#fecaca';
+  const badgeBg = isPositive ? '#ecfdf5' : isNeutral ? '#f8fafc' : '#fef2f2';
+  const badgeBorder = isPositive ? '#a7f3d0' : isNeutral ? '#cbd5e1' : '#fecaca';
+  const badgeColor = isPositive ? '#047857' : isNeutral ? '#334155' : '#991b1b';
 
   return (
     <Card
@@ -406,7 +412,7 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
             justifyContent: 'center',
             '& svg': { fontSize: 16 }
           }}>
-            {isPositive ? <ThumbUpIcon /> : <ThumbDownIcon />}
+            {isPositive ? <ThumbUpIcon /> : isNeutral ? <SentimentNeutralIcon /> : <ThumbDownIcon />}
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
             <Typography sx={{
@@ -419,7 +425,11 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
               {title}
             </Typography>
             <Tooltip
-              title="Top comments are ranked directly by RoBERTa model confidence probability, with category diversity filtering to ensure balanced representation across library operational areas."
+              title={
+                isNeutral
+                  ? "Top neutral comments highlight ambivalent patron experiences, operational suggestions, and procedural queries ranked by RoBERTa model confidence."
+                  : "Top comments are ranked directly by RoBERTa model confidence probability, with category diversity filtering to ensure balanced representation across library operational areas."
+              }
               arrow
             >
               <Box sx={{
@@ -469,7 +479,7 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
             color: T.text.secondary,
             fontSize: 13,
           }}>
-            No {isPositive ? 'positive' : 'negative'} comments recorded.
+            No {isPositive ? 'positive' : isNeutral ? 'neutral' : 'negative'} comments recorded.
           </Typography>
         </Box>
       ) : (
@@ -617,7 +627,7 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
                       <Box sx={{ p: 0.5, fontSize: 11, lineHeight: 1.45 }}>
                         <Box sx={{ fontWeight: 800, mb: 0.4 }}>RoBERTa Model Ranking: #{i + 1}</Box>
                         <Box>• Classification Score: <b>{confidencePct}%</b></Box>
-                        <Box>• Predicted Sentiment: <b>{isPositive ? 'Positive' : 'Negative'}</b></Box>
+                        <Box>• Predicted Sentiment: <b>{isPositive ? 'Positive' : isNeutral ? 'Neutral' : 'Negative'}</b></Box>
                       </Box>
                     }
                     arrow
@@ -629,9 +639,9 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
                       px: 0.75,
                       py: 0.2,
                       borderRadius: '4px',
-                      bgcolor: isPositive ? '#ecfdf5' : '#fff1f2',
-                      color: isPositive ? '#065f46' : '#9f1239',
-                      border: `1px solid ${isPositive ? '#a7f3d0' : '#fecdd3'}`,
+                      bgcolor: isPositive ? '#ecfdf5' : isNeutral ? '#f1f5f9' : '#fff1f2',
+                      color: isPositive ? '#065f46' : isNeutral ? '#334155' : '#9f1239',
+                      border: `1px solid ${isPositive ? '#a7f3d0' : isNeutral ? '#cbd5e1' : '#fecdd3'}`,
                       fontFamily: T.font.family,
                       fontSize: 10,
                       fontWeight: 700,
@@ -642,7 +652,7 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
                         boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
                       }
                     }}>
-                      <VerifiedIcon sx={{ fontSize: 11, color: isPositive ? '#059669' : '#e11d48' }} />
+                      <VerifiedIcon sx={{ fontSize: 11, color: isPositive ? '#059669' : isNeutral ? '#64748b' : '#e11d48' }} />
                       <span>{confidencePct}% Score</span>
                     </Box>
                   </Tooltip>
@@ -1168,6 +1178,7 @@ export const CustomDivergingTrendTooltip = ({ active, payload, label }) => {
       : null;
     const posPct = total > 0 ? ((pos / total) * 100).toFixed(1) : '0.0';
     const negPct = total > 0 ? ((rawNeg / total) * 100).toFixed(1) : '0.0';
+    const neuPct = total > 0 ? ((neu / total) * 100).toFixed(1) : '0.0';
 
     return (
       <Paper elevation={4} sx={{ p: 2, bgcolor: T.surface.card, border: `1.5px solid ${T.surface.borderLight}`, borderRadius: 3, maxWidth: 320, boxShadow: T.shadow.elevated }}>
@@ -1209,15 +1220,15 @@ export const CustomDivergingTrendTooltip = ({ active, payload, label }) => {
 
           {/* neutral count */}
           {neu > 0 && (
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 0.6, px: 1.2, borderRadius: 2, bgcolor: T.sentiment.Neutral.light, border: `1px solid ${T.sentiment.Neutral.dot}40` }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 0.8, px: 1.2, borderRadius: 2, bgcolor: T.sentiment.Neutral.light, border: `1px solid ${T.sentiment.Neutral.dot}40` }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
                 <FiberManualRecordIcon sx={{ fontSize: 7, color: T.sentiment.Neutral.text }} />
-                <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, fontWeight: 700, color: T.sentiment.Neutral.text }}>
+                <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: T.sentiment.Neutral.text }}>
                   Neutral
                 </Typography>
               </Box>
-              <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, fontWeight: 800, color: T.sentiment.Neutral.text }}>
-                {neu}
+              <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 800, color: T.sentiment.Neutral.text }}>
+                {neu} ({neuPct}%)
               </Typography>
             </Box>
           )}
@@ -1478,11 +1489,18 @@ export const ModernKpiCard = ({
     );
   }
 
-  const isBlue = borderColorTheme === 'blue';
-  const borderCol = isBlue ? '#cbdbe9' : '#fed7aa';
-  const borderTopCol = isBlue ? '#16324f' : '#f69d1b';
-  const shadowColor = isBlue ? 'rgba(22, 50, 79, 0.04)' : 'rgba(246, 157, 27, 0.04)';
-  const hoverShadowColor = isBlue ? 'rgba(22, 50, 79, 0.1)' : 'rgba(246, 157, 27, 0.1)';
+  const themeMap = {
+    blue: { border: '#cbdbe9', borderTop: '#16324f', shadow: 'rgba(22, 50, 79, 0.04)', hover: 'rgba(22, 50, 79, 0.1)' },
+    gold: { border: '#fed7aa', borderTop: '#f69d1b', shadow: 'rgba(246, 157, 27, 0.04)', hover: 'rgba(246, 157, 27, 0.1)' },
+    rose: { border: '#fecdd3', borderTop: '#e11d48', shadow: 'rgba(225, 29, 72, 0.04)', hover: 'rgba(225, 29, 72, 0.1)' },
+    slate: { border: '#cbd5e1', borderTop: '#475569', shadow: 'rgba(71, 85, 105, 0.04)', hover: 'rgba(71, 85, 105, 0.1)' },
+    emerald: { border: '#a7f3d0', borderTop: '#059669', shadow: 'rgba(5, 150, 105, 0.04)', hover: 'rgba(5, 150, 105, 0.1)' },
+  };
+  const theme = themeMap[borderColorTheme] || themeMap.gold;
+  const borderCol = theme.border;
+  const borderTopCol = theme.borderTop;
+  const shadowColor = theme.shadow;
+  const hoverShadowColor = theme.hover;
 
   return (
     <Card

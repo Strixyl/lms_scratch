@@ -7,7 +7,8 @@ import {
   MenuItem, Select, FormControl, InputLabel,
   Dialog, DialogTitle, DialogContent, DialogActions, Avatar, Chip,
   TableSortLabel, Snackbar, Alert, Tooltip,
-  Checkbox, ToggleButton, ToggleButtonGroup, IconButton
+  Checkbox, ToggleButton, ToggleButtonGroup, IconButton,
+  Skeleton, Collapse, InputAdornment, Badge
 } from '@mui/material';
 import {
   Print as PrintIcon,
@@ -28,6 +29,13 @@ import {
   Category as CategoryIcon,
   EventNote as EventNoteIcon,
   Close as CloseIcon,
+  Search as SearchIcon,
+  Clear as ClearIcon,
+  Tune as TuneIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
+  WarningAmber as WarningAmberIcon,
+  ArrowForward as ArrowForwardIcon,
 } from '@mui/icons-material';
 import {
   ResponsiveContainer,
@@ -126,7 +134,9 @@ const renderPillBar = (props) => {
       style={{
         transition: 'all 0.2s ease',
         cursor: 'pointer',
-        filter: isSelected ? 'drop-shadow(0 2px 4px rgba(0,0,0,0.18))' : 'none',
+        filter: isSelected
+          ? 'drop-shadow(0 2px 5px rgba(0,0,0,0.22))'
+          : (strokeWidth > 1 ? 'drop-shadow(0 2px 4px rgba(0,0,0,0.12))' : 'none'),
       }}
     />
   );
@@ -213,6 +223,8 @@ function SentimentDashboard() {
   // search and sort states
   const [sortField, setSortField] = useState('DateSubmitted');
   const [sortOrder, setSortOrder] = useState('desc');
+  const [tableSearchQuery, setTableSearchQuery] = useState('');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   // batch selection and deletion states
   const [selectedRowIds, setSelectedRowIds] = useState([]);
@@ -223,6 +235,9 @@ function SentimentDashboard() {
 
   // trend scale mode: percent (100%) or count (volume)
   const [trendScaleMode, setTrendScaleMode] = useState('percent');
+
+  // comments section active view tab ('all', 'positive', 'neutral', 'negative')
+  const [commentsView, setCommentsView] = useState('all');
 
   // layout controls
   const [sourceCategoryFilter, setSourceCategoryFilter] = useState('All Categories');
@@ -389,6 +404,7 @@ function SentimentDashboard() {
     setSelectedWordFilter('');
     setWcSearch('');
     setWcSentimentFilter('All');
+    setTableSearchQuery('');
     setSortField('DateSubmitted');
     setSortOrder('desc');
     setPage(0);
@@ -401,13 +417,12 @@ function SentimentDashboard() {
     setPage(0);
   };
 
-  const filtered = useMemo(() => {
+  const cohortFiltered = useMemo(() => {
     return surveys.filter(s => {
       if (!s.SentimentResult) return false;
       if (filterClientele && s.Clientele?.toLowerCase() !== filterClientele.toLowerCase()) return false;
       if (filterCollege && s.College !== filterCollege) return false;
       if (filterCourse && s.Course !== filterCourse) return false;
-      if (filterSentiment && s.SentimentResult !== filterSentiment) return false;
       if (filterCategory && (s.Category || 'Other/Uncategorized') !== filterCategory) return false;
 
       if (!s.DateSubmitted) return false;
@@ -436,7 +451,21 @@ function SentimentDashboard() {
 
       return true;
     });
-  }, [surveys, filterClientele, filterCollege, filterCourse, filterSentiment, filterCategory, filterYear, filterQuarter, filterMonth, startDate, endDate]);
+  }, [surveys, filterClientele, filterCollege, filterCourse, filterCategory, filterYear, filterQuarter, filterMonth, startDate, endDate]);
+
+  const filtered = useMemo(() => {
+    if (!filterSentiment || filterSentiment === 'All') return cohortFiltered;
+    return cohortFiltered.filter(s => s.SentimentResult === filterSentiment);
+  }, [cohortFiltered, filterSentiment]);
+
+  const cohortCounts = useMemo(() => {
+    const c = { Positive: 0, Neutral: 0, Negative: 0, Total: 0 };
+    cohortFiltered.forEach(s => {
+      if (c[s.SentimentResult] !== undefined) c[s.SentimentResult]++;
+      c.Total++;
+    });
+    return c;
+  }, [cohortFiltered]);
 
   const counts = useMemo(() => {
     const c = { Positive: 0, Neutral: 0, Negative: 0 };
@@ -461,16 +490,38 @@ function SentimentDashboard() {
 
   const total = filtered.length;
 
-  const filteredWithWord = useMemo(() => {
-    if (!selectedWordFilter) return filtered;
-    const wordLower = selectedWordFilter.toLowerCase();
-    const stem = stemWord(wordLower);
-    return filtered.filter(s => {
-      if (!s.Message) return false;
-      const msgLower = s.Message.toLowerCase();
-      return msgLower.includes(wordLower) || msgLower.includes(stem);
-    });
-  }, [filtered, selectedWordFilter]);
+  const filteredWithWordAndSearch = useMemo(() => {
+    let result = filtered;
+    if (selectedWordFilter) {
+      const wordLower = selectedWordFilter.toLowerCase();
+      const stem = stemWord(wordLower);
+      result = result.filter(s => {
+        if (!s.Message) return false;
+        const msgLower = s.Message.toLowerCase();
+        return msgLower.includes(wordLower) || msgLower.includes(stem);
+      });
+    }
+    if (tableSearchQuery && tableSearchQuery.trim()) {
+      const q = tableSearchQuery.trim().toLowerCase();
+      result = result.filter(s => {
+        const msg = (s.Message || '').toLowerCase();
+        const college = (s.College || '').toLowerCase();
+        const course = (s.Course || '').toLowerCase();
+        const clientele = (s.Clientele || '').toLowerCase();
+        const category = (s.Category || '').toLowerCase();
+        const sentiment = (s.SentimentResult || '').toLowerCase();
+        return (
+          msg.includes(q) ||
+          college.includes(q) ||
+          course.includes(q) ||
+          clientele.includes(q) ||
+          category.includes(q) ||
+          sentiment.includes(q)
+        );
+      });
+    }
+    return result;
+  }, [filtered, selectedWordFilter, tableSearchQuery]);
 
   const tableMonthCounts = useMemo(() => {
     const counts = { All: 0 };
@@ -497,7 +548,7 @@ function SentimentDashboard() {
   }, [surveys, filterClientele, filterCollege, filterCourse, filterSentiment, filterCategory, filterYear]);
 
   const reviewRows = useMemo(() => {
-    return [...filteredWithWord].sort((a, b) => {
+    return [...filteredWithWordAndSearch].sort((a, b) => {
       let valA = a[sortField];
       let valB = b[sortField];
 
@@ -519,7 +570,7 @@ function SentimentDashboard() {
       if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [filteredWithWord, sortField, sortOrder]);
+  }, [filteredWithWordAndSearch, sortField, sortOrder]);
   const totalPages = Math.ceil(reviewRows.length / ROWS_PER_PAGE) || 1;
   const pageRows = reviewRows.slice(page * ROWS_PER_PAGE, (page + 1) * ROWS_PER_PAGE);
 
@@ -536,6 +587,18 @@ function SentimentDashboard() {
     }
   };
 
+  const advancedFilterCount = useMemo(() => {
+    let count = 0;
+    if (startDate || endDate) count++;
+    if (filterQuarter && filterQuarter !== 'All') count++;
+    if (filterYear && filterYear !== 'All' && filterYear !== '2026') count++;
+    if (filterClientele) count++;
+    if (filterCollege) count++;
+    if (filterCourse) count++;
+    if (filterCategory) count++;
+    return count;
+  }, [startDate, endDate, filterQuarter, filterYear, filterClientele, filterCollege, filterCourse, filterCategory]);
+
   const hasActiveFilter = Boolean(
     startDate ||
     endDate ||
@@ -544,6 +607,7 @@ function SentimentDashboard() {
     filterCourse ||
     filterSentiment ||
     filterCategory ||
+    tableSearchQuery ||
     (filterQuarter && filterQuarter !== 'All') ||
     (filterMonth && filterMonth !== 'All') ||
     (filterYear && filterYear !== 'All' && filterYear !== '2026')
@@ -590,7 +654,6 @@ function SentimentDashboard() {
       if (filterClientele && s.Clientele?.toLowerCase() !== filterClientele.toLowerCase()) return;
       if (filterCollege && s.College !== filterCollege) return;
       if (filterCourse && s.Course !== filterCourse) return;
-      if (filterSentiment && s.SentimentResult !== filterSentiment) return;
       if (filterCategory && (s.Category || 'Other/Uncategorized') !== filterCategory) return;
 
       if (!s.DateSubmitted || typeof s.DateSubmitted !== 'string') return;
@@ -618,10 +681,12 @@ function SentimentDashboard() {
       const avg = item.Total > 0 ? parseFloat((item.scoresSum / item.Total).toFixed(2)) : null;
       const net = item.Positive - item.rawNegative;
       const posPct = item.Total > 0 ? Math.round((item.Positive / item.Total) * 100) : 0;
+      const neuPct = item.Total > 0 ? Math.round((item.Neutral / item.Total) * 100) : 0;
       const negPct = item.Total > 0 ? Math.round((item.rawNegative / item.Total) * 100) : 0;
       return {
         ...item,
         posPct,
+        neuPct,
         negPct,
         negPctDiverging: -negPct,
         avgSatisfaction: avg,
@@ -629,17 +694,26 @@ function SentimentDashboard() {
         isSelectedMonth: filterMonth === m,
       };
     });
-  }, [surveys, filterYear, filterClientele, filterCollege, filterCourse, filterSentiment, filterCategory, filterMonth]);
+  }, [surveys, filterYear, filterClientele, filterCollege, filterCourse, filterCategory, filterMonth]);
 
-  // dynamic y-axis headroom: maxVal * 1.2
+  // dynamic y-axis headroom: maxVal * 1.25
   const maxVolume = useMemo(() => {
     let maxVal = 5;
     divergingTrendData.forEach(d => {
-      if (d.Positive > maxVal) maxVal = d.Positive;
-      if (d.rawNegative > maxVal) maxVal = d.rawNegative;
+      if (filterSentiment === 'Positive') {
+        if (d.Positive > maxVal) maxVal = d.Positive;
+      } else if (filterSentiment === 'Neutral') {
+        if (d.Neutral > maxVal) maxVal = d.Neutral;
+      } else if (filterSentiment === 'Negative') {
+        if (d.rawNegative > maxVal) maxVal = d.rawNegative;
+      } else {
+        if (d.Positive > maxVal) maxVal = d.Positive;
+        if (d.Neutral > maxVal) maxVal = d.Neutral;
+        if (d.rawNegative > maxVal) maxVal = d.rawNegative;
+      }
     });
-    return Math.ceil(maxVal * 1.2);
-  }, [divergingTrendData]);
+    return Math.ceil(maxVal * 1.25);
+  }, [divergingTrendData, filterSentiment]);
 
   // category breakdown for source card
   const categoryBreakdownData = useMemo(() => {
@@ -700,7 +774,7 @@ function SentimentDashboard() {
     return buildTermFrequencies(filtered.length > 0 ? filtered : surveys);
   }, [filtered, surveys]);
 
-  const commentsMasterPool = filtered;
+  const commentsMasterPool = cohortFiltered.length > 0 ? cohortFiltered : surveys;
 
   const positivePool = commentsMasterPool.filter(s => {
     if (s.SentimentResult !== 'Positive' || !s.Message?.trim()) return false;
@@ -844,6 +918,24 @@ function SentimentDashboard() {
     return scoredTopics.slice(0, 3);
   }, [filtered, surveys, filterCategory]);
 
+  const urgentAlertTopic = useMemo(() => {
+    if (counts.Negative === 0) return null;
+    const highStat = categoryStats.find(c => c.severity === 'HIGH' && c.matchCount > 0);
+    if (highStat) return highStat;
+    const topStat = categoryStats.find(c => c.matchCount > 0);
+    if (topStat) return topStat;
+    if (counts.Negative >= 3) {
+      return {
+        id: 'general-negative-spike',
+        title: 'Negative Feedback Spike',
+        category: 'General',
+        matchCount: counts.Negative,
+        action: 'Review patron feedback responses to investigate emerging service issues.',
+      };
+    }
+    return null;
+  }, [categoryStats, counts.Negative]);
+
   const handleExportExcel = () => {
     if (filtered.length === 0) {
       alert("No sentiment metrics data available to export.");
@@ -909,6 +1001,54 @@ function SentimentDashboard() {
 
     const dateStamp = new Date().toISOString().split('T')[0];
     XLSX.writeFile(workbook, `HLL_Sentiment_Analysis_${dateStamp}.xlsx`);
+  };
+
+  const handleExportTableExcel = () => {
+    if (reviewRows.length === 0) {
+      setSnackbarMsg("No survey responses currently matching table filters to export.");
+      return;
+    }
+
+    const tableRowsData = reviewRows.map((row, index) => ({
+      'No.': index + 1,
+      'Clientele Group': row.Clientele ? (row.Clientele.charAt(0).toUpperCase() + row.Clientele.slice(1).toLowerCase()) : 'Student',
+      'College': cleanCollegeName(row.College) || 'N/A',
+      'Course': cleanCollegeName(row.Course) || 'N/A',
+      'Feedback Message': row.Message || '(Rating only - no written comment)',
+      'Sentiment': row.SentimentResult || 'Neutral',
+      'Category': row.Category || 'Other/Uncategorized',
+      'Q1': formatRatingShort(row.Question1),
+      'Q2': formatRatingShort(row.Question2),
+      'Q3': formatRatingShort(row.Question3),
+      'Q4': formatRatingShort(row.Question4),
+      'Q5': formatRatingShort(row.Question5),
+      'Q6': formatRatingShort(row.Question6),
+      'Q7': formatRatingShort(row.Question7),
+      'Q8': formatRatingShort(row.Question8),
+      'Q9': formatRatingShort(row.Question9),
+      'Q10': formatRatingShort(row.Question10),
+      'Date Submitted': row.DateSubmitted ? (typeof row.DateSubmitted === 'string' && row.DateSubmitted.length >= 10 ? row.DateSubmitted.slice(0, 10) : new Date(row.DateSubmitted).toLocaleDateString()) : 'N/A'
+    }));
+
+    const workbook = XLSX.utils.book_new();
+    const wsTable = XLSX.utils.json_to_sheet(tableRowsData);
+
+    const colWidths = [];
+    tableRowsData.forEach((row) => {
+      Object.keys(row).forEach((key, colIndex) => {
+        const valStr = row[key] ? row[key].toString() : '';
+        const maxLen = Math.max(valStr.length, key.length);
+        if (!colWidths[colIndex] || maxLen > colWidths[colIndex]) {
+          colWidths[colIndex] = maxLen;
+        }
+      });
+    });
+    wsTable['!cols'] = colWidths.map(w => ({ wch: Math.min(w + 4, 60) }));
+
+    XLSX.utils.book_append_sheet(workbook, wsTable, "Filtered Table View");
+    const dateStamp = new Date().toISOString().split('T')[0];
+    XLSX.writeFile(workbook, `HLL_Survey_Table_View_${dateStamp}.xlsx`);
+    setSnackbarMsg(`Exported ${reviewRows.length} survey records from table view.`);
   };
 
   const handlePrint = () => {
@@ -1061,9 +1201,14 @@ function SentimentDashboard() {
                       }}>
                         <FilterAltIcon />
                       </Box>
-                      <Typography sx={{ ...sectionTitleSx, color: '#16324f' }}>
-                        Filter & Analytics Controls
-                      </Typography>
+                      <Box>
+                        <Typography sx={{ ...sectionTitleSx, color: '#16324f' }}>
+                          Filter & Analytics Controls
+                        </Typography>
+                        <Typography sx={sectionSubtitleSx}>
+                          Filter by date horizon, sentiment status, or expand academic demographics
+                        </Typography>
+                      </Box>
                     </Box>
                     <Typography sx={{
                       fontFamily: T.font.family,
@@ -1079,163 +1224,250 @@ function SentimentDashboard() {
                     </Typography>
                   </Box>
 
-                  {/* quick date presets */}
-                  <Box sx={{ px: 3, pt: 1.8, pb: 1.5, bgcolor: '#ffffff', borderBottom: `1px solid ${T.surface.borderLight}`, display: 'flex', alignItems: 'center', gap: 0.8, flexWrap: 'wrap' }}>
-                    <Typography sx={{ fontFamily: T.font.family, fontSize: 12.5, fontWeight: 700, color: '#64748b', mr: 0.8, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <CalendarTodayIcon sx={{ fontSize: 15, color: '#16324f' }} /> Quick Date Range:
-                    </Typography>
-                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('q1')} sx={datePresetBtnSx}>Q1</Button>
-                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('q2')} sx={datePresetBtnSx}>Q2</Button>
-                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('q3')} sx={datePresetBtnSx}>Q3</Button>
-                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('q4')} sx={datePresetBtnSx}>Q4</Button>
-                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('today')} sx={datePresetBtnSx}>Today</Button>
-                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('week')} sx={datePresetBtnSx}>This Week</Button>
-                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('month')} sx={datePresetBtnSx}>This Month</Button>
-                    <Button size="small" variant="outlined" onClick={() => handleDatePreset('all')} sx={datePresetBtnSx}>All Time</Button>
-                  </Box>
+                  {/* primary control strip: date presets & sentiment selector (Hick's Law) */}
+                  <Box sx={{
+                    p: { xs: 2, sm: 2.5 },
+                    bgcolor: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: 2,
+                  }}>
+                    {/* quick date horizon presets */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, flexWrap: 'wrap' }}>
+                      <Typography sx={{ fontFamily: T.font.family, fontSize: 12.5, fontWeight: 700, color: '#64748b', mr: 0.4, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <CalendarTodayIcon sx={{ fontSize: 15, color: '#16324f' }} /> Date Horizon:
+                      </Typography>
+                      <Button size="small" variant="outlined" onClick={() => handleDatePreset('q1')} sx={datePresetBtnSx}>Q1</Button>
+                      <Button size="small" variant="outlined" onClick={() => handleDatePreset('q2')} sx={datePresetBtnSx}>Q2</Button>
+                      <Button size="small" variant="outlined" onClick={() => handleDatePreset('q3')} sx={datePresetBtnSx}>Q3</Button>
+                      <Button size="small" variant="outlined" onClick={() => handleDatePreset('q4')} sx={datePresetBtnSx}>Q4</Button>
+                      <Button size="small" variant="outlined" onClick={() => handleDatePreset('today')} sx={datePresetBtnSx}>Today</Button>
+                      <Button size="small" variant="outlined" onClick={() => handleDatePreset('week')} sx={datePresetBtnSx}>This Week</Button>
+                      <Button size="small" variant="outlined" onClick={() => handleDatePreset('month')} sx={datePresetBtnSx}>This Month</Button>
+                      <Button size="small" variant="outlined" onClick={() => handleDatePreset('all')} sx={datePresetBtnSx}>All Time</Button>
+                    </Box>
 
-                  <Box sx={{ p: 3, display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-                    <TextField
-                      type="date"
-                      label="Start Date"
-                      InputLabelProps={{ shrink: true }}
-                      value={startDate}
-                      onChange={(e) => {
-                        setStartDate(e.target.value);
-                        if (e.target.value) setFilterQuarter('All');
-                        setPage(0);
-                      }}
-                      sx={selectSx}
-                    />
-                    <TextField
-                      type="date"
-                      label="End Date"
-                      InputLabelProps={{ shrink: true }}
-                      value={endDate}
-                      onChange={(e) => {
-                        setEndDate(e.target.value);
-                        if (e.target.value) setFilterQuarter('All');
-                        setPage(0);
-                      }}
-                      sx={selectSx}
-                    />
-                    <FormControl sx={selectSx}>
-                      <InputLabel>Clientele</InputLabel>
-                      <Select value={filterClientele} label="Clientele" onChange={(e) => { setFilterClientele(e.target.value); setPage(0); }}>
-                        <MenuItem value="" sx={menuItemSx}>All</MenuItem>
-                        {CLIENTELE_OPTIONS.map(c => (<MenuItem key={c} value={c.toLowerCase()} sx={menuItemSx}>{c}</MenuItem>))}
-                      </Select>
-                    </FormControl>
-                    <FormControl sx={selectSx}>
-                      <InputLabel>College</InputLabel>
-                      <Select value={filterCollege} label="College" onChange={(e) => handleCollegeChange(e.target.value)}>
-                        <MenuItem value="" sx={menuItemSx}>All</MenuItem>
-                        {COLLEGE_OPTIONS.map(c => (<MenuItem key={c} value={c} sx={menuItemSx}>{c}</MenuItem>))}
-                      </Select>
-                    </FormControl>
-                    <FormControl
-                      sx={{
-                        ...selectSx,
-                        minWidth: 190,
-                        ...(!filterCollege ? {
-                          bgcolor: '#f1f5f9',
+                    {/* right controls: sentiment quick-filter, more filters button, clear filters */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, flexWrap: 'wrap' }}>
+                      {/* quick sentiment pills */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: '#f1f5f9', p: 0.4, borderRadius: '10px' }}>
+                        {[
+                          { val: '', label: 'All Sentiments' },
+                          { val: 'Positive', label: 'Positive' },
+                          { val: 'Neutral', label: 'Neutral' },
+                          { val: 'Negative', label: 'Negative' }
+                        ].map((s) => {
+                          const isSel = filterSentiment === s.val;
+                          return (
+                            <Button
+                              key={s.label}
+                              size="small"
+                              onClick={() => { setFilterSentiment(s.val); setPage(0); }}
+                              sx={{
+                                borderRadius: '8px',
+                                textTransform: 'none',
+                                fontFamily: T.font.family,
+                                fontSize: 12,
+                                fontWeight: isSel ? 700 : 600,
+                                px: 1.3,
+                                py: 0.35,
+                                minWidth: 'auto',
+                                bgcolor: isSel ? '#ffffff' : 'transparent',
+                                color: isSel
+                                  ? (s.val === 'Positive' ? '#107c41' : s.val === 'Negative' ? '#be123c' : '#16324f')
+                                  : '#64748b',
+                                boxShadow: isSel ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+                                '&:hover': { bgcolor: isSel ? '#ffffff' : '#e2e8f0' }
+                              }}
+                            >
+                              {s.label}
+                            </Button>
+                          );
+                        })}
+                      </Box>
+
+                      {/* toggle advanced filters button (progressive disclosure) */}
+                      <Button
+                        variant="outlined"
+                        onClick={() => setShowAdvancedFilters(prev => !prev)}
+                        startIcon={<TuneIcon sx={{ fontSize: 17 }} />}
+                        endIcon={showAdvancedFilters ? <ExpandLessIcon sx={{ fontSize: 18 }} /> : <ExpandMoreIcon sx={{ fontSize: 18 }} />}
+                        sx={{
                           borderRadius: '10px',
-                          cursor: 'not-allowed',
-                          '& .MuiOutlinedInput-notchedOutline': {
-                            borderColor: '#e2e8f0 !important',
-                          },
-                          '& .MuiInputLabel-root': {
-                            color: '#94a3b8 !important',
-                          },
-                        } : {}),
-                      }}
-                      disabled={!filterCollege}
-                    >
-                      <InputLabel>
-                        {!filterCollege ? 'Course (Select College)' : 'Course'}
-                      </InputLabel>
-                      <Select
-                        value={filterCollege ? filterCourse : ''}
-                        label={!filterCollege ? 'Course (Select College)' : 'Course'}
-                        onChange={(e) => { setFilterCourse(e.target.value); setPage(0); }}
-                        disabled={!filterCollege}
-                        sx={!filterCollege ? {
-                          bgcolor: '#f1f5f9',
-                          borderRadius: '10px',
-                          color: '#94a3b8',
-                          '& .MuiSelect-select': { cursor: 'not-allowed' },
-                          '&.Mui-disabled .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' }
-                        } : {}}
-                      >
-                        <MenuItem value="" sx={menuItemSx}>All</MenuItem>
-                        {availableCourses.map(crs => (
-                          <MenuItem key={crs} value={crs} sx={menuItemSx}>{crs}</MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                    <FormControl sx={selectSx}>
-                      <InputLabel>Sentiment</InputLabel>
-                      <Select value={filterSentiment} label="Sentiment" onChange={(e) => { setFilterSentiment(e.target.value); setPage(0); }}>
-                        <MenuItem value="" sx={menuItemSx}>All</MenuItem>
-                        <MenuItem value="Positive" sx={menuItemSx}>Positive</MenuItem>
-                        <MenuItem value="Neutral" sx={menuItemSx}>Neutral</MenuItem>
-                        <MenuItem value="Negative" sx={menuItemSx}>Negative</MenuItem>
-                      </Select>
-                    </FormControl>
-                    <FormControl sx={selectSx}>
-                      <InputLabel>Category</InputLabel>
-                      <Select value={filterCategory} label="Category" onChange={(e) => { setFilterCategory(e.target.value); setPage(0); }}>
-                        <MenuItem value="" sx={menuItemSx}>All</MenuItem>
-                        {CATEGORY_OPTIONS.map(c => (<MenuItem key={c} value={c} sx={menuItemSx}>{c}</MenuItem>))}
-                      </Select>
-                    </FormControl>
-                    <FormControl sx={selectSx}>
-                      <InputLabel>Quarter</InputLabel>
-                      <Select
-                        value={filterQuarter}
-                        label="Quarter"
-                        onChange={(e) => {
-                          setFilterQuarter(e.target.value);
-                          if (e.target.value !== 'All') {
-                            setStartDate('');
-                            setEndDate('');
-                          }
-                          setPage(0);
+                          height: 38,
+                          px: 2,
+                          fontFamily: T.font.family,
+                          fontSize: 12.5,
+                          fontWeight: 700,
+                          textTransform: 'none',
+                          borderColor: showAdvancedFilters || advancedFilterCount > 0 ? '#16324f' : '#cbdbe9',
+                          bgcolor: showAdvancedFilters || advancedFilterCount > 0 ? '#edf4fa' : '#ffffff',
+                          color: '#16324f',
+                          '&:hover': { bgcolor: '#e2edf7', borderColor: '#16324f' }
                         }}
                       >
-                        <MenuItem value="All" sx={menuItemSx}>All Quarters</MenuItem>
-                        {QUARTER_OPTIONS.map(q => (
-                          <MenuItem key={q.value} value={q.value} sx={menuItemSx}>{q.label}</MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                    <FormControl sx={selectSx}>
-                      <InputLabel>Year</InputLabel>
-                      <Select value={filterYear} label="Year" onChange={(e) => { setFilterYear(e.target.value); setPage(0); }}>
-                        <MenuItem value="All" sx={menuItemSx}>All Years</MenuItem>
-                        {availableYears.map(yr => (<MenuItem key={yr} value={yr} sx={menuItemSx}>{yr}</MenuItem>))}
-                      </Select>
-                    </FormControl>
+                        <Badge
+                          badgeContent={advancedFilterCount}
+                          color="primary"
+                          sx={{ '& .MuiBadge-badge': { fontWeight: 800, fontSize: 10.5, right: -8, top: -2, bgcolor: '#f57c00' } }}
+                        >
+                          More Filters
+                        </Badge>
+                      </Button>
 
-                    <Button
-                      variant="outlined"
-                      color="error"
-                      onClick={handleClear}
-                      startIcon={<RestartAltIcon />}
-                      disabled={!hasActiveFilter}
-                      sx={{
-                        height: 44, px: 2.8, borderRadius: '10px', textTransform: 'none',
-                        fontFamily: T.font.family, fontWeight: 700, fontSize: 13.5,
-                        borderColor: hasActiveFilter ? '#ea580c' : '#e2e8f0',
-                        color: hasActiveFilter ? '#ea580c' : '#94a3b8',
-                        borderWidth: '1.5px',
-                        bgcolor: hasActiveFilter ? 'rgba(234, 88, 12, 0.05)' : 'transparent',
-                        '&:hover': { borderWidth: '1.5px', borderColor: '#c2410c', bgcolor: 'rgba(234, 88, 12, 0.1)' }
-                      }}
-                    >
-                      Clear Filters
-                    </Button>
+                      <Button
+                        variant="outlined"
+                        color="error"
+                        onClick={handleClear}
+                        startIcon={<RestartAltIcon sx={{ fontSize: 16 }} />}
+                        disabled={!hasActiveFilter}
+                        sx={{
+                          height: 38, px: 2, borderRadius: '10px', textTransform: 'none',
+                          fontFamily: T.font.family, fontWeight: 700, fontSize: 12.5,
+                          borderColor: hasActiveFilter ? '#ea580c' : '#e2e8f0',
+                          color: hasActiveFilter ? '#ea580c' : '#94a3b8',
+                          borderWidth: '1.5px',
+                          bgcolor: hasActiveFilter ? 'rgba(234, 88, 12, 0.05)' : 'transparent',
+                          '&:hover': { borderWidth: '1.5px', borderColor: '#c2410c', bgcolor: 'rgba(234, 88, 12, 0.1)' }
+                        }}
+                      >
+                        Reset All
+                      </Button>
+                    </Box>
                   </Box>
+
+                  {/* collapsible advanced filters drawer (Hick's Law progressive disclosure) */}
+                  <Collapse in={showAdvancedFilters} timeout="auto" unmountOnExit>
+                    <Box sx={{
+                      p: 3,
+                      bgcolor: '#f8fafc',
+                      borderTop: `1px solid ${T.surface.borderLight}`,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 2,
+                    }}>
+                      <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                        Demographics, Academic Units & Custom Range
+                      </Typography>
+
+                      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+                        <TextField
+                          type="date"
+                          label="Start Date"
+                          InputLabelProps={{ shrink: true }}
+                          value={startDate}
+                          onChange={(e) => {
+                            setStartDate(e.target.value);
+                            if (e.target.value) setFilterQuarter('All');
+                            setPage(0);
+                          }}
+                          sx={selectSx}
+                        />
+                        <TextField
+                          type="date"
+                          label="End Date"
+                          InputLabelProps={{ shrink: true }}
+                          value={endDate}
+                          onChange={(e) => {
+                            setEndDate(e.target.value);
+                            if (e.target.value) setFilterQuarter('All');
+                            setPage(0);
+                          }}
+                          sx={selectSx}
+                        />
+                        <FormControl sx={selectSx}>
+                          <InputLabel>Clientele</InputLabel>
+                          <Select value={filterClientele} label="Clientele" onChange={(e) => { setFilterClientele(e.target.value); setPage(0); }}>
+                            <MenuItem value="" sx={menuItemSx}>All</MenuItem>
+                            {CLIENTELE_OPTIONS.map(c => (<MenuItem key={c} value={c.toLowerCase()} sx={menuItemSx}>{c}</MenuItem>))}
+                          </Select>
+                        </FormControl>
+                        <FormControl sx={selectSx}>
+                          <InputLabel>College</InputLabel>
+                          <Select value={filterCollege} label="College" onChange={(e) => handleCollegeChange(e.target.value)}>
+                            <MenuItem value="" sx={menuItemSx}>All</MenuItem>
+                            {COLLEGE_OPTIONS.map(c => (<MenuItem key={c} value={c} sx={menuItemSx}>{c}</MenuItem>))}
+                          </Select>
+                        </FormControl>
+                        <FormControl
+                          sx={{
+                            ...selectSx,
+                            minWidth: 190,
+                            ...(!filterCollege ? {
+                              bgcolor: '#f1f5f9',
+                              borderRadius: '10px',
+                              cursor: 'not-allowed',
+                              '& .MuiOutlinedInput-notchedOutline': {
+                                borderColor: '#e2e8f0 !important',
+                              },
+                              '& .MuiInputLabel-root': {
+                                color: '#94a3b8 !important',
+                              },
+                            } : {}),
+                          }}
+                          disabled={!filterCollege}
+                        >
+                          <InputLabel>
+                            {!filterCollege ? 'Course (Select College)' : 'Course'}
+                          </InputLabel>
+                          <Select
+                            value={filterCollege ? filterCourse : ''}
+                            label={!filterCollege ? 'Course (Select College)' : 'Course'}
+                            onChange={(e) => { setFilterCourse(e.target.value); setPage(0); }}
+                            disabled={!filterCollege}
+                            sx={!filterCollege ? {
+                              bgcolor: '#f1f5f9',
+                              borderRadius: '10px',
+                              color: '#94a3b8',
+                              '& .MuiSelect-select': { cursor: 'not-allowed' },
+                              '&.Mui-disabled .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' }
+                            } : {}}
+                          >
+                            <MenuItem value="" sx={menuItemSx}>All</MenuItem>
+                            {availableCourses.map(crs => (
+                              <MenuItem key={crs} value={crs} sx={menuItemSx}>{crs}</MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                        <FormControl sx={selectSx}>
+                          <InputLabel>Category</InputLabel>
+                          <Select value={filterCategory} label="Category" onChange={(e) => { setFilterCategory(e.target.value); setPage(0); }}>
+                            <MenuItem value="" sx={menuItemSx}>All</MenuItem>
+                            {CATEGORY_OPTIONS.map(c => (<MenuItem key={c} value={c} sx={menuItemSx}>{c}</MenuItem>))}
+                          </Select>
+                        </FormControl>
+                        <FormControl sx={selectSx}>
+                          <InputLabel>Quarter</InputLabel>
+                          <Select
+                            value={filterQuarter}
+                            label="Quarter"
+                            onChange={(e) => {
+                              setFilterQuarter(e.target.value);
+                              if (e.target.value !== 'All') {
+                                setStartDate('');
+                                setEndDate('');
+                              }
+                              setPage(0);
+                            }}
+                          >
+                            <MenuItem value="All" sx={menuItemSx}>All Quarters</MenuItem>
+                            {QUARTER_OPTIONS.map(q => (
+                              <MenuItem key={q.value} value={q.value} sx={menuItemSx}>{q.label}</MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                        <FormControl sx={selectSx}>
+                          <InputLabel>Year</InputLabel>
+                          <Select value={filterYear} label="Year" onChange={(e) => { setFilterYear(e.target.value); setPage(0); }}>
+                            <MenuItem value="All" sx={menuItemSx}>All Years</MenuItem>
+                            {availableYears.map(yr => (<MenuItem key={yr} value={yr} sx={menuItemSx}>{yr}</MenuItem>))}
+                          </Select>
+                        </FormControl>
+                      </Box>
+                    </Box>
+                  </Collapse>
 
                   {/* active filter chips */}
                   {hasActiveFilter && (
@@ -1243,6 +1475,14 @@ function SentimentDashboard() {
                       <Typography sx={{ fontFamily: T.font.family, fontSize: 12.5, fontWeight: 700, color: '#64748b' }}>
                         Active Filters:
                       </Typography>
+                      {tableSearchQuery && (
+                        <Chip
+                          label={`Search: "${tableSearchQuery}"`}
+                          onDelete={() => { setTableSearchQuery(''); setPage(0); }}
+                          size="small"
+                          sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', borderRadius: '9999px' }}
+                        />
+                      )}
                       {(startDate || endDate) && (
                         <Chip label={`Date: ${startDate || 'Start'} to ${endDate || 'End'}`} onDelete={() => handleRemoveFilter('date')} size="small"
                           sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 12, bgcolor: '#ffffff', color: '#16324f', border: `1px solid ${T.surface.borderLight}`, borderRadius: '9999px' }} />
@@ -1302,9 +1542,122 @@ function SentimentDashboard() {
                   )}
                 </Paper>
 
+                {/* urgent priority service alert banner (Von Restorff Effect) */}
+                {urgentAlertTopic && !loading && (
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      mb: 3,
+                      p: { xs: 2, sm: 2.3 },
+                      borderRadius: 3.5,
+                      bgcolor: '#fff1f2',
+                      border: '1.5px solid #fecdd3',
+                      borderLeft: '6px solid #e11d48',
+                      boxShadow: '0 4px 16px rgba(225, 29, 72, 0.07)',
+                      display: 'flex',
+                      alignItems: { xs: 'flex-start', md: 'center' },
+                      justifyContent: 'space-between',
+                      flexDirection: { xs: 'column', md: 'row' },
+                      gap: 2,
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.8 }}>
+                      <Box sx={{
+                        bgcolor: '#ffe4e6',
+                        color: '#e11d48',
+                        p: 0.9,
+                        borderRadius: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        border: '1px solid #fecdd3',
+                        flexShrink: 0,
+                      }}>
+                        <WarningAmberIcon sx={{ fontSize: 26 }} />
+                      </Box>
+                      <Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                          <Typography sx={{ fontFamily: T.font.family, fontWeight: 800, fontSize: 15.5, color: '#9f1239', letterSpacing: '-0.2px' }}>
+                            Priority Service Attention Detected
+                          </Typography>
+                          <Chip
+                            size="small"
+                            label={`${urgentAlertTopic.matchCount} Negative Feedback`}
+                            sx={{
+                              fontFamily: T.font.family,
+                              fontWeight: 800,
+                              fontSize: 11,
+                              bgcolor: '#e11d48',
+                              color: '#ffffff',
+                              height: 22,
+                            }}
+                          />
+                          <Chip
+                            size="small"
+                            label={urgentAlertTopic.category}
+                            sx={{
+                              fontFamily: T.font.family,
+                              fontWeight: 700,
+                              fontSize: 11,
+                              bgcolor: '#ffffff',
+                              color: '#be123c',
+                              border: '1px solid #fecdd3',
+                              height: 22,
+                            }}
+                          />
+                        </Box>
+                        <Typography sx={{ fontFamily: T.font.family, fontSize: 13, color: '#881337', mt: 0.4, lineHeight: 1.45 }}>
+                          <strong>{urgentAlertTopic.title}:</strong> {urgentAlertTopic.action}
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    <Box sx={{ display: 'flex', gap: 1.2, alignItems: 'center', flexShrink: 0, width: { xs: '100%', md: 'auto' }, justifyContent: { xs: 'flex-end', md: 'flex-start' } }}>
+                      <Button
+                        variant="contained"
+                        size="small"
+                        onClick={() => {
+                          if (urgentAlertTopic.category && urgentAlertTopic.category !== 'General') {
+                            setFilterCategory(urgentAlertTopic.category);
+                          }
+                          setFilterSentiment('Negative');
+                          handleScrollToReviewTable();
+                        }}
+                        endIcon={<ArrowForwardIcon sx={{ fontSize: 15 }} />}
+                        sx={{
+                          borderRadius: '9999px',
+                          bgcolor: '#e11d48',
+                          color: '#ffffff',
+                          fontFamily: T.font.family,
+                          fontWeight: 700,
+                          fontSize: 12.5,
+                          textTransform: 'none',
+                          px: 2.2,
+                          py: 0.6,
+                          boxShadow: '0 2px 8px rgba(225, 29, 72, 0.25)',
+                          '&:hover': { bgcolor: '#be123c' }
+                        }}
+                      >
+                        Inspect Affected Reviews
+                      </Button>
+                    </Box>
+                  </Paper>
+                )}
+
                 {loading ? (
-                  <Box sx={{ display: 'flex', justifyContent: 'center', p: 8 }}>
-                    <CircularProgress sx={{ color: '#16324f' }} />
+                  /* modern pulse skeleton loaders (Doherty Threshold) */
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, my: 1 }}>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2 }}>
+                      <Skeleton variant="rounded" height={130} sx={{ borderRadius: 3.5, bgcolor: '#ffffff' }} />
+                      <Skeleton variant="rounded" height={130} sx={{ borderRadius: 3.5, bgcolor: '#ffffff' }} />
+                      <Skeleton variant="rounded" height={130} sx={{ borderRadius: 3.5, bgcolor: '#ffffff' }} />
+                    </Box>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '3fr 1fr' }, gap: 2.5 }}>
+                      <Skeleton variant="rounded" height={380} sx={{ borderRadius: 3.5, bgcolor: '#ffffff' }} />
+                      <Skeleton variant="rounded" height={380} sx={{ borderRadius: 3.5, bgcolor: '#ffffff' }} />
+                    </Box>
+                    <Skeleton variant="rounded" height={220} sx={{ borderRadius: 3.5, bgcolor: '#ffffff' }} />
+                    <Skeleton variant="rounded" height={350} sx={{ borderRadius: 3.5, bgcolor: '#ffffff' }} />
                   </Box>
                 ) : (
                   <>
@@ -1324,20 +1677,50 @@ function SentimentDashboard() {
                             title="Total Surveys"
                             value={total.toLocaleString()}
                             borderColorTheme="gold"
-                            subtitle="Total survey submissions"
+                            subtitle={filterSentiment && filterSentiment !== 'All' ? `${total} ${filterSentiment.toLowerCase()} in view (of ${cohortCounts.Total})` : 'Total survey submissions'}
                           />
+                          {(() => {
+                            const isNeg = filterSentiment === 'Negative';
+                            const isNeu = filterSentiment === 'Neutral';
+                            const isFiltered = Boolean(filterSentiment && filterSentiment !== 'All');
+
+                            const kpiTitle = isNeg
+                              ? 'Negative Sentiment Rate'
+                              : isNeu
+                              ? 'Neutral Sentiment Rate'
+                              : 'Positive Sentiment Rate';
+
+                            const activeCount = isNeg
+                              ? cohortCounts.Negative
+                              : isNeu
+                              ? cohortCounts.Neutral
+                              : cohortCounts.Positive;
+
+                            const kpiRate = cohortCounts.Total > 0
+                              ? Math.round((activeCount / cohortCounts.Total) * 100)
+                              : 0;
+
+                            const kpiTheme = isNeg ? 'rose' : isNeu ? 'slate' : 'blue';
+                            const kpiBadge = isFiltered ? `${filterSentiment} Focus` : null;
+                            const kpiBadgeType = isNeg ? 'negative' : isNeu ? 'neutral' : 'positive';
+
+                            return (
+                              <ModernKpiCard
+                                title={kpiTitle}
+                                value={`${kpiRate}%`}
+                                badgeText={kpiBadge}
+                                badgeType={kpiBadgeType}
+                                borderColorTheme={kpiTheme}
+                                subtitle={`${activeCount} of ${cohortCounts.Total} cohort submissions`}
+                              />
+                            );
+                          })()}
                           <ModernKpiCard
-                            title="Positive Sentiment Rate"
-                            value={`${total > 0 ? Math.round((counts.Positive / total) * 100) : 0}%`}
-                            borderColorTheme="blue"
-                            subtitle={`${counts.Positive} positive responses`}
-                          />
-                          <ModernKpiCard
-                            title="Avg Satisfaction"
+                            title={filterSentiment && filterSentiment !== 'All' ? `${filterSentiment} Avg Rating` : 'Avg Satisfaction'}
                             value={`${avgSatisfaction.toFixed(2)} ★`}
                             badgeText={`${Math.round((avgSatisfaction / 5) * 100)}%`}
                             highlighted={true}
-                            subtitle="Scale: 1.0 to 5.0 rating"
+                            subtitle={filterSentiment && filterSentiment !== 'All' ? `Rating for ${filterSentiment.toLowerCase()} reviews` : 'Scale: 1.0 to 5.0 rating'}
                           />
                         </Box>
 
@@ -1367,12 +1750,49 @@ function SentimentDashboard() {
                             mb: 1.5,
                           }}>
                             <Box>
-                              <Typography sx={{ fontFamily: T.font.family, fontSize: 14, fontWeight: 700, color: '#64748b' }}>
-                                Monthly Sentiment Comparison
-                              </Typography>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                                <Typography sx={{ fontFamily: T.font.family, fontSize: 14, fontWeight: 700, color: '#64748b' }}>
+                                  {filterSentiment && filterSentiment !== 'All'
+                                    ? `Monthly ${filterSentiment} Sentiment Trend`
+                                    : 'Monthly Sentiment Comparison'}
+                                </Typography>
+                                {filterSentiment && filterSentiment !== 'All' && (
+                                  <Chip
+                                    label={`Showing ${filterSentiment} Only`}
+                                    size="small"
+                                    onDelete={() => { setFilterSentiment(''); setPage(0); }}
+                                    sx={{
+                                      height: 22,
+                                      fontSize: 11,
+                                      fontWeight: 700,
+                                      fontFamily: T.font.family,
+                                      bgcolor: filterSentiment === 'Positive' ? '#ecfdf5' : filterSentiment === 'Neutral' ? '#f1f5f9' : '#fff1f2',
+                                      color: filterSentiment === 'Positive' ? '#065f46' : filterSentiment === 'Neutral' ? '#334155' : '#9f1239',
+                                      border: `1px solid ${filterSentiment === 'Positive' ? '#a7f3d0' : filterSentiment === 'Neutral' ? '#cbd5e1' : '#fecdd3'}`,
+                                      '& .MuiChip-deleteIcon': {
+                                        fontSize: 14,
+                                        color: 'inherit',
+                                        opacity: 0.7,
+                                        '&:hover': { opacity: 1 }
+                                      }
+                                    }}
+                                  />
+                                )}
+                              </Box>
                               <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.2, mt: 0.4, flexWrap: 'wrap' }}>
                                 <Typography sx={{ fontFamily: T.font.family, fontSize: { xs: 24, sm: 28 }, fontWeight: 800, color: '#16324f', lineHeight: 1.1 }}>
-                                  {total > 0 ? Math.round((counts.Positive / total) * 100) : 0}% Positive Share
+                                  {filterSentiment === 'Negative'
+                                    ? `${cohortCounts.Total > 0 ? Math.round((cohortCounts.Negative / cohortCounts.Total) * 100) : 0}% Negative Share`
+                                    : filterSentiment === 'Neutral'
+                                    ? `${cohortCounts.Total > 0 ? Math.round((cohortCounts.Neutral / cohortCounts.Total) * 100) : 0}% Neutral Share`
+                                    : `${cohortCounts.Total > 0 ? Math.round((cohortCounts.Positive / cohortCounts.Total) * 100) : 0}% Positive Share`}
+                                </Typography>
+                                <Typography sx={{ fontFamily: T.font.family, fontSize: 12.5, fontWeight: 600, color: '#64748b' }}>
+                                  {filterSentiment === 'Negative'
+                                    ? `(${cohortCounts.Negative} of ${cohortCounts.Total} submissions)`
+                                    : filterSentiment === 'Neutral'
+                                    ? `(${cohortCounts.Neutral} of ${cohortCounts.Total} submissions)`
+                                    : `(${cohortCounts.Positive} of ${cohortCounts.Total} submissions)`}
                                 </Typography>
                               </Box>
                             </Box>
@@ -1474,10 +1894,32 @@ function SentimentDashboard() {
                                     <stop offset="0%" stopColor="#6ee6b7" stopOpacity={0.95} />
                                     <stop offset="100%" stopColor="#34d399" stopOpacity={0.9} />
                                   </linearGradient>
+                                  {/* vibrant green gradient for single highlighted bar */}
+                                  <linearGradient id="photoVibrantGreen" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#34d399" stopOpacity={1} />
+                                    <stop offset="100%" stopColor="#059669" stopOpacity={1} />
+                                  </linearGradient>
+
+                                  {/* pastel slate gradient for neutral */}
+                                  <linearGradient id="photoPastelSlate" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#cbd5e1" stopOpacity={0.95} />
+                                    <stop offset="100%" stopColor="#94a3b8" stopOpacity={0.9} />
+                                  </linearGradient>
+                                  {/* vibrant slate gradient for highlighted neutral bar */}
+                                  <linearGradient id="photoVibrantSlate" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#94a3b8" stopOpacity={1} />
+                                    <stop offset="100%" stopColor="#475569" stopOpacity={1} />
+                                  </linearGradient>
+
                                   {/* complementary soft pastel rose gradient for negative */}
                                   <linearGradient id="photoPastelRose" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="0%" stopColor="#fda4af" stopOpacity={0.95} />
                                     <stop offset="100%" stopColor="#fb7185" stopOpacity={0.9} />
+                                  </linearGradient>
+                                  {/* vibrant rose gradient for highlighted negative bar */}
+                                  <linearGradient id="photoVibrantRose" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#fb7185" stopOpacity={1} />
+                                    <stop offset="100%" stopColor="#e11d48" stopOpacity={1} />
                                   </linearGradient>
                                 </defs>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={T.surface.borderLight} />
@@ -1508,24 +1950,39 @@ function SentimentDashboard() {
                                   formatter={(value) => <span style={{ color: T.text.heading, fontWeight: 600 }}>{value}</span>}
                                 />
 
-                                <Bar
-                                  dataKey={trendScaleMode === 'percent' ? 'posPct' : 'Positive'}
-                                  name={trendScaleMode === 'percent' ? 'Positive (%)' : 'Positive'}
-                                  fill="url(#photoPastelGreen)"
-                                  stroke="#0fb87f"
-                                  strokeWidth={1}
-                                  shape={renderPillBar}
-                                  barSize={24}
-                                />
-                                <Bar
-                                  dataKey={trendScaleMode === 'percent' ? 'negPct' : 'rawNegative'}
-                                  name={trendScaleMode === 'percent' ? 'Negative (%)' : 'Negative'}
-                                  fill="url(#photoPastelRose)"
-                                  stroke="#f43f5e"
-                                  strokeWidth={1}
-                                  shape={renderPillBar}
-                                  barSize={24}
-                                />
+                                {(!filterSentiment || filterSentiment === 'All' || filterSentiment === 'Positive') && (
+                                  <Bar
+                                    dataKey={trendScaleMode === 'percent' ? 'posPct' : 'Positive'}
+                                    name={trendScaleMode === 'percent' ? 'Positive (%)' : 'Positive'}
+                                    fill={filterSentiment === 'Positive' ? 'url(#photoVibrantGreen)' : 'url(#photoPastelGreen)'}
+                                    stroke={filterSentiment === 'Positive' ? '#047857' : '#0fb87f'}
+                                    strokeWidth={filterSentiment === 'Positive' ? 2 : 1}
+                                    shape={renderPillBar}
+                                    barSize={filterSentiment ? 36 : 20}
+                                  />
+                                )}
+                                {(!filterSentiment || filterSentiment === 'All' || filterSentiment === 'Neutral') && (
+                                  <Bar
+                                    dataKey={trendScaleMode === 'percent' ? 'neuPct' : 'Neutral'}
+                                    name={trendScaleMode === 'percent' ? 'Neutral (%)' : 'Neutral'}
+                                    fill={filterSentiment === 'Neutral' ? 'url(#photoVibrantSlate)' : 'url(#photoPastelSlate)'}
+                                    stroke={filterSentiment === 'Neutral' ? '#334155' : '#64748b'}
+                                    strokeWidth={filterSentiment === 'Neutral' ? 2 : 1}
+                                    shape={renderPillBar}
+                                    barSize={filterSentiment ? 36 : 20}
+                                  />
+                                )}
+                                {(!filterSentiment || filterSentiment === 'All' || filterSentiment === 'Negative') && (
+                                  <Bar
+                                    dataKey={trendScaleMode === 'percent' ? 'negPct' : 'rawNegative'}
+                                    name={trendScaleMode === 'percent' ? 'Negative (%)' : 'Negative'}
+                                    fill={filterSentiment === 'Negative' ? 'url(#photoVibrantRose)' : 'url(#photoPastelRose)'}
+                                    stroke={filterSentiment === 'Negative' ? '#be123c' : '#f43f5e'}
+                                    strokeWidth={filterSentiment === 'Negative' ? 2 : 1}
+                                    shape={renderPillBar}
+                                    barSize={filterSentiment ? 36 : 20}
+                                  />
+                                )}
                               </BarChart>
                             </ResponsiveContainer>
                           </Box>
@@ -1557,7 +2014,7 @@ function SentimentDashboard() {
                       borderTop: '3.5px solid #16324f',
                       boxShadow: '0 2px 12px rgba(22, 50, 79, 0.04)',
                     }}>
-                      <Box sx={{ ...sectionHeaderSx, flexWrap: 'wrap', gap: 1.2, py: 1.5, px: { xs: 1.8, sm: 2.2 } }}>
+                      <Box sx={{ ...sectionHeaderSx, flexWrap: 'wrap', gap: 1.5 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
                           <Box sx={{
                             bgcolor: '#edf4fa',
@@ -1577,40 +2034,93 @@ function SentimentDashboard() {
                           </Box>
                         </Box>
 
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 1.2, py: 0.35, bgcolor: '#eafaf1', border: '1px solid #b7ebc9', borderRadius: '9999px' }}>
-                            <ThumbUpIcon sx={{ fontSize: 13, color: '#107c41' }} />
-                            <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, color: '#107c41', fontWeight: 700 }}>
-                              {topPositive.length} Positive
-                            </Typography>
-                          </Box>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 1.2, py: 0.35, bgcolor: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '9999px' }}>
-                            <ThumbDownIcon sx={{ fontSize: 13, color: '#be123c' }} />
-                            <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, color: '#be123c', fontWeight: 700 }}>
-                              {topNegative.length} Negative
-                            </Typography>
-                          </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, flexWrap: 'wrap' }}>
+                          <ToggleButtonGroup
+                            value={(filterSentiment && (filterSentiment === 'Positive' || filterSentiment === 'Negative')) ? filterSentiment.toLowerCase() : commentsView}
+                            exclusive
+                            onChange={(e, val) => {
+                              if (val) {
+                                if (filterSentiment && (filterSentiment === 'Positive' || filterSentiment === 'Negative')) {
+                                  const mapVal = val === 'all' ? '' : (val.charAt(0).toUpperCase() + val.slice(1));
+                                  setFilterSentiment(mapVal);
+                                  setPage(0);
+                                }
+                                setCommentsView(val);
+                              }
+                            }}
+                            size="small"
+                            sx={{
+                              height: 32,
+                              borderRadius: '9999px',
+                              bgcolor: '#edf2f7',
+                              p: 0.3,
+                              '& .MuiToggleButton-root': {
+                                fontFamily: T.font.family,
+                                fontSize: 11.5,
+                                fontWeight: 600,
+                                textTransform: 'none',
+                                px: 1.2,
+                                py: 0.2,
+                                color: '#64748b',
+                                border: 'none',
+                                borderRadius: '9999px',
+                                '&.Mui-selected': {
+                                  bgcolor: '#ffffff',
+                                  color: '#16324f',
+                                  fontWeight: 800,
+                                  boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                                  '&:hover': { bgcolor: '#ffffff' }
+                                }
+                              }
+                            }}
+                          >
+                            <ToggleButton value="all">
+                              Both Views ({topPositive.length + topNegative.length})
+                            </ToggleButton>
+                            <ToggleButton value="positive">
+                              <ThumbUpIcon sx={{ fontSize: 12, mr: 0.5, color: '#107c41' }} />
+                              Positive ({topPositive.length})
+                            </ToggleButton>
+                            <ToggleButton value="negative">
+                              <ThumbDownIcon sx={{ fontSize: 12, mr: 0.5, color: '#be123c' }} />
+                              Negative ({topNegative.length})
+                            </ToggleButton>
+                          </ToggleButtonGroup>
                         </Box>
                       </Box>
 
                       <CardContent sx={{ p: { xs: 2, sm: 2.5 } }}>
-                        <Box sx={{
-                          display: 'grid',
-                          gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' },
-                          gap: 2.5,
-                          alignItems: 'stretch',
-                        }}>
-                          <TopCommentsCard
-                            title="Top 5 Positive Comments"
-                            rows={topPositive}
-                            type="positive"
-                          />
-                          <TopCommentsCard
-                            title="Top 5 Negative Comments"
-                            rows={topNegative}
-                            type="negative"
-                          />
-                        </Box>
+                        {(() => {
+                          const activeView = (filterSentiment && (filterSentiment === 'Positive' || filterSentiment === 'Negative'))
+                            ? filterSentiment.toLowerCase()
+                            : commentsView;
+
+                          return (
+                            <Box sx={{
+                              display: 'grid',
+                              gridTemplateColumns: activeView === 'all'
+                                ? { xs: '1fr', lg: '1fr 1fr' }
+                                : '1fr',
+                              gap: 2.5,
+                              alignItems: 'stretch',
+                            }}>
+                              {(activeView === 'all' || activeView === 'positive') && (
+                                <TopCommentsCard
+                                  title="Top 5 Positive Comments"
+                                  rows={topPositive}
+                                  type="positive"
+                                />
+                              )}
+                              {(activeView === 'all' || activeView === 'negative') && (
+                                <TopCommentsCard
+                                  title="Top 5 Negative Comments"
+                                  rows={topNegative}
+                                  type="negative"
+                                />
+                              )}
+                            </Box>
+                          );
+                        })()}
                       </CardContent>
                     </Card>
 
@@ -1738,50 +2248,191 @@ function SentimentDashboard() {
                       p: { xs: 2, md: 3 },
                       mb: 3,
                     }}>
-                      {/* table header with title and month pills */}
-                      <Box sx={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: { xs: 'flex-start', sm: 'center' },
-                        flexWrap: 'wrap',
-                        gap: 1.5,
-                        mb: 2.5,
-                      }}>
-                        <Box>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, flexWrap: 'wrap' }}>
-                            <Typography sx={{
-                              fontFamily: T.font.family,
-                              fontWeight: 800,
-                              fontSize: { xs: 16, md: 18 },
-                              color: '#16324f',
-                              letterSpacing: '-0.2px'
-                            }}>
-                              Patron Review Submissions Table
-                            </Typography>
-                            {filterCategory && (() => {
-                              const catToken = T.category[filterCategory] || T.category['Other/Uncategorized'];
-                              return (
+                      {/* table header with title, search, export and month pills (Jakob's Law & Fitts's Law) */}
+                      <Box sx={{ mb: 2.5, display: 'flex', flexDirection: 'column', gap: 1.8 }}>
+                        {/* top tier: title and primary action controls */}
+                        <Box sx={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: { xs: 'flex-start', md: 'center' },
+                          flexWrap: 'wrap',
+                          gap: 1.5,
+                        }}>
+                          <Box>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, flexWrap: 'wrap' }}>
+                              <Typography sx={{
+                                fontFamily: T.font.family,
+                                fontWeight: 800,
+                                fontSize: { xs: 16, md: 19 },
+                                color: '#16324f',
+                                letterSpacing: '-0.3px'
+                              }}>
+                                Patron Review Submissions Table
+                              </Typography>
+                              {filterCategory && (() => {
+                                const catToken = T.category[filterCategory] || T.category['Other/Uncategorized'];
+                                return (
+                                  <Chip
+                                    label={`Category: ${filterCategory}`}
+                                    onDelete={() => {
+                                      setFilterCategory('');
+                                      setPage(0);
+                                    }}
+                                    size="small"
+                                    sx={{
+                                      fontFamily: T.font.family,
+                                      fontWeight: 700,
+                                      fontSize: 11.5,
+                                      bgcolor: catToken.light,
+                                      color: catToken.text,
+                                      border: `1px solid ${catToken.border}`,
+                                      borderRadius: '9999px',
+                                    }}
+                                  />
+                                );
+                              })()}
+                              {selectedWordFilter && (
                                 <Chip
-                                  label={`Category: ${filterCategory}`}
-                                  onDelete={() => {
-                                    setFilterCategory('');
-                                    setPage(0);
-                                  }}
+                                  label={`Word: "${selectedWordFilter}"`}
                                   size="small"
+                                  onDelete={() => setSelectedWordFilter('')}
                                   sx={{
-                                    fontFamily: T.font.family,
                                     fontWeight: 700,
+                                    fontFamily: T.font.family,
                                     fontSize: 11.5,
-                                    bgcolor: catToken.light,
-                                    color: catToken.text,
-                                    border: `1px solid ${catToken.border}`,
+                                    height: 26,
                                     borderRadius: '9999px',
+                                    bgcolor: '#fff7ed',
+                                    color: '#c2410c',
+                                    border: '1px solid #fed7aa',
                                   }}
                                 />
-                              );
-                            })()}
+                              )}
+                              {tableSearchQuery && (
+                                <Chip
+                                  label={`Query: "${tableSearchQuery}"`}
+                                  size="small"
+                                  onDelete={() => { setTableSearchQuery(''); setPage(0); }}
+                                  sx={{
+                                    fontWeight: 700,
+                                    fontFamily: T.font.family,
+                                    fontSize: 11.5,
+                                    height: 26,
+                                    borderRadius: '9999px',
+                                    bgcolor: '#eff6ff',
+                                    color: '#1d4ed8',
+                                    border: '1px solid #bfdbfe',
+                                  }}
+                                />
+                              )}
+                            </Box>
+                            <Typography sx={{ fontFamily: T.font.family, fontSize: 12.5, color: '#64748b', mt: 0.3 }}>
+                              Audited survey responses, academic units, ratings, and sentiment classifications
+                            </Typography>
                           </Box>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, flexWrap: 'wrap', mt: 1.5 }}>
+
+                          {/* right toolbar: search bar, export view button, batch delete (Fitts's Law) */}
+                          <Box sx={{ display: 'flex', gap: 1.2, alignItems: 'center', flexWrap: 'wrap', width: { xs: '100%', sm: 'auto' } }}>
+                            {/* universal search input (Jakob's Law) */}
+                            <TextField
+                              size="small"
+                              placeholder="Search comments, course, or college..."
+                              value={tableSearchQuery}
+                              onChange={(e) => {
+                                setTableSearchQuery(e.target.value);
+                                setPage(0);
+                              }}
+                              InputProps={{
+                                startAdornment: (
+                                  <InputAdornment position="start">
+                                    <SearchIcon sx={{ fontSize: 18, color: '#94a3b8' }} />
+                                  </InputAdornment>
+                                ),
+                                endAdornment: tableSearchQuery ? (
+                                  <InputAdornment position="end">
+                                    <IconButton size="small" onClick={() => { setTableSearchQuery(''); setPage(0); }} sx={{ p: 0.3 }}>
+                                      <ClearIcon sx={{ fontSize: 15, color: '#94a3b8' }} />
+                                    </IconButton>
+                                  </InputAdornment>
+                                ) : null,
+                              }}
+                              sx={{
+                                minWidth: { xs: '100%', sm: 260, md: 300 },
+                                '& .MuiOutlinedInput-root': {
+                                  borderRadius: '10px',
+                                  bgcolor: '#f8fafc',
+                                  fontFamily: T.font.family,
+                                  fontSize: 12.5,
+                                  height: 36,
+                                  '& fieldset': { borderColor: '#cbdbe9' },
+                                  '&:hover fieldset': { borderColor: '#94a3b8' },
+                                  '&.Mui-focused fieldset': { borderColor: '#16324f' }
+                                }
+                              }}
+                            />
+
+                            {/* contextual table export button (Fitts's Law) */}
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              onClick={handleExportTableExcel}
+                              startIcon={<FileDownloadIcon sx={{ fontSize: 16 }} />}
+                              sx={{
+                                borderRadius: '8px',
+                                textTransform: 'none',
+                                fontFamily: T.font.family,
+                                fontWeight: 700,
+                                fontSize: 12,
+                                height: 36,
+                                px: 1.8,
+                                borderColor: '#b7ebc9',
+                                bgcolor: '#eafaf1',
+                                color: '#107c41',
+                                whiteSpace: 'nowrap',
+                                '&:hover': { bgcolor: '#d4f4e2', borderColor: '#107c41' }
+                              }}
+                            >
+                              Export View (.xlsx)
+                            </Button>
+
+                            {selectedRowIds.length > 0 && (
+                              <Button
+                                variant="contained"
+                                color="error"
+                                size="small"
+                                onClick={() => openDeleteModal(null)}
+                                startIcon={<DeleteOutlineIcon sx={{ fontSize: 16 }} />}
+                                sx={{
+                                  borderRadius: '8px',
+                                  textTransform: 'none',
+                                  fontWeight: 700,
+                                  fontFamily: T.font.family,
+                                  fontSize: 12,
+                                  height: 36,
+                                  px: 1.8,
+                                  bgcolor: '#e11d48',
+                                  boxShadow: '0 2px 8px rgba(225, 29, 72, 0.25)',
+                                  whiteSpace: 'nowrap',
+                                  '&:hover': { bgcolor: '#be123c' }
+                                }}
+                              >
+                                Delete Selected ({selectedRowIds.length})
+                              </Button>
+                            )}
+                          </Box>
+                        </Box>
+
+                        {/* bottom tier: month quick filter pills */}
+                        <Box sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          flexWrap: 'wrap',
+                          gap: 1,
+                          pt: 1.2,
+                          borderTop: '1px solid #f1f5f9'
+                        }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.7, flexWrap: 'wrap' }}>
                             <Button
                               size="small"
                               onClick={() => { setFilterMonth('All'); setPage(0); }}
@@ -1791,10 +2442,10 @@ function SentimentDashboard() {
                                 fontFamily: T.font.family,
                                 fontWeight: 700,
                                 fontSize: 12,
-                                px: 1.8,
-                                py: 0.4,
+                                px: 1.6,
+                                py: 0.35,
                                 minWidth: 'auto',
-                                height: 28,
+                                height: 26,
                                 boxShadow: 'none',
                                 ...(filterMonth === 'All'
                                   ? { bgcolor: '#16324f', color: '#ffffff', '&:hover': { bgcolor: '#0e2237' } }
@@ -1810,18 +2461,18 @@ function SentimentDashboard() {
                               return (
                                 <Button
                                   key={m}
-                                  size="medium"
+                                  size="small"
                                   onClick={() => { setFilterMonth(isSelected ? 'All' : m); setPage(0); }}
                                   sx={{
                                     borderRadius: '9999px',
                                     textTransform: 'none',
                                     fontFamily: T.font.family,
                                     fontWeight: isSelected ? 700 : 600,
-                                    fontSize: 13,
-                                    px: 1.5,
-                                    py: 0.4,
+                                    fontSize: 12,
+                                    px: 1.3,
+                                    py: 0.35,
                                     minWidth: 'auto',
-                                    height: 28,
+                                    height: 26,
                                     boxShadow: 'none',
                                     ...(isSelected
                                       ? { bgcolor: '#16324f', color: '#ffffff', '&:hover': { bgcolor: '#0e2237' } }
@@ -1834,49 +2485,10 @@ function SentimentDashboard() {
                               );
                             })}
                           </Box>
-                        </Box>
 
-                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
-                          {selectedWordFilter && (
-                            <Chip
-                              label={`Word: "${selectedWordFilter}"`}
-                              size="small"
-                              onDelete={() => setSelectedWordFilter('')}
-                              sx={{
-                                fontWeight: 700,
-                                fontFamily: T.font.family,
-                                fontSize: 11.5,
-                                height: 26,
-                                borderRadius: '9999px',
-                                bgcolor: '#fff7ed',
-                                color: '#c2410c',
-                                border: '1px solid #fed7aa',
-                              }}
-                            />
-                          )}
-                          {selectedRowIds.length > 0 && (
-                            <Button
-                              variant="contained"
-                              color="error"
-                              size="small"
-                              onClick={() => openDeleteModal(null)}
-                              startIcon={<DeleteOutlineIcon sx={{ fontSize: 16 }} />}
-                              sx={{
-                                borderRadius: '9999px',
-                                textTransform: 'none',
-                                fontWeight: 700,
-                                fontFamily: T.font.family,
-                                fontSize: 12,
-                                height: 30,
-                                px: 1.8,
-                                bgcolor: '#ea580c',
-                                boxShadow: '0 2px 8px rgba(234, 88, 12, 0.25)',
-                                '&:hover': { bgcolor: '#c2410c' }
-                              }}
-                            >
-                              Delete Selected ({selectedRowIds.length})
-                            </Button>
-                          )}
+                          <Typography sx={{ fontFamily: T.font.family, fontSize: 12, color: '#64748b', fontWeight: 600 }}>
+                            Showing <strong>{reviewRows.length}</strong> matching review{reviewRows.length === 1 ? '' : 's'}
+                          </Typography>
                         </Box>
                       </Box>
 
@@ -2134,18 +2746,21 @@ function SentimentDashboard() {
                                     <TableCell sx={{ fontFamily: T.font.family, fontSize: 12.5, color: '#64748b', fontWeight: 600, py: 1.1, px: 1.4, borderBottom: '1px solid #edf2f7', borderRight: '1px solid #edf2f7' }}>
                                       {submittedDateStr}
                                     </TableCell>
-                                    <TableCell align="center" sx={{ py: 1.1, px: 1, borderBottom: '1px solid #edf2f7' }}>
-                                      <IconButton
-                                        size="small"
-                                        onClick={() => openDeleteModal(row)}
-                                        sx={{
-                                          color: '#f87171',
-                                          p: 0.4,
-                                          '&:hover': { color: '#ef4444', bgcolor: '#fee2e2' }
-                                        }}
-                                      >
-                                        <DeleteOutlineIcon sx={{ fontSize: 18 }} />
-                                      </IconButton>
+                                    <TableCell align="center" sx={{ py: 0.8, px: 1, borderBottom: '1px solid #edf2f7' }}>
+                                      <Tooltip title="Delete survey record" arrow placement="top">
+                                        <IconButton
+                                          size="small"
+                                          onClick={() => openDeleteModal(row)}
+                                          sx={{
+                                            color: '#f87171',
+                                            p: 0.75,
+                                            borderRadius: '8px',
+                                            '&:hover': { color: '#ef4444', bgcolor: '#fee2e2' }
+                                          }}
+                                        >
+                                          <DeleteOutlineIcon sx={{ fontSize: 18 }} />
+                                        </IconButton>
+                                      </Tooltip>
                                     </TableCell>
                                   </TableRow>
                                 );
