@@ -154,8 +154,17 @@ const SatisfactionSurveyData = () => {
       renderCell: (params) => {
         if (!params.value) return '';
 
-        // params.value formatted in ph time
-        return new Date(params.value.replace(' ', 'T')).toLocaleString('en-PH', {
+        const rawStr = String(params.value).trim();
+        const [datePart, timePart] = rawStr.split(' ');
+        if (!datePart || !timePart) return rawStr;
+        const [year, month, day] = datePart.split('-');
+        const [hour, minute, second] = timePart.split(':');
+        const isoStr = `${year}-${month}-${day}T${hour}:${minute}:${second ? second.slice(0, 2) : '00'}+08:00`;
+        const d = new Date(isoStr);
+        if (Number.isNaN(d.getTime())) return rawStr;
+
+        return d.toLocaleString('en-PH', {
+          timeZone: 'Asia/Manila',
           year: 'numeric',
           month: 'long',
           day: 'numeric',

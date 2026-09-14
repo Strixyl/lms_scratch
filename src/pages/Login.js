@@ -53,10 +53,14 @@ const Login = () => {
   const formatPHTime = (dateStr) => {
     if (!dateStr) return '';
     const [datePart, timePart] = dateStr.split(' ');
+    if (!datePart || !timePart) return dateStr;
     const [year, month, day] = datePart.split('-');
     const [hour, minute, second] = timePart.split(':');
-    const d = new Date(year, month - 1, day, hour, minute, second);
+    const isoStr = `${year}-${month}-${day}T${hour}:${minute}:${second ? second.slice(0, 2) : '00'}+08:00`;
+    const d = new Date(isoStr);
+    if (Number.isNaN(d.getTime())) return dateStr;
     return d.toLocaleString('en-US', {
+      timeZone: 'Asia/Manila',
       year: 'numeric', month: 'long', day: 'numeric',
       hour: 'numeric', minute: '2-digit', hour12: true,
     });
@@ -152,7 +156,7 @@ const Login = () => {
     ],
     [
       { label: 'Year Level', value: formData.year, active: !!formData.year, icon: WorkspacePremiumIcon, color: '#ea580c', bg: '#ffedd5' },
-      { label: 'Date', value: currentTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }), active: true, icon: CalendarMonthIcon, color: '#2563eb', bg: '#dbeafe' },
+      { label: 'Date', value: currentTime.toLocaleDateString('en-US', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' }), active: true, icon: CalendarMonthIcon, color: '#2563eb', bg: '#dbeafe' },
     ],
   ];
 
@@ -315,10 +319,10 @@ const Login = () => {
                 <CalendarMonthIcon sx={{ color: '#fff', fontSize: 20 }} />
                 <Box>
                   <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 13, color: '#fff', lineHeight: 1.1 }}>
-                    {currentTime.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                    {currentTime.toLocaleDateString('en-US', { timeZone: 'Asia/Manila', month: 'long', day: 'numeric', year: 'numeric' })}
                   </Typography>
                   <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 11, color: 'rgba(255,255,255,0.85)' }}>
-                    {currentTime.toLocaleDateString('en-US', { weekday: 'long' })}
+                    {currentTime.toLocaleDateString('en-US', { timeZone: 'Asia/Manila', weekday: 'long' })}
                   </Typography>
                 </Box>
               </Box>
@@ -326,7 +330,7 @@ const Login = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <ScheduleIcon sx={{ color: '#fff', fontSize: 20 }} />
                 <Typography sx={{ fontFamily: 'monospace', fontWeight: 700, fontSize: 14, color: '#fff' }}>
-                  {currentTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })}
+                  {currentTime.toLocaleTimeString('en-US', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })}
                 </Typography>
               </Box>
             </Box>

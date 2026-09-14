@@ -44,7 +44,7 @@ import * as XLSX from 'xlsx';
 import { useNavigate } from 'react-router-dom';
 import Header from '../Components/Header';
 import TopBar from '../Components/TopBar';
-import { COLLEGE_OPTIONS, SECTION_OPTIONS, getCollegeGroup, formatDate, inferGuestType } from '../constants/collegeMap';
+import { COLLEGE_OPTIONS, SECTION_OPTIONS, getCollegeGroup, formatDate, inferGuestType, getPSTDateString, getPSTDatePresets } from '../constants/collegeMap';
 import { MONTH_NAMES, QUARTER_OPTIONS } from '../constants/sentimentConstants';
 
 // centralized theme design tokens
@@ -789,38 +789,25 @@ const LoginDashboard = () => {
   };
 
   const handleDatePreset = (presetKey) => {
-    const today = new Date();
-    const formatISO = (d) => {
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
-      return `${yyyy}-${mm}-${dd}`;
-    };
-
     let newStart = '';
     let newEnd = '';
     let newQuarter = 'All';
     let newMonth = 'All';
     let newYear = filterYear === 'All' ? '2026' : (filterYear || '2026');
     const targetYear = newYear === 'All' ? '2026' : newYear;
+    const pstPresets = getPSTDatePresets(targetYear);
 
     if (presetKey === 'today') {
-      const dateStr = formatISO(today);
-      newStart = dateStr;
-      newEnd = dateStr;
+      newStart = pstPresets.today;
+      newEnd = pstPresets.today;
       newQuarter = 'All';
     } else if (presetKey === 'week') {
-      const day = today.getDay();
-      const diff = today.getDate() - day + (day === 0 ? -6 : 1);
-      const startOfWeek = new Date(today.getFullYear(), today.getMonth(), diff);
-      newStart = formatISO(startOfWeek);
-      newEnd = formatISO(today);
+      newStart = pstPresets.startOfWeek;
+      newEnd = pstPresets.today;
       newQuarter = 'All';
     } else if (presetKey === 'month') {
-      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-      const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-      newStart = formatISO(startOfMonth);
-      newEnd = formatISO(endOfMonth);
+      newStart = pstPresets.startOfMonth;
+      newEnd = pstPresets.endOfMonth;
       newQuarter = 'All';
     } else if (presetKey === 'q1') {
       newStart = `${targetYear}-01-01`;
@@ -992,30 +979,22 @@ const LoginDashboard = () => {
 
     // filter by date range
     if (startDate && endDate) {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      end.setHours(23, 59, 59, 999);
-
       filtered = filtered.filter((item) => {
         if (!item.TimeLogged) return false;
         const [datePart] = String(item.TimeLogged).split(' ');
-        const itemDate = new Date(datePart);
-        return itemDate >= start && itemDate <= end;
+        return datePart >= startDate && datePart <= endDate;
       });
     } else if (startDate) {
-      const start = new Date(startDate);
       filtered = filtered.filter((item) => {
         if (!item.TimeLogged) return false;
         const [datePart] = String(item.TimeLogged).split(' ');
-        return new Date(datePart) >= start;
+        return datePart >= startDate;
       });
     } else if (endDate) {
-      const end = new Date(endDate);
-      end.setHours(23, 59, 59, 999);
       filtered = filtered.filter((item) => {
         if (!item.TimeLogged) return false;
         const [datePart] = String(item.TimeLogged).split(' ');
-        return new Date(datePart) <= end;
+        return datePart <= endDate;
       });
     }
 
@@ -1316,30 +1295,22 @@ const LoginDashboard = () => {
 
     // apply date, year, quarter, month filters
     if (startDate && endDate) {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      end.setHours(23, 59, 59, 999);
-
       listToCount = listToCount.filter((item) => {
         if (!item.TimeLogged) return false;
         const [datePart] = String(item.TimeLogged).split(' ');
-        const itemDate = new Date(datePart);
-        return itemDate >= start && itemDate <= end;
+        return datePart >= startDate && datePart <= endDate;
       });
     } else if (startDate) {
-      const start = new Date(startDate);
       listToCount = listToCount.filter((item) => {
         if (!item.TimeLogged) return false;
         const [datePart] = String(item.TimeLogged).split(' ');
-        return new Date(datePart) >= start;
+        return datePart >= startDate;
       });
     } else if (endDate) {
-      const end = new Date(endDate);
-      end.setHours(23, 59, 59, 999);
       listToCount = listToCount.filter((item) => {
         if (!item.TimeLogged) return false;
         const [datePart] = String(item.TimeLogged).split(' ');
-        return new Date(datePart) <= end;
+        return datePart <= endDate;
       });
     }
 
@@ -1454,8 +1425,8 @@ const LoginDashboard = () => {
       let valB = b[sortField] || '';
 
       if (sortField === 'TimeLogged') {
-        valA = a.TimeLogged ? new Date(a.TimeLogged).getTime() : 0;
-        valB = b.TimeLogged ? new Date(b.TimeLogged).getTime() : 0;
+        valA = a.TimeLogged || '';
+        valB = b.TimeLogged || '';
       } else if (sortField === 'name') {
         valA = `${a.studLname || ''}, ${a.studFname || ''}`.toLowerCase();
         valB = `${b.studLname || ''}, ${b.studFname || ''}`.toLowerCase();
@@ -1600,7 +1571,7 @@ const LoginDashboard = () => {
     XLSX.utils.book_append_sheet(workbook, wsSummary, 'Analytics Summary');
     XLSX.utils.book_append_sheet(workbook, wsLogs, 'Visitor Log Records');
 
-    const dateStamp = new Date().toISOString().split('T')[0];
+    const dateStamp = getPSTDateString();
     const filename = `HLL_Entry_Analytics_${selectedCollege}_${dateStamp}.xlsx`;
     XLSX.writeFile(workbook, filename);
   };
