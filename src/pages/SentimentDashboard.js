@@ -52,6 +52,7 @@ import * as XLSX from 'xlsx';
 import { useNavigate } from 'react-router-dom';
 import Header from '../Components/Header';
 import TopBar from '../Components/TopBar';
+import { getPSTDateString, getPSTDatePresets } from '../constants/collegeMap';
 
 // centralized module imports
 import {
@@ -263,38 +264,25 @@ function SentimentDashboard() {
   }, []); // eslint-disable-line
 
   const handleDatePreset = (presetKey) => {
-    const today = new Date();
-    const formatISO = (d) => {
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
-      return `${yyyy}-${mm}-${dd}`;
-    };
-
     let newStart = '';
     let newEnd = '';
     let newQuarter = 'All';
     let newMonth = 'All';
     let newYear = filterYear === 'All' ? '2026' : (filterYear || '2026');
     const targetYear = newYear === 'All' ? '2026' : newYear;
+    const pstPresets = getPSTDatePresets(targetYear);
 
     if (presetKey === 'today') {
-      const dateStr = formatISO(today);
-      newStart = dateStr;
-      newEnd = dateStr;
+      newStart = pstPresets.today;
+      newEnd = pstPresets.today;
       newQuarter = 'All';
     } else if (presetKey === 'week') {
-      const day = today.getDay();
-      const diff = today.getDate() - day + (day === 0 ? -6 : 1);
-      const startOfWeek = new Date(today.getFullYear(), today.getMonth(), diff);
-      newStart = formatISO(startOfWeek);
-      newEnd = formatISO(today);
+      newStart = pstPresets.startOfWeek;
+      newEnd = pstPresets.today;
       newQuarter = 'All';
     } else if (presetKey === 'month') {
-      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-      const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-      newStart = formatISO(startOfMonth);
-      newEnd = formatISO(endOfMonth);
+      newStart = pstPresets.startOfMonth;
+      newEnd = pstPresets.endOfMonth;
       newQuarter = 'All';
     } else if (presetKey === 'q1') {
       newStart = `${targetYear}-01-01`;
@@ -972,7 +960,7 @@ function SentimentDashboard() {
       'Q10': formatRatingShort(row.Question10),
       'Overall Sentiment': row.SentimentResult || '',
       'Category': row.Category || 'Other/Uncategorized',
-      'Date Submitted': row.DateSubmitted ? new Date(row.DateSubmitted).toLocaleDateString() : 'N/A'
+      'Date Submitted': row.DateSubmitted ? (typeof row.DateSubmitted === 'string' && row.DateSubmitted.length >= 10 ? row.DateSubmitted.slice(0, 10) : getPSTDateString(new Date(row.DateSubmitted))) : 'N/A'
     }));
 
     const workbook = XLSX.utils.book_new();
@@ -999,7 +987,7 @@ function SentimentDashboard() {
     XLSX.utils.book_append_sheet(workbook, wsSummary, "Analytics Summary");
     XLSX.utils.book_append_sheet(workbook, wsDetails, "Classified Responses Data");
 
-    const dateStamp = new Date().toISOString().split('T')[0];
+    const dateStamp = getPSTDateString();
     XLSX.writeFile(workbook, `HLL_Sentiment_Analysis_${dateStamp}.xlsx`);
   };
 
@@ -1027,7 +1015,7 @@ function SentimentDashboard() {
       'Q8': formatRatingShort(row.Question8),
       'Q9': formatRatingShort(row.Question9),
       'Q10': formatRatingShort(row.Question10),
-      'Date Submitted': row.DateSubmitted ? (typeof row.DateSubmitted === 'string' && row.DateSubmitted.length >= 10 ? row.DateSubmitted.slice(0, 10) : new Date(row.DateSubmitted).toLocaleDateString()) : 'N/A'
+      'Date Submitted': row.DateSubmitted ? (typeof row.DateSubmitted === 'string' && row.DateSubmitted.length >= 10 ? row.DateSubmitted.slice(0, 10) : getPSTDateString(new Date(row.DateSubmitted))) : 'N/A'
     }));
 
     const workbook = XLSX.utils.book_new();
@@ -1046,7 +1034,7 @@ function SentimentDashboard() {
     wsTable['!cols'] = colWidths.map(w => ({ wch: Math.min(w + 4, 60) }));
 
     XLSX.utils.book_append_sheet(workbook, wsTable, "Filtered Table View");
-    const dateStamp = new Date().toISOString().split('T')[0];
+    const dateStamp = getPSTDateString();
     XLSX.writeFile(workbook, `HLL_Survey_Table_View_${dateStamp}.xlsx`);
     setSnackbarMsg(`Exported ${reviewRows.length} survey records from table view.`);
   };
@@ -2654,7 +2642,7 @@ function SentimentDashboard() {
                                 const submittedDateStr = row.DateSubmitted
                                   ? (typeof row.DateSubmitted === 'string' && row.DateSubmitted.length >= 10
                                     ? row.DateSubmitted.slice(0, 10)
-                                    : new Date(row.DateSubmitted).toISOString().slice(0, 10))
+                                    : getPSTDateString(new Date(row.DateSubmitted)))
                                   : 'N/A';
 
                                 const clientDisplay = row.Clientele
@@ -2947,7 +2935,7 @@ function SentimentDashboard() {
               </table>
 
               <div className="footer">
-                Generated via Naïve Bayes Classification System on {new Date().toLocaleDateString('en-PH')} — Central Philippine University
+                Generated via Naïve Bayes Classification System on {new Date().toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' })} — Central Philippine University
               </div>
             </div>
           </>

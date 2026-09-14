@@ -45,6 +45,7 @@ import {
 import * as XLSX from 'xlsx';
 import Header from '../Components/Header';
 import TopBar from '../Components/TopBar';
+import { getPSTDateString } from '../constants/collegeMap';
 
 const FONT_FAMILY = "'Poppins', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
 
@@ -428,7 +429,7 @@ const BookCatalogue = () => {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Card and Packet Records');
 
-    const dateStamp = new Date().toISOString().split('T')[0];
+    const dateStamp = getPSTDateString();
     XLSX.writeFile(workbook, `HLL_CardAndPacket_${dateStamp}.xlsx`);
   };
 

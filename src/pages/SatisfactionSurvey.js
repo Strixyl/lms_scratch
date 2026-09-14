@@ -666,7 +666,7 @@ const SatisfactionSurvey = () => {
                         letterSpacing: '0.3px',
                       }}
                     >
-                      {currentTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })}
+                      {currentTime.toLocaleTimeString('en-US', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })}
                     </Typography>
                     <Typography
                       sx={{
@@ -678,7 +678,7 @@ const SatisfactionSurvey = () => {
                         mt: 0.2,
                       }}
                     >
-                      {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                      {currentTime.toLocaleDateString('en-US', { timeZone: 'Asia/Manila', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
                     </Typography>
                   </Box>
                 </Box>

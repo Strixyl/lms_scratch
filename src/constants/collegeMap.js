@@ -74,15 +74,39 @@ export const getCollegeGroup = (collegeStr, courseStr, logTypeStr, idNumber) => 
   return colClean || crsClean || 'N/A';
 };
 
+export const getPSTDateString = (date = new Date()) => {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(date);
+};
+
+export const getPSTDatePresets = (targetYear = '2026') => {
+  const pstStr = getPSTDateString();
+  const [y, m, d] = pstStr.split('-').map(Number);
+  // Noon UTC prevents day boundaries from shifting across UTC conversions
+  const todayD = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+  const dayOfWeek = todayD.getUTCDay();
+  const diffToMonday = d - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+  const mondayD = new Date(Date.UTC(y, m - 1, diffToMonday, 12, 0, 0));
+  const startOfWeek = getPSTDateString(mondayD);
+  const startOfMonth = `${y}-${String(m).padStart(2, '0')}-01`;
+  const endOfMonthD = new Date(Date.UTC(y, m, 0, 12, 0, 0));
+  const endOfMonth = getPSTDateString(endOfMonthD);
+  return { today: pstStr, startOfWeek, startOfMonth, endOfMonth };
+};
+
 export const formatDate = (dateStr) => {
   if (!dateStr) return '';
   const [datePart, timePart] = String(dateStr).split(' ');
   if (!datePart || !timePart) return dateStr;
   const [year, month, day] = datePart.split('-');
   const [hour, minute, second] = timePart.split(':');
-  const d = new Date(year, month - 1, day, hour, minute, second);
+  // Interpret as explicit UTC+8 (Philippine Standard Time)
+  const isoStr = `${year}-${month}-${day}T${hour}:${minute}:${second ? second.slice(0, 2) : '00'}+08:00`;
+  const d = new Date(isoStr);
+  if (Number.isNaN(d.getTime())) return dateStr;
   return d.toLocaleString('en-US', {
+    timeZone: 'Asia/Manila',
     year: 'numeric', month: 'short', day: 'numeric',
     hour: 'numeric', minute: '2-digit', hour12: true,
   });
 };
+

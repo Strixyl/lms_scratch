@@ -5,7 +5,7 @@ import { Box, TextField, Button, FormControl, InputLabel, Select, MenuItem } fro
 import * as XLSX from 'xlsx';
 import Header from '../Components/Header';
 import TopBar from '../Components/TopBar';
-import { COLLEGE_OPTIONS, SECTION_OPTIONS, getCollegeGroup, formatDate } from '../constants/collegeMap';
+import { COLLEGE_OPTIONS, SECTION_OPTIONS, getCollegeGroup, formatDate, getPSTDateString } from '../constants/collegeMap';
 
 // deduplicate logins per patron per day across libraries
 const deduplicateLogins = (loginList) => {
@@ -134,7 +134,7 @@ const LoginData = () => {
 
     const collegeName = selectedCollege !== 'All' ? `_${selectedCollege}` : '';
     const sectionName = selectedSection !== 'All' ? `_${selectedSection}` : '';
-    const dateStamp = new Date().toISOString().split('T')[0];
+    const dateStamp = getPSTDateString();
     XLSX.writeFile(workbook, `HLL_Logins${collegeName}${sectionName}_${dateStamp}.xlsx`);
   };
 

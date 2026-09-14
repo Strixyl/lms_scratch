@@ -230,6 +230,9 @@ app.post('/api/survey', async (req, res) => {
       request.input(`q${i + 1}`, sql.NVarChar, responses[i] ?? null);
     }
 
+    const nowPH = moment().utcOffset('+08:00').format("YYYY-MM-DD HH:mm:ss");
+    request.input('dateSubmitted', sql.VarChar, nowPH);
+
     await request.query(`
       INSERT INTO SatisfactionSurveys (
         Clientele, College, Course, Message,
@@ -240,7 +243,7 @@ app.post('/api/survey', async (req, res) => {
       VALUES (
         @clientele, @college, @course, @message,
         @q1, @q2, @q3, @q4, @q5, @q6, @q7, @q8, @q9, @q10,
-        @sentimentResult, @category, @sentimentScore, GETDATE()
+        @sentimentResult, @category, @sentimentScore, @dateSubmitted
       )
     `);
 
@@ -393,8 +396,14 @@ app.get('/api/logins', async (req, res) => {
 
     if (startDate && endDate) {
       conditions.push(`CAST(TimeLogged AS DATE) BETWEEN @startDate AND @endDate`);
-      request.input('startDate', sql.Date, new Date(startDate));
-      request.input('endDate', sql.Date, new Date(endDate));
+      request.input('startDate', sql.Date, startDate);
+      request.input('endDate', sql.Date, endDate);
+    } else if (startDate) {
+      conditions.push(`CAST(TimeLogged AS DATE) >= @startDate`);
+      request.input('startDate', sql.Date, startDate);
+    } else if (endDate) {
+      conditions.push(`CAST(TimeLogged AS DATE) <= @endDate`);
+      request.input('endDate', sql.Date, endDate);
     }
 
     if (section && section !== 'All') {
