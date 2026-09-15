@@ -1,11 +1,10 @@
 // reusable chart cards, tooltips, and sentiment chips
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import {
   Box, Typography, Card, CardContent, Avatar, Paper,
   Tooltip, Chip, Button, Select, MenuItem,
   FormControl, ToggleButton, ToggleButtonGroup,
-  IconButton,
 } from '@mui/material';
 import {
   ArrowDropUp as ArrowDropUpIcon,

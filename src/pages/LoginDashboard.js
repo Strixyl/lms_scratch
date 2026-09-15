@@ -34,7 +34,6 @@ import {
   FormatListNumbered as FormatListNumberedIcon,
   Category as CategoryIcon,
   ShowChart as ShowChartIcon,
-  ArrowForward as ArrowForwardIcon,
 } from '@mui/icons-material';
 import {
   PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer,
@@ -1175,7 +1174,7 @@ const LoginDashboard = () => {
   // kpi cards and visual chart computations
   const totalEntries = logins.length;
 
-  const { mainChartData, activeChartSeries, collegeChartData } = useMemo(() => {
+  const { mainChartData, collegeChartData } = useMemo(() => {
     const collegeMap = {};
     ALL_COLLEGES.forEach(col => {
       collegeMap[col] = { total: 0 };
