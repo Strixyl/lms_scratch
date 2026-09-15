@@ -5,7 +5,6 @@ import {
   RATING_SCORES,
   SATISFACTION_SCALE,
   STOPWORDS,
-  CONTROLLED_LEXICON,
 } from './sentimentConstants';
 
 // rating formatter

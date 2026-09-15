@@ -3,7 +3,6 @@ import Header from '../Components/Header';
 import TopBar from '../Components/TopBar';
 import {
   Box,
-  Grid,
   Typography,
   TextField,
   Button,
@@ -442,7 +441,6 @@ const SatisfactionSurvey = () => {
   const [viewMode, setViewMode] = useState('wizard');
   const [wizardIndex, setWizardIndex] = useState(0);
   const [responses, setResponses] = useState(Array(10).fill(null));
-  const [slideDirection, setSlideDirection] = useState('next');
   const [isAdvancing, setIsAdvancing] = useState(false);
   const [justSelectedId, setJustSelectedId] = useState(null);
 
@@ -460,7 +458,6 @@ const SatisfactionSurvey = () => {
     }
     setIsAdvancing(false);
     setJustSelectedId(null);
-    setSlideDirection(target >= wizardIndex ? 'next' : 'prev');
     setWizardIndex(target);
   };
 
@@ -473,7 +470,6 @@ const SatisfactionSurvey = () => {
     setJustSelectedId(id);
 
     autoAdvanceTimerRef.current = setTimeout(() => {
-      setSlideDirection('next');
       setIsAdvancing(false);
       setJustSelectedId(null);
       setWizardIndex((prev) => (prev < 9 ? prev + 1 : prev));

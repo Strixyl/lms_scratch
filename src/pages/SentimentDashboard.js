@@ -35,7 +35,7 @@ import {
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
   WarningAmber as WarningAmberIcon,
-  ArrowForward as ArrowForwardIcon,
+  OutlinedFlag,
 } from '@mui/icons-material';
 import {
   ResponsiveContainer,
@@ -79,13 +79,11 @@ import {
   RECOMMENDATIONS,
   CATEGORY_KEYWORDS,
   cleanCollegeName,
-  getCollegeStyle,
 } from '../constants/sentimentConstants';
 
 import {
   formatRatingShort,
   getSatisfactionAverage,
-  getSurveyScore,
   stemWord,
   buildTermFrequencies,
   scoreCommentsWithRoBERTa,
@@ -1611,7 +1609,7 @@ function SentimentDashboard() {
                           setFilterSentiment('Negative');
                           handleScrollToReviewTable();
                         }}
-                        endIcon={<ArrowForwardIcon sx={{ fontSize: 15 }} />}
+                        endIcon={<OutlinedFlag sx={{ fontSize: 15 }} />}
                         sx={{
                           borderRadius: '9999px',
                           bgcolor: '#e11d48',
@@ -1675,14 +1673,14 @@ function SentimentDashboard() {
                             const kpiTitle = isNeg
                               ? 'Negative Sentiment Rate'
                               : isNeu
-                              ? 'Neutral Sentiment Rate'
-                              : 'Positive Sentiment Rate';
+                                ? 'Neutral Sentiment Rate'
+                                : 'Positive Sentiment Rate';
 
                             const activeCount = isNeg
                               ? cohortCounts.Negative
                               : isNeu
-                              ? cohortCounts.Neutral
-                              : cohortCounts.Positive;
+                                ? cohortCounts.Neutral
+                                : cohortCounts.Positive;
 
                             const kpiRate = cohortCounts.Total > 0
                               ? Math.round((activeCount / cohortCounts.Total) * 100)
@@ -1772,15 +1770,15 @@ function SentimentDashboard() {
                                   {filterSentiment === 'Negative'
                                     ? `${cohortCounts.Total > 0 ? Math.round((cohortCounts.Negative / cohortCounts.Total) * 100) : 0}% Negative Share`
                                     : filterSentiment === 'Neutral'
-                                    ? `${cohortCounts.Total > 0 ? Math.round((cohortCounts.Neutral / cohortCounts.Total) * 100) : 0}% Neutral Share`
-                                    : `${cohortCounts.Total > 0 ? Math.round((cohortCounts.Positive / cohortCounts.Total) * 100) : 0}% Positive Share`}
+                                      ? `${cohortCounts.Total > 0 ? Math.round((cohortCounts.Neutral / cohortCounts.Total) * 100) : 0}% Neutral Share`
+                                      : `${cohortCounts.Total > 0 ? Math.round((cohortCounts.Positive / cohortCounts.Total) * 100) : 0}% Positive Share`}
                                 </Typography>
                                 <Typography sx={{ fontFamily: T.font.family, fontSize: 12.5, fontWeight: 600, color: '#64748b' }}>
                                   {filterSentiment === 'Negative'
                                     ? `(${cohortCounts.Negative} of ${cohortCounts.Total} submissions)`
                                     : filterSentiment === 'Neutral'
-                                    ? `(${cohortCounts.Neutral} of ${cohortCounts.Total} submissions)`
-                                    : `(${cohortCounts.Positive} of ${cohortCounts.Total} submissions)`}
+                                      ? `(${cohortCounts.Neutral} of ${cohortCounts.Total} submissions)`
+                                      : `(${cohortCounts.Positive} of ${cohortCounts.Total} submissions)`}
                                 </Typography>
                               </Box>
                             </Box>
