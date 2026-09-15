@@ -6,9 +6,11 @@ const moment = require('moment-timezone');
 const axios = require('axios');
 const fs = require('fs');
 const multer = require('multer');
+
 const app = express();
 app.use(express.json());
 app.use(cors());
+
 app.use((req, res, next) => {
   if (req.url.startsWith('/performance') || req.url === '/favicon.ico') {
     return res.status(200).end();
@@ -20,7 +22,6 @@ app.use((req, res, next) => {
 const config = {
   connectionString: "Driver={ODBC Driver 18 for SQL Server};Server=JUSTER\\SQLEXPRESS;Database=hllSystem;Trusted_Connection=Yes;Encrypt=no;"
 };
-
 
 sql.connect(config)
   .then(pool => {
@@ -37,7 +38,6 @@ async function analyzeSentiment(responses, message) {
     dissatisfied: -0.5, very_dissatisfied: -1.0, na: 0.0,
   };
 
-  // ── Emoji ratings score ──
   const validResponses = responses.filter(r => r !== null && r !== 'na');
   const ratingAvg = validResponses.length > 0
     ? validResponses.reduce((sum, r) => sum + (ratingScores[r] ?? 0), 0) / validResponses.length
@@ -45,7 +45,6 @@ async function analyzeSentiment(responses, message) {
 
   const emojiSentiment = ratingAvg > 0.15 ? 'Positive' : ratingAvg < -0.15 ? 'Negative' : 'Neutral';
 
-  // ── BERT text sentiment + Naive Bayes category (run in parallel, same input) ──
   let textSentiment = 'Neutral';
   let category = 'Other/Uncategorized';
   let textConfidence = 1.0;
@@ -53,11 +52,11 @@ async function analyzeSentiment(responses, message) {
     const [sentimentResult, categoryResult] = await Promise.all([
       axios.post('http://localhost:5001/analyze', { text: message }).catch(err => {
         console.error('BERT service error:', err.message);
-        return null; // fallback if Python is down
+        return null;
       }),
       axios.post('http://localhost:5001/categorize', { text: message }).catch(err => {
         console.error('Category service error:', err.message);
-        return null; // fallback if Python is down
+        return null;
       }),
     ]);
 
@@ -66,15 +65,12 @@ async function analyzeSentiment(responses, message) {
     category = categoryResult?.data?.category ?? 'Other/Uncategorized';
   }
 
-  // ── Combined result (Option A: Comment-First) ──
   let overallSentiment;
   let sentimentScore;
   if (!message || message.trim().length === 0) {
-    // No comment submitted -> fallback to 10-question emoji satisfaction rating
     overallSentiment = emojiSentiment;
     sentimentScore = ratingAvg;
   } else {
-    // Open-ended comment submitted -> sentiment is strictly based on the patron's written feedback (BERT)
     overallSentiment = textSentiment;
     sentimentScore = textSentiment === 'Positive' ? textConfidence : textSentiment === 'Negative' ? -textConfidence : 0.0;
   }
@@ -95,7 +91,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// =================== EQUIPMENT INVENTORY HELPERS =================== //
+// =================== HELPER FUNCTIONS =================== //
 const LOW_STOCK_THRESHOLD = 4;
 
 function cleanTitleCase(str) {
@@ -107,15 +103,11 @@ function cleanTitleCase(str) {
     .join(' ');
 }
 
-// Status is derived from quantity based on simplified rules:
-// Qty > 0 = 'In Stock'; Qty <= 0 = 'Out of Stock'
 function deriveStatus(quantity) {
   if (quantity <= 0) return 'Out of Stock';
   return 'In Stock';
 }
 
-// Ensures a brand name exists in the Brands master list. Safe to call
-// repeatedly with the same name (no duplicates, no error).
 async function upsertBrand(pool, brandName) {
   const name = cleanTitleCase(brandName);
   if (!name) return;
@@ -129,41 +121,9 @@ async function upsertBrand(pool, brandName) {
   }
 }
 
-// A "profile" = one physical asset type, identified by name+brand (grouped per requirement)
-function profileKey(row) {
-  return [row.ItemName?.trim().toLowerCase(), (row.Brand || '').trim().toLowerCase()].join('||');
-}
-
-async function findEquipmentRowAtLocation(request, { itemName, brand, serialNumber, location }) {
-  const result = await request
-    .input('ItemName', sql.NVarChar, itemName.trim())
-    .input('Brand', sql.NVarChar, (brand || '').trim())
-    .input('SerialNumber', sql.NVarChar, (serialNumber || '').trim())
-    .input('Location', sql.NVarChar, location.trim())
-    .query(`SELECT * FROM LibraryEquipment
-            WHERE ItemName = @ItemName AND ISNULL(Brand,'') = @Brand
-              AND ISNULL(SerialNumber,'') = @SerialNumber AND ISNULL(Location,'') = @Location`);
-  return result.recordset[0] || null;
-}
-
-function supplyProfileKey(row) {
-  return [row.ItemName?.trim().toLowerCase(), (row.Brand || '').trim().toLowerCase()].join('||');
-}
-
-async function findSupplyRowAtLocation(request, { itemName, brand, location }) {
-  const result = await request
-    .input('ItemName', sql.NVarChar, itemName.trim())
-    .input('Brand', sql.NVarChar, (brand || '').trim())
-    .input('Location', sql.NVarChar, location.trim())
-    .query(`SELECT * FROM OfficeSupplies
-            WHERE ItemName = @ItemName AND ISNULL(Brand,'') = @Brand
-              AND ISNULL(Location,'') = @Location`);
-  return result.recordset[0] || null;
-}
-
 async function logAssetTransaction(request, {
   assetId, actionType, quantityChanged, previousQuantity, newQuantity,
-  destinationSection = null, remarks = null, createdBy = null,
+  destinationSection = null, remarks = null, createdBy = null, takenBy = null,
 }) {
   await request
     .input('TxAssetId', sql.Int, assetId)
@@ -174,19 +134,13 @@ async function logAssetTransaction(request, {
     .input('DestinationSection', sql.NVarChar, destinationSection)
     .input('Remarks', sql.NVarChar, remarks)
     .input('CreatedBy', sql.NVarChar, createdBy)
-    .query(`
-      INSERT INTO AssetTransactions
-        (AssetId, ActionType, QuantityChanged, PreviousQuantity, NewQuantity, DestinationSection, Remarks, CreatedBy)
-      VALUES
-        (@TxAssetId, @ActionType, @QuantityChanged, @PreviousQuantity, @NewQuantity, @DestinationSection, @Remarks, @CreatedBy)
-    `);
+    .input('TakenBy', sql.NVarChar, takenBy)
+    .query(`INSERT INTO AssetTransactions (AssetId, ActionType, QuantityChanged, PreviousQuantity, NewQuantity, DestinationSection, Remarks, CreatedBy, TakenBy) VALUES (@TxAssetId, @ActionType, @QuantityChanged, @PreviousQuantity, @NewQuantity, @DestinationSection, @Remarks, @CreatedBy, @TakenBy)`);
 }
 
-// SupplyId is a soft reference (nullable, no FK) — see create_supply_transactions.sql —
-// so deleting a supply item never fails just because it has transaction history.
 async function logSupplyTransaction(request, {
   supplyId, actionType, quantityChanged, previousQuantity, newQuantity,
-  destinationSection = null, remarks = null, createdBy = null,
+  destinationSection = null, remarks = null, createdBy = null, takenBy = null,
 }) {
   await request
     .input('TxSupplyId', sql.Int, supplyId)
@@ -197,16 +151,11 @@ async function logSupplyTransaction(request, {
     .input('DestinationSection', sql.NVarChar, destinationSection)
     .input('Remarks', sql.NVarChar, remarks)
     .input('CreatedBy', sql.NVarChar, createdBy)
-    .query(`
-      INSERT INTO SupplyTransactions
-        (SupplyId, ActionType, QuantityChanged, PreviousQuantity, NewQuantity, DestinationSection, Remarks, CreatedBy)
-      VALUES
-        (@TxSupplyId, @ActionType, @QuantityChanged, @PreviousQuantity, @NewQuantity, @DestinationSection, @Remarks, @CreatedBy)
-    `);
+    .input('TakenBy', sql.NVarChar, takenBy)
+    .query(`INSERT INTO SupplyTransactions (SupplyId, ActionType, QuantityChanged, PreviousQuantity, NewQuantity, DestinationSection, Remarks, CreatedBy, TakenBy) VALUES (@TxSupplyId, @ActionType, @QuantityChanged, @PreviousQuantity, @NewQuantity, @DestinationSection, @Remarks, @CreatedBy, @TakenBy)`);
 }
 
 // =================== ROUTES =================== //
-
 
 app.post('/api/survey', async (req, res) => {
   const { clientele, college, course, responses, message } = req.body;
@@ -230,9 +179,6 @@ app.post('/api/survey', async (req, res) => {
       request.input(`q${i + 1}`, sql.NVarChar, responses[i] ?? null);
     }
 
-    const nowPH = moment().utcOffset('+08:00').format("YYYY-MM-DD HH:mm:ss");
-    request.input('dateSubmitted', sql.VarChar, nowPH);
-
     await request.query(`
       INSERT INTO SatisfactionSurveys (
         Clientele, College, Course, Message,
@@ -243,7 +189,7 @@ app.post('/api/survey', async (req, res) => {
       VALUES (
         @clientele, @college, @course, @message,
         @q1, @q2, @q3, @q4, @q5, @q6, @q7, @q8, @q9, @q10,
-        @sentimentResult, @category, @sentimentScore, @dateSubmitted
+        @sentimentResult, @category, @sentimentScore, GETDATE()
       )
     `);
 
@@ -270,35 +216,11 @@ app.post('/api/student-lookup', async (req, res) => {
         WHERE si.studIDnumber = @idNumber;
       `);
 
-    let student;
-
-    if (studentResult.recordset.length > 0) {
-      student = { ...studentResult.recordset[0], patronType: 'Student' };
-    } else {
-      // Fallback: check GuestPatrons (Visitors / Researchers)
-      const guestResult = await pool.request()
-        .input('idNumber', sql.VarChar, idNumber)
-        .query(`
-          SELECT GuestID AS studID, IDNumber AS studIDnumber, LastName AS studLname,
-                 FirstName AS studFname, GuestType
-          FROM GuestPatrons
-          WHERE IDNumber = @idNumber;
-        `);
-
-      if (guestResult.recordset.length === 0) {
-        return res.status(404).json({ message: 'Student not found' });
-      }
-
-      const guest = guestResult.recordset[0];
-      student = {
-        ...guest,
-        studCourse: null,
-        studYear: null,
-        studCollege: null,
-        studGender: null,
-        patronType: guest.GuestType, // VISIOTRR OR RESEARCHERSS
-      };
+    if (studentResult.recordset.length === 0) {
+      return res.status(404).json({ message: 'Student not found' });
     }
+
+    const student = studentResult.recordset[0];
 
     const todayLogs = await pool.request()
       .input('idNumber', sql.VarChar, idNumber)
@@ -358,7 +280,7 @@ const COLLEGE_MAP = {
   CARES: ['CARES', 'Agriculture', 'Environmental', 'BSA', 'BSABE', 'BSEM'],
   CAS: ['CAS', 'Arts', 'Sciences', 'BAComm', 'BAELS', 'BAPolSci', 'BSBio', 'BSChem', 'BSPsyc', 'BSSW', 'ABPSPA'],
   CBA: ['CBA', 'Business', 'Accountancy', 'BSActy', 'BSAd', 'BSBABM', 'BSBAFM', 'BSBAMM', 'BSEnt', 'BSBAMA'],
-  CCS: ['CCS', 'Computer Studies', 'Comouter Studies', 'Computer', 'Comouter', 'BSCS', 'BSDMIA', 'BSIT', 'BLIS'],
+  CCS: ['CCS', 'Computer Studies', 'Computer', 'BSCS', 'BSDMIA', 'BSIT', 'BLIS'],
   COED: ['COED', 'Education', 'BECEd', 'BEEd', 'BPEd', 'BSBMic', 'BSEd', 'BSMath'],
   COE: ['COE', 'Engineering', 'BSCE', 'BSChE', 'BSEE', 'BSECE', 'BSME', 'BSPkgE', 'BSSE'],
   CHM: ['CHM', 'Hospitality', 'BSHM', 'BSTM', 'BSHRM'],
@@ -384,7 +306,6 @@ app.get('/api/logins', async (req, res) => {
 
     const conditions = [];
 
-    // Filter by logType or default to entry logins (excluding Time Out records)
     if (logType === 'All') {
       // include all
     } else if (logType) {
@@ -396,14 +317,8 @@ app.get('/api/logins', async (req, res) => {
 
     if (startDate && endDate) {
       conditions.push(`CAST(TimeLogged AS DATE) BETWEEN @startDate AND @endDate`);
-      request.input('startDate', sql.Date, startDate);
-      request.input('endDate', sql.Date, endDate);
-    } else if (startDate) {
-      conditions.push(`CAST(TimeLogged AS DATE) >= @startDate`);
-      request.input('startDate', sql.Date, startDate);
-    } else if (endDate) {
-      conditions.push(`CAST(TimeLogged AS DATE) <= @endDate`);
-      request.input('endDate', sql.Date, endDate);
+      request.input('startDate', sql.Date, new Date(startDate));
+      request.input('endDate', sql.Date, new Date(endDate));
     }
 
     if (section && section !== 'All') {
@@ -533,9 +448,7 @@ app.get('/api/surveys', async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch surveys' });
   }
 });
-// ==========================================
-//  DELETE A SURVEY RESPONSE BY ID
-// ==========================================
+
 app.delete('/api/surveys/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -544,10 +457,8 @@ app.delete('/api/surveys/:id', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Missing review ID' });
     }
 
-    // Connect using your specific configuration variable name (e.g., config)
     const pool = await sql.connect(config);
 
-    // Explicitly target your database and table as shown in image_eab6a1.png
     await pool.request()
       .input('Id', sql.Int, parseInt(id))
       .query('DELETE FROM [hllSystem].[dbo].[SatisfactionSurveys] WHERE Id = @Id');
@@ -560,7 +471,6 @@ app.delete('/api/surveys/:id', async (req, res) => {
   }
 });
 
-// =================== DELETE ENTRY FROM CARD AND PACKETS =================== //
 app.delete('/api/card-and-packet/:id/book/:bookNum', async (req, res) => {
   const { id, bookNum } = req.params;
   const n = parseInt(bookNum);
@@ -589,11 +499,6 @@ app.delete('/api/card-and-packet/:id/book/:bookNum', async (req, res) => {
   }
 });
 
-
-
-
-// =================== CARD AND PACKET TABLE FETCH =================== //
-
 app.get('/api/card-and-packet', async (req, res) => {
   try {
     const pool = await sql.connect(config);
@@ -605,12 +510,6 @@ app.get('/api/card-and-packet', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch card and packet records' });
   }
 });
-
-
-
-// =================== CARD AND PACKET =================== //
-
-
 
 app.post('/api/card-and-packet', async (req, res) => {
   const {
@@ -868,7 +767,6 @@ app.put('/api/card-and-packet/:id', async (req, res) => {
   }
 });
 
-
 // =================== OFFICE SUPPLIES =================== //
 
 app.get('/api/supplies', async (req, res) => {
@@ -927,9 +825,9 @@ app.get('/api/supplies/grouped', async (req, res) => {
   }
 });
 
+// ✅ UPDATED: Generates ItemCode (SKU) and checks for duplicates
 app.post('/api/supplies', async (req, res) => {
-  const { itemName, brand, quantity, location, specifications, user, unit } = req.body;
-
+  const { itemName, brand, quantity, specifications, user, unit } = req.body;
   const qty = parseInt(quantity);
   if (!itemName || !itemName.trim()) {
     return res.status(400).json({ message: 'Item name is required.' });
@@ -953,60 +851,37 @@ app.post('/api/supplies', async (req, res) => {
       await upsertBrand(pool, normBrand);
     }
 
-    const existing = await pool.request()
+    // CHECK FOR DUPLICATES (Item Name + Brand + Specifications)
+    const duplicateCheck = await pool.request()
       .input('ItemName', sql.NVarChar, normItemName)
       .input('Brand', sql.NVarChar, normBrand)
-      .input('Location', sql.NVarChar, (location || '').trim())
       .input('Specifications', sql.NVarChar, normSpecs)
-      .input('Unit', sql.NVarChar, normUnit)
-      .query(`SELECT * FROM OfficeSupplies
-              WHERE ItemName = @ItemName
-                AND ISNULL(Brand,'') = @Brand
-                AND ISNULL(Location,'') = @Location
-                AND ISNULL(Specifications,'') = @Specifications
-                AND ISNULL(Unit,'') = @Unit`);
-
-    if (existing.recordset.length > 0) {
-      const match = existing.recordset[0];
-      const newQty = match.Quantity + qty;
-      const newStatus = deriveStatus(newQty);
-
-      await pool.request()
-        .input('Id', sql.Int, match.Id)
-        .input('Quantity', sql.Int, newQty)
-        .input('Status', sql.NVarChar, newStatus)
-        .input('Specifications', sql.NVarChar, normSpecs || match.Specifications || 'N/A')
-        .input('Unit', sql.NVarChar, unit || match.Unit || 'Pieces')
-        .input('UpdatedAt', sql.DateTime, new Date())
-        .query(`UPDATE OfficeSupplies SET
-          Quantity=@Quantity, Status=@Status,
-          Specifications=@Specifications, Unit=@Unit, UpdatedAt=@UpdatedAt
-          WHERE Id=@Id`);
-
-      await logSupplyTransaction(pool.request(), {
-        supplyId: match.Id,
-        actionType: 'Added Stock',
-        quantityChanged: qty,
-        previousQuantity: match.Quantity,
-        newQuantity: newQty,
-        createdBy: user,
-      });
-
-      return res.json({ message: 'Stock updated on existing supply record.', id: match.Id });
+      .query("SELECT Id FROM OfficeSupplies WHERE ItemName = @ItemName AND ISNULL(Brand,'') = @Brand AND ISNULL(Specifications,'') = @Specifications");
+    
+    if (duplicateCheck.recordset.length > 0) {
+      return res.status(400).json({ message: 'Duplicate item: Item name, brand, and specifications already exist.' });
     }
 
+    // AUTO-GENERATE SKU
+    const skuResult = await pool.request().query("SELECT MAX(CAST(REPLACE(ItemCode, 'SKU-', '') AS INT)) AS MaxSku FROM OfficeSupplies WHERE ItemCode LIKE 'SKU-%'");
+    let nextSku = 1;
+    if (skuResult.recordset[0].MaxSku) {
+      nextSku = skuResult.recordset[0].MaxSku + 1;
+    }
+    const itemCode = `SKU-${String(nextSku).padStart(3, '0')}`;
+
     const insertResult = await pool.request()
+      .input('ItemCode', sql.NVarChar, itemCode)
       .input('ItemName', sql.NVarChar, normItemName)
       .input('Brand', sql.NVarChar, normBrand)
       .input('Quantity', sql.Int, qty)
       .input('Status', sql.NVarChar, status)
-      .input('Location', sql.NVarChar, location || '')
-      .input('Specifications', sql.NVarChar, normSpecs || 'N/A')
-      .input('Unit', sql.NVarChar, unit || 'Pieces')
+      .input('Specifications', sql.NVarChar, normSpecs)
+      .input('Unit', sql.NVarChar, normUnit)
       .query(`INSERT INTO OfficeSupplies
-        (ItemName, Brand, Quantity, Status, Location, Specifications, Unit)
+        (ItemCode, ItemName, Brand, Quantity, Status, Specifications, Unit)
         OUTPUT INSERTED.Id
-        VALUES (@ItemName, @Brand, @Quantity, @Status, @Location, @Specifications, @Unit)`);
+        VALUES (@ItemCode, @ItemName, @Brand, @Quantity, @Status, @Specifications, @Unit)`);
 
     const newId = insertResult.recordset[0].Id;
 
@@ -1019,7 +894,7 @@ app.post('/api/supplies', async (req, res) => {
       createdBy: user,
     });
 
-    res.json({ success: true, id: newId });
+    res.json({ success: true, id: newId, itemCode });
   } catch (err) {
     console.error('Failed to add supply:', err);
     res.status(500).json({ error: 'Failed to add supply' });
@@ -1125,7 +1000,6 @@ app.delete('/api/supplies/:id', async (req, res) => {
   }
 });
 
-// ---- Add Stock: safely append stock levels directly at a location ----
 app.post('/api/supplies/add-stock', async (req, res) => {
   const { supplyId, itemName, brand, location, quantity, user } = req.body;
   const qty = parseInt(quantity);
@@ -1239,7 +1113,6 @@ app.post('/api/supplies/add-stock', async (req, res) => {
   }
 });
 
-// Backward compatibility helper
 app.post('/api/supplies/:id/add-stock', async (req, res) => {
   const { id } = req.params;
   const { additionalQuantity, location, user } = req.body;
@@ -1264,29 +1137,14 @@ app.post('/api/supplies/:id/add-stock', async (req, res) => {
   req.body.location = resolvedLocation;
   req.body.quantity = qty;
 
-  // Forward to our unified add-stock handler
-  const tempRes = {
-    status: (code) => ({ json: (data) => res.status(code).json(data), send: (data) => res.status(code).send(data) }),
-    json: (data) => res.json(data)
-  };
-
   try {
     const pool = await sql.connect(config);
     const existing = await pool.request().input('Id', sql.Int, parseInt(id)).query('SELECT ItemName FROM OfficeSupplies WHERE Id = @Id');
     if (existing.recordset.length === 0) {
       return res.status(404).json({ message: 'Supply item not found.' });
     }
-    // Perform standard add-stock
     req.body.itemName = existing.recordset[0].ItemName;
 
-    // We can call add-stock logic directly or mock a request. Since we want it to be direct:
-    const mockReq = { body: req.body };
-    // Let's call the logic
-    const mockRes = {
-      status: (code) => ({ json: (data) => res.status(code).json(data) }),
-      json: (data) => res.json(data)
-    };
-    // Direct code execution is cleaner. Let's just execute the same code:
     const transaction = new sql.Transaction(pool);
     await transaction.begin();
     const supplyResult = await new sql.Request(transaction)
@@ -1351,10 +1209,9 @@ app.post('/api/supplies/:id/add-stock', async (req, res) => {
   }
 });
 
-// ---- Transfer Supply Location: manages cross-location stock movements ----
 app.post('/api/supplies/:id/transfer', async (req, res) => {
   const { id } = req.params;
-  const { destinationLocation, quantity, user } = req.body;
+  const { destinationLocation, quantity, user, takenBy } = req.body;
   const qty = parseInt(quantity);
 
   if (!destinationLocation?.trim()) {
@@ -1388,7 +1245,6 @@ app.post('/api/supplies/:id/transfer', async (req, res) => {
       return res.status(400).json({ message: `Insufficient stock at ${source.Location}. Available: ${source.Quantity}.` });
     }
 
-    // Deduct from source
     const newSourceQty = source.Quantity - qty;
     await new sql.Request(transaction)
       .input('Id', sql.Int, source.Id)
@@ -1397,10 +1253,8 @@ app.post('/api/supplies/:id/transfer', async (req, res) => {
       .input('UpdatedAt', sql.DateTime, new Date())
       .query('UPDATE OfficeSupplies SET Quantity=@Quantity, Status=@Status, UpdatedAt=@UpdatedAt WHERE Id=@Id');
 
-    // Find or create destination row
     const normItemName = cleanTitleCase(source.ItemName);
     const normBrand = cleanTitleCase(source.Brand);
-
     const normSpecs = cleanTitleCase(source.Specifications) || 'N/A';
     const normUnit = (source.Unit || 'Pieces').trim();
     const destResult = await new sql.Request(transaction)
@@ -1445,7 +1299,6 @@ app.post('/api/supplies/:id/transfer', async (req, res) => {
       destId = insertResult.recordset[0].Id;
     }
 
-    // Log transaction with LOCATION_TRANSFER ActionType
     await logSupplyTransaction(new sql.Request(transaction), {
       supplyId: source.Id,
       actionType: 'LOCATION_TRANSFER',
@@ -1455,6 +1308,7 @@ app.post('/api/supplies/:id/transfer', async (req, res) => {
       destinationSection: destinationLocation,
       remarks: `Transferred to ${destinationLocation} (row #${destId})`,
       createdBy: user,
+      takenBy: takenBy,
     });
 
     await transaction.commit();
@@ -1466,13 +1320,66 @@ app.post('/api/supplies/:id/transfer', async (req, res) => {
   }
 });
 
-// Make /api/supplies/:id/send route backward compatible with location transfer logic
 app.post('/api/supplies/:id/send', async (req, res) => {
   req.body.destinationLocation = req.body.destination;
   return app._router.handle({ method: 'POST', url: `/api/supplies/${req.params.id}/transfer`, body: req.body }, res);
 });
 
-// =================== SUPPLY TRANSACTION HISTORY =================== //
+// ✅ NEW: Disburse Supply Endpoint
+app.post('/api/supplies/disburse', async (req, res) => {
+  const { itemName, brand, specifications, unit, quantity, section, recipient, releasedBy, user, dateDisbursed } = req.body;
+  const qty = parseInt(quantity);
+
+  if (!section) return res.status(400).json({ message: 'Section is required.' });
+  if (!itemName) return res.status(400).json({ message: 'Item name is required.' });
+  if (Number.isNaN(qty) || qty < 1) return res.status(400).json({ message: 'Quantity must be at least 1.' });
+  if (!recipient) return res.status(400).json({ message: 'Recipient is required.' });
+
+  try {
+    const pool = await sql.connect(config);
+    const normItemName = cleanTitleCase(itemName);
+    const normBrand = cleanTitleCase(brand);
+    const normSpecs = cleanTitleCase(specifications) || 'N/A';
+
+    const existing = await pool.request()
+      .input('ItemName', sql.NVarChar, normItemName)
+      .input('Brand', sql.NVarChar, normBrand)
+      .input('Specifications', sql.NVarChar, normSpecs)
+      .query("SELECT * FROM OfficeSupplies WHERE ItemName = @ItemName AND ISNULL(Brand,'') = @Brand AND ISNULL(Specifications,'') = @Specifications");
+
+    if (existing.recordset.length === 0) {
+      return res.status(404).json({ message: 'Supply item not found.' });
+    }
+    const item = existing.recordset[0];
+    if (item.Quantity < qty) {
+      return res.status(400).json({ message: `Insufficient stock. Available: ${item.Quantity}` });
+    }
+
+    const newQty = item.Quantity - qty;
+    await pool.request()
+      .input('Id', sql.Int, item.Id)
+      .input('Quantity', sql.Int, newQty)
+      .input('Status', sql.NVarChar, deriveStatus(newQty))
+      .query("UPDATE OfficeSupplies SET Quantity = @Quantity, Status = @Status WHERE Id = @Id");
+
+    await logSupplyTransaction(pool.request(), {
+      supplyId: item.Id,
+      actionType: 'Disbursed',
+      quantityChanged: -qty,
+      previousQuantity: item.Quantity,
+      newQuantity: newQty,
+      destinationSection: section,
+      remarks: `Date: ${dateDisbursed || new Date().toISOString().split('T')[0]}`,
+      createdBy: releasedBy || user,
+      takenBy: recipient,
+    });
+
+    res.json({ success: true, message: 'Disbursement recorded.' });
+  } catch (err) {
+    console.error('Failed to disburse supply:', err);
+    res.status(500).json({ error: 'Failed to disburse supply' });
+  }
+});
 
 app.get('/api/supply-transactions', async (req, res) => {
   try {
@@ -1487,6 +1394,7 @@ app.get('/api/supply-transactions', async (req, res) => {
         t.DestinationSection AS destination_section,
         t.Remarks AS remarks,
         t.CreatedBy AS created_by,
+        t.TakenBy AS taken_by,
         CONVERT(VARCHAR, t.CreatedAt, 120) AS created_at,
         ISNULL(s.ItemName, '(deleted item)') AS supply_name
       FROM SupplyTransactions t
@@ -1499,8 +1407,6 @@ app.get('/api/supply-transactions', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch supply transaction history' });
   }
 });
-
-// =================== SUPPLIES DASHBOARD SUMMARY =================== //
 
 app.get('/api/supplies/dashboard/summary', async (req, res) => {
   try {
@@ -1517,7 +1423,7 @@ app.get('/api/supplies/dashboard/summary', async (req, res) => {
     const transferredToday = await pool.request().query(`
       SELECT ISNULL(SUM(-QuantityChanged), 0) AS transferredToday
       FROM SupplyTransactions
-      WHERE ActionType = 'Transferred' AND CAST(CreatedAt AS DATE) = CAST(GETDATE() AS DATE)
+      WHERE ActionType IN ('Transferred', 'Disbursed') AND CAST(CreatedAt AS DATE) = CAST(GETDATE() AS DATE)
     `);
 
     res.json({
@@ -1587,7 +1493,6 @@ app.get('/api/equipment/grouped', async (req, res) => {
   }
 });
 
-// ---- Add Stock: safely append stock levels directly at a location ----
 app.post('/api/equipment/add-stock', async (req, res) => {
   const { assetId, itemName, brand, location, quantity, user } = req.body;
   const qty = parseInt(quantity);
@@ -1696,15 +1601,13 @@ app.post('/api/equipment/add-stock', async (req, res) => {
   }
 });
 
-// Replaces the old stock-to-location endpoint
 app.post('/api/equipment/stock-to-location', async (req, res) => {
   return app._router.handle({ method: 'POST', url: '/api/equipment/add-stock', body: req.body }, res);
 });
 
-// ---- Transfer Equipment Location: manages cross-location stock movements ----
 app.post('/api/equipment/:id/transfer', async (req, res) => {
   const { id } = req.params;
-  const { destinationLocation, quantity, user } = req.body;
+  const { destinationLocation, quantity, user, takenBy } = req.body;
   const qty = parseInt(quantity);
 
   if (!destinationLocation?.trim()) {
@@ -1738,7 +1641,6 @@ app.post('/api/equipment/:id/transfer', async (req, res) => {
       return res.status(400).json({ message: `Insufficient stock at ${source.Location}. Available: ${source.Quantity}.` });
     }
 
-    // Deduct from source
     const newSourceQty = source.Quantity - qty;
     await new sql.Request(transaction)
       .input('Id', sql.Int, source.Id)
@@ -1747,7 +1649,6 @@ app.post('/api/equipment/:id/transfer', async (req, res) => {
       .input('UpdatedAt', sql.DateTime, new Date())
       .query('UPDATE LibraryEquipment SET Quantity=@Quantity, Status=@Status, UpdatedAt=@UpdatedAt WHERE Id=@Id');
 
-    // Find or create destination row
     const normItemName = cleanTitleCase(source.ItemName);
     const normBrand = cleanTitleCase(source.Brand);
     const normSpecs = cleanTitleCase(source.Specifications) || 'N/A';
@@ -1790,7 +1691,6 @@ app.post('/api/equipment/:id/transfer', async (req, res) => {
       destId = insertResult.recordset[0].Id;
     }
 
-    // Log transaction with LOCATION_TRANSFER ActionType
     await logAssetTransaction(new sql.Request(transaction), {
       assetId: source.Id,
       actionType: 'LOCATION_TRANSFER',
@@ -1800,6 +1700,7 @@ app.post('/api/equipment/:id/transfer', async (req, res) => {
       destinationSection: destinationLocation,
       remarks: `Transferred to ${destinationLocation} (row #${destId})`,
       createdBy: user,
+      takenBy: takenBy,
     });
 
     await transaction.commit();
@@ -1811,8 +1712,9 @@ app.post('/api/equipment/:id/transfer', async (req, res) => {
   }
 });
 
+// ✅ UPDATED: Handles controlNumber
 app.post('/api/equipment', async (req, res) => {
-  const { itemName, brand, quantity, location, specifications, user } = req.body;
+  const { itemName, brand, quantity, location, specifications, controlNumber, user } = req.body;
 
   const qty = parseInt(quantity);
   if (!itemName || !itemName.trim()) {
@@ -1820,6 +1722,9 @@ app.post('/api/equipment', async (req, res) => {
   }
   if (!specifications || !specifications.trim() || specifications.trim().toUpperCase() === 'N/A') {
     return res.status(400).json({ message: 'Specifications are required.' });
+  }
+  if (!controlNumber || !controlNumber.trim()) {
+    return res.status(400).json({ message: 'Control number is required.' });
   }
   if (Number.isNaN(qty) || qty < 1) {
     return res.status(400).json({ message: 'Quantity must be at least 1.' });
@@ -1834,6 +1739,14 @@ app.post('/api/equipment', async (req, res) => {
 
     if (normBrand) {
       await upsertBrand(pool, normBrand);
+    }
+
+    // CHECK FOR DUPLICATE CONTROL NUMBER
+    const existingControlNumber = await pool.request()
+      .input('ControlNumber', sql.NVarChar, controlNumber.trim())
+      .query('SELECT Id FROM LibraryEquipment WHERE ControlNumber = @ControlNumber');
+    if (existingControlNumber.recordset.length > 0) {
+      return res.status(400).json({ message: 'Control number already exists. Please use a unique control number.' });
     }
 
     const existing = await pool.request()
@@ -1883,11 +1796,12 @@ app.post('/api/equipment', async (req, res) => {
       .input('Condition', sql.NVarChar, '')
       .input('Location', sql.NVarChar, location || '')
       .input('Specifications', sql.NVarChar, normSpecs)
+      .input('ControlNumber', sql.NVarChar, controlNumber.trim())
       .query(`INSERT INTO LibraryEquipment 
-        (ItemName, Brand, Quantity, Status, Condition, Location, Specifications)
+        (ItemName, Brand, Quantity, Status, Condition, Location, Specifications, ControlNumber)
         OUTPUT INSERTED.Id
         VALUES 
-        (@ItemName, @Brand, @Quantity, @Status, @Condition, @Location, @Specifications)`);
+        (@ItemName, @Brand, @Quantity, @Status, @Condition, @Location, @Specifications, @ControlNumber)`);
 
     const newId = insertResult.recordset[0].Id;
 
@@ -1907,10 +1821,11 @@ app.post('/api/equipment', async (req, res) => {
   }
 });
 
+// ✅ UPDATED: Handles controlNumber
 app.put('/api/equipment/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { itemName, brand, quantity, location, specifications, user } = req.body;
+    const { itemName, brand, quantity, location, specifications, controlNumber, user } = req.body;
 
     const qty = parseInt(quantity);
     if (!itemName || !itemName.trim()) {
@@ -1918,6 +1833,9 @@ app.put('/api/equipment/:id', async (req, res) => {
     }
     if (!specifications || !specifications.trim() || specifications.trim().toUpperCase() === 'N/A') {
       return res.status(400).json({ message: 'Specifications are required.' });
+    }
+    if (!controlNumber || !controlNumber.trim()) {
+      return res.status(400).json({ message: 'Control number is required.' });
     }
     if (Number.isNaN(qty) || qty < 0) {
       return res.status(400).json({ message: 'Quantity cannot be negative.' });
@@ -1949,12 +1867,13 @@ app.put('/api/equipment/:id', async (req, res) => {
       .input('Condition', sql.NVarChar, '')
       .input('Location', sql.NVarChar, location || '')
       .input('Specifications', sql.NVarChar, specifications || '')
+      .input('ControlNumber', sql.NVarChar, controlNumber.trim())
       .input('UpdatedAt', sql.DateTime, new Date())
       .query(`UPDATE LibraryEquipment SET
         ItemName=@ItemName, Brand=@Brand,
         Quantity=@Quantity, Status=@Status,
         Condition=@Condition, Location=@Location, Specifications=@Specifications,
-        UpdatedAt=@UpdatedAt WHERE Id=@Id`);
+        ControlNumber=@ControlNumber, UpdatedAt=@UpdatedAt WHERE Id=@Id`);
 
     if (qty !== previousQuantity) {
       await logAssetTransaction(pool.request(), {
@@ -2006,7 +1925,6 @@ app.delete('/api/equipment/:id', async (req, res) => {
   }
 });
 
-// Backward compatible add-stock for equipment
 app.post('/api/equipment/:id/add-stock', async (req, res) => {
   const { id } = req.params;
   const { additionalQuantity, location, user } = req.body;
@@ -2205,8 +2123,7 @@ app.get('/api/sections', async (req, res) => {
   }
 });
 
-// =================== TRANSACTION HISTORY =================== //
-
+// ✅ UPDATED: Includes control_number in the SELECT query
 app.get('/api/transactions', async (req, res) => {
   try {
     const pool = await sql.connect(config);
@@ -2220,8 +2137,10 @@ app.get('/api/transactions', async (req, res) => {
         t.DestinationSection AS destination_section,
         t.Remarks AS remarks,
         t.CreatedBy AS created_by,
+        t.TakenBy AS taken_by,
         CONVERT(VARCHAR, t.CreatedAt, 120) AS created_at,
-        ISNULL(e.ItemName, '(deleted item)') AS asset_name
+        ISNULL(e.ItemName, '(deleted item)') AS asset_name,
+        ISNULL(e.ControlNumber, '') AS control_number
       FROM AssetTransactions t
       LEFT JOIN LibraryEquipment e ON t.AssetId = e.Id
       ORDER BY t.CreatedAt DESC
@@ -2267,12 +2186,10 @@ app.get('/api/dashboard/summary', async (req, res) => {
 
 // =================== PHOTOS =================== //
 
-// Upload photo
 app.post('/api/photos/:idNumber', upload.single('photo'), (req, res) => {
   res.json({ message: 'Photo uploaded successfully!' });
 });
 
-// Get photo
 app.get('/api/photos/:idNumber', (req, res) => {
   const { idNumber } = req.params;
   const filePath = path.join(__dirname, 'photos', `${idNumber}.png`);

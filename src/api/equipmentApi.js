@@ -36,8 +36,8 @@ export const addStock = (payload) =>
   client.post('/equipment/add-stock', payload).then((r) => r.data);
 
 // sourceRowId = the specific Locations[].Id you're deducting from
-export const transferAsset = (sourceRowId, { destinationLocation, quantity, user }) =>
-  client.post(`/equipment/${sourceRowId}/transfer`, { destinationLocation, quantity, user }).then((r) => r.data);
+export const transferAsset = (sourceRowId, { destinationLocation, quantity, user, takenBy }) =>
+  client.post(`/equipment/${sourceRowId}/transfer`, { destinationLocation, quantity, user, takenBy }).then((r) => r.data);
 
 // ---------- Brands ----------
 export const getBrands = () => client.get('/equipment/brands').then((r) => r.data);

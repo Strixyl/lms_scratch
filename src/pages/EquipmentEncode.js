@@ -5,35 +5,31 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button,
   Typography, Box, Grid, MenuItem, Snackbar, Alert,
   Table, TableBody, TableCell, TableContainer, TableHead,
-  TableRow, Paper, Chip, IconButton, InputAdornment,
-  TablePagination, Tooltip,
+  TableRow, Paper, InputAdornment,
+  TablePagination, CircularProgress,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import SearchIcon from '@mui/icons-material/Search';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import { useNavigate } from 'react-router-dom';
-
 import {
-  LOCATION_OPTIONS, THEME, emptyAssetForm, getStockStatus, statusColor,
+  LOCATION_OPTIONS, THEME, emptyAssetForm, getStockStatus,
 } from '../constants/equipmentConstants';
 import {
   getAssets, createAsset, updateAsset, deleteAsset, addStock, transferAsset,
-  getBrands, createBrand, getDashboardSummary, getEquipmentItemNames,
+  getBrands, createBrand, getDashboardSummary, getEquipmentItemNames, getTransactions,
 } from '../api/equipmentApi';
 
-const NEW_BRAND_VALUE = '__new__';
-const NEW_ITEM_VALUE = '___NEW_ITEM___';
+const NEW_BRAND_VALUE = 'new';
+const NEW_ITEM_VALUE = 'NEW_ITEM';
 const font = THEME.font;
-
 
 const EquipmentEncode = () => {
   const navigate = useNavigate();
-
-  // ---- auth (unchanged from existing app) ----
+  
+  // ---- auth ----
   const [showLoginModal, setShowLoginModal] = useState(true);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -44,35 +40,23 @@ const EquipmentEncode = () => {
   const [items, setItems] = useState([]);
   const [itemNames, setItemNames] = useState([]);
   const [brands, setBrands] = useState([]);
-
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
-  // ---- add asset form ----
-  const [formData, setFormData] = useState(emptyAssetForm);
+  // ---- add asset form (Added controlNumber) ----
+  const [formData, setFormData] = useState({ ...emptyAssetForm, controlNumber: '' });
   const [formErrors, setFormErrors] = useState({});
 
   // ---- edit / delete ----
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
-  const [editForm, setEditForm] = useState(emptyAssetForm);
+  const [editForm, setEditForm] = useState({ ...emptyAssetForm, controlNumber: '' });
 
   // ---- add stock ----
   const [stockDialogOpen, setStockDialogOpen] = useState(false);
   const [stockTarget, setStockTarget] = useState(null);
   const [stockAmount, setStockAmount] = useState('');
   const [stockError, setStockError] = useState('');
-
-  // ---- expandable rows ----
-  const [expandedRows, setExpandedRows] = useState(new Set());
-  const toggleExpand = (profileKey) =>
-    setExpandedRows((prev) => {
-      const next = new Set(prev);
-      next.has(profileKey) ? next.delete(profileKey) : next.add(profileKey);
-      return next;
-    });
-
-  // ---- add stock (now profile + location) ----
   const [stockLocation, setStockLocation] = useState('');
 
   // ---- transfer modal ----
@@ -81,13 +65,20 @@ const EquipmentEncode = () => {
   const [transferSourceId, setTransferSourceId] = useState('');
   const [transferDestLocation, setTransferDestLocation] = useState('');
   const [transferAmount, setTransferAmount] = useState('');
+  const [transferTakenBy, setTransferTakenBy] = useState('');
   const [transferError, setTransferError] = useState('');
 
-  // ---- search / filter / pagination ----
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('All');
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  // ---- manage item picker ----
+  const [manageDialogOpen, setManageDialogOpen] = useState(false);
+  const [manageProfileKey, setManageProfileKey] = useState('');
+  const [manageLocationId, setManageLocationId] = useState('');
+
+  // ---- release records ----
+  const [releaseRecords, setReleaseRecords] = useState([]);
+  const [releaseLoading, setReleaseLoading] = useState(true);
+  const [releaseSearch, setReleaseSearch] = useState('');
+  const [releasePage, setReleasePage] = useState(0);
+  const [releaseRowsPerPage, setReleaseRowsPerPage] = useState(15);
 
   useEffect(() => {
     const savedUser = localStorage.getItem('equipmentUser');
@@ -98,20 +89,19 @@ const EquipmentEncode = () => {
     }
   }, []);
 
-
   useEffect(() => {
     if (!showLoginModal) {
       fetchItems();
       fetchBrands();
       fetchItemNames();
       fetchSummary();
+      fetchReleaseRecords();
     }
   }, [showLoginModal]);
 
   const fetchItems = async () => {
     try {
       const data = await getAssets();
-      console.log('DEBUG [fetchItems]:', data);
       setItems(data);
     } catch (err) {
       console.error('Error fetching equipment:', err);
@@ -140,12 +130,24 @@ const EquipmentEncode = () => {
 
   const fetchSummary = async () => {
     try {
-      const data = await getDashboardSummary();
-      console.log('DEBUG [fetchSummary]:', data);
-
+      await getDashboardSummary();
     } catch (err) {
-      // Fall back to client-side computation below if the endpoint isn't ready yet
       console.error('Error fetching dashboard summary:', err);
+    }
+  };
+
+  const RELEASE_ACTION_TYPES = ['LOCATION_TRANSFER', 'Sent Asset'];
+  const fetchReleaseRecords = async () => {
+    setReleaseLoading(true);
+    try {
+      const data = await getTransactions();
+      const releases = (Array.isArray(data) ? data : [])
+        .filter((t) => RELEASE_ACTION_TYPES.includes(t.action_type));
+      setReleaseRecords(releases);
+    } catch (err) {
+      console.error('Error fetching release records:', err);
+    } finally {
+      setReleaseLoading(false);
     }
   };
 
@@ -172,7 +174,7 @@ const EquipmentEncode = () => {
 
   // ---------------- add asset ----------------
   const handleChange = (e) => setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-
+  
   const handleBrandSelect = (e) => {
     const value = e.target.value;
     setFormData((prev) => ({
@@ -211,17 +213,20 @@ const EquipmentEncode = () => {
     if (itemNames.length === 0 && !data.itemName.trim()) {
       errors.itemName = 'Item name is required.';
     }
-
     if (brands.length > 0 && !data.brandOption) errors.brand = 'Please select a brand.';
     if (brands.length > 0 && data.brandOption === NEW_BRAND_VALUE && !data.brand.trim()) {
       errors.brand = 'Please enter the new brand name.';
     }
     if (brands.length === 0 && !data.brand.trim()) errors.brand = 'Brand name is required.';
+    
+    // ADDED: Control Number Validation
+    if (!data.controlNumber || !data.controlNumber.trim()) {
+      errors.controlNumber = 'Control number is required.';
+    }
 
     if (!data.specifications || !data.specifications.trim() || data.specifications.trim().toUpperCase() === 'N/A') {
       errors.specifications = 'Specifications are required.';
     }
-
     const qty = Number(data.quantity);
     if (data.quantity === '' || Number.isNaN(qty) || qty < 1) {
       errors.quantity = 'Quantity must be at least 1.';
@@ -233,16 +238,11 @@ const EquipmentEncode = () => {
     const errors = validateAssetForm(formData);
     setFormErrors(errors);
     if (Object.keys(errors).length > 0) return;
-
     try {
-      // If the admin typed a brand new brand name, register it first so it's
-      // immediately available in future dropdowns (also fine if the backend
-      // upserts brands itself — this just guarantees it either way).
       const brandName = formData.brand.trim();
       if (brandName && !brands.some((b) => b.brand_name.toLowerCase() === brandName.toLowerCase())) {
         await createBrand(brandName);
       }
-
       const quantity = Number(formData.quantity);
       await createAsset({
         itemName: formData.itemName.trim(),
@@ -251,19 +251,11 @@ const EquipmentEncode = () => {
         status: getStockStatus(quantity),
         location: formData.location,
         specifications: formData.specifications.trim(),
+        controlNumber: formData.controlNumber.trim(), // ADDED
         user: loggedInUser,
       });
-
       setSnackbar({ open: true, message: 'Equipment saved successfully!', severity: 'success' });
-      setFormData({
-        itemName: '',
-        itemNameOption: '',
-        brand: '',
-        brandOption: '',
-        quantity: '',
-        location: '',
-        specifications: '',
-      });
+      setFormData({ ...emptyAssetForm, controlNumber: '' });
       setFormErrors({});
       fetchItems();
       fetchBrands();
@@ -278,12 +270,11 @@ const EquipmentEncode = () => {
 
   // ---------------- edit ----------------
   const handleEditChange = (e) => setEditForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-
+  
   const handleOpenEdit = (item) => {
     setSelectedItem(item);
     const existingBrand = brands.some((b) => b.brand_name.toLowerCase() === (item.Brand || '').toLowerCase());
     const existingItemName = itemNames.some((n) => n.toLowerCase() === (item.ItemName || '').toLowerCase());
-
     setEditForm({
       itemName: item.ItemName || '',
       itemNameOption: existingItemName ? item.ItemName : NEW_ITEM_VALUE,
@@ -292,6 +283,7 @@ const EquipmentEncode = () => {
       quantity: item.Quantity ?? '',
       location: item.Location || '',
       specifications: item.Specifications || '',
+      controlNumber: item.ControlNumber || '', // ADDED
     });
     setEditDialogOpen(true);
   };
@@ -311,6 +303,7 @@ const EquipmentEncode = () => {
         status: getStockStatus(quantity),
         location: editForm.location,
         specifications: editForm.specifications.trim(),
+        controlNumber: editForm.controlNumber.trim(), // ADDED
         user: loggedInUser,
       });
       setSnackbar({ open: true, message: 'Equipment updated successfully!', severity: 'success' });
@@ -360,10 +353,8 @@ const EquipmentEncode = () => {
       return setStockError('Additional quantity must be at least 1.');
     }
     try {
-      // Pass existing Asset ID if location exists, else the first location's ID as a base
       const existingLoc = stockTarget.location_balances.find((l) => l.LocationName === stockLocation);
       const assetId = existingLoc ? existingLoc.Id : (stockTarget.location_balances[0]?.Id || null);
-
       await addStock({
         assetId,
         itemName: stockTarget.ItemName,
@@ -390,6 +381,7 @@ const EquipmentEncode = () => {
     setTransferSourceId(resolvedId);
     setTransferDestLocation('');
     setTransferAmount('');
+    setTransferTakenBy('');
     setTransferError('');
     setTransferDialogOpen(true);
   };
@@ -413,17 +405,22 @@ const EquipmentEncode = () => {
       setTransferError(`Transfer quantity cannot exceed source balance of ${sourceLoc.Quantity}.`);
       return;
     }
-
+    if (!transferTakenBy.trim()) {
+      setTransferError('Please enter who is taking the item.');
+      return;
+    }
     try {
       await transferAsset(sourceLoc.Id, {
         destinationLocation: transferDestLocation,
         quantity: qty,
         user: loggedInUser,
+        takenBy: transferTakenBy.trim(),
       });
       setSnackbar({ open: true, message: `Successfully transferred ${qty} to ${transferDestLocation}.`, severity: 'success' });
       setTransferDialogOpen(false);
       fetchItems();
       fetchSummary();
+      fetchReleaseRecords();
     } catch (err) {
       setTransferError(err.response?.data?.message || 'Failed to transfer asset.');
     }
@@ -437,30 +434,37 @@ const EquipmentEncode = () => {
 
   const isTransferInvalid = useMemo(() => {
     const qty = Number(transferAmount);
-    return !transferAmount || Number.isNaN(qty) || qty < 1 || qty > currentSourceBalance || !transferDestLocation;
-  }, [transferAmount, currentSourceBalance, transferDestLocation]);
+    return !transferAmount || Number.isNaN(qty) || qty < 1 || qty > currentSourceBalance || !transferDestLocation || !transferTakenBy.trim();
+  }, [transferAmount, currentSourceBalance, transferDestLocation, transferTakenBy]);
 
   // ---------------- derived data ----------------
-  const filteredItems = useMemo(() => {
-    return items.filter((profile) => {
-      const masterStatus = getStockStatus(profile.TotalQuantity);
-      const matchesMasterStatus = statusFilter === 'All' || masterStatus === statusFilter;
-      const matchesSubStatus = statusFilter === 'All' || (profile.location_balances || []).some(loc => loc.Status === statusFilter);
-      const matchesStatus = matchesMasterStatus || matchesSubStatus;
+  const manageProfile = items.find((i) => i.ProfileKey === manageProfileKey);
+  const manageLocation = manageProfile?.location_balances.find((l) => String(l.Id) === String(manageLocationId));
+  const openManageDialog = () => {
+    setManageProfileKey('');
+    setManageLocationId('');
+    setManageDialogOpen(true);
+  };
 
-      const q = search.trim().toLowerCase();
-      const matchesSearch = !q || [
-        profile.ItemName, profile.Brand,
-        ...(profile.location_balances || []).map((l) => l.LocationName),
-        ...(profile.location_balances || []).map((l) => l.Specifications),
-      ].some((f) => (f || '').toLowerCase().includes(q));
-      return matchesStatus && matchesSearch;
-    });
-  }, [items, search, statusFilter]);
+  const formatDate = (d) => {
+    if (!d) return '—';
+    const date = new Date(d);
+    return Number.isNaN(date.getTime()) ? d : date.toLocaleString();
+  };
 
-  const pagedItems = filteredItems.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  const filteredReleaseRecords = useMemo(() => {
+    const q = releaseSearch.trim().toLowerCase();
+    if (!q) return releaseRecords;
+    return releaseRecords.filter((r) =>
+      (r.asset_name || '').toLowerCase().includes(q) ||
+      (r.taken_by || '').toLowerCase().includes(q) ||
+      (r.created_by || '').toLowerCase().includes(q)
+    );
+  }, [releaseRecords, releaseSearch]);
 
-
+  const pagedReleaseRecords = filteredReleaseRecords.slice(
+    releasePage * releaseRowsPerPage, releasePage * releaseRowsPerPage + releaseRowsPerPage
+  );
 
   // ---------------- shared form fields renderer ----------------
   const formFields = (data, handler, itemNameSelectHandler, brandSelectHandler, errors = {}) => (
@@ -473,7 +477,7 @@ const EquipmentEncode = () => {
             onChange={itemNameSelectHandler} error={!!errors.itemName}
             helperText={!data.itemNameOption ? errors.itemName : ''}
           >
-            <MenuItem value="" disabled sx={{ fontFamily: font }}>Select Item Name</MenuItem>
+            <MenuItem value=" " disabled sx={{ fontFamily: font }}>Select Item Name</MenuItem>
             {itemNames.map((name) => (
               <MenuItem key={name} value={name} sx={{ fontFamily: font }}>
                 {name}
@@ -485,7 +489,6 @@ const EquipmentEncode = () => {
           </TextField>
         </Grid>
       )}
-
       {/* Item Name Field - Manual Entry */}
       {(itemNames.length === 0 || data.itemNameOption === NEW_ITEM_VALUE) && (
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
@@ -497,7 +500,6 @@ const EquipmentEncode = () => {
           />
         </Grid>
       )}
-
       {/* Brand Field - Select */}
       {brands.length > 0 && (
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
@@ -518,7 +520,6 @@ const EquipmentEncode = () => {
           </TextField>
         </Grid>
       )}
-
       {/* Brand Field - Manual Entry */}
       {(brands.length === 0 || data.brandOption === NEW_BRAND_VALUE) && (
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
@@ -530,6 +531,15 @@ const EquipmentEncode = () => {
           />
         </Grid>
       )}
+      
+      {/* ADDED: Control Number Field */}
+      <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+        <TextField
+          fullWidth label="Control Number *" name="controlNumber" value={data.controlNumber || ''}
+          onChange={handler} error={!!errors.controlNumber} helperText={errors.controlNumber}
+          inputProps={{ style: { fontFamily: font } }}
+        />
+      </Grid>
 
       <Grid size={{ xs: 12, sm: 6, md: 4 }}>
         <TextField
@@ -538,7 +548,6 @@ const EquipmentEncode = () => {
           inputProps={{ style: { fontFamily: font }, min: 1 }}
         />
       </Grid>
-
       <Grid size={{ xs: 12, sm: 6, md: 4 }}>
         <TextField fullWidth select label="Location" name="location" value={data.location} onChange={handler}>
           <MenuItem value="">Select location</MenuItem>
@@ -547,7 +556,6 @@ const EquipmentEncode = () => {
           ))}
         </TextField>
       </Grid>
-
       <Grid size={{ xs: 12, sm: 6, md: 4 }}>
         <TextField
           fullWidth label="Specifications *" name="specifications" value={data.specifications} onChange={handler}
@@ -570,23 +578,9 @@ const EquipmentEncode = () => {
                   Logged in as <strong>{loggedInUser}</strong>
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 1.5 }}>
-                  <Button
-                    variant="outlined" size="small"
-                    onClick={() => navigate('/send-asset')}
-                    sx={{ fontFamily: font, textTransform: 'none', borderColor: THEME.navy, color: THEME.navy }}
-                  >
-                    Send Asset
-                  </Button>
-                  <Button
-                    variant="outlined" size="small"
-                    onClick={() => navigate('/transactions')}
-                    sx={{ fontFamily: font, textTransform: 'none', borderColor: THEME.navy, color: THEME.navy }}
-                  >
-                    Transaction History
-                  </Button>
-                  <Button variant="outlined" size="small" color="secondary" onClick={handleLogout} sx={{ fontFamily: font, textTransform: 'none' }}>
-                    Logout
-                  </Button>
+                  <Button variant="outlined" size="small" onClick={() => navigate('/send-asset')} sx={{ fontFamily: font, textTransform: 'none', borderColor: THEME.navy, color: THEME.navy }}>Send Asset</Button>
+                  <Button variant="outlined" size="small" onClick={() => navigate('/transactions')} sx={{ fontFamily: font, textTransform: 'none', borderColor: THEME.navy, color: THEME.navy }}>Transaction History</Button>
+                  <Button variant="outlined" size="small" color="secondary" onClick={handleLogout} sx={{ fontFamily: font, textTransform: 'none' }}>Logout</Button>
                 </Box>
               </Box>
             )}
@@ -594,7 +588,6 @@ const EquipmentEncode = () => {
         )}
       </Header>
 
-      {/* Login Dialog — conditionally rendered so it fully unmounts when logged in */}
       {showLoginModal && (
         <Dialog open disableEscapeKeyDown>
           <DialogTitle sx={{ fontFamily: font, fontWeight: 700 }}>Login Required</DialogTitle>
@@ -615,190 +608,84 @@ const EquipmentEncode = () => {
 
       {!showLoginModal && (
         <Box sx={{ p: 3, maxWidth: 1300, margin: '0 auto' }}>
-
           <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: 20, mb: 3, mt: 1, color: THEME.navy }}>
             Encode New Equipment Asset
           </Typography>
           <Paper elevation={0} sx={{ p: 3, border: '1px solid #e0e0e0', borderRadius: 3, mb: 4 }}>
             {formFields(formData, handleChange, handleItemNameSelect, handleBrandSelect, formErrors)}
             <Box sx={{ mt: 3, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-              <Button variant="outlined" onClick={() => { setFormData({ itemName: '', itemNameOption: '', brand: '', brandOption: '', quantity: '', location: '', specifications: '' }); setFormErrors({}); }} sx={{ fontFamily: font, textTransform: 'none', px: 4 }}>Clear</Button>
+              <Button variant="outlined" onClick={() => { setFormData({ ...emptyAssetForm, controlNumber: '' }); setFormErrors({}); }} sx={{ fontFamily: font, textTransform: 'none', px: 4 }}>Clear</Button>
               <Button variant="contained" onClick={handleSubmit} sx={{ backgroundColor: THEME.navy, fontFamily: font, textTransform: 'none', px: 4 }}>Save Asset</Button>
             </Box>
           </Paper>
 
-          {/* ---- Records header: search + filter ---- */}
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center', justifyContent: 'space-between', mt: 5, mb: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 5, mb: 2 }}>
+            <Button variant="contained" onClick={openManageDialog} sx={{ backgroundColor: THEME.navy, fontFamily: font, textTransform: 'none', px: 3 }}>
+              Manage Items
+            </Button>
+          </Box>
+
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
             <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: 16, color: THEME.navy }}>
-              Equipment Records
+              Release Records
             </Typography>
-            <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
-              <TextField
-                size="small" placeholder="Search item, brand, location"
-                value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-                sx={{ minWidth: 280 }}
-                InputProps={{
-                  startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>,
-                  style: { fontFamily: font },
-                }}
-              />
-              <TextField
-                size="small" select value={statusFilter}
-                onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
-                sx={{ minWidth: 160, fontFamily: font }}
-              >
-                {['All', 'In Stock', 'Out of Stock'].map((s) => (
-                  <MenuItem key={s} value={s} sx={{ fontFamily: font }}>{s}</MenuItem>
-                ))}
-              </TextField>
-            </Box>
+            <TextField
+              size="small" placeholder="Search item, taken by, released by"
+              value={releaseSearch} onChange={(e) => { setReleaseSearch(e.target.value); setReleasePage(0); }}
+              sx={{ minWidth: 300 }}
+              InputProps={{
+                startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>,
+                style: { fontFamily: font },
+              }}
+            />
           </Box>
 
           <Paper elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: 3 }}>
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow sx={{ backgroundColor: '#fafafa' }}>
-                    {['', 'Item Name', 'Brand', 'Total Qty', 'Specifications', 'Status', 'Actions'].map((h) => (
-                      <TableCell key={h} sx={{ fontFamily: font, fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase' }}>
-                        {h}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {pagedItems.map((profile) => {
-                    const status = getStockStatus(profile.TotalQuantity);
-                    const sc = statusColor(status);
-                    const isOpen = expandedRows.has(profile.ProfileKey);
-
-                    const specs = profile.location_balances[0]?.Specifications;
-
-                    return (
-                      <React.Fragment key={profile.ProfileKey}>
-                        <TableRow sx={{ '&:hover': { backgroundColor: '#fafafa' } }}>
-                          <TableCell sx={{ width: 40 }}>
-                            <IconButton size="small" onClick={() => toggleExpand(profile.ProfileKey)} title={isOpen ? "Collapse" : "Expand"}>
-                              {isOpen ? <KeyboardArrowDownIcon /> : <KeyboardArrowRightIcon />}
-                            </IconButton>
-                          </TableCell>
-                          <TableCell sx={{ fontFamily: font, fontSize: 13, fontWeight: 600 }}>
-                            <Button
-                              onClick={() => toggleExpand(profile.ProfileKey)}
-                              sx={{
-                                justifyContent: 'flex-start',
-                                textAlign: 'left',
-                                padding: 0,
-                                minWidth: 0,
-                                fontFamily: font,
-                                fontSize: 13,
-                                fontWeight: 600,
-                                textTransform: 'none',
-                                color: 'inherit',
-                                '&:hover': {
-                                  textDecoration: 'underline',
-                                  backgroundColor: 'transparent',
-                                }
-                              }}
-                            >
-                              {profile.ItemName}
-                            </Button>
-                          </TableCell>
-                          <TableCell sx={{ fontFamily: font, fontSize: 13 }}>
-                            {profile.Brand && profile.Brand !== 'N/A' ? profile.Brand : <span style={{ color: '#aaa', fontStyle: 'italic' }}>N/A</span>}
-                          </TableCell>
-                          <TableCell sx={{ fontFamily: font, fontSize: 13 }}>{profile.TotalQuantity}</TableCell>
-
-                          <TableCell sx={{ fontFamily: font, fontSize: 13 }}>
-                            {specs && specs !== 'N/A' ? specs : <span style={{ color: '#aaa', fontStyle: 'italic' }}>N/A</span>}
-                          </TableCell>
-                          <TableCell>
-                            <Chip label={status} size="small" sx={{ fontFamily: font, fontWeight: 600, fontSize: 11, backgroundColor: sc.bg, color: sc.text, border: `1px solid ${sc.border}` }} />
-                          </TableCell>
-                          <TableCell>
-                            <Tooltip title="Add / Update Stock">
-                              <IconButton size="small" onClick={() => handleOpenStock(profile)} sx={{ color: '#2e7d32' }}>
-                                <AddCircleOutlineIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Transfer Location">
-                              <IconButton size="small" onClick={() => handleOpenTransfer(profile)} sx={{ color: THEME.gold }}>
-                                <SwapHorizIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          </TableCell>
-                        </TableRow>
-
-                        {isOpen && (
-                          <TableRow>
-                            <TableCell colSpan={7} sx={{ backgroundColor: '#fafcff', py: 2 }}>
-                              <Table size="small">
-                                <TableHead>
-                                  <TableRow>
-                                    {['Location', 'Qty', 'Status', 'Actions'].map((h) => (
-                                      <TableCell key={h} sx={{ fontFamily: font, fontWeight: 700, fontSize: 10, color: '#888', textTransform: 'uppercase' }}>{h}</TableCell>
-                                    ))}
-                                  </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                  {profile.location_balances.map((loc) => {
-                                    const locSc = statusColor(loc.Status);
-                                    return (
-                                      <TableRow key={loc.Id}>
-                                        <TableCell sx={{ fontFamily: font, fontSize: 12 }}>
-                                          {loc.LocationName && loc.LocationName !== 'N/A' ? loc.LocationName : <span style={{ color: '#aaa', fontStyle: 'italic' }}>N/A</span>}
-                                        </TableCell>
-
-                                        <TableCell sx={{ fontFamily: font, fontSize: 12 }}>{loc.Quantity}</TableCell>
-                                        <TableCell>
-                                          <Chip label={loc.Status} size="small" sx={{ fontFamily: font, fontSize: 10, backgroundColor: locSc.bg, color: locSc.text }} />
-                                        </TableCell>
-                                        <TableCell>
-                                          <Tooltip title="Transfer Location">
-                                            <IconButton size="small" onClick={() => handleOpenTransfer(profile, loc.Id)} sx={{ color: THEME.gold }}>
-                                              <SwapHorizIcon fontSize="small" />
-                                            </IconButton>
-                                          </Tooltip>
-                                          <Tooltip title="Edit">
-                                            <IconButton size="small" onClick={() => handleOpenEdit({ ...profile, ...loc, Id: loc.Id, Location: loc.LocationName, Quantity: loc.Quantity })} sx={{ color: THEME.navy }}>
-                                              <EditIcon fontSize="small" />
-                                            </IconButton>
-                                          </Tooltip>
-                                          <Tooltip title="Delete">
-                                            <IconButton size="small" onClick={() => handleOpenDelete({ Id: loc.Id, ItemName: profile.ItemName, LocationName: loc.LocationName })} sx={{ color: '#c62828' }}>
-                                              <DeleteIcon fontSize="small" />
-                                            </IconButton>
-                                          </Tooltip>
-                                        </TableCell>
-                                      </TableRow>
-                                    );
-                                  })}
-                                </TableBody>
-                              </Table>
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </React.Fragment>
-                    );
-                  })}
-                  {pagedItems.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={7} align="center" sx={{ fontFamily: font, py: 4, color: '#888' }}>
-                        No equipment records match your search.
-                      </TableCell>
+            {releaseLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+                <CircularProgress sx={{ color: THEME.navy }} />
+              </Box>
+            ) : (
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={{ backgroundColor: '#fafafa' }}>
+                      {['Date Released', 'Qty', 'Item/s', 'Taken By', 'Released By'].map((h) => (
+                        <TableCell key={h} sx={{ fontFamily: font, fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase' }}>
+                          {h}
+                        </TableCell>
+                      ))}
                     </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                  </TableHead>
+                  <TableBody>
+                    {pagedReleaseRecords.map((r) => (
+                      <TableRow key={r.transaction_id} sx={{ '&:hover': { backgroundColor: '#fafafa' } }}>
+                        <TableCell sx={{ fontFamily: font, fontSize: 13 }}>{formatDate(r.created_at)}</TableCell>
+                        <TableCell sx={{ fontFamily: font, fontSize: 13, fontWeight: 600 }}>{Math.abs(Number(r.quantity_changed) || 0)}</TableCell>
+                        <TableCell sx={{ fontFamily: font, fontSize: 13, fontWeight: 600 }}>{r.asset_name}</TableCell>
+                        <TableCell sx={{ fontFamily: font, fontSize: 13 }}>{r.taken_by || '—'}</TableCell>
+                        <TableCell sx={{ fontFamily: font, fontSize: 13 }}>{r.created_by || '—'}</TableCell>
+                      </TableRow>
+                    ))}
+                    {filteredReleaseRecords.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={5} align="center" sx={{ fontFamily: font, py: 4, color: '#888' }}>
+                          No release records match your search.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
             <TablePagination
               component="div"
-              count={filteredItems.length}
-              page={page}
-              onPageChange={(_, p) => setPage(p)}
-              rowsPerPage={rowsPerPage}
-              onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
-              rowsPerPageOptions={[10, 25, 50]}
+              count={filteredReleaseRecords.length}
+              page={releasePage}
+              onPageChange={(_, p) => setReleasePage(p)}
+              rowsPerPage={releaseRowsPerPage}
+              onRowsPerPageChange={(e) => { setReleaseRowsPerPage(parseInt(e.target.value, 10)); setReleasePage(0); }}
+              rowsPerPageOptions={[15, 25, 50]}
               sx={{ fontFamily: font }}
             />
           </Paper>
@@ -878,7 +765,6 @@ const EquipmentEncode = () => {
           <Typography sx={{ fontFamily: font, fontSize: 13, color: '#666', mb: 2 }}>
             Asset: <strong>{transferTarget?.ItemName}</strong> — Brand: <strong>{transferTarget?.Brand || 'N/A'}</strong>
           </Typography>
-
           <TextField
             fullWidth select label="Source Location *" value={transferSourceId}
             onChange={(e) => { setTransferSourceId(e.target.value); setTransferError(''); }}
@@ -890,7 +776,6 @@ const EquipmentEncode = () => {
               </MenuItem>
             ))}
           </TextField>
-
           <TextField
             fullWidth select label="Destination Location *" value={transferDestLocation}
             onChange={(e) => { setTransferDestLocation(e.target.value); setTransferError(''); }}
@@ -900,21 +785,71 @@ const EquipmentEncode = () => {
               const currentSource = transferTarget?.location_balances.find((x) => String(x.Id) === String(transferSourceId));
               return l !== currentSource?.LocationName;
             }).map((l) => (
-              <MenuItem key={l.Id} value={l} sx={{ fontFamily: font }}>{l}</MenuItem>
+              <MenuItem key={l} value={l} sx={{ fontFamily: font }}>{l}</MenuItem>
             ))}
           </TextField>
-
           <TextField
-            fullWidth autoFocus type="number" label="Transfer Quantity *"
+            fullWidth type="number" label="Transfer Quantity *"
             value={transferAmount} onChange={(e) => { setTransferAmount(e.target.value); setTransferError(''); }}
             error={!!transferError || (transferAmount && Number(transferAmount) > currentSourceBalance)}
             helperText={transferError || (transferAmount && Number(transferAmount) > currentSourceBalance ? `Transfer quantity cannot exceed source balance of ${currentSourceBalance}` : '')}
             inputProps={{ min: 1, style: { fontFamily: font } }}
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            fullWidth label="Taken By *" placeholder="Name of person taking the item"
+            value={transferTakenBy} onChange={(e) => { setTransferTakenBy(e.target.value); setTransferError(''); }}
+            inputProps={{ style: { fontFamily: font } }}
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setTransferDialogOpen(false)} sx={{ fontFamily: font, textTransform: 'none' }}>Cancel</Button>
           <Button variant="contained" onClick={handleConfirmTransfer} disabled={isTransferInvalid} sx={{ backgroundColor: THEME.navy, fontFamily: font, textTransform: 'none', px: 3 }}>Transfer</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Manage Item Dialog */}
+      <Dialog open={manageDialogOpen} onClose={() => setManageDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontFamily: font, fontWeight: 700 }}>Manage Item</DialogTitle>
+        <DialogContent>
+          <TextField
+            fullWidth select label="Select Item *" value={manageProfileKey}
+            onChange={(e) => { setManageProfileKey(e.target.value); setManageLocationId(''); }}
+            sx={{ mb: 2, mt: 1 }}
+          >
+            <MenuItem value="" disabled sx={{ fontFamily: font }}>Select an item</MenuItem>
+            {items.map((i) => (
+              <MenuItem key={i.ProfileKey} value={i.ProfileKey} sx={{ fontFamily: font }}>
+                {i.ItemName} {i.Brand && i.Brand !== 'N/A' ? `(${i.Brand})` : ''} — Total Stock: {i.TotalQuantity}
+              </MenuItem>
+            ))}
+          </TextField>
+          {manageProfile && (
+            <TextField
+              fullWidth select label="Select Location *" value={manageLocationId}
+              onChange={(e) => setManageLocationId(e.target.value)}
+              sx={{ mb: 2 }}
+            >
+              <MenuItem value="" disabled sx={{ fontFamily: font }}>Select a location</MenuItem>
+              {manageProfile.location_balances.map((l) => (
+                <MenuItem key={l.Id} value={String(l.Id)} sx={{ fontFamily: font }}>
+                  {l.LocationName || 'Storage'} — {l.Quantity} {l.Unit || 'Pieces'}
+                  {l.SerialNumber && l.SerialNumber !== 'N/A' && l.SerialNumber !== 'None' ? ` [S/N: ${l.SerialNumber}]` : ''}
+                </MenuItem>
+              ))}
+            </TextField>
+          )}
+          {manageLocation && (
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1 }}>
+              <Button variant="outlined" startIcon={<AddCircleOutlineIcon />} onClick={() => { setManageDialogOpen(false); handleOpenStock(manageProfile); }} sx={{ fontFamily: font, textTransform: 'none', color: '#2e7d32', borderColor: '#2e7d32' }}>Add Stock</Button>
+              <Button variant="outlined" startIcon={<SwapHorizIcon />} onClick={() => { setManageDialogOpen(false); handleOpenTransfer(manageProfile, manageLocation.Id); }} sx={{ fontFamily: font, textTransform: 'none', color: THEME.gold, borderColor: THEME.gold }}>Transfer</Button>
+              <Button variant="outlined" startIcon={<EditIcon />} onClick={() => { setManageDialogOpen(false); handleOpenEdit({ ...manageProfile, ...manageLocation, Id: manageLocation.Id, Location: manageLocation.LocationName, Quantity: manageLocation.Quantity }); }} sx={{ fontFamily: font, textTransform: 'none', color: THEME.navy, borderColor: THEME.navy }}>Edit</Button>
+              <Button variant="outlined" startIcon={<DeleteIcon />} onClick={() => { setManageDialogOpen(false); handleOpenDelete({ Id: manageLocation.Id, ItemName: manageProfile.ItemName, LocationName: manageLocation.LocationName }); }} sx={{ fontFamily: font, textTransform: 'none', color: '#c62828', borderColor: '#c62828' }}>Delete</Button>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setManageDialogOpen(false)} sx={{ fontFamily: font, textTransform: 'none' }}>Close</Button>
         </DialogActions>
       </Dialog>
 

@@ -20,6 +20,7 @@ const SendSupply = () => {
   const [supplyId, setSupplyId] = useState('');
   const [destination, setDestination] = useState('');
   const [quantity, setQuantity] = useState('');
+  const [takenBy, setTakenBy] = useState('');
   const [remarks, setRemarks] = useState('');
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -54,6 +55,7 @@ const SendSupply = () => {
     const errs = {};
     if (!supplyId) errs.supplyId = 'Please select an asset.';
     if (!destination) errs.destination = 'Please select a destination section.';
+    if (!takenBy.trim()) errs.takenBy = 'Please enter who is taking the item.';
 
     const qty = Number(quantity);
     if (!quantity || Number.isNaN(qty) || qty < 1) {
@@ -68,6 +70,7 @@ const SendSupply = () => {
     setSupplyId('');
     setDestination('');
     setQuantity('');
+    setTakenBy('');
     setRemarks('');
     setErrors({});
   };
@@ -85,6 +88,7 @@ const SendSupply = () => {
         destinationLocation: destination,
         remarks: remarks.trim(),
         user: loggedInUser,
+        takenBy: takenBy.trim(),
       });
       setSnackbar({
         open: true,
@@ -179,6 +183,15 @@ const SendSupply = () => {
                 onChange={(e) => setQuantity(e.target.value)}
                 error={!!errors.quantity} helperText={errors.quantity}
                 inputProps={{ min: 1 }}
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              <TextField
+                fullWidth label="Taken By *" placeholder="Name of person taking the item"
+                value={takenBy} onChange={(e) => setTakenBy(e.target.value)}
+                error={!!errors.takenBy} helperText={errors.takenBy}
+                inputProps={{ style: { fontFamily: font } }}
               />
             </Grid>
 
