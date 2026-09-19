@@ -1,223 +1,277 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Header from '../Components/Header';
 import TopBar from '../Components/TopBar';
-import axios from 'axios';
 import {
   Box, Typography, TextField, Table, TableBody, TableCell,
-  TableContainer, TableHead, TableRow, Paper, Chip, MenuItem,
-  InputAdornment, CircularProgress, IconButton
+  TableContainer, TableHead, TableRow, Paper, Button, Grid, MenuItem,
+  InputAdornment, CircularProgress, TablePagination, Snackbar, Alert,
+  IconButton
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
+import { useNavigate } from 'react-router-dom';
+import { getSupplies, getSupplyTransactions, disburseSupply } from '../api/suppliesApi';
+import { THEME } from '../constants/equipmentConstants';
 
-const STATUS_OPTIONS = ['In Stock', 'Out of Stock'];
+const font = 'Poppins, sans-serif';
+const navy = '#1b0892';
 
-const statusColor = (status) => {
-  if (status === 'In Stock') return { bg: '#e8f5e9', text: '#2e7d32', border: '#a5d6a7' };
-  return { bg: '#ffebee', text: '#c62828', border: '#ef9a9a' };
+const SECTION_OPTIONS = [
+  'Library Office', 'Technical', 'Reference', 'KDC', 'Circulation',
+  'Theology', 'Filipiniana', 'American Corner', 'Law', 'Archives',
+  'Graduate Studies', 'Cyber'
+];
+
+const emptyDisbursementForm = {
+  section: '',
+  itemName: '',
+  quantity: '',
+  brand: '',
+  unit: '',
+  specifications: '',
+  dateDisbursed: new Date().toISOString().split('T')[0],
+  recipient: '',
+  releasedBy: '',
 };
-
-const deriveMasterStatus = (quantity) => {
-  const qty = Number(quantity) || 0;
-  if (qty <= 0) return 'Out of Stock';
-  return 'In Stock';
-};
-
-
 
 const Supplies = () => {
-  const [items, setItems] = useState([]);
+  const navigate = useNavigate();
+  const [records, setRecords] = useState([]);
+  const [suppliesList, setSuppliesList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(15);
 
-  // Expandable Rows State
-  const [expandedRows, setExpandedRows] = useState(new Set());
-  const toggleExpand = (profileKey) =>
-    setExpandedRows((prev) => {
-      const next = new Set(prev);
-      next.has(profileKey) ? next.delete(profileKey) : next.add(profileKey);
-      return next;
-    });
+  const [disburseForm, setDisburseForm] = useState(emptyDisbursementForm);
+  const [disburseErrors, setDisburseErrors] = useState({});
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [loggedInUser] = useState(localStorage.getItem('suppliesUser') || 'Admin');
+  const [availableQuantity, setAvailableQuantity] = useState(0);
 
-  const fetchItems = async () => {
+  const fetchRecords = async () => {
     setLoading(true);
     try {
-      const res = await axios.get('http://localhost:5000/api/supplies/grouped');
-      setItems(res.data);
+      const [transactions, supplies] = await Promise.all([
+        getSupplyTransactions(),
+        getSupplies()
+      ]);
+      const disbursed = (Array.isArray(transactions) ? transactions : [])
+        .filter((t) => t.action_type === 'Disbursed');
+      setRecords(disbursed);
+      setSuppliesList(supplies);
     } catch (err) {
-      console.error('Error fetching supplies:', err);
+      console.error('Error fetching supply records:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchItems(); }, []);
+  useEffect(() => { fetchRecords(); }, []);
 
-  const filtered = items.filter(item => {
-    const matchSearch =
-      item.ItemName?.toLowerCase().includes(search.toLowerCase()) ||
-      item.Brand?.toLowerCase().includes(search.toLowerCase()) ||
-      (item.location_balances || []).some(loc => 
-        loc.LocationName?.toLowerCase().includes(search.toLowerCase()) ||
-        loc.Specifications?.toLowerCase().includes(search.toLowerCase())
-      );
-    const matchesMasterStatus = deriveMasterStatus(item.TotalQuantity) === filterStatus;
-    const matchesSubStatus = (item.location_balances || []).some(loc => loc.Status === filterStatus);
-    const matchStatus = filterStatus ? (matchesMasterStatus || matchesSubStatus) : true;
-    return matchSearch && matchStatus;
-  });
+  const handleDisburseChange = (e) => {
+    const { name, value } = e.target;
+    setDisburseForm((prev) => {
+      const updated = { ...prev, [name]: value };
 
-  const allLocations = items.flatMap(i => i.location_balances || []);
-  const counts = {
-    total: allLocations.reduce((sum, loc) => sum + (Number(loc.Quantity) || 0), 0),
-    inStock: allLocations.filter(loc => loc.Status === 'In Stock').length,
-    outOfStock: allLocations.filter(loc => loc.Status === 'Out of Stock').length,
+      if (name === 'itemName') {
+        const selected = suppliesList.find(s => s.ItemName === value);
+        if (selected) {
+          updated.brand = selected.Brand || '';
+          updated.unit = selected.Unit || 'Pieces';
+          updated.specifications = selected.Specifications || '';
+          setAvailableQuantity(selected.Quantity || 0);
+        } else {
+          updated.brand = '';
+          updated.unit = '';
+          updated.specifications = '';
+          setAvailableQuantity(0);
+        }
+        updated.quantity = '';
+      }
+
+      return updated;
+    });
   };
+
+  const handleSetMaxQuantity = () => {
+    if (availableQuantity > 0) {
+      setDisburseForm(prev => ({ ...prev, quantity: availableQuantity.toString() }));
+    }
+  };
+
+  const validateDisburseForm = () => {
+    const errors = {};
+    if (!disburseForm.section) errors.section = 'Section is required.';
+    if (!disburseForm.itemName) errors.itemName = 'Item name is required.';
+    if (!disburseForm.quantity || Number(disburseForm.quantity) < 1) {
+      errors.quantity = 'Quantity must be at least 1.';
+    } else if (Number(disburseForm.quantity) > availableQuantity) {
+      errors.quantity = `Quantity cannot exceed available stock (${availableQuantity} ${disburseForm.unit || 'Pieces'}).`;
+    }
+    if (!disburseForm.recipient) errors.recipient = 'Recipient is required.';
+    if (!disburseForm.releasedBy) errors.releasedBy = 'Released by is required.';
+    return errors;
+  };
+
+  const handleDisburseSubmit = async () => {
+    const errors = validateDisburseForm();
+    setDisburseErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    try {
+      await disburseSupply({ ...disburseForm, user: loggedInUser });
+      setSnackbar({ open: true, message: 'Disbursement recorded successfully!', severity: 'success' });
+      setDisburseForm(emptyDisbursementForm);
+      setDisburseErrors({});
+      setAvailableQuantity(0);
+      fetchRecords();
+    } catch (err) {
+      setSnackbar({ open: true, message: err?.response?.data?.message || 'Failed to disburse.', severity: 'error' });
+    }
+  };
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return records;
+    return records.filter((r) =>
+      (r.supply_name || '').toLowerCase().includes(q) ||
+      (r.taken_by || '').toLowerCase().includes(q) ||
+      (r.destination_section || '').toLowerCase().includes(q)
+    );
+  }, [records, search]);
+
+  const paged = filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  const formatDate = (d) => !d ? '—' : new Date(d).toLocaleDateString();
 
   return (
     <Header>
       {(toggleDrawer) => (
         <>
-          <TopBar title="Office Supplies" onMenuClick={toggleDrawer} subtitle="OFFICE SUPPLIES INVENTORY" />
+          <TopBar title="Office Supplies" onMenuClick={toggleDrawer} subtitle="SUPPLIES INVENTORY & DISBURSEMENTS" />
           <Box sx={{ p: 3, backgroundColor: '#f5f6fa', minHeight: '100vh' }}>
-
-            {/* Summary Cards */}
-            <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
-              {[
-                { label: 'Total Items', value: counts.total, color: '#1b0892', bg: '#e8eaf6' },
-                { label: 'In Stock', value: counts.inStock, color: '#2e7d32', bg: '#e8f5e9' },
-                { label: 'Out of Stock', value: counts.outOfStock, color: '#c62828', bg: '#ffebee' },
-              ].map(card => (
-                <Box key={card.label} sx={{
-                  flex: 1, minWidth: 140, p: 2.5, borderRadius: 3,
-                  backgroundColor: card.bg, border: `1.5px solid ${card.color}22`
-                }}>
-                  <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 28, fontWeight: 700, color: card.color, lineHeight: 1 }}>
-                    {card.value}
-                  </Typography>
-                  <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, color: card.color, mt: 0.5 }}>
-                    {card.label}
-                  </Typography>
-                </Box>
-              ))}
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+              <Button variant="outlined" onClick={() => navigate('/supplies-encoding')} sx={{ fontFamily: font, textTransform: 'none', borderColor: navy, color: navy }}>Back to Encoding</Button>
             </Box>
 
-            {/* Filter Bar */}
+            {/* disbursement form */}
+            <Paper elevation={0} sx={{ p: 3, border: '1px solid #e0e0e0', borderRadius: 3, mb: 4 }}>
+              <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: 18, color: navy, mb: 2 }}>New Disbursement</Typography>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <TextField fullWidth select label="Section *" name="section" value={disburseForm.section} onChange={handleDisburseChange} error={!!disburseErrors.section} helperText={disburseErrors.section}>
+                    <MenuItem value="" disabled sx={{ fontFamily: font }}>Select Section</MenuItem>
+                    {SECTION_OPTIONS.map((s) => (<MenuItem key={s} value={s} sx={{ fontFamily: font }}>{s}</MenuItem>))}
+                  </TextField>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <TextField fullWidth select label="Item Name *" name="itemName" value={disburseForm.itemName} onChange={handleDisburseChange} error={!!disburseErrors.itemName} helperText={disburseErrors.itemName}>
+                    <MenuItem value="" disabled sx={{ fontFamily: font }}>Select Item</MenuItem>
+                    {suppliesList.map((s) => (
+                      <MenuItem key={s.Id} value={s.ItemName} sx={{ fontFamily: font }}>
+                        {s.ItemName} {s.Brand && s.Brand !== 'N/A' ? `(${s.Brand})` : ''}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+                  <TextField
+                    fullWidth
+                    label="Quantity *"
+                    name="quantity"
+                    type="number"
+                    value={disburseForm.quantity}
+                    onChange={handleDisburseChange}
+                    error={!!disburseErrors.quantity}
+                    helperText={disburseErrors.quantity}
+                    inputProps={{
+                      style: { fontFamily: font },
+                      min: 1,
+                      max: availableQuantity
+                    }}
+                    InputProps={{
+                      endAdornment: availableQuantity > 0 && (
+                        <InputAdornment position="end">
+                          <IconButton
+                            size="small"
+                            onClick={handleSetMaxQuantity}
+                            title={`Set to max (${availableQuantity})`}
+                            sx={{
+                              color: navy,
+                              '&:hover': { backgroundColor: 'rgba(27, 8, 146, 0.04)' }
+                            }}
+                          >
+                            <ArrowDropDownIcon />
+                          </IconButton>
+                        </InputAdornment>
+                      )
+                    }}
+                  />
+                  {availableQuantity > 0 && (
+                    <Typography sx={{ fontFamily: font, fontSize: 11, color: '#666', mt: 0.5 }}>
+                      Available: {availableQuantity} {disburseForm.unit || 'Pieces'}
+                    </Typography>
+                  )}
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+                  <TextField fullWidth label="Brand" name="brand" value={disburseForm.brand} disabled inputProps={{ style: { fontFamily: font } }} />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+                  <TextField fullWidth label="Unit" name="unit" value={disburseForm.unit} disabled inputProps={{ style: { fontFamily: font } }} />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                  <TextField fullWidth label="Specifications" name="specifications" value={disburseForm.specifications} disabled inputProps={{ style: { fontFamily: font } }} />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+                  <TextField fullWidth label="Date Disbursed" name="dateDisbursed" type="date" value={disburseForm.dateDisbursed} onChange={handleDisburseChange} InputLabelProps={{ shrink: true }} inputProps={{ style: { fontFamily: font } }} />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                  <TextField fullWidth label="Recipient *" name="recipient" value={disburseForm.recipient} onChange={handleDisburseChange} error={!!disburseErrors.recipient} helperText={disburseErrors.recipient} inputProps={{ style: { fontFamily: font } }} />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                  <TextField fullWidth label="Released By *" name="releasedBy" value={disburseForm.releasedBy} onChange={handleDisburseChange} error={!!disburseErrors.releasedBy} helperText={disburseErrors.releasedBy} inputProps={{ style: { fontFamily: font } }} />
+                </Grid>
+                <Grid size={{ xs: 12 }} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <Button variant="contained" onClick={handleDisburseSubmit} sx={{ backgroundColor: navy, fontFamily: font, textTransform: 'none', px: 4 }}>Submit Disbursement</Button>
+                </Grid>
+              </Grid>
+            </Paper>
+
             <Box sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-              <TextField size="small" placeholder="Search by name, brand, control no., location..."
-                value={search} onChange={(e) => setSearch(e.target.value)}
-                sx={{ backgroundColor: 'white', borderRadius: 1, minWidth: 300 }}
-                InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
-              />
-              <TextField select size="small" label="Filter by Status" value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                sx={{ backgroundColor: 'white', borderRadius: 1, minWidth: 160 }}>
-                <MenuItem value="">All</MenuItem>
-                {STATUS_OPTIONS.map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
-              </TextField>
+              <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: 16, color: navy }}>Disbursed Items</Typography>
+              <TextField size="small" placeholder="Search..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} sx={{ backgroundColor: 'white', borderRadius: 1, minWidth: 320 }} InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }} />
             </Box>
 
-            {/* Table */}
             <Paper elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: 3 }}>
-              {loading ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-                  <CircularProgress sx={{ color: '#1b0892' }} />
-                </Box>
-              ) : filtered.length === 0 ? (
-                <Box sx={{ py: 6, textAlign: 'center' }}>
-                  <Typography sx={{ fontFamily: 'Poppins, sans-serif', color: '#999' }}>No supplies found.</Typography>
-                </Box>
-              ) : (
+              {loading ? <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress sx={{ color: navy }} /></Box> : filtered.length === 0 ? <Box sx={{ py: 6, textAlign: 'center' }}><Typography sx={{ fontFamily: font, color: '#999' }}>No disbursed records found.</Typography></Box> : (
                 <TableContainer>
                   <Table size="small">
                     <TableHead>
                       <TableRow sx={{ backgroundColor: '#fafafa' }}>
-                        {['', 'Item Name', 'Brand', 'Stock Level', 'Specifications', 'Status'].map(h => (
-                          <TableCell key={h} sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                            {h}
-                          </TableCell>
-                        ))}
+                        {['Date Disbursed', 'Section', 'Item/s', 'Qty', 'Recipient', 'Released By'].map(h => (<TableCell key={h} sx={{ fontFamily: font, fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase' }}>{h}</TableCell>))}
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {filtered.map((item) => {
-                        const status = deriveMasterStatus(item.TotalQuantity);
-                        const sc = statusColor(status);
-                        const isOpen = expandedRows.has(item.ProfileKey);
-                        
-                        // Read UOM and specifications from the first location balance directly
-                        const unit = item.location_balances[0]?.Unit || 'Pieces';
-                        const specs = item.location_balances[0]?.Specifications;
-
-                        return (
-                          <React.Fragment key={item.ProfileKey}>
-                            <TableRow sx={{ '&:hover': { backgroundColor: '#fafafa' } }}>
-                              <TableCell sx={{ width: 32 }}>
-                                <IconButton size="small" onClick={() => toggleExpand(item.ProfileKey)}>
-                                  {isOpen ? '▼' : '►'}
-                                </IconButton>
-                              </TableCell>
-                              <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 600 }}>{item.ItemName}</TableCell>
-                              <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13 }}>
-                                {item.Brand && item.Brand !== 'N/A' ? item.Brand : <span style={{ color: '#aaa', fontStyle: 'italic' }}>N/A</span>}
-                              </TableCell>
-                              <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 13, fontWeight: 600 }}>{`${item.TotalQuantity} ${unit}`}</TableCell>
-                              <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#666', maxWidth: 150 }}>
-                                {specs && specs !== 'N/A' ? specs : <span style={{ color: '#aaa', fontStyle: 'italic' }}>N/A</span>}
-                              </TableCell>
-                              <TableCell>
-                                <Chip label={status} size="small" sx={{
-                                  backgroundColor: sc.bg, color: sc.text, border: `1px solid ${sc.border}`,
-                                  fontFamily: 'Poppins, sans-serif', fontSize: 11, fontWeight: 600
-                                }} />
-                              </TableCell>
-                            </TableRow>
-
-                            {/* Dropdown Locations Table */}
-                            {isOpen && (
-                              <TableRow>
-                                <TableCell colSpan={6} sx={{ backgroundColor: '#fafcff', py: 2 }}>
-                                  <Table size="small">
-                                    <TableHead>
-                                      <TableRow>
-                                        {['Location', 'Qty', 'Status'].map((h) => (
-                                          <TableCell key={h} sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: 10, color: '#888', textTransform: 'uppercase' }}>{h}</TableCell>
-                                        ))}
-                                      </TableRow>
-                                    </TableHead>
-                                    <TableBody>
-                                      {item.location_balances.map((loc) => {
-                                        const locSc = statusColor(loc.Status);
-                                        return (
-                                          <TableRow key={loc.Id}>
-                                            <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12 }}>
-                                              {loc.LocationName && loc.LocationName !== 'N/A' ? loc.LocationName : <span style={{ color: '#aaa', fontStyle: 'italic' }}>N/A</span>}
-                                            </TableCell>
-                                            <TableCell sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12 }}>{`${loc.Quantity} ${loc.Unit || 'Pieces'}`}</TableCell>
-                                            <TableCell>
-                                              <Chip label={loc.Status} size="small" sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 10, backgroundColor: locSc.bg, color: locSc.text }} />
-                                            </TableCell>
-                                          </TableRow>
-                                        );
-                                      })}
-                                    </TableBody>
-                                  </Table>
-                                </TableCell>
-                              </TableRow>
-                            )}
-                          </React.Fragment>
-                        );
-                      })}
+                      {paged.map((r) => (
+                        <TableRow key={r.transaction_id} sx={{ '&:hover': { backgroundColor: '#fafafa' } }}>
+                          <TableCell sx={{ fontFamily: font, fontSize: 13 }}>{formatDate(r.created_at)}</TableCell>
+                          <TableCell sx={{ fontFamily: font, fontSize: 13 }}>{r.destination_section || '—'}</TableCell>
+                          <TableCell sx={{ fontFamily: font, fontSize: 13, fontWeight: 600 }}>{r.supply_name}</TableCell>
+                          <TableCell sx={{ fontFamily: font, fontSize: 13, fontWeight: 600 }}>{Math.abs(Number(r.quantity_changed) || 0)}</TableCell>
+                          <TableCell sx={{ fontFamily: font, fontSize: 13 }}>{r.taken_by || '—'}</TableCell>
+                          <TableCell sx={{ fontFamily: font, fontSize: 13 }}>{r.created_by || '—'}</TableCell>
+                        </TableRow>
+                      ))}
                     </TableBody>
                   </Table>
                 </TableContainer>
               )}
+              <TablePagination component="div" count={filtered.length} page={page} onPageChange={(_, p) => setPage(p)} rowsPerPage={rowsPerPage} onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }} rowsPerPageOptions={[15, 25, 50]} />
             </Paper>
-
-            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 12, color: '#999', mt: 1.5 }}>
-              Showing {filtered.length} of {items.length} items
-            </Typography>
           </Box>
+          <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar((p) => ({ ...p, open: false }))} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+            <Alert severity={snackbar.severity} sx={{ fontFamily: font }}>{snackbar.message}</Alert>
+          </Snackbar>
         </>
       )}
     </Header>

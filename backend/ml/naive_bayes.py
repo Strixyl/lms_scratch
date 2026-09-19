@@ -38,11 +38,8 @@ DOMAIN_KEYWORDS = {
     }
 }
 
-# Off-topic personal phrases that have no library domain relevance.
-# When a comment matches one of these patterns AND contains no domain
-# keywords, it should be routed to Other/Uncategorized regardless of
-# what the NB model predicts (avoids stem-collision false positives
-# like "miss" -> "missing pages" -> Collection).
+# personal phrases that have no library relevance
+# if matched and no domain keywords found, default to other/uncategorized
 OFF_TOPIC_PATTERNS = [
     re.compile(r"\bi\s+miss\s+my\b", re.IGNORECASE),
     re.compile(r"\bmiss\s+ko\b", re.IGNORECASE),
@@ -51,7 +48,7 @@ OFF_TOPIC_PATTERNS = [
     re.compile(r"\bmiss\s+na\s+miss\b", re.IGNORECASE),
 ]
 
-# All domain keywords flattened for quick "has any library context" check
+# flatten keywords to check if text has any library context
 _ALL_DOMAIN_WORDS = set()
 for _kw_set in DOMAIN_KEYWORDS.values():
     _ALL_DOMAIN_WORDS |= _kw_set
@@ -107,12 +104,7 @@ class CategoryClassifier:
         text_words = set(re.findall(r"\b\w+\b", str(text).lower()))
         has_domain_context = bool(text_words & _ALL_DOMAIN_WORDS)
 
-        # ── Off-topic personal chatter guard ──────────────────────────
-        # Phrases like "I miss my baby" have zero library relevance but
-        # get pulled toward Collection because PorterStemmer maps both
-        # "miss" (longing) and "missing" (absent pages) to the same stem.
-        # If the comment matches an off-topic pattern AND contains no
-        # domain keyword, short-circuit to Other/Uncategorized.
+        # filter out off-topic personal chatter if no library keywords are present
         if not has_domain_context:
             for pat in OFF_TOPIC_PATTERNS:
                 if pat.search(text):
@@ -123,13 +115,7 @@ class CategoryClassifier:
         top_label = self.classes_[top_idx]
         top_confidence = probs[top_idx]
 
-        # ── Staff-without-staff-keywords override ────────────────────
-        # The NB model can predict "Staff" when there are no actual
-        # staff-role words in the comment, due to stem collisions
-        # (e.g. "library" → "librari" = "librarian"). When that happens
-        # and specific domain keywords for another category ARE present,
-        # override to that category. For marginal-confidence predictions
-        # with no domain keywords at all, fall back to Other/Uncategorized.
+        # if staff was predicted but no staff words exist, check other category keywords
         if top_label == "Staff":
             has_staff_words = bool(text_words & DOMAIN_KEYWORDS["Staff"])
             if not has_staff_words:
@@ -140,12 +126,11 @@ class CategoryClassifier:
                 elif has_facilities_words:
                     top_label = "Facilities"
                 elif top_confidence < 0.85:
-                    # No domain keywords at all and marginal confidence —
-                    # likely a stem collision, not a real Staff comment.
+                    # fallback if confidence is low and no keywords matched
                     top_label = FALLBACK_LABEL
 
         if top_label == FALLBACK_LABEL or top_confidence < threshold:
-            # Check domain keywords before defaulting to Other/Uncategorized
+            # check domain keywords before falling back to other/uncategorized
             matching_cats = {}
             for category, keywords in DOMAIN_KEYWORDS.items():
                 matches = text_words.intersection(keywords)

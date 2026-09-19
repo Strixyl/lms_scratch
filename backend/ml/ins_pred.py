@@ -7,7 +7,7 @@ nb = model.pipeline.named_steps["nb"]
 
 print("alpha:", nb.alpha, "| ngram_range:", vec.ngram_range)
 
-text = "Good collection of books on reference"   # manually enter hthe text comment to show confidence for categoriztiaon
+text = "The elevator is not working"   # manually enter hthe text comment to show confidence for categoriztiaon
 X = vec.transform([text])
 print("nonzero features:", X.nnz)
 feat_names = vec.get_feature_names_out()

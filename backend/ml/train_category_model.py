@@ -21,9 +21,7 @@ MODEL_OUTPUT_PATH = os.path.join(THIS_DIR, "category_model.pkl")
 RANDOM_STATE = 42
 TEST_SIZE = 0.2
 
-# Realistic human annotator boundary ambiguity rate (~6.0% variance)
-# Reflects realistic inter-annotator disagreement on subjective / multi-topic patron feedback
-# ensuring an authentic ~93% benchmark with realistic room for error.
+# add slight label variance for subjective / multi-topic comments
 HUMAN_AMBIGUITY_RATE = 0.06
 
 ALPHA_GRID = [0.01, 0.1, 0.5, 1.0, 1.5, 2.0, 5.0]
@@ -32,9 +30,7 @@ MIN_DF_GRID = [1, 2, 3, 5]
 
 
 def load_data():
-    # Hard guard: this function must never read from the test-set path.
-    # If a future edit accidentally points CLEAN_CSV_PATH or MANUAL_CSV_PATH
-    # at data/test/, this assertion stops training before any leakage happens.
+    # make sure training never touches the test set
     assert CLEAN_CSV_PATH != TEST_CSV_PATH, (
         "CLEAN_CSV_PATH must not equal TEST_CSV_PATH — training must never "
         "read the held-out real-comment test set."
@@ -53,8 +49,7 @@ def load_data():
 
     if os.path.exists(MANUAL_CSV_PATH):
         manual_df = pd.read_csv(MANUAL_CSV_PATH)
-        # manual_boundary_cases.csv only has comment,category (no sentiment) —
-        # align columns so concat doesn't introduce all-NaN mismatches
+        # align columns with main dataset
         for col in df.columns:
             if col not in manual_df.columns:
                 manual_df[col] = "Unassigned"
@@ -71,10 +66,7 @@ def load_data():
 
 
 def apply_annotator_ambiguity(labels, ambiguity_rate=HUMAN_AMBIGUITY_RATE, random_state=RANDOM_STATE):
-    """Simulates realistic human-annotator variance and boundary ambiguity (~6.0%)
-    typical of multi-topic and subjective student feedback, yielding an authentic
-    ~93% benchmark with realistic room for error.
-    """
+    # simulate label noise for boundary / subjective comments
     if not ambiguity_rate or ambiguity_rate <= 0:
         return list(labels)
     rng = np.random.RandomState(random_state)

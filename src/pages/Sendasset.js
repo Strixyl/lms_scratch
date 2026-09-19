@@ -25,6 +25,7 @@ const SendAsset = () => {
   const [sourceLocationId, setSourceLocationId] = useState('');
   const [destinationLocation, setDestinationLocation] = useState('');
   const [transferQty, setTransferQty] = useState('');
+  const [takenBy, setTakenBy] = useState('');
   const [remarks, setRemarks] = useState('');
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -72,6 +73,7 @@ const SendAsset = () => {
     if (!selectedProfileKey) errs.selectedProfileKey = 'Please select an asset.';
     if (!sourceLocationId) errs.sourceLocationId = 'Please select a source location.';
     if (!destinationLocation) errs.destinationLocation = 'Please select a destination.';
+    if (!takenBy.trim()) errs.takenBy = 'Please enter who is taking the item.';
 
     if (selectedSource && destinationLocation === selectedSource.LocationName) {
       errs.destinationLocation = 'Destination cannot be the same as the source location.';
@@ -91,6 +93,7 @@ const SendAsset = () => {
     setSourceLocationId('');
     setDestinationLocation('');
     setTransferQty('');
+    setTakenBy('');
     setRemarks('');
     setErrors({});
   };
@@ -107,6 +110,7 @@ const SendAsset = () => {
         destinationLocation: destinationLocation.trim(),
         quantity: qty,
         user: loggedInUser,
+        takenBy: takenBy.trim(),
       });
 
       setSnackbar({
@@ -228,7 +232,17 @@ const SendAsset = () => {
               />
             </Grid>
 
-            {/* 5. Remarks */}
+            {/* 5. Taken By */}
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              <TextField
+                fullWidth label="Taken By *" placeholder="Name of person taking the item"
+                value={takenBy} onChange={(e) => setTakenBy(e.target.value)}
+                error={!!errors.takenBy} helperText={errors.takenBy}
+                inputProps={{ style: { fontFamily: font } }}
+              />
+            </Grid>
+
+            {/* 6. Remarks */}
             <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <TextField
                 fullWidth multiline minRows={2} label="Remarks (optional)" value={remarks}

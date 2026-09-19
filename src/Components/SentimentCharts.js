@@ -489,7 +489,7 @@ export const TopCommentsCard = ({ title, rows = [], type = 'positive' }) => {
             const category = row.Category || 'General';
             const rawQuote = cleanQuote(row.Message);
 
-            // formula: confidence = Math.min(Math.max(rawScore, 0), 1)
+            // clamp confidence between 0 and 1
             const rawTopic = row.primaryTopic || row.topTerm || category || 'General';
             const detectedTopic = rawTopic.charAt(0).toUpperCase() + rawTopic.slice(1);
             const rawConf = typeof row.confidence === 'number'
@@ -1147,7 +1147,7 @@ export const CustomDonutGaugeTooltip = ({ active, payload }) => {
   return null;
 };
 
-// custom pie label renderer
+// custom pie label
 const RADIAN = Math.PI / 180;
 export const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
   if (percent < 0.05) return null;
@@ -1253,7 +1253,7 @@ export const CustomDivergingTrendTooltip = ({ active, payload, label }) => {
   return null;
 };
 
-// stable min size reference
+// min word size
 const WORD_CLOUD_MIN_SIZE = [300, 300];
 
 // word cloud section component
@@ -1600,7 +1600,7 @@ export const CustomRevenueTooltip = ({ active, payload, label, metricMode = 'per
   return null;
 };
 
-// monthly sentiment trend container
+// monthly sentiment trend chart
 export const RevenueStyleSentimentChart = ({
   data = [],
   title = "Monthly Sentiment Overview",
@@ -1776,7 +1776,7 @@ export const RevenueStyleSentimentChart = ({
   );
 };
 
-// category sentiment breakdown container
+// category breakdown section
 export const SourceSentimentBreakdownCard = ({
   totalSurveys = 0,
   positiveCount = 0,

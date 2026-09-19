@@ -289,7 +289,7 @@ const Login = () => {
                   HENRY LUCE III LIBRARY
                 </Typography>
                 <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 500, fontSize: { xs: 10, md: 11 }, color: 'rgba(255,255,255,0.85)', letterSpacing: 0.5 }}>
-                  SIGN IN PORTAL
+                  LOG-IN PORTAL
                 </Typography>
               </Box>
             </Box>
@@ -352,7 +352,7 @@ const Login = () => {
               {/* title block */}
               <Box sx={{ textAlign: 'center', mb: 4 }}>
                 <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: { xs: 24, md: 30 }, color: NAVY, letterSpacing: 1 }}>
-                  LIBRARY SIGN IN
+                  LIBRARY LOG-IN
                 </Typography>
                 <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: 14, color: '#64748b', mt: 0.5 }}>
                   Please scan your ID or enter your ID number to log in.

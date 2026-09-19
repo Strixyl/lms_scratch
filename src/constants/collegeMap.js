@@ -52,7 +52,7 @@ export const getCollegeGroup = (collegeStr, courseStr, logTypeStr, idNumber) => 
   const crsClean = (courseStr || '').trim();
   const idClean = String(idNumber || '').toUpperCase();
 
-  // If both college and course are empty, or ID matches guest pattern (e.g. 26-V..., 26-R...), infer as Guest / Visitor
+  // fallback to guest/visitor if empty or matches guest id pattern (e.g. 26-V, 26-R)
   if ((!colClean && !crsClean) || idClean.startsWith('26-V') || idClean.startsWith('26-R') || idClean.includes('-V1') || idClean.includes('-R1')) {
     return 'Guest / Visitor';
   }
@@ -81,7 +81,7 @@ export const getPSTDateString = (date = new Date()) => {
 export const getPSTDatePresets = (targetYear = '2026') => {
   const pstStr = getPSTDateString();
   const [y, m, d] = pstStr.split('-').map(Number);
-  // Noon UTC prevents day boundaries from shifting across UTC conversions
+  // noon utc so dates don't shift across timezones
   const todayD = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
   const dayOfWeek = todayD.getUTCDay();
   const diffToMonday = d - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
@@ -99,7 +99,7 @@ export const formatDate = (dateStr) => {
   if (!datePart || !timePart) return dateStr;
   const [year, month, day] = datePart.split('-');
   const [hour, minute, second] = timePart.split(':');
-  // Interpret as explicit UTC+8 (Philippine Standard Time)
+  // parse as utc+8 (philippine time)
   const isoStr = `${year}-${month}-${day}T${hour}:${minute}:${second ? second.slice(0, 2) : '00'}+08:00`;
   const d = new Date(isoStr);
   if (Number.isNaN(d.getTime())) return dateStr;

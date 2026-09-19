@@ -30,20 +30,13 @@ LABEL_MAP = {
     'LABEL_2': 'Positive',
 }
 
-# ---- mixed-sentiment clause splitting (most-negative-wins aggregation) ----
-# Handles comments like "Staff are great, although the guard was rude" —
-# a single BERT call on the whole string tends to get pulled toward
-# whichever clause is lexically stronger, losing the complaint if it's
-# outweighed by praise elsewhere in the same comment. This splits on the
-# clearest sentiment-pivot signal (contrast conjunctions) and, if any
-# resulting clause is Negative, surfaces the comment as Negative overall —
-# consistent with the dashboard's purpose of catching actionable
-# complaints rather than averaging them away.
+# split compound sentences by contrast words (e.g. "staff was nice but ac was broken")
+#  # prirotiziixe negative commnents foresentiemnt anaylsiys
 CONTRAST_WORDS = [
     "although", "though", "however", "but", "while", "except",
     "on the other hand", "yet",
 ]
-MIN_CLAUSE_LENGTH = 12  # chars; avoids splitting on trivial fragments
+MIN_CLAUSE_LENGTH = 12  # min chars to avoid tiny fragments
 
 
 def split_clauses(text: str):
@@ -72,10 +65,7 @@ def split_clauses(text: str):
 
 
 def bert_sentiment(text: str):
-    """Runs the existing pretrained pipeline on a single string and
-    returns (label, confidence) — identical call/mapping the original
-    single-shot /analyze used, just factored out so it can run per clause.
-    """
+    # run roberta on a single clause
     result = sentiment_pipeline(text[:512])[0]
     label = LABEL_MAP.get(result['label'].lower(), 'Neutral')
     return label, result['score']

@@ -1,5 +1,4 @@
-// sentiment dashboard pure utility functions
-// helpers for scoring, formatting, stemming, and term frequency
+// sentiment scoring and helper functions
 
 import {
   RATING_SCORES,
@@ -22,7 +21,7 @@ export const formatRatingShort = (val) => {
   return RATING_SHORT_MAP[val] || val;
 };
 
-// formula: satisfaction average = sum(question ratings 1-5) / count
+// calculate average rating across questions (1-5)
 export const getSatisfactionAverage = (s) => {
   const qList = [
     s.Question1, s.Question2, s.Question3, s.Question4, s.Question5,
@@ -31,7 +30,7 @@ export const getSatisfactionAverage = (s) => {
   return qList.length > 0 ? qList.reduce((a, b) => a + b, 0) / qList.length : 0;
 };
 
-// formula: score = rating average if no message, else positive (1.0), negative (-1.0), neutral (0.0)
+// compute survey score (1.0 positive, -1.0 negative, 0.0 neutral)
 export const getSurveyScore = (s) => {
   if (typeof s.SentimentScore === 'number' && !isNaN(s.SentimentScore)) {
     return s.SentimentScore;
@@ -92,7 +91,7 @@ export const buildTermFrequencies = (pool) => {
   return { freq, displayMap, sentimentCounts };
 };
 
-// roberta model confidence comment scorer
+// score comments with roberta confidence
 export const scoreCommentsWithRoBERTa = (commentsPool) => {
   if (!commentsPool || commentsPool.length === 0) return [];
 
@@ -113,7 +112,7 @@ export const scoreCommentsWithRoBERTa = (commentsPool) => {
       ? Math.abs(commentObj.SentimentScore)
       : 1.0;
 
-    // formula: confidence = Math.min(Math.max(rawScore, 0), 1)
+    // clamp confidence between 0 and 1
     const confidence = Math.min(Math.max(rawScore, 0), 1);
     const confidencePct = (confidence * 100).toFixed(1);
 
@@ -121,7 +120,7 @@ export const scoreCommentsWithRoBERTa = (commentsPool) => {
       ...commentObj,
       confidence,
       confidencePct,
-      // backwards compatibility with ui components
+      // fallback fields for ui
       blendedScore: Number(confidencePct),
       termScore: Number(confidencePct),
       primaryTopic: commentObj.Category || 'General Feedback',
@@ -130,10 +129,10 @@ export const scoreCommentsWithRoBERTa = (commentsPool) => {
   });
 };
 
-// backwards-compatibility alias
+// alias for roberta scoring
 export const scoreCommentsWithLexicon = scoreCommentsWithRoBERTa;
 
-// diverse top comment selector (deduplication & category diversity)
+// pick top comments with diverse categories
 export const selectDiverseTopComments = (scoredList, limit = 5) => {
   if (!scoredList || scoredList.length === 0) return [];
 
@@ -149,7 +148,7 @@ export const selectDiverseTopComments = (scoredList, limit = 5) => {
 
   const isUncategorized = (cat) => !cat || cat === 'Other' || cat === 'Other/Uncategorized' || cat === 'General'; // defines uncategorized
 
-  // 1. pick unique categorized comments first, max 2 per category for diversity
+  // 1. grab up to 2 unique comments per category
   for (const comment of scoredList) {
     if (selected.length >= limit) break;
     const cat = comment.Category || 'Other';
@@ -165,7 +164,7 @@ export const selectDiverseTopComments = (scoredList, limit = 5) => {
     }
   }
 
-  // 2. fill remaining slots with next highest confidence categorized comments
+  // 2. fill remaining slots with next highest comments
   if (selected.length < limit) {
     for (const comment of scoredList) {
       if (selected.length >= limit) break;
@@ -180,7 +179,7 @@ export const selectDiverseTopComments = (scoredList, limit = 5) => {
     }
   }
 
-  // 3. fallback for remaining slots if categorized comments are exhausted
+  // 3. fallback if we still have open slots
   if (selected.length < limit) {
     for (const comment of scoredList) {
       if (selected.length >= limit) break;
