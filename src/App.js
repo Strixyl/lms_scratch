@@ -18,6 +18,7 @@ import SendAsset from './pages/Sendasset';
 import TransactionHistory from './pages/Transactionhistory';
 import SendSupply from './pages/SendSupply';
 import SupplyTransactionHistory from './pages/SupplyTransactionHistory';
+import ModelExplainer from './pages/ModelExplainer';
 import ScrollToTopButton from './Components/ScrollToTopButton';
 
 const theme = createTheme({
@@ -63,6 +64,8 @@ function App() {
             <Route path="/equipment-encoding" element={<EquipmentEncode />} />
             <Route path="/supplies-encoding" element={<SuppliesEncode />} />
             <Route path="/sentiment-dashboard" element={<SentimentDashboard />} />
+            <Route path="/model-explainer" element={<ModelExplainer />} />
+            <Route path="/score-computation" element={<ModelExplainer />} />
             <Route path="/send-asset" element={<SendAsset />} />
             <Route path="/transactions" element={<TransactionHistory />} />
             <Route path="/send-supply" element={<SendSupply />} />

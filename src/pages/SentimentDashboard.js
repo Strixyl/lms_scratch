@@ -21,6 +21,7 @@ import {
   RateReview as RateReviewIcon,
   Lightbulb as LightbulbIcon,
   AdminPanelSettings as AdminIcon,
+  Psychology as PsychologyIcon,
   CalendarToday as CalendarTodayIcon,
   RestartAlt as RestartAltIcon,
   Inbox as InboxIcon,
@@ -1146,6 +1147,21 @@ function SentimentDashboard() {
                       }}
                     >
                       Export to Excel
+                    </Button>
+                    <Button
+                      variant="contained"
+                      onClick={() => navigate('/model-explainer')}
+                      startIcon={<PsychologyIcon sx={{ fontSize: 18 }} />}
+                      sx={{
+                        borderRadius: '10px', height: 42, px: 2.2,
+                        fontFamily: T.font.family, fontSize: 13.5, fontWeight: 700, textTransform: 'none',
+                        bgcolor: '#16324f',
+                        color: '#ffffff',
+                        boxShadow: '0 2px 8px rgba(22, 50, 79, 0.28)',
+                        '&:hover': { bgcolor: '#0f243a', boxShadow: '0 4px 12px rgba(22, 50, 79, 0.35)' }
+                      }}
+                    >
+                      Model Explainer
                     </Button>
                     <Button
                       variant="outlined"

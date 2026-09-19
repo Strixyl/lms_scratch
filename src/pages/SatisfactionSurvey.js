@@ -37,13 +37,13 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 
-// rating options
+// rating options (ordered 5 down to 1, followed by N/A so patrons see 5 first)
 const RATING_OPTIONS = [
-  { id: 'very_dissatisfied', label: 'Very Dissatisfied', ciscoLabel: '1' },
-  { id: 'dissatisfied', label: 'Dissatisfied', ciscoLabel: '2' },
-  { id: 'neutral', label: 'Neutral', ciscoLabel: '3' },
-  { id: 'satisfied', label: 'Satisfied', ciscoLabel: '4' },
   { id: 'very_satisfied', label: 'Very Satisfied', ciscoLabel: '5' },
+  { id: 'satisfied', label: 'Satisfied', ciscoLabel: '4' },
+  { id: 'neutral', label: 'Neutral', ciscoLabel: '3' },
+  { id: 'dissatisfied', label: 'Dissatisfied', ciscoLabel: '2' },
+  { id: 'very_dissatisfied', label: 'Very Dissatisfied', ciscoLabel: '1' },
   { id: 'na', label: 'N/A', ciscoLabel: 'N/A' },
 ];
 
@@ -299,7 +299,7 @@ const WizardQuestionItem = ({ qIdx, question, selectedId, onSelect, isAdvancing,
         </Typography>
 
         <Chip
-          label={activeOpt ? `${activeOpt.ciscoLabel} – ${activeOpt.label}` : 'Select rating (1-5)'}
+          label={activeOpt ? `${activeOpt.ciscoLabel} – ${activeOpt.label}` : 'Select rating (5-1)'}
           size="medium"
           sx={{
             fontFamily: 'Poppins, sans-serif',
@@ -994,7 +994,7 @@ const SatisfactionSurvey = () => {
                   <Box sx={{ display: 'flex', gap: 1.2 }}>
                     <Chip
                       icon={<WizardIcon sx={{ fontSize: '20px !important' }} />}
-                      label="CISCO SINGLE QUESTIONS Focus Wizard"
+                      label="Single Question Focus"
                       clickable
                       onClick={() => setViewMode('wizard')}
                       sx={{

@@ -16,6 +16,7 @@ const Header = ({ children }) => {
     { text: 'SATISFACTION SURVEY', path: '/satisfaction-survey' },
     { text: 'SURVEY RECORDS', path: '/surveys' },
     { text: 'SENTIMENT DASHBOARD', path: '/sentiment-dashboard' },
+    { text: 'MODEL EXPLAINER', path: '/model-explainer' },
     { text: 'CARD AND PACKET', path: '/card-and-packet' },
     { text: 'BOOK CATALOGUE', path: '/book-catalogue' },
     { text: 'SUPPLIES', path: '/supplies' },
