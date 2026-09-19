@@ -154,7 +154,7 @@ const Supplies = () => {
               <Button variant="outlined" onClick={() => navigate('/supplies-encoding')} sx={{ fontFamily: font, textTransform: 'none', borderColor: navy, color: navy }}>Back to Encoding</Button>
             </Box>
 
-            {/* Disbursement Form */}
+            {/* disbursement form */}
             <Paper elevation={0} sx={{ p: 3, border: '1px solid #e0e0e0', borderRadius: 3, mb: 4 }}>
               <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: 18, color: navy, mb: 2 }}>New Disbursement</Typography>
               <Grid container spacing={2}>

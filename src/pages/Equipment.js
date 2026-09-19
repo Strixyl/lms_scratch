@@ -47,6 +47,7 @@ const Equipment = () => {
     return records.filter((r) =>
       (r.asset_name || '').toLowerCase().includes(q) ||
       (r.control_number || '').toLowerCase().includes(q) ||
+      (r.destination_section || '').toLowerCase().includes(q) || // ✅ Added destination to search
       (r.taken_by || '').toLowerCase().includes(q) ||
       (r.created_by || '').toLowerCase().includes(q)
     );
@@ -61,8 +62,11 @@ const Equipment = () => {
           <TopBar title="Library Equipment" onMenuClick={toggleDrawer} subtitle="RECORDS OF ACQUISITION" />
           <Box sx={{ p: 3, backgroundColor: '#f5f6fa', minHeight: '100vh' }}>
             <Box sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-              <TextField size="small" placeholder="Search by item, control number, taken by, released by..."
-                value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+              <TextField 
+                size="small" 
+                placeholder="Search by item, destination, taken by, released by..." // ✅ Updated placeholder
+                value={search} 
+                onChange={(e) => { setSearch(e.target.value); setPage(0); }}
                 sx={{ backgroundColor: 'white', borderRadius: 1, minWidth: 320 }}
                 InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
               />
@@ -81,8 +85,8 @@ const Equipment = () => {
                   <Table size="small">
                     <TableHead>
                       <TableRow sx={{ backgroundColor: '#fafafa' }}>
-                        {/* Added Control Number to headers */}
-                        {['Date Released', 'Control Number', 'Qty', 'Item/s', 'Taken By', 'Released By'].map(h => (
+                        {/* ✅ Added Control Number and Destination headers */}
+                        {['Date Released', 'Control Number', 'Qty', 'Item/s', 'Destination', 'Taken By', 'Released By'].map(h => (
                           <TableCell key={h} sx={{ fontFamily: font, fontWeight: 700, fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                             {h}
                           </TableCell>
@@ -93,10 +97,10 @@ const Equipment = () => {
                       {paged.map((r) => (
                         <TableRow key={r.transaction_id} sx={{ '&:hover': { backgroundColor: '#fafafa' } }}>
                           <TableCell sx={{ fontFamily: font, fontSize: 13 }}>{formatDate(r.created_at)}</TableCell>
-                          {/* Added Control Number to body */}
-                          <TableCell sx={{ fontFamily: font, fontSize: 13, fontWeight: 600 }}>{r.control_number || '—'}</TableCell>
+                          <TableCell sx={{ fontFamily: font, fontSize: 13, fontWeight: 600 }}>{r.control_number || '—'}</TableCell> {/* ✅ Control Number */}
                           <TableCell sx={{ fontFamily: font, fontSize: 13, fontWeight: 600 }}>{Math.abs(Number(r.quantity_changed) || 0)}</TableCell>
                           <TableCell sx={{ fontFamily: font, fontSize: 13, fontWeight: 600 }}>{r.asset_name}</TableCell>
+                          <TableCell sx={{ fontFamily: font, fontSize: 13 }}>{r.destination_section || '—'}</TableCell> {/* ✅ Destination */}
                           <TableCell sx={{ fontFamily: font, fontSize: 13 }}>{r.taken_by || '—'}</TableCell>
                           <TableCell sx={{ fontFamily: font, fontSize: 13 }}>{r.created_by || '—'}</TableCell>
                         </TableRow>

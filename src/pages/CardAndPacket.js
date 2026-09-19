@@ -427,7 +427,7 @@ export default function CardAndPacket() {
             margin-top: 0;
           }
 
-          /* Book Packet Styles */
+          /* book packet styles */
           .packet-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;

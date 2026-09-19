@@ -54,7 +54,7 @@ import Header from '../Components/Header';
 import TopBar from '../Components/TopBar';
 import { getPSTDateString, getPSTDatePresets } from '../constants/collegeMap';
 
-// centralized module imports
+// ui and helper imports
 import {
   THEME,
   sectionHeaderSx,
@@ -109,7 +109,7 @@ const MONTH_CODE_MAP = {
 
 const T = THEME;
 
-// renders pill-shaped bars with fully rounded capsule ends
+// custom rounded bar shape for recharts
 const renderPillBar = (props) => {
   const { x, y, width, height, fill, stroke, strokeWidth, payload } = props;
   if (!height || Math.abs(height) < 0.5 || !width || width <= 0) return null;
@@ -599,7 +599,7 @@ function SentimentDashboard() {
     (filterYear && filterYear !== 'All' && filterYear !== '2026')
   );
 
-  // average satisfaction rating: sum of survey questions / count
+  // average satisfaction rating
   const avgSatisfaction = filtered.length
     ? filtered.reduce((sum, s) => sum + getSatisfactionAverage(s), 0) / filtered.length
     : 0;
@@ -617,7 +617,7 @@ function SentimentDashboard() {
     return arr;
   }, [surveys]);
 
-  // monthly diverging sentiment balance and trend data
+  // monthly sentiment trend data
   const divergingTrendData = useMemo(() => {
     const targetYear = filterYear === 'All' ? null : (filterYear || '2026');
 
@@ -682,7 +682,7 @@ function SentimentDashboard() {
     });
   }, [surveys, filterYear, filterClientele, filterCollege, filterCourse, filterCategory, filterMonth]);
 
-  // dynamic y-axis headroom: maxVal * 1.25
+  // dynamic y-axis max
   const maxVolume = useMemo(() => {
     let maxVal = 5;
     divergingTrendData.forEach(d => {
@@ -701,7 +701,7 @@ function SentimentDashboard() {
     return Math.ceil(maxVal * 1.25);
   }, [divergingTrendData, filterSentiment]);
 
-  // category breakdown for source card
+  // category breakdown
   const categoryBreakdownData = useMemo(() => {
     const categories = ['Facilities', 'Staff', 'Collection'];
     return categories.map(cat => {
@@ -723,7 +723,7 @@ function SentimentDashboard() {
     });
   }, [filtered]);
 
-  // sentiment counts filtered by selected category
+  // sentiment counts for selected category
   const sourceCardSentimentData = useMemo(() => {
     if (sourceCategoryFilter === 'All Categories' || sourceCategoryFilter === 'All') {
       return {
@@ -1210,7 +1210,7 @@ function SentimentDashboard() {
                     </Typography>
                   </Box>
 
-                  {/* primary control strip: date presets & sentiment selector (Hick's Law) */}
+                  {/* date presets and sentiment filter */}
                   <Box sx={{
                     p: { xs: 2, sm: 2.5 },
                     bgcolor: '#ffffff',
@@ -1274,7 +1274,7 @@ function SentimentDashboard() {
                         })}
                       </Box>
 
-                      {/* toggle advanced filters button (progressive disclosure) */}
+                      {/* toggle advanced filters button */}
                       <Button
                         variant="outlined"
                         onClick={() => setShowAdvancedFilters(prev => !prev)}
@@ -1324,7 +1324,7 @@ function SentimentDashboard() {
                     </Box>
                   </Box>
 
-                  {/* collapsible advanced filters drawer (Hick's Law progressive disclosure) */}
+                  {/* advanced filters drawer */}
                   <Collapse in={showAdvancedFilters} timeout="auto" unmountOnExit>
                     <Box sx={{
                       p: 3,
@@ -1528,7 +1528,7 @@ function SentimentDashboard() {
                   )}
                 </Paper>
 
-                {/* urgent priority service alert banner (Von Restorff Effect) */}
+                {/* priority alert banner */}
                 {urgentAlertTopic && !loading && (
                   <Paper
                     elevation={0}
@@ -1631,7 +1631,7 @@ function SentimentDashboard() {
                 )}
 
                 {loading ? (
-                  /* modern pulse skeleton loaders (Doherty Threshold) */
+                  /* pulse skeleton loader */
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, my: 1 }}>
                     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2 }}>
                       <Skeleton variant="rounded" height={130} sx={{ borderRadius: 3.5, bgcolor: '#ffffff' }} />
@@ -2234,7 +2234,7 @@ function SentimentDashboard() {
                       p: { xs: 2, md: 3 },
                       mb: 3,
                     }}>
-                      {/* table header with title, search, export and month pills (Jakob's Law & Fitts's Law) */}
+                      {/* table header controls */}
                       <Box sx={{ mb: 2.5, display: 'flex', flexDirection: 'column', gap: 1.8 }}>
                         {/* top tier: title and primary action controls */}
                         <Box sx={{
@@ -2317,9 +2317,9 @@ function SentimentDashboard() {
                             </Typography>
                           </Box>
 
-                          {/* right toolbar: search bar, export view button, batch delete (Fitts's Law) */}
+                          {/* table search and action buttons */}
                           <Box sx={{ display: 'flex', gap: 1.2, alignItems: 'center', flexWrap: 'wrap', width: { xs: '100%', sm: 'auto' } }}>
-                            {/* universal search input (Jakob's Law) */}
+                            {/* search input */}
                             <TextField
                               size="small"
                               placeholder="Search comments, course, or college..."
@@ -2357,7 +2357,7 @@ function SentimentDashboard() {
                               }}
                             />
 
-                            {/* contextual table export button (Fitts's Law) */}
+                            {/* export button */}
                             <Button
                               variant="outlined"
                               size="small"

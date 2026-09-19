@@ -205,9 +205,11 @@ app.post('/api/student-lookup', async (req, res) => {
 
   try {
     const pool = await sql.connect(config);
+    const cleanId = (idNumber || '').trim();
 
+    // 1. First look up in studInfo
     const studentResult = await pool.request()
-      .input('idNumber', sql.VarChar, idNumber)
+      .input('idNumber', sql.VarChar, cleanId)
       .query(`
         SELECT 
           si.studID, si.studIDnumber, si.studLname, si.studFname,
@@ -216,14 +218,45 @@ app.post('/api/student-lookup', async (req, res) => {
         WHERE si.studIDnumber = @idNumber;
       `);
 
-    if (studentResult.recordset.length === 0) {
-      return res.status(404).json({ message: 'Student not found' });
+    let patron = null;
+
+    if (studentResult.recordset.length > 0) {
+      patron = studentResult.recordset[0];
+    } else {
+      // 2. FFOR RESRACH AND GUESTS
+      const guestResult = await pool.request()
+        .input('idNumber', sql.VarChar, cleanId)
+        .query(`
+          SELECT 
+            GuestID, IDNumber AS studIDnumber, 
+            LastName AS studLname, FirstName AS studFname,
+            GuestType
+          FROM GuestPatrons
+          WHERE IDNumber = @idNumber;
+        `);
+
+      if (guestResult.recordset.length > 0) {
+        const guest = guestResult.recordset[0];
+        patron = {
+          studID: guest.GuestID,
+          studIDnumber: guest.studIDnumber,
+          studLname: guest.studLname,
+          studFname: guest.studFname,
+          studCourse: guest.GuestType || 'Guest',
+          studYear: 'N/A',
+          studCollege: guest.GuestType || 'Visitor',
+          studGender: 'N/A'
+        };
+      }
     }
 
-    const student = studentResult.recordset[0];
+    if (!patron) {
+      return res.status(404).json({ message: 'Patron not found' });
+    }
 
+    // for time i ntime out
     const todayLogs = await pool.request()
-      .input('idNumber', sql.VarChar, idNumber)
+      .input('idNumber', sql.VarChar, cleanId)
       .input('section', sql.VarChar, section)
       .query(`
         SELECT COUNT(*) AS logCount
@@ -237,14 +270,15 @@ app.post('/api/student-lookup', async (req, res) => {
     const logType = logCount % 2 === 0 ? 'Time In' : 'Time Out';
     const nowPH = moment().utcOffset('+08:00').format("YYYY-MM-DD HH:mm:ss");
 
+    // 
     const insertLog = await pool.request()
-      .input('studIDnumber', sql.VarChar, student.studIDnumber)
-      .input('studLname', sql.NVarChar, student.studLname)
-      .input('studFname', sql.NVarChar, student.studFname)
-      .input('studCourse', sql.VarChar, student.studCourse || '')
-      .input('studYear', sql.VarChar, student.studYear || '')
-      .input('studCollege', sql.VarChar, student.studCollege || '')
-      .input('studGender', sql.VarChar, student.studGender || '')
+      .input('studIDnumber', sql.VarChar, patron.studIDnumber)
+      .input('studLname', sql.NVarChar, patron.studLname)
+      .input('studFname', sql.NVarChar, patron.studFname)
+      .input('studCourse', sql.VarChar, patron.studCourse || '')
+      .input('studYear', sql.VarChar, patron.studYear || '')
+      .input('studCollege', sql.VarChar, patron.studCollege || '')
+      .input('studGender', sql.VarChar, patron.studGender || '')
       .input('section', sql.VarChar, section)
       .input('studLogType', sql.NVarChar, logType)
       .input('timeLogged', sql.VarChar, nowPH)
@@ -263,7 +297,7 @@ app.post('/api/student-lookup', async (req, res) => {
     const newLog = insertLog.recordset[0];
 
     res.json({
-      ...student,
+      ...patron,
       logId: newLog.LogID,
       studLogType: newLog.studLogType,
       timeLogged: nowPH,
@@ -857,7 +891,7 @@ app.post('/api/supplies', async (req, res) => {
       .input('Brand', sql.NVarChar, normBrand)
       .input('Specifications', sql.NVarChar, normSpecs)
       .query("SELECT Id FROM OfficeSupplies WHERE ItemName = @ItemName AND ISNULL(Brand,'') = @Brand AND ISNULL(Specifications,'') = @Specifications");
-    
+
     if (duplicateCheck.recordset.length > 0) {
       return res.status(400).json({ message: 'Duplicate item: Item name, brand, and specifications already exist.' });
     }

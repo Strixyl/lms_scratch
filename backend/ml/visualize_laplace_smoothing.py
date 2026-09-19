@@ -1,12 +1,3 @@
-"""
-Laplace (Additive) Smoothing Visualization for Naive Bayes
-Henry Luce III Library Management System - Patron Feedback Categorizer
-
-This script demonstrates and visualizes the "Zero-Frequency Problem" in Naïve Bayes
-and how Laplace Smoothing (alpha = 1.0) prevents typos/unseen words from collapsing
-the entire sentence probability to zero.
-"""
-
 import os
 import matplotlib
 matplotlib.use('Agg')  # Headless mode for clean, non-blocking image export
@@ -15,7 +6,7 @@ import numpy as np
 
 def run_visualization():
     # ── 1. Example Sentence with Real Words & Typos ──
-    # Sentence: "The aircon is warm and the restrrom on 2nd flr is drity"
+    # sentence: "The aircon is warm and the restrrom on 2nd flr is drity"
     tokens = ["aircon", "warm", "restrrom\n(typo)", "drity\n(typo)"]
     
     # Word counts in 'Facilities' category (Total words N = 5,000, Vocab |V| = 3,500)

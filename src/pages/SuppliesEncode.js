@@ -90,7 +90,7 @@ const SuppliesEncode = () => {
     try {
       const brandName = formData.brand.trim();
       if (brandName && !brands.some((b) => b.brand_name.toLowerCase() === brandName.toLowerCase())) await createBrand(brandName);
-      
+
       await createSupply({
         itemName: formData.itemName.trim(), brand: brandName, quantity: Number(formData.quantity),
         status: getStockStatus(Number(formData.quantity)), specifications: formData.specifications.trim() || 'N/A',
@@ -135,7 +135,7 @@ const SuppliesEncode = () => {
 
   const handleOpenDelete = (item) => { setSelectedItem(item); setDeleteDialogOpen(true); };
   const handleDelete = async () => {
-    try { await deleteSupply(selectedItem.Id); setSnackbar({ open: true, message: 'Supply deleted successfully!', severity: 'success' }); setDeleteDialogOpen(false); fetchItems(); } 
+    try { await deleteSupply(selectedItem.Id); setSnackbar({ open: true, message: 'Supply deleted successfully!', severity: 'success' }); setDeleteDialogOpen(false); fetchItems(); }
     catch (err) { setSnackbar({ open: true, message: 'Failed to delete.', severity: 'error' }); }
   };
 

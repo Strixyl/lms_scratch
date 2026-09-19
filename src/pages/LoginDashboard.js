@@ -304,10 +304,10 @@ const ItemChipsView = ({ data = [], totalVisits = 0, isCollegeLevel = false, sel
           icon={<CategoryIcon sx={{ fontSize: '15px !important', color: '#16324f !important' }} />}
           label={isCollegeLevel ? "Colleges Breakdown (Item Chips View)" : `Courses in ${selectedCollege} (Item Chips)`}
           size="small"
-          sx={{ fontWeight: 700, fontFamily: T.font.family, fontSize: 12, bgcolor: '#edf4fa', color: '#16324f', borderRadius: '9999px' }}
+          sx={{ fontWeight: 700, fontFamily: T.font.family, fontSize: 12, bgcolor: '#f1f5f9', color: '#000000', borderRadius: '9999px' }}
         />
-        <Typography sx={{ fontFamily: T.font.family, fontSize: 13, color: '#64748b', fontWeight: 600 }}>
-          Total Visits: <strong style={{ color: '#16324f' }}>{totalVisits}</strong>
+        <Typography sx={{ fontFamily: T.font.family, fontSize: 13, color: '#000000', fontWeight: 600 }}>
+          Total Visits: <strong style={{ color: '#000000' }}>{totalVisits}</strong>
         </Typography>
       </Box>
 
@@ -342,7 +342,7 @@ const ItemChipsView = ({ data = [], totalVisits = 0, isCollegeLevel = false, sel
             >
               <Box sx={{ pl: 0.5 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.2 }}>
-                  <Typography sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 14, color: '#0f172a', pr: 1, lineHeight: 1.3 }}>
+                  <Typography sx={{ fontFamily: T.font.family, fontWeight: 700, fontSize: 14, color: '#000000', pr: 1, lineHeight: 1.3 }}>
                     {title}
                   </Typography>
                   <Chip
@@ -351,9 +351,9 @@ const ItemChipsView = ({ data = [], totalVisits = 0, isCollegeLevel = false, sel
                     sx={{
                       fontWeight: 800,
                       fontFamily: T.font.family,
-                      bgcolor: `${color}15`,
-                      color: color,
-                      border: `1px solid ${color}40`,
+                      bgcolor: '#f1f5f9',
+                      color: '#000000',
+                      border: '1px solid #cbd5e1',
                       fontSize: 12,
                       height: 24,
                       borderRadius: '9999px'
@@ -362,10 +362,10 @@ const ItemChipsView = ({ data = [], totalVisits = 0, isCollegeLevel = false, sel
                 </Box>
 
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.8 }}>
-                  <Typography sx={{ fontFamily: T.font.family, fontSize: 12, color: '#64748b', fontWeight: 600 }}>
+                  <Typography sx={{ fontFamily: T.font.family, fontSize: 12, color: '#000000', fontWeight: 600 }}>
                     Share of Foot Traffic
                   </Typography>
-                  <Typography sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 700, color: '#1e293b' }}>
+                  <Typography sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 700, color: '#000000' }}>
                     {percentage}%
                   </Typography>
                 </Box>
@@ -424,18 +424,19 @@ const CustomBarTooltip = ({ active, payload, label }) => {
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.2, borderBottom: '1px solid #e2e8f0', pb: 1 }}>
-          <Typography variant="subtitle2" sx={{ fontFamily: T.font.family, fontWeight: 800, color: '#16324f', fontSize: 13.5, lineHeight: 1.3 }}>
+          <Typography variant="subtitle2" sx={{ fontFamily: T.font.family, fontWeight: 800, color: '#000000', fontSize: 13.5, lineHeight: 1.3 }}>
             {entryData?.fullName || label}
           </Typography>
           <Box sx={{
-            bgcolor: '#edf4fa',
-            color: '#0284c7',
+            bgcolor: '#f1f5f9',
+            color: '#000000',
             px: 1,
             py: 0.3,
             borderRadius: '9999px',
             fontSize: 11,
             fontWeight: 800,
             fontFamily: T.font.family,
+            border: '1px solid #cbd5e1',
             flexShrink: 0,
             ml: 1
           }}>
@@ -445,7 +446,7 @@ const CustomBarTooltip = ({ active, payload, label }) => {
 
         {isCollegeBreakdown ? (
           <>
-            <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 700, color: '#64748b', mb: 1, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 700, color: '#000000', mb: 1, textTransform: 'uppercase', letterSpacing: 0.5 }}>
               {entryData?.name === 'Guest / Visitor' ? 'Guest Type Breakdown:' : 'Course Breakdown & Color Key:'}
             </Typography>
             <Box sx={{
@@ -472,11 +473,11 @@ const CustomBarTooltip = ({ active, payload, label }) => {
                         boxShadow: `0 2px 6px ${swatchColor}40`,
                         flexShrink: 0
                       }} />
-                      <Typography noWrap variant="body2" sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#1e293b' }}>
+                      <Typography noWrap variant="body2" sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#000000' }}>
                         {item.name}
                       </Typography>
                     </Box>
-                    <Typography variant="body2" sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 800, color: swatchColor, ml: 2, flexShrink: 0 }}>
+                    <Typography variant="body2" sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 800, color: '#000000', ml: 2, flexShrink: 0 }}>
                       {item.value} ({percent}%)
                     </Typography>
                   </Box>
@@ -486,10 +487,10 @@ const CustomBarTooltip = ({ active, payload, label }) => {
           </>
         ) : (
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1.2, borderRadius: 2, bgcolor: '#f8fafc', border: '1px solid #f1f5f9' }}>
-            <Typography variant="body2" sx={{ fontFamily: T.font.family, fontSize: 12.5, fontWeight: 700, color: '#1e293b' }}>
+            <Typography variant="body2" sx={{ fontFamily: T.font.family, fontSize: 12.5, fontWeight: 700, color: '#000000' }}>
               Recorded Foot Traffic
             </Typography>
-            <Typography variant="body2" sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 800, color: '#0284c7' }}>
+            <Typography variant="body2" sx={{ fontFamily: T.font.family, fontSize: 13, fontWeight: 800, color: '#000000' }}>
               {total} visits
             </Typography>
           </Box>
@@ -526,7 +527,7 @@ const CustomMonthlyTrendTooltip = ({ active, payload, label }) => {
         }}
       >
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.2, borderBottom: '1px solid #e2e8f0', pb: 1 }}>
-          <Typography variant="subtitle2" sx={{ fontFamily: T.font.family, fontWeight: 800, color: '#16324f', fontSize: 14 }}>
+          <Typography variant="subtitle2" sx={{ fontFamily: T.font.family, fontWeight: 800, color: '#000000', fontSize: 14 }}>
             {label}
           </Typography>
           {isSelected && (
@@ -535,46 +536,46 @@ const CustomMonthlyTrendTooltip = ({ active, payload, label }) => {
         </Box>
 
         <Box sx={{ mb: 1.5, p: 1.2, borderRadius: 2, bgcolor: '#f8fafc', border: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 600, color: '#64748b' }}>
+          <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 600, color: '#000000' }}>
             Total Visits:
           </Typography>
-          <Typography sx={{ fontFamily: T.font.family, fontSize: 14, fontWeight: 800, color: '#16324f' }}>
-            {total} <Typography component="span" sx={{ fontSize: 11.5, color: '#64748b', fontWeight: 600 }}>({pct}% of Year)</Typography>
+          <Typography sx={{ fontFamily: T.font.family, fontSize: 14, fontWeight: 800, color: '#000000' }}>
+            {total} <Typography component="span" sx={{ fontSize: 11.5, color: '#000000', fontWeight: 600 }}>({pct}% of Year)</Typography>
           </Typography>
         </Box>
 
-        <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 700, color: '#64748b', mb: 0.8, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+        <Typography sx={{ fontFamily: T.font.family, fontSize: 11, fontWeight: 700, color: '#000000', mb: 0.8, textTransform: 'uppercase', letterSpacing: 0.5 }}>
           Gender Distribution:
         </Typography>
 
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.6 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 0.6, px: 1, borderRadius: 1.5, bgcolor: '#f8fafc' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-              <MaleIcon sx={{ fontSize: 16, color: '#16324f' }} />
-              <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 600, color: '#334155' }}>Male</Typography>
+              <MaleIcon sx={{ fontSize: 16, color: '#000000' }} />
+              <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 600, color: '#000000' }}>Male</Typography>
             </Box>
-            <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#16324f' }}>
+            <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#000000' }}>
               {males} {total > 0 ? `(${Math.round((males / total) * 100)}%)` : ''}
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 0.6, px: 1, borderRadius: 1.5, bgcolor: '#f8fafc' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-              <FemaleIcon sx={{ fontSize: 16, color: '#c2410c' }} />
-              <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 600, color: '#334155' }}>Female</Typography>
+              <FemaleIcon sx={{ fontSize: 16, color: '#000000' }} />
+              <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 600, color: '#000000' }}>Female</Typography>
             </Box>
-            <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#c2410c' }}>
+            <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#000000' }}>
               {females} {total > 0 ? `(${Math.round((females / total) * 100)}%)` : ''}
             </Typography>
           </Box>
           {otherGender > 0 && (
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 0.6, px: 1, borderRadius: 1.5, bgcolor: '#f8fafc' }}>
-              <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 600, color: '#64748b', ml: 2.8 }}>Unspecified</Typography>
-              <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#64748b' }}>{otherGender}</Typography>
+              <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 600, color: '#000000', ml: 2.8 }}>Unspecified</Typography>
+              <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#000000' }}>{otherGender}</Typography>
             </Box>
           )}
         </Box>
 
-        <Typography sx={{ fontFamily: T.font.family, fontSize: 10.5, color: '#94a3b8', mt: 1.2, pt: 0.8, borderTop: '1px dashed #e2e8f0', textAlign: 'center' }}>
+        <Typography sx={{ fontFamily: T.font.family, fontSize: 10.5, color: '#000000', mt: 1.2, pt: 0.8, borderTop: '1px dashed #cbd5e1', textAlign: 'center' }}>
           Click bar to filter / toggle this month
         </Typography>
       </Paper>
@@ -2240,7 +2241,7 @@ const LoginDashboard = () => {
                               <BarChartIcon />
                             </Box>
                             <Box>
-                              <Typography sx={{ ...sectionTitleSx, color: '#16324f' }}>
+                              <Typography sx={{ ...sectionTitleSx, color: '#000000' }}>
                                 {effectiveMode === 'monthly'
                                   ? `Monthly Foot Traffic Trend (${filterYear === 'All' ? 'All Years' : filterYear})`
                                   : effectiveMode === 'chips'
@@ -2251,7 +2252,7 @@ const LoginDashboard = () => {
                                       ? 'Visits Breakdown'
                                       : `Available Course Foot Traffic (${selectedCollege})`}
                               </Typography>
-                              <Typography sx={sectionSubtitleSx}>
+                              <Typography sx={{ ...sectionSubtitleSx, color: '#000000' }}>
                                 {effectiveMode === 'monthly'
                                   ? 'Comparing entrance traffic volume across months (Click any bar to filter)'
                                   : effectiveMode === 'chips'
@@ -2336,8 +2337,8 @@ const LoginDashboard = () => {
                                   </linearGradient>
                                 </defs>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748b', fontFamily: T.font.family, fontWeight: 700 }} />
-                                <YAxis tick={{ fontSize: 12, fill: '#64748b', fontFamily: T.font.family }} allowDecimals={false} />
+                                <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#000000', fontFamily: T.font.family, fontWeight: 700 }} />
+                                <YAxis tick={{ fontSize: 12, fill: '#000000', fontFamily: T.font.family, fontWeight: 600 }} allowDecimals={false} />
                                 <RechartsTooltip content={<CustomMonthlyTrendTooltip />} />
                                 <Bar
                                   dataKey="total"
@@ -2411,8 +2412,8 @@ const LoginDashboard = () => {
                                   ))}
                                 </defs>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b', fontFamily: T.font.family }} interval={0} angle={-25} textAnchor="end" height={65} />
-                                <YAxis tick={{ fontSize: 12, fill: '#64748b', fontFamily: T.font.family }} allowDecimals={false} />
+                                <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#000000', fontFamily: T.font.family, fontWeight: 600 }} interval={0} angle={-25} textAnchor="end" height={65} />
+                                <YAxis tick={{ fontSize: 12, fill: '#000000', fontFamily: T.font.family, fontWeight: 600 }} allowDecimals={false} />
                                 <RechartsTooltip content={<CustomBarTooltip />} />
                                 <Bar
                                   dataKey="total"

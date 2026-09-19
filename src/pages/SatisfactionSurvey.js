@@ -994,7 +994,7 @@ const SatisfactionSurvey = () => {
                   <Box sx={{ display: 'flex', gap: 1.2 }}>
                     <Chip
                       icon={<WizardIcon sx={{ fontSize: '20px !important' }} />}
-                      label="Single-Question Focus Wizard"
+                      label="CISCO SINGLE QUESTIONS Focus Wizard"
                       clickable
                       onClick={() => setViewMode('wizard')}
                       sx={{
