@@ -433,7 +433,7 @@ const BookCatalogue = () => {
     XLSX.writeFile(workbook, `HLL_CardAndPacket_${dateStamp}.xlsx`);
   };
 
-  // print selected book cards (4 books per sheet)
+  // computation: print book cards (4 cards per page)
   const handlePrintSelected = () => {
     if (selectedRows.length === 0) {
       alert('Select at least one book to print.');
@@ -443,7 +443,7 @@ const BookCatalogue = () => {
     const frontEmptyRows = Array(12).fill('<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>').join('');
     const backEmptyRows = Array(20).fill('<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>').join('');
 
-    // chunk rows into groups of 4
+    // computation: chunk into groups of 4: ceil(total / 4)
     const chunks = [];
     for (let i = 0; i < selectedRows.length; i += 4) {
       chunks.push(selectedRows.slice(i, i + 4));
@@ -580,7 +580,7 @@ const BookCatalogue = () => {
             height: 100%;
             margin-top: 0;
           }
-          /* Book Packet Styles */
+          /* book packet styles */
           .packet-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -981,7 +981,7 @@ const BookCatalogue = () => {
               </Grid>
             </Grid>
 
-            {/* controls bar: search, filters, view switcher and action buttons */}
+            {/* controls bar */}
             <Paper elevation={0} sx={{ p: 2, mb: 2.5, borderRadius: 2, border: '1px solid #e2e8f0', bgcolor: '#ffffff' }}>
               <Grid container spacing={2} alignItems="center" sx={{ mb: 2 }}>
                 {/* search input */}
@@ -1179,7 +1179,7 @@ const BookCatalogue = () => {
               </Box>
             </Paper>
 
-            {/* table or card grid view */}
+            {/* table or card view */}
             {viewMode === 'table' ? (
               <Paper elevation={0} sx={{ height: 600, width: '100%', borderRadius: 2, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
                 <DataGrid
@@ -1247,7 +1247,7 @@ const BookCatalogue = () => {
                 />
               </Paper>
             ) : (
-              /* CARD VIEW */
+              /* card view */
               <Grid container spacing={2}>
                 {filteredBookData.map((book) => {
                   const isSelected = selectedSet.has(book.id);

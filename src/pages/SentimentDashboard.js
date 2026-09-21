@@ -600,7 +600,7 @@ function SentimentDashboard() {
     (filterYear && filterYear !== 'All' && filterYear !== '2026')
   );
 
-  // average satisfaction rating
+  // computation: avg satisfaction = sum(scores) / total
   const avgSatisfaction = filtered.length
     ? filtered.reduce((sum, s) => sum + getSatisfactionAverage(s), 0) / filtered.length
     : 0;
@@ -618,7 +618,7 @@ function SentimentDashboard() {
     return arr;
   }, [surveys]);
 
-  // monthly sentiment trend data
+  // computation: monthly sentiment aggregates and percentages
   const divergingTrendData = useMemo(() => {
     const targetYear = filterYear === 'All' ? null : (filterYear || '2026');
 
@@ -666,6 +666,7 @@ function SentimentDashboard() {
     return MONTH_NAMES.map((m, idx) => {
       const item = monthsMap[idx];
       const avg = item.Total > 0 ? parseFloat((item.scoresSum / item.Total).toFixed(2)) : null;
+      // computation: net = positive - negative; pos % = (positive / total) * 100
       const net = item.Positive - item.rawNegative;
       const posPct = item.Total > 0 ? Math.round((item.Positive / item.Total) * 100) : 0;
       const neuPct = item.Total > 0 ? Math.round((item.Neutral / item.Total) * 100) : 0;
@@ -683,7 +684,7 @@ function SentimentDashboard() {
     });
   }, [surveys, filterYear, filterClientele, filterCollege, filterCourse, filterCategory, filterMonth]);
 
-  // dynamic y-axis max
+  // computation: dynamic max = ceil(maxVal * 1.25)
   const maxVolume = useMemo(() => {
     let maxVal = 5;
     divergingTrendData.forEach(d => {
@@ -702,7 +703,7 @@ function SentimentDashboard() {
     return Math.ceil(maxVal * 1.25);
   }, [divergingTrendData, filterSentiment]);
 
-  // category breakdown
+  // computation: category pos % = round((pos / total) * 100)
   const categoryBreakdownData = useMemo(() => {
     const categories = ['Facilities', 'Staff', 'Collection'];
     return categories.map(cat => {
@@ -724,7 +725,7 @@ function SentimentDashboard() {
     });
   }, [filtered]);
 
-  // sentiment counts for selected category
+  // category sentiment counts
   const sourceCardSentimentData = useMemo(() => {
     if (sourceCategoryFilter === 'All Categories' || sourceCategoryFilter === 'All') {
       return {
@@ -756,7 +757,7 @@ function SentimentDashboard() {
 
 
 
-  // word frequency for word cloud
+  // word frequencies
   const { freq: termFrequencies = {}, displayMap: stemToOriginalMap = {} } = useMemo(() => {
     return buildTermFrequencies(filtered.length > 0 ? filtered : surveys);
   }, [filtered, surveys]);
@@ -1102,7 +1103,7 @@ function SentimentDashboard() {
 
             {!showLoginModal && (
               <Box sx={{ p: { xs: 2, md: 3 }, bgcolor: '#eef1f6', minHeight: '100vh' }}>
-                {/* header action bar banner */}
+                {/* action bar */}
                 <Paper elevation={0} sx={{
                   p: { xs: 2, md: 2.5 }, mb: 3, borderRadius: 3.5,
                   bgcolor: '#ffffff',
@@ -1226,7 +1227,7 @@ function SentimentDashboard() {
                     </Typography>
                   </Box>
 
-                  {/* date presets and sentiment filter */}
+                  {/* date and sentiment filters */}
                   <Box sx={{
                     p: { xs: 2, sm: 2.5 },
                     bgcolor: '#ffffff',
@@ -1236,7 +1237,7 @@ function SentimentDashboard() {
                     flexWrap: 'wrap',
                     gap: 2,
                   }}>
-                    {/* quick date horizon presets */}
+                    {/* date presets */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, flexWrap: 'wrap' }}>
                       <Typography sx={{ fontFamily: T.font.family, fontSize: 12.5, fontWeight: 700, color: '#64748b', mr: 0.4, display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         <CalendarTodayIcon sx={{ fontSize: 15, color: '#16324f' }} /> Date Horizon:
@@ -1251,9 +1252,9 @@ function SentimentDashboard() {
                       <Button size="small" variant="outlined" onClick={() => handleDatePreset('all')} sx={datePresetBtnSx}>All Time</Button>
                     </Box>
 
-                    {/* right controls: sentiment quick-filter, more filters button, clear filters */}
+                    {/* quick filters */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, flexWrap: 'wrap' }}>
-                      {/* quick sentiment pills */}
+                      {/* sentiment pills */}
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: '#f1f5f9', p: 0.4, borderRadius: '10px' }}>
                         {[
                           { val: '', label: 'All Sentiments' },
@@ -1290,7 +1291,7 @@ function SentimentDashboard() {
                         })}
                       </Box>
 
-                      {/* toggle advanced filters button */}
+                      {/* advanced filters toggle */}
                       <Button
                         variant="outlined"
                         onClick={() => setShowAdvancedFilters(prev => !prev)}
@@ -1471,7 +1472,7 @@ function SentimentDashboard() {
                     </Box>
                   </Collapse>
 
-                  {/* active filter chips */}
+                  {/* filter chips */}
                   {hasActiveFilter && (
                     <Box sx={{ px: 3, pb: 2, pt: 1.5, bgcolor: '#f8fafc', display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', borderTop: `1px solid ${T.surface.borderLight}` }}>
                       <Typography sx={{ fontFamily: T.font.family, fontSize: 12.5, fontWeight: 700, color: '#64748b' }}>
@@ -1544,7 +1545,7 @@ function SentimentDashboard() {
                   )}
                 </Paper>
 
-                {/* priority alert banner */}
+                {/* priority alert */}
                 {urgentAlertTopic && !loading && (
                   <Paper
                     elevation={0}
@@ -1647,7 +1648,7 @@ function SentimentDashboard() {
                 )}
 
                 {loading ? (
-                  /* pulse skeleton loader */
+                  /* skeleton loader */
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, my: 1 }}>
                     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2 }}>
                       <Skeleton variant="rounded" height={130} sx={{ borderRadius: 3.5, bgcolor: '#ffffff' }} />
@@ -1663,7 +1664,7 @@ function SentimentDashboard() {
                   </Box>
                 ) : (
                   <>
-                    {/* upper dashboard section: kpi cards and source donut */}
+                    {/* kpi and source overview */}
                     <Box sx={{
                       display: 'grid',
                       gridTemplateColumns: { xs: '1fr', lg: '3fr 1fr' },
@@ -1671,9 +1672,9 @@ function SentimentDashboard() {
                       mb: 3.5,
                       alignItems: 'stretch'
                     }}>
-                      {/* left column: kpi cards and monthly diverging bar chart */}
+                      {/* kpis and trend chart */}
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-                        {/* top 3 kpi cards */}
+                        {/* kpi cards */}
                         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2 }}>
                           <ModernKpiCard
                             title="Total Surveys"
@@ -1698,6 +1699,7 @@ function SentimentDashboard() {
                                 ? cohortCounts.Neutral
                                 : cohortCounts.Positive;
 
+                            // computation: kpi rate % = round((active / total) * 100)
                             const kpiRate = cohortCounts.Total > 0
                               ? Math.round((activeCount / cohortCounts.Total) * 100)
                               : 0;
@@ -1726,7 +1728,7 @@ function SentimentDashboard() {
                           />
                         </Box>
 
-                        {/* monthly sentiment diverging bar chart */}
+                        {/* monthly sentiment chart */}
                         <Card elevation={0} sx={{
                           bgcolor: '#ffffff',
                           borderRadius: '16px',
@@ -1742,7 +1744,7 @@ function SentimentDashboard() {
                             borderColor: '#16324f',
                           }
                         }}>
-                          {/* header container */}
+                          {/* header */}
                           <Box sx={{
                             display: 'flex',
                             alignItems: { xs: 'flex-start', sm: 'center' },
@@ -1799,7 +1801,7 @@ function SentimentDashboard() {
                               </Box>
                             </Box>
 
-                            {/* view controls: share percentage vs volume counts */}
+                            {/* percentage vs volume toggle */}
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                               <ToggleButtonGroup
                                 value={trendScaleMode}
@@ -1858,7 +1860,7 @@ function SentimentDashboard() {
                             </Box>
                           </Box>
 
-                          {/* monthly side-by-side grouped pill chart */}
+                          {/* monthly chart */}
                           <Box sx={{ width: '100%', height: 340, mt: 0.5 }}>
                             <ResponsiveContainer width="100%" height="100%">
                               <BarChart
@@ -1891,34 +1893,34 @@ function SentimentDashboard() {
                                 }}
                               >
                                 <defs>
-                                  {/* vibrant emerald green gradient based on login dashboard palette */}
+                                  {/* positive gradient */}
                                   <linearGradient id="barDarkGreen" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="0%" stopColor="#10b981" stopOpacity={0.95} />
                                     <stop offset="100%" stopColor="#34d399" stopOpacity={0.9} />
                                   </linearGradient>
-                                  {/* deep vibrant green gradient for single highlighted bar */}
+                                  {/* positive highlight */}
                                   <linearGradient id="barVibrantGreen" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="0%" stopColor="#059669" stopOpacity={1} />
                                     <stop offset="100%" stopColor="#10b981" stopOpacity={0.95} />
                                   </linearGradient>
 
-                                  {/* balanced slate gradient for neutral based on login dashboard palette */}
+                                  {/* neutral gradient */}
                                   <linearGradient id="barDarkSlate" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="0%" stopColor="#64748b" stopOpacity={0.92} />
                                     <stop offset="100%" stopColor="#cbd5e1" stopOpacity={0.9} />
                                   </linearGradient>
-                                  {/* deep slate gradient for highlighted neutral bar */}
+                                  {/* neutral highlight */}
                                   <linearGradient id="barVibrantSlate" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="0%" stopColor="#475569" stopOpacity={1} />
                                     <stop offset="100%" stopColor="#94a3b8" stopOpacity={0.95} />
                                   </linearGradient>
 
-                                  {/* vibrant rose-red gradient for negative based on login dashboard palette */}
+                                  {/* negative gradient */}
                                   <linearGradient id="barDarkRose" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.95} />
                                     <stop offset="100%" stopColor="#fb7185" stopOpacity={0.9} />
                                   </linearGradient>
-                                  {/* deep rose-red gradient for highlighted negative bar */}
+                                  {/* negative highlight */}
                                   <linearGradient id="barVibrantRose" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="0%" stopColor="#e11d48" stopOpacity={1} />
                                     <stop offset="100%" stopColor="#f43f5e" stopOpacity={0.95} />
@@ -1991,7 +1993,7 @@ function SentimentDashboard() {
                         </Card>
                       </Box>
 
-                      {/* right column: source and category breakdown donut card */}
+                      {/* category donut breakdown */}
                       <Box sx={{ height: '87%' }}>
                         <SourceSentimentBreakdownCard
                           totalSurveys={sourceCardSentimentData.total}
@@ -2008,7 +2010,7 @@ function SentimentDashboard() {
                     </Box>
 
 
-                    {/* top patron comments container */}
+                    {/* patron comments */}
                     <Card elevation={0} sx={{
                       ...cardShellSx,
                       mb: 3,
@@ -2126,7 +2128,7 @@ function SentimentDashboard() {
                       </CardContent>
                     </Card>
 
-                    {/* service improvement recommendations */}
+                    {/* recommendations */}
                     <Card elevation={0} sx={{
                       ...cardShellSx,
                       mb: 3.5,
@@ -2231,7 +2233,7 @@ function SentimentDashboard() {
                       </CardContent>
                     </Card>
 
-                    {/* word cloud container */}
+                    {/* word cloud */}
                     <WordCloudSection
                       words={wordCloudWords}
                       selectedWordFilter={selectedWordFilter}
@@ -2239,7 +2241,7 @@ function SentimentDashboard() {
                       onClearWordFilter={handleClearWordFilter}
                     />
 
-                    {/* granular survey review table */}
+                    {/* survey reviews table */}
                     <Paper id="review-table-section" elevation={0} sx={{
                       borderRadius: 3.5,
                       bgcolor: '#ffffff',
@@ -2250,9 +2252,9 @@ function SentimentDashboard() {
                       p: { xs: 2, md: 3 },
                       mb: 3,
                     }}>
-                      {/* table header controls */}
+                      {/* table controls */}
                       <Box sx={{ mb: 2.5, display: 'flex', flexDirection: 'column', gap: 1.8 }}>
-                        {/* top tier: title and primary action controls */}
+                        {/* title and actions */}
                         <Box sx={{
                           display: 'flex',
                           justifyContent: 'space-between',
@@ -2333,7 +2335,7 @@ function SentimentDashboard() {
                             </Typography>
                           </Box>
 
-                          {/* table search and action buttons */}
+                          {/* search and export */}
                           <Box sx={{ display: 'flex', gap: 1.2, alignItems: 'center', flexWrap: 'wrap', width: { xs: '100%', sm: 'auto' } }}>
                             {/* search input */}
                             <TextField
@@ -2424,7 +2426,7 @@ function SentimentDashboard() {
                           </Box>
                         </Box>
 
-                        {/* bottom tier: month quick filter pills */}
+                        {/* month filter pills */}
                         <Box sx={{
                           display: 'flex',
                           alignItems: 'center',
@@ -2494,7 +2496,7 @@ function SentimentDashboard() {
                         </Box>
                       </Box>
 
-                      {/* table content grid */}
+                      {/* table grid */}
                       <TableContainer
                         component={Box}
                         sx={{
@@ -2507,7 +2509,7 @@ function SentimentDashboard() {
                       >
                         <Table size="small" sx={{ minWidth: 920, borderCollapse: 'separate', borderSpacing: 0 }}>
                           <TableHead>
-                            {/* top tier: section headers */}
+                            {/* section headers */}
                             <TableRow sx={{
                               bgcolor: '#ffffff',
                               '& th': {
@@ -2556,7 +2558,7 @@ function SentimentDashboard() {
                               </TableCell>
                             </TableRow>
 
-                            {/* second tier: column headers with sort labels */}
+                            {/* column headers */}
                             <TableRow sx={{
                               bgcolor: '#fafbfc',
                               '& th': {
@@ -2772,7 +2774,7 @@ function SentimentDashboard() {
                         </Table>
                       </TableContainer>
 
-                      {/* pagination controls */}
+                      {/* pagination */}
                       <Box sx={{
                         display: 'flex',
                         justifyContent: 'space-between',
@@ -2843,7 +2845,7 @@ function SentimentDashboard() {
               </Box>
             )}
 
-            {/* deletion confirmation dialog */}
+            {/* delete dialog */}
             <Dialog open={deleteConfirmOpen} onClose={() => !deleting && setDeleteConfirmOpen(false)} PaperProps={{ sx: { borderRadius: T.radius.card, p: 1, maxWidth: 440 } }}>
               <DialogTitle sx={{ fontFamily: T.font.family, fontWeight: 800, fontSize: 18, color: T.text.primary }}>
                 {recordToDelete ? 'Confirm Review Deletion' : `Confirm Batch Deletion (${selectedRowIds.length} Records)`}
@@ -2875,7 +2877,7 @@ function SentimentDashboard() {
               </DialogActions>
             </Dialog>
 
-            {/* snackbar alert toasts */}
+            {/* feedback toasts */}
             <Snackbar open={Boolean(snackbarMsg)} autoHideDuration={4000} onClose={() => setSnackbarMsg('')} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
               <Alert onClose={() => setSnackbarMsg('')} severity="info" sx={{ width: '100%', fontFamily: T.font.family, fontWeight: 600, borderRadius: 3 }}>
                 {snackbarMsg}

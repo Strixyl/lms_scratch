@@ -12,7 +12,7 @@ import { getAssets, transferAsset } from '../api/equipmentApi';
 
 const font = THEME.font;
 
-// Combine and deduplicate physical locations and school libraries/sections
+// deduplicate destination options
 const DESTINATION_OPTIONS = Array.from(new Set([...LOCATION_OPTIONS, ...SECTION_OPTIONS])).sort();
 
 const SendAsset = () => {
@@ -31,7 +31,7 @@ const SendAsset = () => {
   const [submitting, setSubmitting] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
-  // Read Router state passed from the Equipment Records accordion
+  // route params from records
   const { preselectedProfileKey, preselectedSourceLocationId } = routerLocation.state || {};
 
   useEffect(() => {
@@ -60,7 +60,7 @@ const SendAsset = () => {
   const selectedProfile = items.find((i) => i.ProfileKey === selectedProfileKey);
   const selectedSource = selectedProfile?.Locations.find((l) => String(l.Id) === String(sourceLocationId));
 
-  // Reset dependent fields when the profile selection changes (unless using preselected query state)
+  // reset fields on profile change
   useEffect(() => {
     if (selectedProfileKey && selectedProfileKey !== preselectedProfileKey) {
       setSourceLocationId('');
@@ -159,7 +159,7 @@ const SendAsset = () => {
 
         <Paper elevation={0} sx={{ p: 3, border: '1px solid #e0e0e0', borderRadius: 3 }}>
           <Grid container spacing={2}>
-            {/* 1. Select Asset Profile */}
+            {/* asset profile */}
             <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <TextField
                 fullWidth select label="Select Asset Profile *" value={selectedProfileKey}
@@ -179,7 +179,7 @@ const SendAsset = () => {
               </TextField>
             </Grid>
 
-            {/* 2. Select Source Location */}
+            {/* source location */}
             <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <TextField
                 fullWidth select label="Source Location *" value={sourceLocationId}
@@ -196,7 +196,7 @@ const SendAsset = () => {
               </TextField>
             </Grid>
 
-            {/* 3. Destination Location / Section */}
+            {/* destination */}
             <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <TextField
                 fullWidth select label="Destination Location / Section *" value={destinationLocation}
@@ -211,7 +211,7 @@ const SendAsset = () => {
               </TextField>
             </Grid>
 
-            {/* Current details chip if source is selected */}
+            {/* current stock chip */}
             {selectedSource && (
               <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                 <Chip
@@ -221,7 +221,7 @@ const SendAsset = () => {
               </Grid>
             )}
 
-            {/* 4. Quantity to Send */}
+            {/* transfer quantity */}
             <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <TextField
                 fullWidth type="number" label="Quantity to Transfer *" value={transferQty}
@@ -232,7 +232,7 @@ const SendAsset = () => {
               />
             </Grid>
 
-            {/* 5. Taken By */}
+            {/* recipient */}
             <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <TextField
                 fullWidth label="Taken By *" placeholder="Name of person taking the item"
@@ -242,7 +242,7 @@ const SendAsset = () => {
               />
             </Grid>
 
-            {/* 6. Remarks */}
+            {/* remarks */}
             <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <TextField
                 fullWidth multiline minRows={2} label="Remarks (optional)" value={remarks}
