@@ -8,13 +8,11 @@ const ScrollToTopButton = () => {
   const [scrollProgress, setScrollProgress] = useState(0);
   const location = useLocation();
 
-  // calculate scroll position and progress
   const calculateScroll = useCallback(() => {
     // window scroll offset
     const windowScrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
     const windowScrollHeight = document.documentElement.scrollHeight - window.innerHeight;
 
-    // check inner scroll containers
     let maxElementScrollTop = 0;
     let maxElementProgress = 0;
 
@@ -54,11 +52,11 @@ const ScrollToTopButton = () => {
       }
     };
 
-    // capture inner container scroll events
+
     window.addEventListener('scroll', handleScroll, true);
     window.addEventListener('resize', handleScroll);
 
-    // initial check
+
     calculateScroll();
 
     return () => {
@@ -67,7 +65,7 @@ const ScrollToTopButton = () => {
     };
   }, [calculateScroll]);
 
-  // reset scroll position on route change
+
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     setIsVisible(false);
@@ -75,7 +73,7 @@ const ScrollToTopButton = () => {
   }, [location.pathname]);
 
   const scrollToTop = () => {
-    // scroll window to top
+
     window.scrollTo({
       top: 0,
       behavior: 'smooth',
@@ -101,7 +99,7 @@ const ScrollToTopButton = () => {
     });
   };
 
-  // formula: strokeDashoffset = circumference - (scrollProgress / 100) * circumference
+
   const size = 52;
   const strokeWidth = 3;
   const center = size / 2;
@@ -187,7 +185,7 @@ const ScrollToTopButton = () => {
               },
             }}
           >
-            {/* progress ring */}
+
             <svg
               width={size}
               height={size}
@@ -199,7 +197,7 @@ const ScrollToTopButton = () => {
                 pointerEvents: 'none',
               }}
             >
-              {/* background track */}
+
               <circle
                 cx={center}
                 cy={center}
@@ -208,7 +206,7 @@ const ScrollToTopButton = () => {
                 stroke="rgba(255, 255, 255, 0.12)"
                 strokeWidth={strokeWidth}
               />
-              {/* animated progress ring */}
+
               <circle
                 className="progress-circle"
                 cx={center}
@@ -226,7 +224,7 @@ const ScrollToTopButton = () => {
               />
             </svg>
 
-            {/* scroll up arrow icon */}
+
             <KeyboardArrowUpIcon
               className="scroll-arrow-icon"
               sx={{

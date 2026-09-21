@@ -79,6 +79,21 @@ async function analyzeSentiment(responses, message) {
   return { emojiSentiment, textSentiment, overallSentiment, category, sentimentScore };
 }
 
+// =================== DIAGNOSTIC MODEL EXPLAINER GATEWAY =================== //
+app.post('/api/debug/explain-scores', async (req, res) => {
+  try {
+    const pyRes = await axios.post('http://localhost:5001/api/debug/explain-scores', req.body, { timeout: 10000 });
+    return res.json(pyRes.data);
+  } catch (err) {
+    console.error('Diagnostic service error:', err.message);
+    return res.status(502).json({
+      error: 'Python ML service unavailable',
+      details: err.message,
+      fallback_available: true
+    });
+  }
+});
+
 // =================== MULTER SETUP =================== //
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {

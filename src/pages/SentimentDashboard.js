@@ -21,6 +21,7 @@ import {
   RateReview as RateReviewIcon,
   Lightbulb as LightbulbIcon,
   AdminPanelSettings as AdminIcon,
+  Psychology as PsychologyIcon,
   CalendarToday as CalendarTodayIcon,
   RestartAlt as RestartAltIcon,
   Inbox as InboxIcon,
@@ -1148,6 +1149,21 @@ function SentimentDashboard() {
                       Export to Excel
                     </Button>
                     <Button
+                      variant="contained"
+                      onClick={() => navigate('/model-explainer')}
+                      startIcon={<PsychologyIcon sx={{ fontSize: 18 }} />}
+                      sx={{
+                        borderRadius: '10px', height: 42, px: 2.2,
+                        fontFamily: T.font.family, fontSize: 13.5, fontWeight: 700, textTransform: 'none',
+                        bgcolor: '#16324f',
+                        color: '#ffffff',
+                        boxShadow: '0 2px 8px rgba(22, 50, 79, 0.28)',
+                        '&:hover': { bgcolor: '#0f243a', boxShadow: '0 4px 12px rgba(22, 50, 79, 0.35)' }
+                      }}
+                    >
+                      Model Explainer
+                    </Button>
+                    <Button
                       variant="outlined"
                       color="error"
                       onClick={handleLogout}
@@ -1875,37 +1891,37 @@ function SentimentDashboard() {
                                 }}
                               >
                                 <defs>
-                                  {/* pastel mint green gradient sampled from reference photo */}
-                                  <linearGradient id="photoPastelGreen" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#6ee6b7" stopOpacity={0.95} />
+                                  {/* vibrant emerald green gradient based on login dashboard palette */}
+                                  <linearGradient id="barDarkGreen" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#10b981" stopOpacity={0.95} />
                                     <stop offset="100%" stopColor="#34d399" stopOpacity={0.9} />
                                   </linearGradient>
-                                  {/* vibrant green gradient for single highlighted bar */}
-                                  <linearGradient id="photoVibrantGreen" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#34d399" stopOpacity={1} />
-                                    <stop offset="100%" stopColor="#059669" stopOpacity={1} />
+                                  {/* deep vibrant green gradient for single highlighted bar */}
+                                  <linearGradient id="barVibrantGreen" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#059669" stopOpacity={1} />
+                                    <stop offset="100%" stopColor="#10b981" stopOpacity={0.95} />
                                   </linearGradient>
 
-                                  {/* pastel slate gradient for neutral */}
-                                  <linearGradient id="photoPastelSlate" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#cbd5e1" stopOpacity={0.95} />
-                                    <stop offset="100%" stopColor="#94a3b8" stopOpacity={0.9} />
+                                  {/* balanced slate gradient for neutral based on login dashboard palette */}
+                                  <linearGradient id="barDarkSlate" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#64748b" stopOpacity={0.92} />
+                                    <stop offset="100%" stopColor="#cbd5e1" stopOpacity={0.9} />
                                   </linearGradient>
-                                  {/* vibrant slate gradient for highlighted neutral bar */}
-                                  <linearGradient id="photoVibrantSlate" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#94a3b8" stopOpacity={1} />
-                                    <stop offset="100%" stopColor="#475569" stopOpacity={1} />
+                                  {/* deep slate gradient for highlighted neutral bar */}
+                                  <linearGradient id="barVibrantSlate" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#475569" stopOpacity={1} />
+                                    <stop offset="100%" stopColor="#94a3b8" stopOpacity={0.95} />
                                   </linearGradient>
 
-                                  {/* complementary soft pastel rose gradient for negative */}
-                                  <linearGradient id="photoPastelRose" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#fda4af" stopOpacity={0.95} />
+                                  {/* vibrant rose-red gradient for negative based on login dashboard palette */}
+                                  <linearGradient id="barDarkRose" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.95} />
                                     <stop offset="100%" stopColor="#fb7185" stopOpacity={0.9} />
                                   </linearGradient>
-                                  {/* vibrant rose gradient for highlighted negative bar */}
-                                  <linearGradient id="photoVibrantRose" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#fb7185" stopOpacity={1} />
-                                    <stop offset="100%" stopColor="#e11d48" stopOpacity={1} />
+                                  {/* deep rose-red gradient for highlighted negative bar */}
+                                  <linearGradient id="barVibrantRose" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#e11d48" stopOpacity={1} />
+                                    <stop offset="100%" stopColor="#f43f5e" stopOpacity={0.95} />
                                   </linearGradient>
                                 </defs>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={T.surface.borderLight} />
@@ -1940,9 +1956,9 @@ function SentimentDashboard() {
                                   <Bar
                                     dataKey={trendScaleMode === 'percent' ? 'posPct' : 'Positive'}
                                     name={trendScaleMode === 'percent' ? 'Positive (%)' : 'Positive'}
-                                    fill={filterSentiment === 'Positive' ? 'url(#photoVibrantGreen)' : 'url(#photoPastelGreen)'}
-                                    stroke={filterSentiment === 'Positive' ? '#047857' : '#0fb87f'}
-                                    strokeWidth={filterSentiment === 'Positive' ? 2 : 1}
+                                    fill={filterSentiment === 'Positive' ? 'url(#barVibrantGreen)' : 'url(#barDarkGreen)'}
+                                    stroke={filterSentiment === 'Positive' ? '#047857' : '#10b981'}
+                                    strokeWidth={filterSentiment === 'Positive' ? 1.5 : 1}
                                     shape={renderPillBar}
                                     barSize={filterSentiment ? 36 : 20}
                                   />
@@ -1951,9 +1967,9 @@ function SentimentDashboard() {
                                   <Bar
                                     dataKey={trendScaleMode === 'percent' ? 'neuPct' : 'Neutral'}
                                     name={trendScaleMode === 'percent' ? 'Neutral (%)' : 'Neutral'}
-                                    fill={filterSentiment === 'Neutral' ? 'url(#photoVibrantSlate)' : 'url(#photoPastelSlate)'}
-                                    stroke={filterSentiment === 'Neutral' ? '#334155' : '#64748b'}
-                                    strokeWidth={filterSentiment === 'Neutral' ? 2 : 1}
+                                    fill={filterSentiment === 'Neutral' ? 'url(#barVibrantSlate)' : 'url(#barDarkSlate)'}
+                                    stroke={filterSentiment === 'Neutral' ? '#334155' : '#94a3b8'}
+                                    strokeWidth={filterSentiment === 'Neutral' ? 1.5 : 1}
                                     shape={renderPillBar}
                                     barSize={filterSentiment ? 36 : 20}
                                   />
@@ -1962,9 +1978,9 @@ function SentimentDashboard() {
                                   <Bar
                                     dataKey={trendScaleMode === 'percent' ? 'negPct' : 'rawNegative'}
                                     name={trendScaleMode === 'percent' ? 'Negative (%)' : 'Negative'}
-                                    fill={filterSentiment === 'Negative' ? 'url(#photoVibrantRose)' : 'url(#photoPastelRose)'}
+                                    fill={filterSentiment === 'Negative' ? 'url(#barVibrantRose)' : 'url(#barDarkRose)'}
                                     stroke={filterSentiment === 'Negative' ? '#be123c' : '#f43f5e'}
-                                    strokeWidth={filterSentiment === 'Negative' ? 2 : 1}
+                                    strokeWidth={filterSentiment === 'Negative' ? 1.5 : 1}
                                     shape={renderPillBar}
                                     barSize={filterSentiment ? 36 : 20}
                                   />
