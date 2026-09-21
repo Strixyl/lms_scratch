@@ -47,7 +47,7 @@ export const statusColor = (status) => {
 export const emptyAssetForm = {
   itemName: '',
   brand: '',
-  brandOption: '', // custom brand input flag
+  brandOption: '',
   quantity: '',
   location: '',
   specifications: '',

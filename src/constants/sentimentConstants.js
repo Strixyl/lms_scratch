@@ -1,6 +1,3 @@
-// survey filter options, college styles, and domain lexicons
-
-// dropdown filter options
 export const CLIENTELE_OPTIONS = ['Student', 'Faculty', 'Staff', 'Researcher', 'CPU Admin', 'Alumnus/Alumni'];
 
 export const COLLEGE_OPTIONS = [
@@ -64,7 +61,7 @@ export const getCollegeStyle = (collegeStr) => {
     return { bg: '#fffbe6', text: '#b78103', border: '#ffe58f', dot: '#faad14', shadow: 'rgba(183, 129, 3, 0.08)' }; // shs
   }
 
-  // fallback style
+
   return { bg: '#edf4fa', text: '#16324f', border: '#cbdbe9', dot: '#254b73', shadow: 'rgba(22, 50, 79, 0.08)' };
 };
 
@@ -120,7 +117,6 @@ export const COLLEGE_COURSES = {
 
 export const CATEGORY_OPTIONS = ['Facilities', 'Staff', 'Collection', 'Other/Uncategorized'];
 
-// numeric scores for likert scale questions
 export const RATING_SCORES = {
   very_satisfied: 1.0, satisfied: 0.5, neutral: 0.0,
   dissatisfied: -0.5, very_dissatisfied: -1.0, na: 0.0,
@@ -142,7 +138,7 @@ export const QUARTER_OPTIONS = [
 
 export const ROWS_PER_PAGE = 10;
 
-// common stopwords excluded from word frequency
+// stopwords excluded from word frequency
 export const STOPWORDS = new Set([
   'the', 'a', 'an', 'and', 'or', 'but', 'is', 'are', 'was', 'were', 'to', 'of', 'in', 'on',
   'for', 'it', 'this', 'that', 'i', 'we', 'you', 'my', 'our', 'with', 'be', 'have', 'has',
@@ -155,7 +151,7 @@ export const STOPWORDS = new Set([
   'one', 'two', 'new', 'old', 'big', 'small', 'thing', 'things', 'way', 'ways', 'kind', 'kinds'
 ]);
 
-// keyword lexicon by library area
+// lexicon for lbirary areas ========= falls into this category if it detects a word 
 export const CONTROLLED_LEXICON = {
   Facilities: {
     'Restroom & Hygiene': [
@@ -243,7 +239,7 @@ export const CONTROLLED_LEXICON = {
   }
 };
 
-// recommendations for flagged categories
+// reccoemdnations for category imrprovement 
 export const RECOMMENDATIONS = {
   Facilities: {
     moderate: 'Consider a facilities walkthrough to address recurring comfort/accessibility complaints (lighting, seating, temperature, cleanliness).',

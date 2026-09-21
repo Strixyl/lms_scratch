@@ -15,21 +15,20 @@ def run_visualization():
     N_facilities = 5000
     vocab_size = 3500
     
-    # ── 2. Calculate Probabilities ──
-    # (A) Without Smoothing (alpha = 0) -> P(w | C) = Count / N
+   
+  
     p_no_smoothing = counts / N_facilities
     
-    # (B) With Laplace Smoothing (alpha = 1.0) -> P(w | C) = (Count + 1) / (N + |V|)
+
     alpha = 1.0
     p_laplace = (counts + alpha) / (N_facilities + alpha * vocab_size)
     
-    # ── 3. Calculate Joint Sentence Product ──
-    # Without smoothing, 0 * anything = 0 (Total Collapse)
+
     joint_no_smoothing = np.prod(p_no_smoothing)
-    # With smoothing, we get a viable non-zero probability
+
     joint_laplace = np.prod(p_laplace)
 
-    # ── 4. Print Console Summary ──
+
     print("=" * 68)
     print("       LAPLACE SMOOTHING IN NAIVE BAYES (ALPHA = 1.0)")
     print("=" * 68)
@@ -45,11 +44,11 @@ def run_visualization():
     print("  [PASS] Alpha = 1.0 : Preserved valid non-zero score for 'Facilities'!")
     print("=" * 68)
 
-    # ── 5. Generate Matplotlib Plot ──
+
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 5))
     fig.patch.set_facecolor('#ffffff')
 
-    # Subplot 1: Word-Level Probability Comparison
+
     x = np.arange(len(tokens))
     bar_width = 0.35
 
@@ -63,12 +62,12 @@ def run_visualization():
     ax1.legend(frameon=True, facecolor='#f8fafc', edgecolor='#cbd5e1')
     ax1.grid(axis='y', linestyle='--', alpha=0.5)
 
-    # Annotate the zero-probability bars
+
     ax1.annotate('Fatal Zero (0.0)\nKills Calculation!', xy=(2 - bar_width/2, 0), xytext=(2 - bar_width/2 - 0.25, 0.006),
                  arrowprops=dict(facecolor='#ef4444', shrink=0.05, width=1.5, headwidth=6),
                  fontsize=8.5, fontweight='bold', color='#b91c1c')
 
-    # Subplot 2: Cumulative Sentence Product Comparison
+
     labels = ['Without Smoothing\n(alpha = 0)', 'With Laplace\n(alpha = 1.0)']
     scores = [joint_no_smoothing * 1e12, joint_laplace * 1e12]
     colors = ['#ef4444', '#10b981']

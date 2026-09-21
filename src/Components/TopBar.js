@@ -7,24 +7,21 @@ import henryluce from '../assets/henryluce.png';
 const TopBar = ({ onMenuClick, subtitle }) => {
   return (
     <AppBar position="static" style={{ backgroundColor: '#d49f1e', width: '100%' }}>
-      <Toolbar sx={{ display: 'flex', alignItems: 'center', padding: '0 10px', margin: '15px 10px 15px'}}>
-        {/* menu toggle */}
+      <Toolbar sx={{ display: 'flex', alignItems: 'center', padding: '0 10px', margin: '15px 10px 15px' }}>
+
         <IconButton edge="start" color="inherit" onClick={onMenuClick} sx={{ mr: 1 }}>
           <MenuIcon />
         </IconButton>
 
-        {/* university logo */}
-        <Box component="img" src={cpulogo} alt="CPU Logo" sx={{ height: 60, marginRight: 0 }} />
 
-        {/* header titles */}
-        <Box sx={{ flexGrow: 1, textAlign: 'center', color: 'black', fontWeight: 'bold'}}>
+        <Box component="img" src={cpulogo} alt="CPU Logo" sx={{ height: 60, marginRight: 0 }} />
+        <Box sx={{ flexGrow: 1, textAlign: 'center', color: 'black', fontWeight: 'bold' }}>
           <Typography variant="body1" fontFamily='Poppins, sans-serif' fontSize='15px'>CENTRAL PHILIPPINE UNIVERSITY</Typography>
           <Typography variant="body1" fontFamily='Poppins, sans-serif' fontSize='15px'>UNIVERSITY LIBRARIES</Typography>
           <Typography variant="body1" fontFamily='Poppins, sans-serif' fontSize='15px'>{subtitle}</Typography>
         </Box>
 
-        {/* library logo */}
-        <Box component="img" src={henryluce} alt="Library Logo" sx={{ height: 60, marginLeft: 0}} />
+        <Box component="img" src={henryluce} alt="Library Logo" sx={{ height: 60, marginLeft: 0 }} />
       </Toolbar>
     </AppBar>
   );
