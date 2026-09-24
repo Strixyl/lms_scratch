@@ -1479,6 +1479,93 @@ export default function ModelExplainer() {
                     </Paper>
                   </Box>
 
+                  {/* score breakdown: why this sentiment / category */}
+                  {(() => {
+                    const hasComment = diagnosticResult?.hybrid_synthesis?.has_comment ?? true;
+                    const fmt = (n) => (n > 0 ? `+${n.toFixed(2)}` : n.toFixed(2));
+
+                    // sentiment points
+                    const rPts = hasComment ? rAvg * 0.5 : rAvg;
+                    const bPts = hasComment ? bertScore * 0.5 : 0;
+                    const sTheme = getSentimentTheme(finalSentiment);
+                    const sentimentReason =
+                      combinedScore > 0.15 ? `${fmt(combinedScore)} is above +0.15, so Positive`
+                        : combinedScore < -0.15 ? `${fmt(combinedScore)} is below -0.15, so Negative`
+                          : `${fmt(combinedScore)} is between -0.15 and +0.15, so Neutral`;
+
+                    // category points
+                    const catColor = getCategoryColor(finalCategory);
+                    const ranked = Object.entries(categoryProbs).sort((a, b) => b[1] - a[1]);
+                    const [topName, topProb] = ranked[0] || ['-', 0];
+                    const [secondName, secondProb] = ranked[1] || ['-', 0];
+                    const margin = (topProb - secondProb) * 100;
+
+                    const Row = ({ label, value, bold }) => (
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 0.5, borderBottom: bold ? 'none' : '1px dashed #e2e8f0' }}>
+                        <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.78rem', color: '#475569', fontWeight: bold ? 800 : 500 }}>{label}</Typography>
+                        <Typography sx={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#16324f', fontWeight: bold ? 800 : 600 }}>{value}</Typography>
+                      </Box>
+                    );
+
+                    return (
+                      <Paper elevation={0} sx={{ p: 2.2, borderRadius: '16px', bgcolor: '#ffffff', border: '1.5px solid #d9e2ec', borderTop: '3.5px solid #16324f', boxShadow: '0 2px 10px rgba(22, 50, 79, 0.04)' }}>
+                        <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 14, color: '#16324f', mb: 1.5 }}>
+                          Score Breakdown: Why this result?
+                        </Typography>
+
+                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+                          {/* sentiment side */}
+                          <Box>
+                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: '0.72rem', color: '#64748b', textTransform: 'uppercase', mb: 0.5 }}>
+                              Sentiment Points
+                            </Typography>
+                            <Row label={hasComment ? 'Likert mean (R_avg × 0.50)' : 'Likert mean (R_avg)'} value={fmt(rPts)} />
+                            <Row label={`RoBERTa ${diagnosticResult?.roberta?.sentiment || 'Neutral'} (${((diagnosticResult?.roberta?.confidence || 0) * 100).toFixed(0)}% confidence, × 0.50)`} value={fmt(bPts)} />
+                            <Row label="Final score" value={fmt(combinedScore)} bold />
+
+                            {/* -1 to +1 scale with the ±0.15 neutral band */}
+                            <Box sx={{ position: 'relative', height: 10, mt: 1.5, borderRadius: 5, bgcolor: '#e2e8f0', overflow: 'hidden' }}>
+                              <Box sx={{ position: 'absolute', left: 0, width: '42.5%', height: '100%', bgcolor: '#fecdd3' }} />
+                              <Box sx={{ position: 'absolute', left: '42.5%', width: '15%', height: '100%', bgcolor: '#cbd5e1' }} />
+                              <Box sx={{ position: 'absolute', right: 0, width: '42.5%', height: '100%', bgcolor: '#b7ebc9' }} />
+                            </Box>
+                            <Box sx={{ position: 'relative', height: 14 }}>
+                              <Box sx={{ position: 'absolute', left: `${gaugePercent}%`, transform: 'translateX(-50%)', top: -14, width: 4, height: 18, borderRadius: 2, bgcolor: sTheme.text }} />
+                            </Box>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.62rem', color: '#94a3b8', fontFamily: 'Poppins, sans-serif' }}>
+                              <span>-1.0 Negative</span><span>Neutral</span><span>Positive +1.0</span>
+                            </Box>
+                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.75rem', color: sTheme.text, fontWeight: 700, mt: 1 }}>
+                              {sentimentReason}
+                            </Typography>
+                          </Box>
+
+                          {/* category side */}
+                          <Box>
+                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: '0.72rem', color: '#64748b', textTransform: 'uppercase', mb: 0.5 }}>
+                              Category Confidence
+                            </Typography>
+                            <Row label={`Top class: ${topName}`} value={`${(topProb * 100).toFixed(1)}%`} />
+                            <Row label={`Runner-up: ${secondName}`} value={`${(secondProb * 100).toFixed(1)}%`} />
+                            <Row label="Lead over runner-up" value={`${margin.toFixed(1)} pts`} />
+                            <Row label="Threshold (τ)" value={`${(confidenceThreshold * 100).toFixed(0)}%`} />
+
+                            <LinearProgress
+                              variant="determinate"
+                              value={Math.min(100, topProb * 100)}
+                              sx={{ height: 10, mt: 1.5, borderRadius: 5, bgcolor: '#e2e8f0', '& .MuiLinearProgress-bar': { bgcolor: catColor } }}
+                            />
+                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.75rem', fontWeight: 700, mt: 1, color: fallbackApplied ? '#be123c' : '#107c41' }}>
+                              {fallbackApplied
+                                ? `${(topProb * 100).toFixed(1)}% is below ${(confidenceThreshold * 100).toFixed(0)}%, so Other/Uncategorized`
+                                : `${(topProb * 100).toFixed(1)}% meets the ${(confidenceThreshold * 100).toFixed(0)}% threshold, so ${finalCategory}`}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </Paper>
+                    );
+                  })()}
+
                   {/* diagnostic tabs */}
                   <Paper
                     elevation={0}
@@ -1996,7 +2083,7 @@ export default function ModelExplainer() {
                                 Step 3: Posterior Probability Distribution P(C_k | X):
                               </Typography>
                               <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.72rem', color: '#64748b' }}>
-                                Laplace Smoothing α = 0.01
+                                Laplace Smoothing α = {diagnosticResult?.naive_bayes?.alpha ?? 1.0}
                               </Typography>
                             </Box>
 
