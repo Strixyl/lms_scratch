@@ -477,6 +477,7 @@ const SatisfactionSurvey = () => {
   };
 
   const completedCount = responses.filter((r) => r !== null).length;
+  // computation: progress % = (completed / 10) * 100
   const progressPercent = (completedCount / 10) * 100;
 
   // validation state for patron profile

@@ -46,7 +46,7 @@ import TopBar from '../Components/TopBar';
 import { COLLEGE_OPTIONS, SECTION_OPTIONS, getCollegeGroup, formatDate, inferGuestType, getPSTDateString, getPSTDatePresets } from '../constants/collegeMap';
 import { MONTH_NAMES, QUARTER_OPTIONS } from '../constants/sentimentConstants';
 
-// centralized theme design tokens
+// theme tokens
 import {
   THEME,
   sectionHeaderSx,
@@ -149,7 +149,7 @@ const COURSE_LIGHT_COLORS = [
   '#64748b'
 ];
 
-// summary kpi card
+// kpi card
 const SummaryCard = ({ title, value, subtitle, icon, color = '#16324f', isFeatured = false, footnote = null }) => {
   if (isFeatured) {
     return (
@@ -283,7 +283,7 @@ const SummaryCard = ({ title, value, subtitle, icon, color = '#16324f', isFeatur
   );
 };
 
-// item chips breakdown component
+// chips breakdown
 const ItemChipsView = ({ data = [], totalVisits = 0, isCollegeLevel = false, selectedCollege = 'All' }) => {
   const maxVal = useMemo(() => Math.max(...data.map(d => d.total || 0), 1), [data]);
 
@@ -314,6 +314,7 @@ const ItemChipsView = ({ data = [], totalVisits = 0, isCollegeLevel = false, sel
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
         {data.map((item, idx) => {
           const itemTotal = item.total || 0;
+          // computation: share % = (itemTotal / totalVisits) * 100
           const percentage = totalVisits > 0 ? ((itemTotal / totalVisits) * 100).toFixed(1) : '0.0';
           const progressVal = maxVal > 0 ? (itemTotal / maxVal) * 100 : 0;
           const color = COURSE_COLORS[idx % COURSE_COLORS.length];
@@ -393,14 +394,14 @@ const ItemChipsView = ({ data = [], totalVisits = 0, isCollegeLevel = false, sel
 };
 
 
-// custom tooltip for bar charts
+// bar chart tooltip
 const CustomBarTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     const entryData = payload[0]?.payload;
     let activeItems = [];
 
     if (entryData) {
-      // check if entry has course breakdowns
+      // extract course breakdown
       activeItems = Object.entries(entryData)
         .filter(([key, val]) => key !== 'name' && key !== 'total' && key !== 'fullName' && typeof val === 'number' && val > 0)
         .map(([name, value]) => ({ name, value }))
@@ -501,7 +502,7 @@ const CustomBarTooltip = ({ active, payload, label }) => {
   return null;
 };
 
-// tooltip for monthly foot traffic trend
+// trend tooltip
 const CustomMonthlyTrendTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
@@ -646,15 +647,15 @@ const isCourseMatch = (studCourse, targetOption) => {
   const c = studCourse.trim().toLowerCase();
   const target = targetOption.trim().toLowerCase();
 
-  // 1. direct match
+  // direct match
   if (c === target || c.includes(target) || target.includes(c)) return true;
 
-  // 2. clean non-alphanumeric comparison
+  // alphanumeric match
   const cleanC = c.replace(/[^a-z0-9]/g, '');
   const cleanTarget = target.replace(/[^a-z0-9]/g, '');
   if (cleanC && cleanTarget && (cleanC.includes(cleanTarget) || cleanTarget.includes(cleanC))) return true;
 
-  // 3. acronym lookup
+  // acronym match
   for (const [fullTitle, aliases] of Object.entries(COURSE_ACRONYMS_MAP)) {
     const titleLower = fullTitle.toLowerCase();
     const allMatches = [titleLower, ...aliases];
@@ -668,7 +669,7 @@ const isCourseMatch = (studCourse, targetOption) => {
   return false;
 };
 
-// college course isolation helper
+// college course helper
 const getCoursesForCollege = (collegeCode, loginItems) => {
   if (!collegeCode || collegeCode === 'All') return [];
   const surveyCourses = COLLEGE_COURSES_SURVEY_MAP[collegeCode] || [];
@@ -704,7 +705,7 @@ const getCoursesForCollege = (collegeCode, loginItems) => {
   return Array.from(normalizedSet);
 };
 
-// patron same-day visit deduplication
+// deduplicate: 1 visit per patron per day
 const deduplicateLogins = (loginList) => {
   if (!loginList || !Array.isArray(loginList)) return [];
 
@@ -973,11 +974,11 @@ const LoginDashboard = () => {
     fetchLogins();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // base logins filtered by date range, year, quarter, month, and section
+  // filter logins by date and section
   const baseScopeLogins = useMemo(() => {
     let filtered = rawLogins;
 
-    // filter by date range
+    // date range filter
     if (startDate && endDate) {
       filtered = filtered.filter((item) => {
         if (!item.TimeLogged) return false;
@@ -1023,15 +1024,15 @@ const LoginDashboard = () => {
       filtered = filtered.filter((item) => item.Section === selectedSection);
     }
 
-    // main library entrance and section deduplication
+    // entrance deduplication
     return deduplicateLogins(filtered);
   }, [rawLogins, startDate, endDate, filterYear, filterQuarter, filterMonth, selectedSection]);
 
-  // filtered and deduplicated logins list
+  // deduplicated logins
   const logins = useMemo(() => {
     let filtered = baseScopeLogins;
 
-    // filter by patron category
+    // patron category filter
     if (selectedPatronCategory === 'Students') {
       filtered = filtered.filter((item) => {
         const col = getCollegeGroup(item.studCollege, item.studCourse, item.studLogType, item.studIDnumber);
@@ -1071,7 +1072,7 @@ const LoginDashboard = () => {
     return filtered;
   }, [baseScopeLogins, selectedPatronCategory, selectedCollege, selectedCourse]);
 
-  // monthly foot traffic and month counter data
+  // computation: aggregate monthly visits
   const monthlyTrendData = useMemo(() => {
     const targetYear = filterYear === 'All' ? null : (filterYear || '2026');
     const monthsMap = {};
@@ -1172,7 +1173,7 @@ const LoginDashboard = () => {
     }
   }, [selectedCollege, availableCourses, selectedCourse]);
 
-  // kpi cards and visual chart computations
+  // computation: total entries and course distribution
   const totalEntries = logins.length;
 
   const { mainChartData, collegeChartData } = useMemo(() => {
@@ -1258,7 +1259,7 @@ const LoginDashboard = () => {
   const topCollege = sortedColleges.length > 0 && sortedColleges[0].total > 0 ? sortedColleges[0].name : 'N/A';
   const topCollegeCount = sortedColleges.length > 0 ? sortedColleges[0].total : 0;
 
-  // patron category breakdown (Students vs Faculty vs Guests)
+  // computation: guest % = (guests / total) * 100
   const patronBreakdown = useMemo(() => {
     let students = 0;
     let faculty = 0;
@@ -1288,7 +1289,7 @@ const LoginDashboard = () => {
     return 'bar';
   }, [visualizerMode, selectedCollege]);
 
-  // section distribution for donut chart
+  // computation: entrance only = max(0, total - internal sum)
   const { sectionChartData, donutSlices, collegeSectionTotal, internalSections } = useMemo(() => {
     const sectionCounts = {};
     let listToCount = rawLogins;
@@ -1387,7 +1388,7 @@ const LoginDashboard = () => {
   const peakSection = topInternalSection ? topInternalSection.name : 'N/A';
   const peakSectionCount = topInternalSection ? topInternalSection.value : 0;
 
-  // gender distribution for sidebar widget
+  // computation: male vs female counts and split
   const genderCounts = useMemo(() => {
     const counts = { Male: 0, Female: 0, Other: 0 };
     logins.forEach(item => {
@@ -1622,7 +1623,7 @@ const LoginDashboard = () => {
     }, 500);
   };
 
-  // custom bar renderer with gradient and hover colors
+  // custom bar renderer
   const renderCustomBar = (props) => {
     const { x, y, width, height, payload, index } = props;
     if (!height || height <= 0 || !width || width <= 0) return null;
@@ -1738,7 +1739,7 @@ const LoginDashboard = () => {
 
             {!showLoginModal && (
               <Box sx={{ p: { xs: 2, md: 3 }, bgcolor: '#eef1f6', minHeight: '100vh' }}>
-                {/* header action bar banner */}
+                {/* action bar */}
                 <Paper elevation={0} sx={{
                   p: { xs: 2, md: 2.5 }, mb: 3, borderRadius: 3.5,
                   bgcolor: '#ffffff',
@@ -1845,7 +1846,7 @@ const LoginDashboard = () => {
                     </Typography>
                   </Box>
 
-                  {/* quick date range presets */}
+                  {/* date presets */}
                   <Box sx={{ px: 3, pt: 1.8, pb: 1.5, bgcolor: '#ffffff', borderBottom: `1px solid ${T.surface.borderLight}`, display: 'flex', alignItems: 'center', gap: 0.8, flexWrap: 'wrap' }}>
                     <Typography sx={{ fontFamily: T.font.family, fontSize: 12.5, fontWeight: 700, color: '#64748b', mr: 0.8, display: 'flex', alignItems: 'center', gap: 0.5 }}>
                       <CalendarTodayIcon sx={{ fontSize: 15, color: '#16324f' }} /> Quick Date Range:
@@ -1860,7 +1861,7 @@ const LoginDashboard = () => {
                     <Button size="small" variant="outlined" onClick={() => handleDatePreset('all')} sx={datePresetBtnSx}>All Dates</Button>
                   </Box>
 
-                  {/* quick patron category presets */}
+                  {/* patron category presets */}
                   <Box sx={{ px: 3, py: 1.2, bgcolor: '#f8fafc', borderBottom: `1px solid ${T.surface.borderLight}`, display: 'flex', alignItems: 'center', gap: 0.8, flexWrap: 'wrap' }}>
                     <Typography sx={{ fontFamily: T.font.family, fontSize: 12.5, fontWeight: 700, color: '#64748b', mr: 0.8, display: 'flex', alignItems: 'center', gap: 0.5 }}>
                       <PeopleIcon sx={{ fontSize: 15, color: '#16324f' }} /> Quick Patron Category:
@@ -2064,7 +2065,7 @@ const LoginDashboard = () => {
                     </Button>
                   </Box>
 
-                  {/* active filter badges */}
+                  {/* filter badges */}
                   {hasActiveFilter && (
                     <Box sx={{ px: 3, pb: 2, pt: 1.5, bgcolor: '#f8fafc', borderTop: `1px solid ${T.surface.borderLight}`, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                       <Typography sx={{ fontFamily: T.font.family, fontSize: 12.5, fontWeight: 700, color: '#64748b' }}>
@@ -2160,7 +2161,7 @@ const LoginDashboard = () => {
                   </Box>
                 ) : (
                   <>
-                    {/* top metric kpi cards grid */}
+                    {/* kpi cards */}
                     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 2.2, mb: 3 }}>
                       <SummaryCard
                         title="Total Patron Visits"
@@ -2212,9 +2213,9 @@ const LoginDashboard = () => {
                       />
                     </Box>
 
-                    {/* main chart and section donut */}
+                    {/* chart and donut */}
                     <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', mb: 3 }}>
-                      {/* main visualizer bar chart */}
+                      {/* bar chart */}
                       <Paper elevation={0} sx={{
                         borderRadius: 3.5,
                         border: '1.5px solid #cbdbe9',
@@ -2264,7 +2265,7 @@ const LoginDashboard = () => {
                             </Box>
                           </Box>
 
-                          {/* visualizer mode select dropdown */}
+                          {/* visualizer mode select */}
                           <FormControl size="small" sx={{ minWidth: 210 }}>
                             <InputLabel id="visualizer-mode-select-label" sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#0284c7' }}>
                               Visualization View
@@ -2437,7 +2438,7 @@ const LoginDashboard = () => {
                         </CardContent>
                       </Paper>
 
-                      {/* section donut chart and side legends */}
+                      {/* section donut chart */}
                       <Paper elevation={0} sx={{
                         borderRadius: 3.5,
                         border: '1.5px solid #cbdbe9',
@@ -2543,7 +2544,7 @@ const LoginDashboard = () => {
                                     <RechartsTooltip />
                                   </PieChart>
                                 </ResponsiveContainer>
-                                {/* center donut label */}
+                                {/* donut center label */}
                                 <Box sx={{
                                   position: 'absolute', top: '50%', left: '50%',
                                   transform: 'translate(-50%, -50%)', textAlign: 'center'
@@ -2557,7 +2558,7 @@ const LoginDashboard = () => {
                                 </Box>
                               </Box>
 
-                              {/* custom legend pill list */}
+                              {/* legend pills */}
                               <Box sx={{
                                 mt: 2, display: 'flex', flexDirection: 'column', gap: 0.8, maxHeight: 170, overflowY: 'auto', pr: 1,
                                 '&::-webkit-scrollbar': { width: '5px' },
@@ -2605,7 +2606,7 @@ const LoginDashboard = () => {
                                 })}
                               </Box>
 
-                              {/* dynamic guest destination qualitative insight */}
+                              {/* guest destinations */}
                               {selectedCollege === 'Guest / Visitor' && (
                                 <Box sx={{
                                   mt: 2,
@@ -2647,9 +2648,9 @@ const LoginDashboard = () => {
                       </Paper>
                     </Box>
 
-                    {/* visitor records table and demographics sidebar */}
+                    {/* visitor records and demographics */}
                     <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-                      {/* visitor records table */}
+                      {/* records table */}
                       <Paper elevation={0} sx={{
                         borderRadius: 3.5,
                         bgcolor: '#ffffff',
@@ -2681,7 +2682,7 @@ const LoginDashboard = () => {
                               </Typography>
                             </Box>
 
-                            {/* quick patron category segmented pill strip */}
+                            {/* patron category tabs */}
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, flexWrap: 'wrap', mt: 1.5 }}>
                               <Typography sx={{ fontFamily: T.font.family, fontSize: 12, fontWeight: 700, color: '#64748b', mr: 0.4, display: 'flex', alignItems: 'center', gap: 0.4 }}>
                                 <PeopleIcon sx={{ fontSize: 15, color: '#16324f' }} /> Patron:
@@ -2721,7 +2722,7 @@ const LoginDashboard = () => {
                               })}
                             </Box>
 
-                            {/* month pill strip */}
+                            {/* month filter tabs */}
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, flexWrap: 'wrap', mt: 1.2 }}>
                               <Button
                                 size="small"
@@ -2778,7 +2779,7 @@ const LoginDashboard = () => {
                           </Box>
 
                           <Box sx={{ display: 'flex', gap: 1.2, alignItems: 'center', flexWrap: 'wrap' }}>
-                            {/* live search input */}
+                            {/* search input */}
                             <TextField
                               size="small"
                               placeholder="Search name, ID, course, section..."
@@ -3096,7 +3097,7 @@ const LoginDashboard = () => {
                         )}
                       </Paper>
 
-                      {/* demographic breakdown widget */}
+                      {/* demographic breakdown */}
                       <Paper elevation={0} sx={{
                         borderRadius: 3.5,
                         border: '1.5px solid #cbdbe9',
@@ -3126,7 +3127,7 @@ const LoginDashboard = () => {
                           </Typography>
                         </Box>
 
-                        {/* top colleges progress list */}
+                        {/* top colleges progress */}
                         <Box sx={{ mb: 3 }}>
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
                             <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5 }}>
@@ -3156,7 +3157,7 @@ const LoginDashboard = () => {
                             );
                           })}
 
-                          {/* others count banner */}
+                          {/* others count */}
                           {sortedColleges.length > 5 && (
                             <Box sx={{
                               mt: 1.5, p: 1.2, borderRadius: 2.5, bgcolor: '#f8fafc', border: '1px dashed #cbdbe9',
@@ -3172,7 +3173,7 @@ const LoginDashboard = () => {
                           )}
                         </Box>
 
-                        {/* gender demographics list */}
+                        {/* gender demographics */}
                         <Box>
                           <Typography sx={{ fontFamily: T.font.family, fontSize: 11.5, fontWeight: 700, color: '#64748b', mb: 1.5, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                             Patron Gender Split
@@ -3221,7 +3222,7 @@ const LoginDashboard = () => {
         )}
       </Header>
 
-      {/* delete confirmation dialog */}
+      {/* delete dialog */}
       <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ fontFamily: T.font.family, fontWeight: 700, color: '#c62828' }}>
           Confirm Record Deletion
@@ -3248,7 +3249,7 @@ const LoginDashboard = () => {
         </DialogActions>
       </Dialog>
 
-      {/* toast feedback */}
+      {/* feedback toast */}
       <Snackbar
         open={Boolean(snackbarMsg)}
         autoHideDuration={4000}
@@ -3260,7 +3261,7 @@ const LoginDashboard = () => {
         </Alert>
       </Snackbar>
 
-      {/* admin login dialog */}
+      {/* admin login */}
       {showLoginModal && (
         <Dialog
           open={true}
@@ -3371,7 +3372,7 @@ const LoginDashboard = () => {
         </Dialog>
       )}
 
-      {/* hidden printable section */}
+      {/* printable report */}
       <div ref={printRef} style={{ display: 'none' }}>
         <h1>Henry Luce III Library</h1>
         <h2>Library Entry Visitor Analytics & Detailed Records Report</h2>

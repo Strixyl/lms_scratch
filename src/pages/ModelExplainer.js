@@ -67,7 +67,7 @@ import Header from '../Components/Header';
 import TopBar from '../Components/TopBar';
 import { THEME } from '../constants/themeTokens';
 
-// Standard 10 HLL Patron Satisfaction Survey Questions
+// 10 satisfaction survey questions
 const SURVEY_QUESTIONS = [
   { id: 1, title: 'Service Delivery', text: 'The efficiency of library service delivery meets your expectations.' },
   { id: 2, title: 'Guidelines & Manual', text: "The clarity and usefulness of the library's guidelines and manual for users." },
@@ -81,7 +81,7 @@ const SURVEY_QUESTIONS = [
   { id: 10, title: 'General Satisfaction', text: 'Your general satisfaction with your experience at the library.' },
 ];
 
-// Likert rating options matching SatisfactionSurvey.js (5 down to 1 + N/A)
+// likert rating options (scale 5 to 1, and n/a)
 const RATING_LEVELS = [
   { id: 'very_satisfied', label: 'Very Satisfied', ciscoLabel: '5', score: 1.0, color: '#107c41', bg: '#eafaf1', border: '#b7ebc9' },
   { id: 'satisfied', label: 'Satisfied', ciscoLabel: '4', score: 0.5, color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' },
@@ -91,7 +91,7 @@ const RATING_LEVELS = [
   { id: 'na', label: 'N/A', ciscoLabel: 'N/A', score: null, color: '#94a3b8', bg: '#f8fafc', border: '#e2e8f0' },
 ];
 
-// Quick presets for defense validation
+// preset test cases
 const QUICK_PRESETS = [
   {
     id: 'preset-1',
@@ -130,7 +130,7 @@ const QUICK_PRESETS = [
   },
 ];
 
-// Domain keyword dictionary for client matching & highlight
+// domain keywords for category matching
 const DOMAIN_KEYWORDS = {
   Facilities: [
     'wifi', 'aircon', 'ac', 'restroom', 'toilet', 'elevator', 'lift', 'socket',
@@ -157,25 +157,25 @@ const CONTRAST_WORDS = ['although', 'though', 'however', 'but', 'while', 'except
 export default function ModelExplainer() {
   const navigate = useNavigate();
 
-  // Left column mode: 'database' or 'presets'
+  // view mode: database or presets
   const [corpusMode, setCorpusMode] = useState('database');
 
-  // Right column active tab: 0 = "Sentiment Synthesis (Track 2)", 1 = "Category Classification (Track 1)", 2 = "Interactive Sandbox"
+  // active tab: 0 = sentiment, 1 = category, 2 = sandbox
   const [studioTab, setStudioTab] = useState(0);
 
-  // Submitted Survey Corpus Data from Database
+  // surveys data
   const [submittedSurveys, setSubmittedSurveys] = useState([]);
   const [isFetchingSurveys, setIsFetchingSurveys] = useState(false);
   const [selectedSurveyId, setSelectedSurveyId] = useState(null);
 
-  // Search and filter states for left panel
+  // filters and search
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('All');
   const [filterSentiment, setFilterSentiment] = useState('All');
   const [tablePage, setTablePage] = useState(1);
   const rowsPerPage = 6;
 
-  // Active inputs for score computation
+  // computation inputs
   const [inputText, setInputText] = useState('The power outlets at the collaborative tables are very convenient for charging laptops.');
   const [ratings, setRatings] = useState([
     'very_satisfied', 'very_satisfied', 'very_satisfied', 'very_satisfied', 'very_satisfied',
@@ -185,12 +185,12 @@ export default function ModelExplainer() {
   const [confidenceThreshold, setConfidenceThreshold] = useState(0.45);
   const [autoCalculate, setAutoCalculate] = useState(true);
 
-  // Diagnostic execution states
+  // diagnostic state
   const [isLiveConnected, setIsLiveConnected] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [diagnosticResult, setDiagnosticResult] = useState(null);
 
-  // Fetch all submitted surveys from backend
+  // fetch surveys
   const loadSubmittedSurveys = useCallback(async () => {
     setIsFetchingSurveys(true);
     try {
@@ -198,7 +198,7 @@ export default function ModelExplainer() {
       const data = res.data || [];
       setSubmittedSurveys(data);
 
-      // Auto-select the first comment with text if none selected
+      // default select first non-empty review
       const withComments = data.filter(s => s.Message && s.Message.trim().length > 0);
       if (withComments.length > 0 && selectedSurveyId === null) {
         handleSelectSubmittedComment(withComments[0]);
@@ -214,7 +214,7 @@ export default function ModelExplainer() {
     loadSubmittedSurveys();
   }, [loadSubmittedSurveys]);
 
-  // Client-side text preprocessor
+  // text cleaning and tokenization
   const clientPreprocess = useCallback((str) => {
     if (!str) return '';
     let cleaned = String(str).toLowerCase();
@@ -230,13 +230,13 @@ export default function ModelExplainer() {
     return stemmed.join(' ');
   }, []);
 
-  // High-fidelity client-side simulation engine (fallback when Python service is unlinked)
+  // fallback simulation engine
   const runClientSimulation = useCallback((text, currentRatings, threshold) => {
     const rawText = (text || '').trim();
     const preprocessed = clientPreprocess(rawText);
     const words = preprocessed.split(/\s+/).filter(Boolean);
 
-    // 1. Clause splitting
+    // clause splitting: splits compound text on contrast words (e.g. 'but', 'however')
     let clauses = [rawText];
     if (rawText.length >= 24) {
       for (const cw of CONTRAST_WORDS) {
@@ -254,7 +254,7 @@ export default function ModelExplainer() {
       }
     }
 
-    // 2. RoBERTa simulation per clause
+    // computation: roberta polarity score per clause (pos = +1.0, neu = 0.0, neg = -1.0), conf = min(0.99, 0.70 + count * 0.1)
     const positiveWords = ['accommodat', 'helpful', 'courte', 'nice', 'good', 'great', 'friend', 'fast', 'comfort', 'clean', 'quiet', 'avail', 'satisfi', 'convenient', 'straightforward', 'updated', 'organized'];
     const negativeWords = ['leak', 'broken', 'hot', 'cold', 'slow', 'nois', 'disconnect', 'mismatch', 'lag', 'uncomfort', 'bad', 'rude', 'miss', 'poor', 'fail', 'dissatisfi', 'delay', 'dark', 'freez', 'distract', 'difficult'];
 
@@ -302,7 +302,7 @@ export default function ModelExplainer() {
     }
     const bertScore = aggSentiment === 'Positive' ? 1.0 : (aggSentiment === 'Negative' ? -1.0 : 0.0);
 
-    // 3. Matched tokens & TF-IDF feature weights
+    // computation: feature weights tfidf = 0.28 + min(0.62, len * 0.07), posterior = cat_score / sum_scores
     const extractedFeatures = [];
     const domainKeywordMatches = { Facilities: [], Staff: [], Collection: [] };
     let facScore = 0.01;
@@ -369,7 +369,7 @@ export default function ModelExplainer() {
       fallbackApplied = true;
     }
 
-    // 4. Likert Math Simulator
+    // formula: likert average r_avg = sum(valid_ratings) / valid_count (range -1.0 to +1.0)
     const ratingMap = {
       very_satisfied: 1.0, satisfied: 0.5, neutral: 0.0,
       dissatisfied: -0.5, very_dissatisfied: -1.0, na: null
@@ -386,7 +386,8 @@ export default function ModelExplainer() {
     const rAvg = validCount > 0 ? Number((rawSum / validCount).toFixed(4)) : 0.0;
     const emojiSentiment = rAvg > 0.15 ? 'Positive' : (rAvg < -0.15 ? 'Negative' : 'Neutral');
 
-    // 5. Hybrid formula synthesis
+    // formula: combined_score = (r_avg * 0.50) + (roberta_score * 0.50)
+    // decision threshold: score > 0.15 = positive, < -0.15 = negative, else neutral
     const hasComment = Boolean(rawText.length > 0);
     let combinedScore;
     let arithmeticSubstitution;
@@ -446,7 +447,7 @@ export default function ModelExplainer() {
     };
   }, [clientPreprocess]);
 
-  // Main calculation execution
+  // pipeline execution
   const executeExplainPipeline = useCallback(async (text, currentRatings, threshold) => {
     setIsLoading(true);
 
@@ -484,7 +485,7 @@ export default function ModelExplainer() {
     }
   }, [runClientSimulation]);
 
-  // Run calculation on change
+  // recalculate on input change
   useEffect(() => {
     if (autoCalculate) {
       const timer = setTimeout(() => {
@@ -494,7 +495,7 @@ export default function ModelExplainer() {
     }
   }, [inputText, ratings, confidenceThreshold, autoCalculate, executeExplainPipeline]);
 
-  // When a real submitted survey is selected
+  // load selected survey
   const handleSelectSubmittedComment = (survey) => {
     setSelectedSurveyId(survey.Id || survey.id);
     setSelectedMeta({
@@ -529,7 +530,7 @@ export default function ModelExplainer() {
     }
   };
 
-  // Preset selector
+  // load preset
   const handleSelectPreset = (preset) => {
     setSelectedSurveyId(preset.id);
     setSelectedMeta({
@@ -550,14 +551,14 @@ export default function ModelExplainer() {
     }
   };
 
-  // Likert single question rating change
+  // update question rating
   const handleRatingChange = (qIdx, newRatingId) => {
     const next = [...ratings];
     next[qIdx] = newRatingId;
     setRatings(next);
   };
 
-  // Filtered comments list for left column
+  // filter comments
   const filteredComments = useMemo(() => {
     return submittedSurveys
       .filter(s => s.Message && s.Message.trim().length > 0)
@@ -576,13 +577,13 @@ export default function ModelExplainer() {
       });
   }, [submittedSurveys, searchTerm, filterCategory, filterSentiment]);
 
-  // Paginated comments
+  // pagination: slice by rows per page
   const paginatedComments = useMemo(() => {
     const start = (tablePage - 1) * rowsPerPage;
     return filteredComments.slice(start, start + rowsPerPage);
   }, [filteredComments, tablePage]);
 
-  // Safe computed getters
+  // diagnostic getters
   const rAvg = diagnosticResult?.likert_simulation?.r_avg ?? 0.0;
   const bertScore = diagnosticResult?.hybrid_synthesis?.bert_score ?? 0.0;
   const combinedScore = diagnosticResult?.hybrid_synthesis?.combined_score ?? 0.0;
@@ -594,7 +595,7 @@ export default function ModelExplainer() {
   const extractedFeatures = diagnosticResult?.naive_bayes?.extracted_features ?? [];
   const clauses = diagnosticResult?.clauses ?? [];
 
-  // Gauge needle percent (from -1.0 = 0% to +1.0 = 100%)
+  // formula: gauge position % = Math.max(0, Math.min(100, ((score + 1.0) / 2.0) * 100))
   const gaugePercent = Math.max(0, Math.min(100, ((combinedScore + 1.0) / 2.0) * 100));
 
   const getSentimentTheme = (s) => {
@@ -621,7 +622,7 @@ export default function ModelExplainer() {
           />
 
           <Box sx={{ p: { xs: 2, md: 3 }, bgcolor: '#eef1f6', minHeight: '100vh', fontFamily: 'Poppins, sans-serif', overflowX: 'hidden' }}>
-            {/* Top Action & Navigation Banner */}
+            {/* navigation bar */}
             <Paper
               elevation={0}
               sx={{
@@ -742,7 +743,7 @@ export default function ModelExplainer() {
               </Stack>
             </Paper>
 
-            {/* MASTER-DETAIL TWO-COLUMN WORKBENCH */}
+            {/* workbench layout */}
             <Box
               sx={{
                 display: 'grid',
@@ -757,9 +758,7 @@ export default function ModelExplainer() {
                 alignItems: 'start',
               }}
             >
-              {/* ========================================================================= */}
-              {/* LEFT COLUMN: PATRON COMMENTS DIRECTORY & PRESET SELECTOR (Master List)   */}
-              {/* ========================================================================= */}
+              {/* comments directory */}
               <Box sx={{ width: '100%' }}>
                 <Paper
                   elevation={0}
@@ -774,7 +773,7 @@ export default function ModelExplainer() {
                     flexDirection: 'column',
                   }}
                 >
-                  {/* Left Column Header with Mode Switch */}
+                  {/* mode switcher */}
                   <Box sx={{ mb: 2 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -790,7 +789,7 @@ export default function ModelExplainer() {
                       />
                     </Box>
 
-                    {/* Mode Toggle Pills: Database Surveys vs. Defense Presets */}
+                    {/* view toggle */}
                     <Stack direction="row" spacing={1} sx={{ mt: 1.2 }}>
                       <Button
                         size="small"
@@ -835,10 +834,10 @@ export default function ModelExplainer() {
                     </Stack>
                   </Box>
 
-                  {/* Mode A: Database Surveys View */}
+                  {/* database surveys view */}
                   {corpusMode === 'database' && (
                     <>
-                      {/* Search Bar */}
+                      {/* search input */}
                       <TextField
                         size="small"
                         fullWidth
@@ -871,7 +870,7 @@ export default function ModelExplainer() {
                         }}
                       />
 
-                      {/* Category Filter Chips */}
+                      {/* category chips */}
                       <Box sx={{ mb: 1.5 }}>
                         <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', mb: 0.6, letterSpacing: 0.4 }}>
                           Category Filter:
@@ -899,7 +898,7 @@ export default function ModelExplainer() {
                         </Stack>
                       </Box>
 
-                      {/* Sentiment Filter Chips */}
+                      {/* sentiment chips */}
                       <Box sx={{ mb: 1.8 }}>
                         <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', mb: 0.6, letterSpacing: 0.4 }}>
                           Sentiment Filter:
@@ -929,7 +928,7 @@ export default function ModelExplainer() {
 
                       <Divider sx={{ mb: 1.5 }} />
 
-                      {/* Scrollable List of Feedback Cards */}
+                      {/* feedback list */}
                       <Box sx={{ flex: 1, overflowY: 'auto', pr: 0.5, maxHeight: { xs: 420, lg: 'calc(100vh - 430px)' } }}>
                         {paginatedComments.length > 0 ? (
                           <Stack spacing={1.2}>
@@ -960,7 +959,7 @@ export default function ModelExplainer() {
                                     },
                                   }}
                                 >
-                                  {/* Row 1: ID, Patron metadata, and Active Star */}
+                                  {/* header row */}
                                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.6 }}>
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
                                       <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: '0.78rem', color: '#16324f' }}>
@@ -992,7 +991,7 @@ export default function ModelExplainer() {
                                     )}
                                   </Box>
 
-                                  {/* Row 2: Message excerpt */}
+                                  {/* message preview */}
                                   <Typography
                                     sx={{
                                       fontFamily: 'Poppins, sans-serif',
@@ -1010,7 +1009,7 @@ export default function ModelExplainer() {
                                     "{survey.Message}"
                                   </Typography>
 
-                                  {/* Row 3: Category & Sentiment Pills */}
+                                  {/* category and sentiment tags */}
                                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
                                     <Stack direction="row" spacing={0.6}>
                                       <Chip
@@ -1058,7 +1057,7 @@ export default function ModelExplainer() {
                         )}
                       </Box>
 
-                      {/* Pagination Controls */}
+                      {/* pagination */}
                       {filteredComments.length > rowsPerPage && (
                         <Box sx={{ pt: 1.5, mt: 'auto', display: 'flex', justifyContent: 'center' }}>
                           <Pagination
@@ -1079,7 +1078,7 @@ export default function ModelExplainer() {
                     </>
                   )}
 
-                  {/* Mode B: Defense Benchmark Presets View */}
+                  {/* presets view */}
                   {corpusMode === 'presets' && (
                     <Box sx={{ flex: 1, overflowY: 'auto', pr: 0.5 }}>
                       <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.78rem', color: '#64748b', mb: 1.5 }}>
@@ -1145,12 +1144,10 @@ export default function ModelExplainer() {
                 </Paper>
               </Box>
 
-              {/* ========================================================================= */}
-              {/* RIGHT COLUMN: INTERACTIVE DIAGNOSTIC STUDIO (Detail Canvas)              */}
-              {/* ========================================================================= */}
+              {/* diagnostic studio */}
               <Box sx={{ width: '100%', minWidth: 0 }}>
                 <Stack spacing={2.5} sx={{ width: '100%' }}>
-                  {/* HERO BANNER: ACTIVE SELECTED PATRON FEEDBACK */}
+                  {/* active feedback header */}
                   <Paper
                     elevation={0}
                     sx={{
@@ -1161,7 +1158,7 @@ export default function ModelExplainer() {
                       boxShadow: '0 2px 10px rgba(22, 50, 79, 0.04)',
                     }}
                   >
-                    {/* Hero Header Line */}
+                    {/* header */}
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1.5, mb: 1.5 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <RateReviewIcon sx={{ color: '#f69d1b', fontSize: 24 }} />
@@ -1177,7 +1174,7 @@ export default function ModelExplainer() {
                         )}
                       </Box>
 
-                      {/* Recalculate Switch & Trigger Button */}
+                      {/* recalculate controls */}
                       <Stack direction="row" spacing={1.5} alignItems="center">
                         <FormControlLabel
                           control={
@@ -1218,7 +1215,7 @@ export default function ModelExplainer() {
                       </Stack>
                     </Box>
 
-                    {/* Patron Quote Box */}
+                    {/* feedback quote */}
                     <Box
                       sx={{
                         p: 1.8,
@@ -1244,7 +1241,7 @@ export default function ModelExplainer() {
                             "{inputText || '(No feedback message provided)'}"
                           </Typography>
 
-                          {/* Chips Line */}
+                          {/* metadata tags */}
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1.2, flexWrap: 'wrap' }}>
                             {selectedMeta?.storedCategory && (
                               <Chip
@@ -1283,7 +1280,7 @@ export default function ModelExplainer() {
                     </Box>
                   </Paper>
 
-                  {/* 4 EXECUTIVE KPI SCORE CARDS */}
+                  {/* kpi summary cards */}
                   <Box
                     sx={{
                       display: 'grid',
@@ -1297,7 +1294,7 @@ export default function ModelExplainer() {
                       mb: 0.5,
                     }}
                   >
-                    {/* KPI 1: Final Hybrid Score */}
+                    {/* formula: final score = (r_avg * 0.5) + (roberta * 0.5) */}
                     <Paper
                       elevation={0}
                       sx={{
@@ -1344,7 +1341,7 @@ export default function ModelExplainer() {
                       </Typography>
                     </Paper>
 
-                    {/* KPI 2: Likert Survey Mean (R_avg) */}
+                    {/* formula: r_avg = sum / count */}
                     <Paper
                       elevation={0}
                       sx={{
@@ -1391,7 +1388,7 @@ export default function ModelExplainer() {
                       </Typography>
                     </Paper>
 
-                    {/* KPI 3: RoBERTa Transformer Text Polarity */}
+                    {/* roberta polarity score */}
                     <Paper
                       elevation={0}
                       sx={{
@@ -1437,7 +1434,7 @@ export default function ModelExplainer() {
                       </Typography>
                     </Paper>
 
-                    {/* KPI 4: Naïve Bayes Predicted Category */}
+                    {/* predicted category */}
                     <Paper
                       elevation={0}
                       sx={{
@@ -1482,7 +1479,7 @@ export default function ModelExplainer() {
                     </Paper>
                   </Box>
 
-                  {/* ANALYTICAL STUDIO TABS */}
+                  {/* diagnostic tabs */}
                   <Paper
                     elevation={0}
                     sx={{
@@ -1516,12 +1513,10 @@ export default function ModelExplainer() {
                     </Tabs>
 
                     <Box sx={{ p: { xs: 2, md: 2.5 } }}>
-                      {/* ========================================================================= */}
-                      {/* TAB 0: HYBRID SENTIMENT SYNTHESIS (Track 2)                              */}
-                      {/* ========================================================================= */}
+                      {/* sentiment synthesis tab */}
                       {studioTab === 0 && (
                         <Stack spacing={2.8}>
-                          {/* Visual 50/50 Mathematical Fusion Stepper (Layer 3) */}
+                          {/* formula: 50/50 fusion steps */}
                           <Box sx={{ p: 2, bgcolor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                             <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 14, color: '#16324f', mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
                               <FunctionsIcon sx={{ fontSize: 18, color: '#f69d1b' }} /> Mathematical 50/50 Hybrid Formula Synthesis:
@@ -1542,7 +1537,7 @@ export default function ModelExplainer() {
                                 width: '100%',
                               }}
                             >
-                              {/* Box 1: Survey Mean */}
+                              {/* survey mean */}
                               <Paper variant="outlined" sx={{ p: 1.5, textAlign: 'center', borderRadius: '10px', bgcolor: '#ffffff', borderColor: '#d9e2ec' }}>
                                 <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.68rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
                                   Likert Mean (R_avg)
@@ -1559,7 +1554,7 @@ export default function ModelExplainer() {
                                 <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 20, color: '#64748b' }}>+</Typography>
                               </Box>
 
-                              {/* Box 2: RoBERTa Score */}
+                              {/* roberta score */}
                               <Paper variant="outlined" sx={{ p: 1.5, textAlign: 'center', borderRadius: '10px', bgcolor: '#ffffff', borderColor: '#d9e2ec' }}>
                                 <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.68rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
                                   RoBERTa Score (BERT)
@@ -1576,7 +1571,7 @@ export default function ModelExplainer() {
                                 <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 20, color: '#64748b' }}>=</Typography>
                               </Box>
 
-                              {/* Box 3: Final Score */}
+                              {/* final score */}
                               <Paper
                                 variant="outlined"
                                 sx={{
@@ -1609,7 +1604,7 @@ export default function ModelExplainer() {
                               </Paper>
                             </Box>
 
-                            {/* Arithmetic Substitution Line */}
+                            {/* formula: arithmetic substitution */}
                             <Box sx={{ mt: 1.5, p: 1, bgcolor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
                               <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.74rem', color: '#334155', fontWeight: 600 }}>
                                 Arithmetic Calculation: {diagnosticResult?.hybrid_synthesis?.arithmetic_substitution || `(${rAvg.toFixed(2)} × 0.50) + (${bertScore.toFixed(2)} × 0.50) = ${combinedScore.toFixed(2)}`}
@@ -1617,7 +1612,7 @@ export default function ModelExplainer() {
                             </Box>
                           </Box>
 
-                          {/* CONTINUOUS GAUGE (Layer 4: Decision Boundary Continuum) */}
+                          {/* gauge: decision boundary [-0.15, +0.15] */}
                           <Box sx={{ p: 2, bgcolor: '#ffffff', borderRadius: '12px', border: '1.5px solid #e2e8f0', overflow: 'hidden' }}>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5, flexWrap: 'wrap', gap: 1 }}>
                               <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 13.5, color: '#16324f', display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -1637,7 +1632,7 @@ export default function ModelExplainer() {
                               />
                             </Box>
 
-                            {/* Spectrum Bar */}
+                            {/* spectrum bar */}
                             <Box sx={{ position: 'relative', pt: 3.5, pb: 2.5, px: 3.5 }}>
                               <Box
                                 sx={{
@@ -1648,12 +1643,12 @@ export default function ModelExplainer() {
                                   boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.15)',
                                 }}
                               >
-                                {/* Boundary Markers at -0.15 and +0.15 */}
+                                {/* decision boundaries (-0.15 and +0.15) */}
                                 <Box sx={{ position: 'absolute', left: '42.5%', top: -6, bottom: -6, width: 2, bgcolor: '#16324f' }} />
                                 <Box sx={{ position: 'absolute', left: '57.5%', top: -6, bottom: -6, width: 2, bgcolor: '#16324f' }} />
                                 <Box sx={{ position: 'absolute', left: '50%', top: -3, bottom: -3, width: 1, bgcolor: '#64748b', opacity: 0.5 }} />
 
-                                {/* Moving Needle */}
+                                {/* gauge needle */}
                                 <Box
                                   sx={{
                                     position: 'absolute',
@@ -1672,7 +1667,7 @@ export default function ModelExplainer() {
                                 />
                               </Box>
 
-                              {/* Floating score tag above needle */}
+                              {/* score tag */}
                               <Box
                                 sx={{
                                   position: 'absolute',
@@ -1701,7 +1696,7 @@ export default function ModelExplainer() {
                                 </Paper>
                               </Box>
 
-                              {/* Zone legend labels */}
+                              {/* zone legend */}
                               <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1.8, px: 0.5 }}>
                                 <Typography sx={{ fontFamily: 'Poppins, sans-serif', color: '#be123c', fontWeight: 700, fontSize: '0.7rem' }}>
                                   -1.00 (Negative Zone)
@@ -1730,7 +1725,7 @@ export default function ModelExplainer() {
                             </Box>
                           </Box>
 
-                          {/* 10 LIKERT SURVEY QUESTIONS - CISCO-STYLE NUMERIC RATING SELECTOR (5 down to 1 + N/A) */}
+                          {/* 10 likert questions */}
                           <Box sx={{ p: 2, bgcolor: '#ffffff', borderRadius: '12px', border: '1.5px solid #d9e2ec' }}>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5, flexWrap: 'wrap', gap: 1 }}>
                               <Box>
@@ -1785,7 +1780,7 @@ export default function ModelExplainer() {
                                       </Typography>
                                     </Box>
 
-                                    {/* Numeric Rating Selector: 5, 4, 3, 2, 1, N/A */}
+                                    {/* rating selector */}
                                     <Stack direction="row" spacing={0.6} alignItems="center">
                                       {RATING_LEVELS.map((lvl) => {
                                         const isSelected = currentRatingId === lvl.id;
@@ -1826,7 +1821,7 @@ export default function ModelExplainer() {
                                         );
                                       })}
 
-                                      {/* Current Selected Label Tag */}
+                                      {/* selected rating label */}
                                       <Box sx={{ ml: 0.5, width: 85, textAlign: 'right' }}>
                                         <Chip
                                           label={activeOpt.ciscoLabel === 'N/A' ? 'N/A' : `${activeOpt.ciscoLabel} - ${activeOpt.label.split(' ')[0]}`}
@@ -1849,7 +1844,7 @@ export default function ModelExplainer() {
                             </Stack>
                           </Box>
 
-                          {/* RoBERTa Clause Breakdown */}
+                          {/* clause sentiment breakdown */}
                           <Box sx={{ p: 2, bgcolor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                             <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 13.5, color: '#16324f', mb: 1 }}>
                               RoBERTa Transformer Text Polarity Breakdown (Layer 2):
@@ -1906,12 +1901,10 @@ export default function ModelExplainer() {
                         </Stack>
                       )}
 
-                      {/* ========================================================================= */}
-                      {/* TAB 1: CATEGORY NAÏVE BAYES CLASSIFICATION (Track 1)                     */}
-                      {/* ========================================================================= */}
+                      {/* category classification tab */}
                       {studioTab === 1 && (
                         <Stack spacing={2.5}>
-                          {/* Step 1: Preprocessing & Stemming */}
+                          {/* step 1: text preprocessing and stemming */}
                           <Box sx={{ p: 2, bgcolor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                             <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 13.5, color: '#16324f', mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
                               <CodeIcon sx={{ fontSize: 18, color: '#16324f' }} /> Step 1: Text Preprocessing & Porter Stemming
@@ -1941,7 +1934,7 @@ export default function ModelExplainer() {
                             </Box>
                           </Box>
 
-                          {/* Step 2: Extracted Features & TF-IDF Keywords */}
+                          {/* step 2: feature extraction and tf-idf weights */}
                           <Box sx={{ p: 2, bgcolor: '#ffffff', borderRadius: '12px', border: '1.5px solid #d9e2ec' }}>
                             <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 13.5, color: '#16324f', mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
                               <AnalyticsIcon sx={{ fontSize: 18, color: '#16324f' }} /> Step 2: Matched TF-IDF Features & Domain Vocabulary
@@ -1996,7 +1989,7 @@ export default function ModelExplainer() {
                             )}
                           </Box>
 
-                          {/* Step 3: Posterior Probability Distribution */}
+                          {/* computation: posterior probability distribution */}
                           <Box sx={{ p: 2, bgcolor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
                               <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 13.5, color: '#16324f' }}>
@@ -2073,7 +2066,7 @@ export default function ModelExplainer() {
                               })}
                             </Box>
 
-                            {/* Step 4: Fallback Threshold Slider */}
+                            {/* fallback threshold */}
                             <Box sx={{ mt: 2, p: 1.5, bgcolor: '#ffffff', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
                               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
                                 <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: '0.78rem', color: '#1e293b' }}>
@@ -2103,9 +2096,7 @@ export default function ModelExplainer() {
                         </Stack>
                       )}
 
-                      {/* ========================================================================= */}
-                      {/* TAB 2: INTERACTIVE WHAT-IF SANDBOX                                        */}
-                      {/* ========================================================================= */}
+                      {/* what-if sandbox */}
                       {studioTab === 2 && (
                         <Stack spacing={2}>
                           <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 14, color: '#16324f' }}>
@@ -2177,7 +2168,7 @@ export default function ModelExplainer() {
               </Box>
             </Box>
 
-            {/* Academic Defense Footer */}
+            {/* footer */}
             <Box sx={{ mt: 4, mb: 1, textAlign: 'center', color: '#64748b' }}>
               <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.72rem', fontWeight: 600 }}>
                 Central Philippine University — Henry Luce III Library Management System

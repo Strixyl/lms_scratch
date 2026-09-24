@@ -73,7 +73,7 @@ const SatisfactionSurveyData = () => {
   const [availableCourses, setAvailableCourses] = useState([]);
 
   useEffect(() => {
-    // populate default list of all courses across colleges
+    // default courses list
     const allCourses = Object.values(COLLEGE_COURSES).flat();
     setAvailableCourses(Array.from(new Set(allCourses)).sort());
   }, []);
@@ -264,7 +264,7 @@ const SatisfactionSurveyData = () => {
                 </Button>
               </Box>
 
-              {/* data table grid */}
+              {/* table grid */}
               <DataGrid
                 rows={surveys}
                 columns={columns}
