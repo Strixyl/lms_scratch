@@ -32,6 +32,12 @@ import {
   Card,
   CardContent,
   Radio,
+  Select,
+  MenuItem,
+  InputLabel,
+  FormControl,
+  Popover,
+  Badge,
 } from '@mui/material';
 import {
   Psychology as PsychologyIcon,
@@ -91,44 +97,33 @@ const RATING_LEVELS = [
   { id: 'na', label: 'N/A', ciscoLabel: 'N/A', score: null, color: '#94a3b8', bg: '#f8fafc', border: '#e2e8f0' },
 ];
 
-// preset test cases
-const QUICK_PRESETS = [
-  {
-    id: 'preset-1',
-    title: 'Facilities (HVAC Issue)',
-    category: 'Facilities',
-    text: 'Aircon leaking in study room and the temperature was uncomfortably hot',
-    ratings: ['satisfied', 'satisfied', 'satisfied', 'satisfied', 'very_dissatisfied', 'satisfied', 'neutral', 'satisfied', 'neutral', 'dissatisfied'],
-  },
-  {
-    id: 'preset-2',
-    title: 'Staff Commendation',
-    category: 'Staff',
-    text: 'The reference librarian was very accommodating, courteous, and assisted me in locating hard-to-find journals',
-    ratings: ['very_satisfied', 'very_satisfied', 'very_satisfied', 'very_satisfied', 'very_satisfied', 'very_satisfied', 'very_satisfied', 'very_satisfied', 'very_satisfied', 'very_satisfied'],
-  },
-  {
-    id: 'preset-3',
-    title: 'Collection Accession Mismatch',
-    category: 'Collection',
-    text: 'OPAC book catalog accession number mismatch for the nursing textbooks and medical journals',
-    ratings: ['neutral', 'neutral', 'neutral', 'neutral', 'neutral', 'dissatisfied', 'dissatisfied', 'dissatisfied', 'neutral', 'neutral'],
-  },
-  {
-    id: 'preset-4',
-    title: 'Compound Pivot (Most-Negative-Wins)',
-    category: 'Facilities',
-    text: 'The library staff were very accommodating, but the cyber library computer wifi was disconnected',
-    ratings: ['satisfied', 'satisfied', 'very_satisfied', 'satisfied', 'dissatisfied', 'satisfied', 'satisfied', 'satisfied', 'satisfied', 'satisfied'],
-  },
-  {
-    id: 'preset-5',
-    title: 'Off-Topic / Ambiguous',
-    category: 'Other/Uncategorized',
-    text: 'None / NA. I miss my home and friends.',
-    ratings: ['neutral', 'neutral', 'neutral', 'neutral', 'neutral', 'neutral', 'neutral', 'neutral', 'neutral', 'neutral'],
-  },
+// college filter options (mirrors SentimentDashboard.js college filter)
+const COLLEGE_OPTIONS = [
+  'All', 'CARES', 'CAS', 'CBA', 'CCS', 'COED', 'COE', 'CHM', 'COL', 'CMLS',
+  'COM', 'CON', 'COP', 'COT', 'SGS', 'SHS', 'JHS', 'ELEM', 'KINDER',
 ];
+
+// date presets (mirrors SentimentDashboard.js date preset filter)
+const DATE_PRESETS = ['Today', 'This Week', 'This Month', 'All Time'];
+
+const getDatePresetRange = (preset) => {
+  const now = new Date();
+  const startOfDay = (d) => { const c = new Date(d); c.setHours(0, 0, 0, 0); return c; };
+  if (preset === 'Today') {
+    return { start: startOfDay(now), end: now };
+  }
+  if (preset === 'This Week') {
+    const day = now.getDay();
+    const diffToMonday = (day === 0 ? -6 : 1) - day;
+    const monday = startOfDay(new Date(now));
+    monday.setDate(monday.getDate() + diffToMonday);
+    return { start: monday, end: now };
+  }
+  if (preset === 'This Month') {
+    return { start: new Date(now.getFullYear(), now.getMonth(), 1), end: now };
+  }
+  return { start: null, end: null }; // All Time
+};
 
 // domain keywords for category matching
 const DOMAIN_KEYWORDS = {
@@ -158,7 +153,7 @@ export default function ModelExplainer() {
   const navigate = useNavigate();
 
   // view mode: database or presets
-  const [corpusMode, setCorpusMode] = useState('database');
+
 
   // active tab: 0 = sentiment, 1 = category, 2 = sandbox
   const [studioTab, setStudioTab] = useState(0);
@@ -172,8 +167,13 @@ export default function ModelExplainer() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('All');
   const [filterSentiment, setFilterSentiment] = useState('All');
+  const [filterCollege, setFilterCollege] = useState('All');
+  const [datePreset, setDatePreset] = useState('All Time');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const [filterAnchorEl, setFilterAnchorEl] = useState(null);
   const [tablePage, setTablePage] = useState(1);
-  const rowsPerPage = 6;
+  const rowsPerPage = 5;
 
   // computation inputs
   const [inputText, setInputText] = useState('The power outlets at the collaborative tables are very convenient for charging laptops.');
@@ -530,27 +530,6 @@ export default function ModelExplainer() {
     }
   };
 
-  // load preset
-  const handleSelectPreset = (preset) => {
-    setSelectedSurveyId(preset.id);
-    setSelectedMeta({
-      id: preset.id,
-      clientele: 'Academic Demo',
-      college: 'Defense Benchmark',
-      course: preset.title,
-      dateSubmitted: 'Live Simulation',
-      storedCategory: preset.category,
-      storedSentiment: 'Simulated',
-      storedScore: 0.0,
-    });
-    setInputText(preset.text);
-    setRatings([...preset.ratings]);
-
-    if (!autoCalculate) {
-      executeExplainPipeline(preset.text, preset.ratings, confidenceThreshold);
-    }
-  };
-
   // update question rating
   const handleRatingChange = (qIdx, newRatingId) => {
     const next = [...ratings];
@@ -558,8 +537,20 @@ export default function ModelExplainer() {
     setRatings(next);
   };
 
+  // effective date range: custom dates win over the preset when both are set
+  const effectiveDateRange = useMemo(() => {
+    if (customStartDate || customEndDate) {
+      return {
+        start: customStartDate ? new Date(`${customStartDate}T00:00:00`) : null,
+        end: customEndDate ? new Date(`${customEndDate}T23:59:59.997`) : null,
+      };
+    }
+    return getDatePresetRange(datePreset);
+  }, [datePreset, customStartDate, customEndDate]);
+
   // filter comments
   const filteredComments = useMemo(() => {
+    const { start, end } = effectiveDateRange;
     return submittedSurveys
       .filter(s => s.Message && s.Message.trim().length > 0)
       .filter(s => {
@@ -573,15 +564,46 @@ export default function ModelExplainer() {
         }
         if (filterCategory !== 'All' && s.Category !== filterCategory) return false;
         if (filterSentiment !== 'All' && s.SentimentResult !== filterSentiment) return false;
+        if (filterCollege !== 'All' && s.College !== filterCollege) return false;
+        if (start || end) {
+          const submitted = s.DateSubmitted ? new Date(s.DateSubmitted) : null;
+          if (!submitted) return false;
+          if (start && submitted < start) return false;
+          if (end && submitted > end) return false;
+        }
         return true;
       });
-  }, [submittedSurveys, searchTerm, filterCategory, filterSentiment]);
+  }, [submittedSurveys, searchTerm, filterCategory, filterSentiment, filterCollege, effectiveDateRange]);
 
   // pagination: slice by rows per page
   const paginatedComments = useMemo(() => {
     const start = (tablePage - 1) * rowsPerPage;
     return filteredComments.slice(start, start + rowsPerPage);
   }, [filteredComments, tablePage]);
+
+  // count of active (non-default) filters, for the badge on the Filter Records button
+  const activeFilterCount = useMemo(() => {
+    let n = 0;
+    if (searchTerm.trim()) n += 1;
+    if (filterCategory !== 'All') n += 1;
+    if (filterSentiment !== 'All') n += 1;
+    if (filterCollege !== 'All') n += 1;
+    if (datePreset !== 'All Time') n += 1;
+    if (customStartDate) n += 1;
+    if (customEndDate) n += 1;
+    return n;
+  }, [searchTerm, filterCategory, filterSentiment, filterCollege, datePreset, customStartDate, customEndDate]);
+
+  const handleClearAllFilters = () => {
+    setSearchTerm('');
+    setFilterCategory('All');
+    setFilterSentiment('All');
+    setFilterCollege('All');
+    setDatePreset('All Time');
+    setCustomStartDate('');
+    setCustomEndDate('');
+    setTablePage(1);
+  };
 
   // diagnostic getters
   const rAvg = diagnosticResult?.likert_simulation?.r_avg ?? 0.0;
@@ -641,7 +663,7 @@ export default function ModelExplainer() {
               }}
             >
               <Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                   <Typography
                     sx={{
                       fontFamily: 'Poppins, sans-serif',
@@ -755,11 +777,11 @@ export default function ModelExplainer() {
                 },
                 gap: 2.5,
                 width: '100%',
-                alignItems: 'start',
+                alignItems: 'stretch',
               }}
             >
               {/* comments directory */}
-              <Box sx={{ width: '100%' }}>
+              <Box sx={{ width: '100%', alignSelf: 'start' }}>
                 <Paper
                   elevation={0}
                   sx={{
@@ -768,14 +790,13 @@ export default function ModelExplainer() {
                     bgcolor: '#ffffff',
                     border: '1.5px solid #d9e2ec',
                     boxShadow: '0 2px 10px rgba(22, 50, 79, 0.04)',
-                    height: '100%',
                     display: 'flex',
                     flexDirection: 'column',
                   }}
                 >
-                  {/* mode switcher */}
+                  {/* header + expandable filter trigger */}
                   <Box sx={{ mb: 2 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.2 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <CommentIcon sx={{ color: '#16324f', fontSize: 20 }} />
                         <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 15, color: '#16324f' }}>
@@ -789,54 +810,63 @@ export default function ModelExplainer() {
                       />
                     </Box>
 
-                    {/* view toggle */}
-                    <Stack direction="row" spacing={1} sx={{ mt: 1.2 }}>
-                      <Button
-                        size="small"
-                        variant={corpusMode === 'database' ? 'contained' : 'outlined'}
-                        onClick={() => setCorpusMode('database')}
-                        sx={{
-                          flex: 1,
-                          fontFamily: 'Poppins, sans-serif',
-                          fontSize: '0.75rem',
-                          fontWeight: 700,
-                          textTransform: 'none',
-                          borderRadius: '8px',
-                          py: 0.6,
-                          bgcolor: corpusMode === 'database' ? '#16324f' : '#ffffff',
-                          color: corpusMode === 'database' ? '#ffffff' : '#475569',
-                          borderColor: '#cbd5e1',
-                          '&:hover': { bgcolor: corpusMode === 'database' ? '#0f243a' : '#f8fafc' },
-                        }}
-                      >
-                        Database Corpus
-                      </Button>
-                      <Button
-                        size="small"
-                        variant={corpusMode === 'presets' ? 'contained' : 'outlined'}
-                        onClick={() => setCorpusMode('presets')}
-                        sx={{
-                          flex: 1,
-                          fontFamily: 'Poppins, sans-serif',
-                          fontSize: '0.75rem',
-                          fontWeight: 700,
-                          textTransform: 'none',
-                          borderRadius: '8px',
-                          py: 0.6,
-                          bgcolor: corpusMode === 'presets' ? '#f69d1b' : '#ffffff',
-                          color: corpusMode === 'presets' ? '#ffffff' : '#475569',
-                          borderColor: '#fed7aa',
-                          '&:hover': { bgcolor: corpusMode === 'presets' ? '#df8208' : '#fff8eb' },
-                        }}
-                      >
-                        Defense Presets
-                      </Button>
-                    </Stack>
-                  </Box>
+                    {/* single compact filter trigger button (replaces stacked inline filters) */}
+                    <Button
+                      fullWidth
+                      size="small"
+                      onClick={(e) => setFilterAnchorEl(e.currentTarget)}
+                      startIcon={<FilterListIcon sx={{ fontSize: 18 }} />}
+                      sx={{
+                        justifyContent: 'space-between',
+                        fontFamily: 'Poppins, sans-serif',
+                        fontWeight: 700,
+                        fontSize: '0.8rem',
+                        textTransform: 'none',
+                        color: '#16324f',
+                        bgcolor: '#f8fafc',
+                        border: '1.5px solid #d9e2ec',
+                        borderRadius: '10px',
+                        py: 0.8,
+                        px: 1.4,
+                        '&:hover': { bgcolor: '#edf4fa', borderColor: '#cbd5e1' },
+                      }}
+                      endIcon={
+                        <Badge
+                          badgeContent={activeFilterCount}
+                          color="warning"
+                          sx={{ '& .MuiBadge-badge': { fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: '0.62rem' } }}
+                        >
+                          <Box sx={{ width: activeFilterCount > 0 ? 14 : 0 }} />
+                        </Badge>
+                      }
+                    >
+                      {activeFilterCount > 0 ? `Filter Records (${activeFilterCount})` : 'Filter Records'}
+                    </Button>
 
-                  {/* database surveys view */}
-                  {corpusMode === 'database' && (
-                    <>
+                    {/* filter popover: search, category, sentiment, college, date range */}
+                    <Popover
+                      open={Boolean(filterAnchorEl)}
+                      anchorEl={filterAnchorEl}
+                      onClose={() => setFilterAnchorEl(null)}
+                      anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+                      transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+                      PaperProps={{ sx: { mt: 0.8, borderRadius: '14px', border: '1.5px solid #d9e2ec', boxShadow: '0 8px 28px rgba(22, 50, 79, 0.14)', width: { xs: 300, sm: 340 }, p: 2 } }}
+                    >
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.4 }}>
+                        <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 14, color: '#16324f' }}>
+                          Filter Records
+                        </Typography>
+                        {activeFilterCount > 0 && (
+                          <Button
+                            size="small"
+                            onClick={handleClearAllFilters}
+                            sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: '0.7rem', textTransform: 'none', color: '#be123c', minWidth: 0, p: 0 }}
+                          >
+                            Clear all
+                          </Button>
+                        )}
+                      </Box>
+
                       {/* search input */}
                       <TextField
                         size="small"
@@ -859,7 +889,7 @@ export default function ModelExplainer() {
                           ) : null,
                         }}
                         sx={{
-                          mb: 1.5,
+                          mb: 1.6,
                           bgcolor: '#f8fafc',
                           borderRadius: '10px',
                           '& .MuiOutlinedInput-root': {
@@ -872,8 +902,8 @@ export default function ModelExplainer() {
 
                       {/* category chips */}
                       <Box sx={{ mb: 1.5 }}>
-                        <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', mb: 0.6, letterSpacing: 0.4 }}>
-                          Category Filter:
+                        <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.68rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', mb: 0.6, letterSpacing: 0.4 }}>
+                          Category
                         </Typography>
                         <Stack direction="row" spacing={0.6} flexWrap="wrap" useFlexGap>
                           {['All', 'Facilities', 'Staff', 'Collection'].map((cat) => (
@@ -899,9 +929,9 @@ export default function ModelExplainer() {
                       </Box>
 
                       {/* sentiment chips */}
-                      <Box sx={{ mb: 1.8 }}>
-                        <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', mb: 0.6, letterSpacing: 0.4 }}>
-                          Sentiment Filter:
+                      <Box sx={{ mb: 1.5 }}>
+                        <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.68rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', mb: 0.6, letterSpacing: 0.4 }}>
+                          Sentiment
                         </Typography>
                         <Stack direction="row" spacing={0.6} flexWrap="wrap" useFlexGap>
                           {['All', 'Positive', 'Neutral', 'Negative'].map((s) => (
@@ -926,221 +956,213 @@ export default function ModelExplainer() {
                         </Stack>
                       </Box>
 
-                      <Divider sx={{ mb: 1.5 }} />
+                      {/* college and date preset */}
+                      <Box sx={{ mb: 1.5, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
+                        <FormControl size="small" fullWidth>
+                          <InputLabel id="college-filter-label" sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.78rem' }}>College</InputLabel>
+                          <Select
+                            labelId="college-filter-label"
+                            id="college-filter"
+                            label="College"
+                            value={filterCollege}
+                            onChange={(e) => { setFilterCollege(e.target.value); setTablePage(1); }}
+                            sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.78rem', bgcolor: '#f8fafc', borderRadius: '10px' }}
+                          >
+                            {COLLEGE_OPTIONS.map((c) => (
+                              <MenuItem key={c} value={c} sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.8rem' }}>{c}</MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
 
-                      {/* feedback list */}
-                      <Box sx={{ flex: 1, overflowY: 'auto', pr: 0.5, maxHeight: { xs: 420, lg: 'calc(100vh - 430px)' } }}>
-                        {paginatedComments.length > 0 ? (
-                          <Stack spacing={1.2}>
-                            {paginatedComments.map((survey) => {
-                              const sId = survey.Id || survey.id;
-                              const isSelected = selectedSurveyId === sId;
-                              const sentStyle = getSentimentTheme(survey.SentimentResult);
-                              const catColor = getCategoryColor(survey.Category);
-
-                              return (
-                                <Paper
-                                  key={sId}
-                                  variant="outlined"
-                                  onClick={() => handleSelectSubmittedComment(survey)}
-                                  sx={{
-                                    p: 1.4,
-                                    borderRadius: '12px',
-                                    cursor: 'pointer',
-                                    bgcolor: isSelected ? 'rgba(246, 157, 27, 0.08)' : '#ffffff',
-                                    borderColor: isSelected ? '#f69d1b' : '#e2e8f0',
-                                    borderWidth: isSelected ? '1.8px' : '1px',
-                                    borderLeft: isSelected ? '4px solid #f69d1b' : '4px solid transparent',
-                                    transition: 'all 0.15s ease',
-                                    boxShadow: isSelected ? '0 3px 10px rgba(246, 157, 27, 0.12)' : 'none',
-                                    '&:hover': {
-                                      borderColor: isSelected ? '#f69d1b' : '#94a3b8',
-                                      bgcolor: isSelected ? 'rgba(246, 157, 27, 0.12)' : '#f8fafc',
-                                    },
-                                  }}
-                                >
-                                  {/* header row */}
-                                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.6 }}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-                                      <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: '0.78rem', color: '#16324f' }}>
-                                        #{sId}
-                                      </Typography>
-                                      <Chip
-                                        label={survey.Clientele || 'Patron'}
-                                        size="small"
-                                        sx={{ fontFamily: 'Poppins, sans-serif', height: 18, fontSize: '0.62rem', fontWeight: 700, bgcolor: '#f1f5f9', color: '#334155' }}
-                                      />
-                                      <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.68rem', color: '#64748b' }} noWrap>
-                                        {survey.College || 'General'}
-                                      </Typography>
-                                    </Box>
-
-                                    {isSelected && (
-                                      <Chip
-                                        label="Active"
-                                        size="small"
-                                        sx={{
-                                          fontFamily: 'Poppins, sans-serif',
-                                          height: 18,
-                                          fontSize: '0.62rem',
-                                          fontWeight: 800,
-                                          bgcolor: '#f69d1b',
-                                          color: '#ffffff',
-                                        }}
-                                      />
-                                    )}
-                                  </Box>
-
-                                  {/* message preview */}
-                                  <Typography
-                                    sx={{
-                                      fontFamily: 'Poppins, sans-serif',
-                                      fontSize: '0.8rem',
-                                      color: '#1e293b',
-                                      fontWeight: isSelected ? 600 : 400,
-                                      lineHeight: 1.35,
-                                      mb: 0.8,
-                                      display: '-webkit-box',
-                                      WebkitLineClamp: 2,
-                                      WebkitBoxOrient: 'vertical',
-                                      overflow: 'hidden',
-                                    }}
-                                  >
-                                    "{survey.Message}"
-                                  </Typography>
-
-                                  {/* category and sentiment tags */}
-                                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
-                                    <Stack direction="row" spacing={0.6}>
-                                      <Chip
-                                        label={survey.Category || 'Other'}
-                                        size="small"
-                                        sx={{
-                                          fontFamily: 'Poppins, sans-serif',
-                                          height: 20,
-                                          fontSize: '0.64rem',
-                                          fontWeight: 700,
-                                          bgcolor: `${catColor}15`,
-                                          color: catColor,
-                                          border: `1px solid ${catColor}30`,
-                                        }}
-                                      />
-                                      <Chip
-                                        label={survey.SentimentResult || 'Neutral'}
-                                        size="small"
-                                        sx={{
-                                          fontFamily: 'Poppins, sans-serif',
-                                          height: 20,
-                                          fontSize: '0.64rem',
-                                          fontWeight: 700,
-                                          bgcolor: sentStyle.bg,
-                                          color: sentStyle.text,
-                                          border: `1px solid ${sentStyle.border}`,
-                                        }}
-                                      />
-                                    </Stack>
-
-                                    <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.64rem', color: '#94a3b8' }}>
-                                      {survey.DateSubmitted ? String(survey.DateSubmitted).substring(0, 10) : ''}
-                                    </Typography>
-                                  </Box>
-                                </Paper>
-                              );
-                            })}
-                          </Stack>
-                        ) : (
-                          <Box sx={{ p: 4, textAlign: 'center' }}>
-                            <Typography sx={{ fontFamily: 'Poppins, sans-serif', color: '#64748b', fontSize: '0.82rem' }}>
-                              No comments matched your filter.
-                            </Typography>
-                          </Box>
-                        )}
+                        <FormControl size="small" fullWidth>
+                          <InputLabel id="date-range-filter-label" sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.78rem' }}>Date Range</InputLabel>
+                          <Select
+                            labelId="date-range-filter-label"
+                            id="date-range-filter"
+                            label="Date Range"
+                            value={datePreset}
+                            onChange={(e) => { setDatePreset(e.target.value); setCustomStartDate(''); setCustomEndDate(''); setTablePage(1); }}
+                            sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.78rem', bgcolor: '#f8fafc', borderRadius: '10px' }}
+                          >
+                            {DATE_PRESETS.map((p) => (
+                              <MenuItem key={p} value={p} sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.8rem' }}>{p}</MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
                       </Box>
 
-                      {/* pagination */}
-                      {filteredComments.length > rowsPerPage && (
-                        <Box sx={{ pt: 1.5, mt: 'auto', display: 'flex', justifyContent: 'center' }}>
-                          <Pagination
-                            count={Math.ceil(filteredComments.length / rowsPerPage)}
-                            page={tablePage}
-                            onChange={(e, p) => setTablePage(p)}
-                            size="small"
-                            color="primary"
-                            sx={{
-                              '& .MuiPaginationItem-root': {
-                                fontFamily: 'Poppins, sans-serif',
-                                fontSize: '0.75rem',
-                              },
-                            }}
-                          />
-                        </Box>
-                      )}
-                    </>
-                  )}
+                      {/* custom date range override */}
+                      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
+                        <TextField
+                          size="small"
+                          type="date"
+                          label="Start Date"
+                          value={customStartDate}
+                          onChange={(e) => { setCustomStartDate(e.target.value); setTablePage(1); }}
+                          InputLabelProps={{ shrink: true, sx: { fontFamily: 'Poppins, sans-serif', fontSize: '0.78rem' } }}
+                          sx={{ '& .MuiOutlinedInput-root': { fontFamily: 'Poppins, sans-serif', fontSize: '0.78rem', bgcolor: '#f8fafc', borderRadius: '10px' } }}
+                        />
+                        <TextField
+                          size="small"
+                          type="date"
+                          label="End Date"
+                          value={customEndDate}
+                          onChange={(e) => { setCustomEndDate(e.target.value); setTablePage(1); }}
+                          InputLabelProps={{ shrink: true, sx: { fontFamily: 'Poppins, sans-serif', fontSize: '0.78rem' } }}
+                          sx={{ '& .MuiOutlinedInput-root': { fontFamily: 'Poppins, sans-serif', fontSize: '0.78rem', bgcolor: '#f8fafc', borderRadius: '10px' } }}
+                        />
+                      </Box>
+                    </Popover>
+                  </Box>
 
-                  {/* presets view */}
-                  {corpusMode === 'presets' && (
-                    <Box sx={{ flex: 1, overflowY: 'auto', pr: 0.5 }}>
-                      <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.78rem', color: '#64748b', mb: 1.5 }}>
-                        Click any benchmark case to test how the pipeline handles edge cases (e.g. HVAC complaints, compound conjunction pivots, accession mismatches).
-                      </Typography>
-
+                  {/* feedback list — fixed height, shows exactly 5 cards, custom scroll for the rest */}
+                  <Box sx={{ flex: 1, overflowY: 'auto', pr: 0.5, height: 540, minHeight: 540, maxHeight: 540 }}>
+                    {paginatedComments.length > 0 ? (
                       <Stack spacing={1.2}>
-                        {QUICK_PRESETS.map((preset) => {
-                          const isSelected = selectedSurveyId === preset.id;
-                          const catColor = getCategoryColor(preset.category);
+                        {paginatedComments.map((survey) => {
+                          const sId = survey.Id || survey.id;
+                          const isSelected = selectedSurveyId === sId;
+                          const sentStyle = getSentimentTheme(survey.SentimentResult);
+                          const catColor = getCategoryColor(survey.Category);
 
                           return (
                             <Paper
-                              key={preset.id}
+                              key={sId}
                               variant="outlined"
-                              onClick={() => handleSelectPreset(preset)}
+                              onClick={() => handleSelectSubmittedComment(survey)}
                               sx={{
-                                p: 1.5,
+                                p: 1.4,
                                 borderRadius: '12px',
                                 cursor: 'pointer',
-                                bgcolor: isSelected ? 'rgba(246, 157, 27, 0.08)' : '#ffffff',
-                                borderColor: isSelected ? '#f69d1b' : '#e2e8f0',
+                                bgcolor: isSelected ? '#e0f2fe' : '#ffffff',
+                                borderColor: isSelected ? '#38bdf8' : '#e2e8f0',
                                 borderWidth: isSelected ? '1.8px' : '1px',
-                                borderLeft: isSelected ? '4px solid #f69d1b' : '4px solid transparent',
+                                borderLeft: isSelected ? '4px solid #0284c7' : '4px solid transparent',
                                 transition: 'all 0.15s ease',
+                                boxShadow: isSelected ? '0 3px 10px rgba(2, 132, 199, 0.14)' : 'none',
                                 '&:hover': {
-                                  borderColor: isSelected ? '#f69d1b' : '#94a3b8',
-                                  bgcolor: isSelected ? 'rgba(246, 157, 27, 0.12)' : '#f8fafc',
+                                  borderColor: isSelected ? '#38bdf8' : '#94a3b8',
+                                  bgcolor: isSelected ? '#d3ecfc' : '#f8fafc',
                                 },
                               }}
                             >
+                              {/* header row */}
                               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.6 }}>
-                                <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: '0.82rem', color: '#16324f' }}>
-                                  {preset.title}
-                                </Typography>
-                                <Chip
-                                  label={preset.category}
-                                  size="small"
-                                  sx={{
-                                    fontFamily: 'Poppins, sans-serif',
-                                    height: 18,
-                                    fontSize: '0.62rem',
-                                    fontWeight: 700,
-                                    bgcolor: `${catColor}15`,
-                                    color: catColor,
-                                  }}
-                                />
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                                  <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: '0.78rem', color: '#16324f' }}>
+                                    #{sId}
+                                  </Typography>
+                                  <Chip
+                                    label={survey.Clientele || 'Patron'}
+                                    size="small"
+                                    sx={{ fontFamily: 'Poppins, sans-serif', height: 18, fontSize: '0.62rem', fontWeight: 700, bgcolor: '#f1f5f9', color: '#334155' }}
+                                  />
+                                  <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.68rem', color: '#64748b' }} noWrap>
+                                    {survey.College || 'General'}
+                                  </Typography>
+                                </Box>
+
+                                {isSelected && (
+                                  <Chip
+                                    label="Active"
+                                    size="small"
+                                    sx={{
+                                      fontFamily: 'Poppins, sans-serif',
+                                      height: 18,
+                                      fontSize: '0.62rem',
+                                      fontWeight: 800,
+                                      bgcolor: '#0284c7',
+                                      color: '#ffffff',
+                                    }}
+                                  />
+                                )}
                               </Box>
 
-                              <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.78rem', color: '#334155', fontStyle: 'italic', mb: 0.8 }}>
-                                "{preset.text}"
+                              {/* message preview */}
+                              <Typography
+                                sx={{
+                                  fontFamily: 'Poppins, sans-serif',
+                                  fontSize: '0.8rem',
+                                  color: '#1e293b',
+                                  fontWeight: isSelected ? 600 : 400,
+                                  lineHeight: 1.35,
+                                  mb: 0.8,
+                                  display: '-webkit-box',
+                                  WebkitLineClamp: 2,
+                                  WebkitBoxOrient: 'vertical',
+                                  overflow: 'hidden',
+                                }}
+                              >
+                                "{survey.Message}"
                               </Typography>
 
-                              <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.68rem', color: '#94a3b8' }}>
-                                Benchmark 10 Likert ratings preset applied
-                              </Typography>
+                              {/* category and sentiment tags */}
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
+                                <Stack direction="row" spacing={0.6}>
+                                  <Chip
+                                    label={survey.Category || 'Other'}
+                                    size="small"
+                                    sx={{
+                                      fontFamily: 'Poppins, sans-serif',
+                                      height: 20,
+                                      fontSize: '0.64rem',
+                                      fontWeight: 700,
+                                      bgcolor: `${catColor}15`,
+                                      color: catColor,
+                                      border: `1px solid ${catColor}30`,
+                                    }}
+                                  />
+                                  <Chip
+                                    label={survey.SentimentResult || 'Neutral'}
+                                    size="small"
+                                    sx={{
+                                      fontFamily: 'Poppins, sans-serif',
+                                      height: 20,
+                                      fontSize: '0.64rem',
+                                      fontWeight: 700,
+                                      bgcolor: sentStyle.bg,
+                                      color: sentStyle.text,
+                                      border: `1px solid ${sentStyle.border}`,
+                                    }}
+                                  />
+                                </Stack>
+
+                                <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.64rem', color: '#94a3b8' }}>
+                                  {survey.DateSubmitted ? String(survey.DateSubmitted).substring(0, 10) : ''}
+                                </Typography>
+                              </Box>
                             </Paper>
                           );
                         })}
                       </Stack>
+                    ) : (
+                      <Box sx={{ p: 4, textAlign: 'center' }}>
+                        <Typography sx={{ fontFamily: 'Poppins, sans-serif', color: '#64748b', fontSize: '0.82rem' }}>
+                          No comments matched your filter.
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
+
+                  {/* pagination */}
+                  {filteredComments.length > rowsPerPage && (
+                    <Box sx={{ pt: 1.5, display: 'flex', justifyContent: 'center' }}>
+                      <Pagination
+                        count={Math.ceil(filteredComments.length / rowsPerPage)}
+                        page={tablePage}
+                        onChange={(e, p) => setTablePage(p)}
+                        size="small"
+                        color="primary"
+                        sx={{
+                          '& .MuiPaginationItem-root': {
+                            fontFamily: 'Poppins, sans-serif',
+                            fontSize: '0.75rem',
+                          },
+                        }}
+                      />
                     </Box>
                   )}
+
                 </Paper>
               </Box>
 
