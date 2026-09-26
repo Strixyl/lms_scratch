@@ -1302,7 +1302,7 @@ export default function ModelExplainer() {
                     </Box>
                   </Paper>
 
-                  {/* kpi summary cards */}
+                  {/* summary cards  for stats*/}
                   <Box
                     sx={{
                       display: 'grid',
