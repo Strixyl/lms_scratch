@@ -738,7 +738,7 @@ export default function ModelExplainer() {
                     '&:hover': { borderColor: '#16324f', bgcolor: '#edf4fa', borderWidth: '1.5px' },
                   }}
                 >
-                  {isFetchingSurveys ? 'Refreshing...' : 'Refresh Corpus'}
+                  {isFetchingSurveys ? 'Refreshing...' : 'Refresh'}
                 </Button>
 
                 <Button
