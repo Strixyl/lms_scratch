@@ -676,7 +676,7 @@ export default function ModelExplainer() {
                     AI Model Explainer & Mathematical Computation Studio
                   </Typography>
                   <Chip
-                    label="Academic Defense Validation"
+                    label="Computation and Confidence Explainer"
                     size="small"
                     sx={{
                       fontFamily: 'Poppins, sans-serif',
@@ -697,7 +697,7 @@ export default function ModelExplainer() {
                     mt: 0.3,
                   }}
                 >
-                  Interactive two-track diagnostic workbench for CardiffNLP Twitter-RoBERTa sentiment fusion and Multinomial Naïve Bayes classification
+                  Interactive Page for Vizualization of Grade and Confidence
                 </Typography>
               </Box>
 
@@ -738,7 +738,7 @@ export default function ModelExplainer() {
                     '&:hover': { borderColor: '#16324f', bgcolor: '#edf4fa', borderWidth: '1.5px' },
                   }}
                 >
-                  {isFetchingSurveys ? 'Refreshing...' : 'Refresh Corpus'}
+                  {isFetchingSurveys ? 'Refreshing...' : 'Refresh'}
                 </Button>
 
                 <Button
