@@ -1098,10 +1098,10 @@ const SatisfactionSurvey = () => {
                             sx={{
                               fontFamily: 'Poppins, sans-serif',
                               fontWeight: 700,
-                              fontSize: '12px',
+                              fontSize: '14px',
                               bgcolor: '#16a34a',
                               color: '#ffffff',
-                              animation: 'pulseBadge 0.4s ease-in-out infinite alternate',
+                              animation: 'pulseBadge 1s ease-in-out infinite alternate',
                               '@keyframes pulseBadge': {
                                 '0%': { transform: 'scale(0.96)', opacity: 0.85 },
                                 '100%': { transform: 'scale(1.03)', opacity: 1 },
