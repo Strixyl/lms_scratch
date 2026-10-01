@@ -1334,7 +1334,7 @@ export default function ModelExplainer() {
                     >
                       <Box>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: '0.72rem', color: '#64748b', textTransform: 'uppercase' }}>
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: '0.72rem', color: '#000000ff', textTransform: 'uppercase' }}>
                             Final Hybrid Score
                           </Typography>
                           <CalculateIcon sx={{ fontSize: 18, color: getSentimentTheme(finalSentiment).text }} />
@@ -1381,7 +1381,7 @@ export default function ModelExplainer() {
                     >
                       <Box>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: '0.72rem', color: '#64748b', textTransform: 'uppercase' }}>
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: '0.72rem', color: '#000000ff', textTransform: 'uppercase' }}>
                             Likert Survey Mean
                           </Typography>
                           <ThumbUpIcon sx={{ fontSize: 18, color: '#f69d1b' }} />
@@ -1428,7 +1428,7 @@ export default function ModelExplainer() {
                     >
                       <Box>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: '0.72rem', color: '#64748b', textTransform: 'uppercase' }}>
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: '0.72rem', color: '#000000ff', textTransform: 'uppercase' }}>
                             RoBERTa AI Polarity
                           </Typography>
                           <PsychologyIcon sx={{ fontSize: 18, color: '#16324f' }} />
