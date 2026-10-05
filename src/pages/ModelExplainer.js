@@ -673,7 +673,7 @@ export default function ModelExplainer() {
                       letterSpacing: '-0.3px',
                     }}
                   >
-                    AI Model Explainer & Mathematical Computation Studio
+                    Sentiment Analysis & Naïve Bayes Classification Score Breakdown
                   </Typography>
                   <Chip
                     label="Computation and Confidence Explainer"
@@ -702,7 +702,7 @@ export default function ModelExplainer() {
               </Box>
 
               <Stack direction="row" spacing={1.2} alignItems="center" flexWrap="wrap">
-                <Tooltip title={isLiveConnected ? 'Connected directly to Flask ML service (Port 5001)' : 'Running client-side mathematical simulation fallback'}>
+                <Tooltip title={isLiveConnected ? 'Connected directly to Flask ML service' : 'Running client-side mathematical simulation fallback'}>
                   <Chip
                     icon={isLiveConnected ? <CheckCircleIcon sx={{ fontSize: '1rem !important', color: '#107c41 !important' }} /> : <WarningIcon sx={{ fontSize: '1rem !important', color: '#f69d1b !important' }} />}
                     label={isLiveConnected ? 'Live ML Model (Port 5001)' : 'Simulation Engine Active'}
