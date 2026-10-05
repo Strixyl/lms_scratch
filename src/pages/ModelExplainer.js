@@ -640,7 +640,7 @@ export default function ModelExplainer() {
           <TopBar
             title="Henry Luce III Library"
             onMenuClick={toggleDrawer}
-            subtitle="AI MODEL EXPLAINER & SCORE COMPUTATION"
+            subtitle="Sentiment Analysis & Naïve Bayes Classification Score Breakdown"
           />
 
           <Box sx={{ p: { xs: 2, md: 3 }, bgcolor: '#eef1f6', minHeight: '100vh', fontFamily: 'Poppins, sans-serif', overflowX: 'hidden' }}>
