@@ -444,10 +444,10 @@ export default function ModelExplainer() {
         final_sentiment: finalSentiment,
         arithmetic_substitution: arithmeticSubstitution,
       }
-    };
+    }
   }, [clientPreprocess]);
 
-  // pipeline execution
+  // pipeline happenigns
   const executeExplainPipeline = useCallback(async (text, currentRatings, threshold) => {
     setIsLoading(true);
 
@@ -456,7 +456,6 @@ export default function ModelExplainer() {
       ratings: currentRatings,
       threshold: threshold || 0.45
     };
-
     try {
       let response;
       try {
@@ -529,7 +528,6 @@ export default function ModelExplainer() {
       executeExplainPipeline(survey.Message || '', surveyRatings, confidenceThreshold);
     }
   };
-
   // update question rating
   const handleRatingChange = (qIdx, newRatingId) => {
     const next = [...ratings];
