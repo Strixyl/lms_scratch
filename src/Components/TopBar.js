@@ -6,7 +6,7 @@ import henryluce from '../assets/henryluce.png';
 
 const TopBar = ({ onMenuClick, subtitle }) => {
   return (
-    <AppBar position="static" style={{ backgroundColor: '#d49f1e', width: '100%' }}>
+    <AppBar position="sticky" style={{ backgroundColor: '#d49f1e', width: '100%' }}>
       <Toolbar sx={{ display: 'flex', alignItems: 'center', padding: '0 10px', margin: '15px 10px 15px' }}>
 
         <IconButton edge="start" color="inherit" onClick={onMenuClick} sx={{ mr: 1 }}>

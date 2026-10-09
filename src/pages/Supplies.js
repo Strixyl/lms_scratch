@@ -11,7 +11,6 @@ import SearchIcon from '@mui/icons-material/Search';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import { useNavigate } from 'react-router-dom';
 import { getSupplies, getSupplyTransactions, disburseSupply } from '../api/suppliesApi';
-import { THEME } from '../constants/equipmentConstants';
 
 const font = 'Poppins, sans-serif';
 const navy = '#1b0892';

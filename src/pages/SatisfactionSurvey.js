@@ -49,8 +49,8 @@ const RATING_OPTIONS = [
 
 // patron types with icons
 const PATRON_TYPES = [
-  { id: 'student', label: 'Student', icon: SchoolIcon, desc: 'College & Course req.' },
-  { id: 'faculty', label: 'Faculty', icon: FacultyIcon, desc: 'College req.' },
+  { id: 'student', label: 'Student', icon: SchoolIcon, desc: 'College & Course required' },
+  { id: 'faculty', label: 'Faculty', icon: FacultyIcon, desc: 'College required' },
   { id: 'staff', label: 'Staff', icon: StaffIcon, desc: 'University Staff' },
   { id: 'researcher', label: 'Researcher', icon: ResearcherIcon, desc: 'Visiting Scholar' },
   { id: 'admin', label: 'CPU Admin', icon: AdminIcon, desc: 'Administration' },
@@ -684,8 +684,8 @@ const SatisfactionSurvey = () => {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, flexShrink: 0 }}>
                   <Box
                     sx={{
-                      width: 6,
-                      height: 6,
+                      width: 10,
+                      height: 10,
                       borderRadius: '50%',
                       bgcolor: '#22c55e',
                       boxShadow: '0 0 6px #22c55e',
@@ -701,7 +701,7 @@ const SatisfactionSurvey = () => {
                       textTransform: 'uppercase',
                     }}
                   >
-                    LIVE
+                    LIVE DATE AND TIME
                   </Typography>
                 </Box>
               </Box>
@@ -1098,10 +1098,10 @@ const SatisfactionSurvey = () => {
                             sx={{
                               fontFamily: 'Poppins, sans-serif',
                               fontWeight: 700,
-                              fontSize: '12px',
+                              fontSize: '14px',
                               bgcolor: '#16a34a',
                               color: '#ffffff',
-                              animation: 'pulseBadge 0.4s ease-in-out infinite alternate',
+                              animation: 'pulseBadge 1s ease-in-out infinite alternate',
                               '@keyframes pulseBadge': {
                                 '0%': { transform: 'scale(0.96)', opacity: 0.85 },
                                 '100%': { transform: 'scale(1.03)', opacity: 1 },

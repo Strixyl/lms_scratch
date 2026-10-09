@@ -1,15 +1,13 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
   Paper,
-  Grid,
   Button,
   TextField,
   Chip,
-  Divider,
   LinearProgress,
   Slider,
   Tooltip,
@@ -29,9 +27,6 @@ import {
   Tab,
   CircularProgress,
   Pagination,
-  Card,
-  CardContent,
-  Radio,
   Select,
   MenuItem,
   InputLabel,
@@ -42,7 +37,6 @@ import {
 import {
   Psychology as PsychologyIcon,
   Calculate as CalculateIcon,
-  Tune as TuneIcon,
   Analytics as AnalyticsIcon,
   CheckCircle as CheckCircleIcon,
   Warning as WarningIcon,
@@ -53,25 +47,19 @@ import {
   Search as SearchIcon,
   RateReview as RateReviewIcon,
   ThumbUp as ThumbUpIcon,
-  ThumbDown as ThumbDownIcon,
   Category as CategoryIcon,
   Refresh as RefreshIcon,
   Comment as CommentIcon,
   FormatQuote as QuoteIcon,
   AutoAwesome as AutoAwesomeIcon,
   Clear as ClearIcon,
-  ArrowForward as ArrowForwardIcon,
   Functions as FunctionsIcon,
-  Layers as LayersIcon,
   Speed as SpeedIcon,
-  HelpOutline as HelpOutlineIcon,
-  School as SchoolIcon,
   FilterList as FilterListIcon,
 } from '@mui/icons-material';
 
 import Header from '../Components/Header';
 import TopBar from '../Components/TopBar';
-import { THEME } from '../constants/themeTokens';
 
 // 10 satisfaction survey questions
 const SURVEY_QUESTIONS = [
@@ -444,10 +432,10 @@ export default function ModelExplainer() {
         final_sentiment: finalSentiment,
         arithmetic_substitution: arithmeticSubstitution,
       }
-    };
+    }
   }, [clientPreprocess]);
 
-  // pipeline execution
+  // pipeline happenigns
   const executeExplainPipeline = useCallback(async (text, currentRatings, threshold) => {
     setIsLoading(true);
 
@@ -456,7 +444,6 @@ export default function ModelExplainer() {
       ratings: currentRatings,
       threshold: threshold || 0.45
     };
-
     try {
       let response;
       try {
@@ -529,7 +516,6 @@ export default function ModelExplainer() {
       executeExplainPipeline(survey.Message || '', surveyRatings, confidenceThreshold);
     }
   };
-
   // update question rating
   const handleRatingChange = (qIdx, newRatingId) => {
     const next = [...ratings];
@@ -612,7 +598,6 @@ export default function ModelExplainer() {
   const finalSentiment = diagnosticResult?.hybrid_synthesis?.final_sentiment ?? 'Neutral';
   const categoryProbs = diagnosticResult?.naive_bayes?.probabilities ?? { Facilities: 0, Staff: 0, Collection: 0, 'Other/Uncategorized': 0 };
   const finalCategory = diagnosticResult?.naive_bayes?.final_category ?? 'Other/Uncategorized';
-  const rawWinner = diagnosticResult?.naive_bayes?.raw_winner ?? 'Other/Uncategorized';
   const fallbackApplied = diagnosticResult?.naive_bayes?.fallback_applied ?? false;
   const extractedFeatures = diagnosticResult?.naive_bayes?.extracted_features ?? [];
   const clauses = diagnosticResult?.clauses ?? [];
@@ -640,7 +625,7 @@ export default function ModelExplainer() {
           <TopBar
             title="Henry Luce III Library"
             onMenuClick={toggleDrawer}
-            subtitle="AI MODEL EXPLAINER & SCORE COMPUTATION"
+            subtitle="Sentiment Analysis & Naïve Bayes Classification Score Breakdown"
           />
 
           <Box sx={{ p: { xs: 2, md: 3 }, bgcolor: '#eef1f6', minHeight: '100vh', fontFamily: 'Poppins, sans-serif', overflowX: 'hidden' }}>
@@ -673,7 +658,7 @@ export default function ModelExplainer() {
                       letterSpacing: '-0.3px',
                     }}
                   >
-                    AI Model Explainer & Mathematical Computation Studio
+                    Sentiment Analysis & Naïve Bayes Classification Score Breakdown
                   </Typography>
                   <Chip
                     label="Computation and Confidence Explainer"
@@ -702,7 +687,7 @@ export default function ModelExplainer() {
               </Box>
 
               <Stack direction="row" spacing={1.2} alignItems="center" flexWrap="wrap">
-                <Tooltip title={isLiveConnected ? 'Connected directly to Flask ML service (Port 5001)' : 'Running client-side mathematical simulation fallback'}>
+                <Tooltip title={isLiveConnected ? 'Connected directly to Flask ML service' : 'Running client-side mathematical simulation fallback'}>
                   <Chip
                     icon={isLiveConnected ? <CheckCircleIcon sx={{ fontSize: '1rem !important', color: '#107c41 !important' }} /> : <WarningIcon sx={{ fontSize: '1rem !important', color: '#f69d1b !important' }} />}
                     label={isLiveConnected ? 'Live ML Model (Port 5001)' : 'Simulation Engine Active'}
@@ -1334,7 +1319,7 @@ export default function ModelExplainer() {
                     >
                       <Box>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: '0.72rem', color: '#64748b', textTransform: 'uppercase' }}>
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: '0.72rem', color: '#000000ff', textTransform: 'uppercase' }}>
                             Final Hybrid Score
                           </Typography>
                           <CalculateIcon sx={{ fontSize: 18, color: getSentimentTheme(finalSentiment).text }} />
@@ -1381,7 +1366,7 @@ export default function ModelExplainer() {
                     >
                       <Box>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: '0.72rem', color: '#64748b', textTransform: 'uppercase' }}>
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: '0.72rem', color: '#000000ff', textTransform: 'uppercase' }}>
                             Likert Survey Mean
                           </Typography>
                           <ThumbUpIcon sx={{ fontSize: 18, color: '#f69d1b' }} />
@@ -1428,7 +1413,7 @@ export default function ModelExplainer() {
                     >
                       <Box>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: '0.72rem', color: '#64748b', textTransform: 'uppercase' }}>
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: '0.72rem', color: '#000000ff', textTransform: 'uppercase' }}>
                             RoBERTa AI Polarity
                           </Typography>
                           <PsychologyIcon sx={{ fontSize: 18, color: '#16324f' }} />
