@@ -1,15 +1,13 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
   Paper,
-  Grid,
   Button,
   TextField,
   Chip,
-  Divider,
   LinearProgress,
   Slider,
   Tooltip,
@@ -29,9 +27,6 @@ import {
   Tab,
   CircularProgress,
   Pagination,
-  Card,
-  CardContent,
-  Radio,
   Select,
   MenuItem,
   InputLabel,
@@ -42,7 +37,6 @@ import {
 import {
   Psychology as PsychologyIcon,
   Calculate as CalculateIcon,
-  Tune as TuneIcon,
   Analytics as AnalyticsIcon,
   CheckCircle as CheckCircleIcon,
   Warning as WarningIcon,
@@ -53,25 +47,19 @@ import {
   Search as SearchIcon,
   RateReview as RateReviewIcon,
   ThumbUp as ThumbUpIcon,
-  ThumbDown as ThumbDownIcon,
   Category as CategoryIcon,
   Refresh as RefreshIcon,
   Comment as CommentIcon,
   FormatQuote as QuoteIcon,
   AutoAwesome as AutoAwesomeIcon,
   Clear as ClearIcon,
-  ArrowForward as ArrowForwardIcon,
   Functions as FunctionsIcon,
-  Layers as LayersIcon,
   Speed as SpeedIcon,
-  HelpOutline as HelpOutlineIcon,
-  School as SchoolIcon,
   FilterList as FilterListIcon,
 } from '@mui/icons-material';
 
 import Header from '../Components/Header';
 import TopBar from '../Components/TopBar';
-import { THEME } from '../constants/themeTokens';
 
 // 10 satisfaction survey questions
 const SURVEY_QUESTIONS = [
@@ -610,7 +598,6 @@ export default function ModelExplainer() {
   const finalSentiment = diagnosticResult?.hybrid_synthesis?.final_sentiment ?? 'Neutral';
   const categoryProbs = diagnosticResult?.naive_bayes?.probabilities ?? { Facilities: 0, Staff: 0, Collection: 0, 'Other/Uncategorized': 0 };
   const finalCategory = diagnosticResult?.naive_bayes?.final_category ?? 'Other/Uncategorized';
-  const rawWinner = diagnosticResult?.naive_bayes?.raw_winner ?? 'Other/Uncategorized';
   const fallbackApplied = diagnosticResult?.naive_bayes?.fallback_applied ?? false;
   const extractedFeatures = diagnosticResult?.naive_bayes?.extracted_features ?? [];
   const clauses = diagnosticResult?.clauses ?? [];
