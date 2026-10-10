@@ -661,7 +661,7 @@ export default function ModelExplainer() {
                     Sentiment Analysis & Naïve Bayes Classification Score Breakdown
                   </Typography>
                   <Chip
-                    label="Computation and Confidence Explainer"
+                    label="Confidence and Grade Visuzalizer"
                     size="small"
                     sx={{
                       fontFamily: 'Poppins, sans-serif',
@@ -682,7 +682,7 @@ export default function ModelExplainer() {
                     mt: 0.3,
                   }}
                 >
-                  Interactive Page for Vizualization of Grade and Confidence
+                  Interactivie Page for Confidence and Grade Visualization
                 </Typography>
               </Box>
 
