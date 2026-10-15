@@ -1547,7 +1547,7 @@ export default function ModelExplainer() {
                             </Typography>
                           </Box>
 
-                          {/* category side */}
+                          {/* cat side */}
                           <Box>
                             <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: '0.72rem', color: '#64748b', textTransform: 'uppercase', mb: 0.5 }}>
                               Category Confidence
