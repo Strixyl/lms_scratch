@@ -1591,7 +1591,7 @@ export default function ModelExplainer() {
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <MenuBookIcon sx={{ color: '#16324f', fontSize: 21 }} />
                         <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 14, color: '#16324f' }}>
-                          Model Reference Guide: Confidence &amp; Grading Methodology
+                          Model Reference Guide: Confidence &amp; Grading Computation
                         </Typography>
                       </Box>
                       <Chip
