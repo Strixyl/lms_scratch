@@ -56,6 +56,8 @@ import {
   Functions as FunctionsIcon,
   Speed as SpeedIcon,
   FilterList as FilterListIcon,
+  HelpOutline as HelpOutlineIcon,
+  MenuBook as MenuBookIcon,
 } from '@mui/icons-material';
 
 import Header from '../Components/Header';
@@ -661,7 +663,7 @@ export default function ModelExplainer() {
                     Sentiment Analysis & Naïve Bayes Classification Score Breakdown
                   </Typography>
                   <Chip
-                    label="Confidence and Grade Visuzalizer"
+                    label="Confidence and Grade Visualizer"
                     size="small"
                     sx={{
                       fontFamily: 'Poppins, sans-serif',
@@ -682,7 +684,7 @@ export default function ModelExplainer() {
                     mt: 0.3,
                   }}
                 >
-                  Interactivie Page for Confidence and Grade Visualization
+                  Interactive Page for Confidence and Grade Visualization
                 </Typography>
               </Box>
 
@@ -1573,6 +1575,149 @@ export default function ModelExplainer() {
                     );
                   })()}
 
+                  {/* Documentation & Reference Guide Container (Scrollable) */}
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 2.2,
+                      borderRadius: '16px',
+                      bgcolor: '#ffffff',
+                      border: '1.5px solid #d9e2ec',
+                      borderLeft: '4.5px solid #16324f',
+                      boxShadow: '0 2px 10px rgba(22, 50, 79, 0.04)',
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.2, flexWrap: 'wrap', gap: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <MenuBookIcon sx={{ color: '#16324f', fontSize: 21 }} />
+                        <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 14, color: '#16324f' }}>
+                          Model Reference Guide: Confidence &amp; Grading Computation
+                        </Typography>
+                      </Box>
+                      <Chip
+                        icon={<HelpOutlineIcon sx={{ fontSize: '14px !important', color: '#16324f !important' }} />}
+                        label="Scrollable Guide"
+                        size="small"
+                        sx={{
+                          fontFamily: 'Poppins, sans-serif',
+                          fontSize: '0.68rem',
+                          fontWeight: 700,
+                          bgcolor: '#f1f5f9',
+                          color: '#16324f',
+                          border: '1px solid #cbd5e1',
+                          height: 22,
+                        }}
+                      />
+                    </Box>
+
+                    {/* Scrollable text container */}
+                    <Box
+                      sx={{
+                        maxHeight: 240,
+                        overflowY: 'auto',
+                        pr: 1.5,
+                        pl: 0.5,
+                        py: 0.5,
+                        '&::-webkit-scrollbar': {
+                          width: '7px',
+                        },
+                        '&::-webkit-scrollbar-track': {
+                          background: '#f1f5f9',
+                          borderRadius: '8px',
+                        },
+                        '&::-webkit-scrollbar-thumb': {
+                          background: '#cbd5e1',
+                          borderRadius: '8px',
+                          '&:hover': {
+                            background: '#94a3b8',
+                          },
+                        },
+                      }}
+                    >
+                      <Stack spacing={1.6}>
+                        {/* Section 1: Overview */}
+                        <Box sx={{ p: 1.4, bgcolor: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: '0.8rem', color: '#16324f', mb: 0.4 }}>
+                            1. Two-Track Architecture Overview
+                          </Typography>
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.74rem', color: '#475569', lineHeight: 1.55 }}>
+                            The Henry Luce III Library Model operates on a dual-track analytical engine designed to evaluate both patron satisfaction scores (Likert scale) and free-text narrative feedback:
+                            <br />
+                            • <strong>Track 1 — Category Classification:</strong> Multinomial Naïve Bayes with TF-IDF token weighting and Laplace Smoothing (α = 1.0) classifies feedback into one of 4 service areas: <em>Facilities</em>, <em>Staff</em>, <em>Collection</em>, or <em>Other/Uncategorized</em>.
+                            <br />
+                            • <strong>Track 2 — Hybrid Sentiment Synthesis:</strong> Merges numerical patron survey Likert responses (Layer 1) with CardiffNLP RoBERTa transformer sentiment analysis (Layer 2) for comprehensive sentiment grading.
+                          </Typography>
+                        </Box>
+
+                        {/* Section 2: Likert Scoring & Conversion */}
+                        <Box sx={{ p: 1.4, bgcolor: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: '0.8rem', color: '#c2410c', mb: 0.4 }}>
+                            2. Survey Likert Mean Conversion (Layer 1)
+                          </Typography>
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.74rem', color: '#475569', lineHeight: 1.55 }}>
+                            Each of the 10 standardized survey questions is graded on a standard 5-point Likert scale converted into a normalized bipolar scale [-1.0, +1.0]:
+                            <br />
+                            • <strong>5 (Very Satisfied):</strong> +1.00 &nbsp;|&nbsp; <strong>4 (Satisfied):</strong> +0.50 &nbsp;|&nbsp; <strong>3 (Neutral):</strong> 0.00
+                            <br />
+                            • <strong>2 (Dissatisfied):</strong> -0.50 &nbsp;|&nbsp; <strong>1 (Very Dissatisfied):</strong> -1.00 &nbsp;|&nbsp; <strong>N/A:</strong> Excluded from divisor.
+                            <br />
+                            The arithmetic mean is calculated as: <code>R_avg = (Σ Valid Item Scores) / (Valid Item Count)</code>.
+                          </Typography>
+                        </Box>
+
+                        {/* Section 3: RoBERTa & Clause Conjunctions */}
+                        <Box sx={{ p: 1.4, bgcolor: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: '0.8rem', color: '#16324f', mb: 0.4 }}>
+                            3. RoBERTa Text Polarity &amp; Clause Splitting (Layer 2)
+                          </Typography>
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.74rem', color: '#475569', lineHeight: 1.55 }}>
+                            The free-text comment is tokenized and evaluated using the fine-tuned <code>cardiffnlp/twitter-roberta-base-sentiment-latest</code> transformer model:
+                            <br />
+                            • Polarity polarity scores: <strong>Positive</strong> = +1.0, <strong>Neutral</strong> = 0.0, <strong>Negative</strong> = -1.0, weighted by prediction confidence.
+                            <br />
+                            • <strong>Contrast Conjunction Rule ("Most-Negative-Wins"):</strong> If contrastive terms (e.g., <em>"but"</em>, <em>"however"</em>, <em>"although"</em>) are present, the comment splits into clauses. Negative clauses take precedence to guarantee administrative awareness of critical patron grievances.
+                          </Typography>
+                        </Box>
+
+                        {/* Section 4: Final Hybrid Formula & Sentiment Grading */}
+                        <Box sx={{ p: 1.4, bgcolor: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: '0.8rem', color: '#047857', mb: 0.4 }}>
+                            4. Final Hybrid Formula &amp; Sentiment Grading Zones
+                          </Typography>
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.74rem', color: '#475569', lineHeight: 1.55 }}>
+                            The comprehensive score <em>S</em> synthesizes survey responses and transformer NLP:
+                            <br />
+                            • <strong>With comment:</strong> <code>S = (R_avg × 0.50) + (BERT_score × 0.50)</code>
+                            <br />
+                            • <strong>Without comment:</strong> <code>S = R_avg</code> (Likert standalone)
+                            <br />
+                            • <strong>Decision Threshold Grading:</strong>
+                            <br />
+                            &nbsp;&nbsp;• <code>S &gt; +0.15</code> → <strong style={{ color: '#107c41' }}>Positive</strong> (Commendation grade)
+                            <br />
+                            &nbsp;&nbsp;• <code>-0.15 ≤ S ≤ +0.15</code> → <strong style={{ color: '#d97706' }}>Neutral</strong> (Equilibrium buffer)
+                            <br />
+                            &nbsp;&nbsp;• <code>S &lt; -0.15</code> → <strong style={{ color: '#be123c' }}>Negative</strong> (Action required)
+                          </Typography>
+                        </Box>
+
+                        {/* Section 5: Category Confidence & Guard Threshold */}
+                        <Box sx={{ p: 1.4, bgcolor: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontWeight: 700, fontSize: '0.8rem', color: '#4338ca', mb: 0.4 }}>
+                            5. Category Confidence &amp; Guard Threshold (τ)
+                          </Typography>
+                          <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.74rem', color: '#475569', lineHeight: 1.55 }}>
+                            Naïve Bayes produces posterior probabilities <code>P(Category | Words)</code> across all four categories:
+                            <br />
+                            • <strong>Winning Class Lead:</strong> The category with the highest posterior probability is the top prediction.
+                            <br />
+                            • <strong>Fallback Guard Threshold (Default τ = 45%):</strong> If the winning class probability is less than <em>τ</em> (or if no informative keywords match), the system assigns <strong>Other/Uncategorized</strong> to prevent erroneous categorization.
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </Box>
+                  </Paper>
+
                   {/* diagnostic tabs */}
                   <Paper
                     elevation={0}
@@ -2260,16 +2405,6 @@ export default function ModelExplainer() {
                   </Paper>
                 </Stack>
               </Box>
-            </Box>
-
-            {/* footer */}
-            <Box sx={{ mt: 4, mb: 1, textAlign: 'center', color: '#64748b' }}>
-              <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.72rem', fontWeight: 600 }}>
-                Central Philippine University — Henry Luce III Library Management System
-              </Typography>
-              <Typography sx={{ fontFamily: 'Poppins, sans-serif', fontSize: '0.68rem', mt: 0.2 }}>
-                Academic Examination Model Explainer & Mathematical Computation Studio | Cisco-Style Likert Integration
-              </Typography>
             </Box>
           </Box>
         </Box>

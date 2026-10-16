@@ -7,15 +7,27 @@ from transformers import pipeline
 import joblib
 
 ML_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ml")
-sys.path.insert(0, ML_DIR)
-from naive_bayes import (
-    CategoryClassifier,
-    preprocess,
-    DOMAIN_KEYWORDS,
-    DEFAULT_CONFIDENCE_THRESHOLD,
-    FALLBACK_LABEL,
-    OFF_TOPIC_PATTERNS
-)
+if ML_DIR not in sys.path:
+    sys.path.insert(0, ML_DIR)
+
+try:
+    from naive_bayes import (
+        CategoryClassifier,
+        preprocess,
+        DOMAIN_KEYWORDS,
+        DEFAULT_CONFIDENCE_THRESHOLD,
+        FALLBACK_LABEL,
+        OFF_TOPIC_PATTERNS
+    )
+except ImportError:
+    from backend.ml.naive_bayes import (
+        CategoryClassifier,
+        preprocess,
+        DOMAIN_KEYWORDS,
+        DEFAULT_CONFIDENCE_THRESHOLD,
+        FALLBACK_LABEL,
+        OFF_TOPIC_PATTERNS
+    )
 
 app = Flask(__name__)
 
