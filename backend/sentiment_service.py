@@ -10,8 +10,9 @@ ML_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ml")
 if ML_DIR not in sys.path:
     sys.path.insert(0, ML_DIR)
 
+# pyright: reportMissingImports=false
 try:
-    from naive_bayes import (
+    from naive_bayes import (  # type: ignore
         CategoryClassifier,
         preprocess,
         DOMAIN_KEYWORDS,
@@ -20,7 +21,7 @@ try:
         OFF_TOPIC_PATTERNS
     )
 except ImportError:
-    from backend.ml.naive_bayes import (
+    from backend.ml.naive_bayes import (  # type: ignore
         CategoryClassifier,
         preprocess,
         DOMAIN_KEYWORDS,
