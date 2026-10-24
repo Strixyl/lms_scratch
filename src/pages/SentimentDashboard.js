@@ -2337,7 +2337,7 @@ function SentimentDashboard() {
 
                           {/* search and export */}
                           <Box sx={{ display: 'flex', gap: 1.2, alignItems: 'center', flexWrap: 'wrap', width: { xs: '100%', sm: 'auto' } }}>
-                            {/* search input */}
+                            {/* search input box for ft */}
                             <TextField
                               size="small"
                               placeholder="Search comments, course, or college..."
