@@ -60,12 +60,13 @@ LABEL_MAP = {
 }
 
 # split compound sentences by contrast words (e.g. "staff was nice but ac was broken")
+
 # prioritize negative comments for sentiment analysis
 CONTRAST_WORDS = [
     "although", "though", "however", "but", "while", "except",
     "on the other hand", "yet",
 ]
-MIN_CLAUSE_LENGTH = 12  # min chars to avoid tiny fragments
+MIN_CLAUSE_LENGTH = 12  # min chars to avoid spam
 
 
 def split_clauses(text: str):
