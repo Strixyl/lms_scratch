@@ -301,7 +301,7 @@ def explain_pipeline(text: str, ratings=None, custom_threshold=None):
     r_avg = round(raw_sum / valid_count, 4) if valid_count > 0 else 0.0
     emoji_sentiment = "Positive" if r_avg > 0.15 else ("Negative" if r_avg < -0.15 else "Neutral")
 
-    # 4. Hybrid formula computation
+    # 4. Hybrid formula comp
     has_comment = bool(raw_text)
     if has_comment:
         combined_score = round((r_avg * 0.50) + (bert_score * 0.50), 4)
