@@ -189,10 +189,8 @@ def categorize():
 
     return jsonify({ 'category': category, 'confidence': confidence })
 
-
-# =========================================================================
 # DIAGNOSTIC EXPLAINABILITY ENDPOINT (Academic Validation Sandbox)
-# =========================================================================
+
 
 def explain_pipeline(text: str, ratings=None, custom_threshold=None):
     raw_text = (text or "").strip()
