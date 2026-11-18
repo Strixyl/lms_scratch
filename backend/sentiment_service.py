@@ -60,8 +60,7 @@ LABEL_MAP = {
 }
 
 # split compound sentences by contrast words (e.g. "staff was nice but ac was broken")
-
-# prioritize negative comments for sentiment analysis
+# prioritize negative comments sentiment evaluator
 CONTRAST_WORDS = [
     "although", "though", "however", "but", "while", "except",
     "on the other hand", "yet",
