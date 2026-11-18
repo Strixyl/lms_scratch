@@ -115,7 +115,7 @@ class CategoryClassifier:
         top_label = self.classes_[top_idx]
         top_confidence = probs[top_idx]
 
-        # if staff was predicted but no staff words exist, check other category keywords
+        # if staff was predicted but no staff words exist, check other categorized keywords from manual cases
         if top_label == "Staff":
             has_staff_words = bool(text_words & DOMAIN_KEYWORDS["Staff"])
             if not has_staff_words:
