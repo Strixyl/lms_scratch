@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Box,
   Typography,
@@ -7,27 +7,22 @@ import {
   Chip,
   Stack,
   TextField,
-  Switch,
-  FormControlLabel,
   Tooltip,
   LinearProgress,
-  CircularProgress,
+  Divider,
+  Menu,
+  MenuItem,
+  ListItemText,
 } from '@mui/material';
 import {
-  RateReview as RateReviewIcon,
-  FormatQuote as QuoteIcon,
   Edit as EditIcon,
   Done as DoneIcon,
   RestartAlt as RestartAltIcon,
-  PlayArrow as PlayArrowIcon,
-  Calculate as CalculateIcon,
-  ThumbUp as ThumbUpIcon,
-  Psychology as PsychologyIcon,
-  Category as CategoryIcon,
+  KeyboardArrowDown as ArrowDownIcon,
+  Highlight as HighlightIcon,
   CompareArrows as CompareArrowsIcon,
-  AutoAwesome as AutoAwesomeIcon,
 } from '@mui/icons-material';
-import { THEME, cardShellSx } from '../../constants/themeTokens';
+import { THEME } from '../../constants/themeTokens';
 import {
   DEMO_SCENARIOS,
   annotateFeedbackTokens,
@@ -53,34 +48,28 @@ export default function ExecutiveVerdict({
   isModified,
   onResetToOriginal,
   onLoadScenario,
-  autoCalculate,
-  onAutoCalculateChange,
-  onRunPipeline,
   isLoading,
   diagnosticResult,
   confidenceThreshold,
 }) {
+  const [examplesAnchorEl, setExamplesAnchorEl] = useState(null);
+  const [showHighlights, setShowHighlights] = useState(true);
+
   const rAvg = diagnosticResult?.likert_simulation?.r_avg ?? 0.0;
-  const validCount = diagnosticResult?.likert_simulation?.valid_count ?? 0;
-  const emojiSentiment = diagnosticResult?.likert_simulation?.emoji_sentiment ?? 'Neutral';
   const bertScore = diagnosticResult?.hybrid_synthesis?.bert_score ?? 0.0;
-  const robertaSentiment = diagnosticResult?.roberta?.sentiment ?? 'Neutral';
   const robertaConf = diagnosticResult?.roberta?.confidence ?? 0.0;
-  const aggStrategy = diagnosticResult?.roberta?.aggregation_strategy ?? 'Single Clause Analysis';
   const combinedScore = diagnosticResult?.hybrid_synthesis?.combined_score ?? 0.0;
   const finalSentiment = diagnosticResult?.hybrid_synthesis?.final_sentiment ?? 'Neutral';
   const hasComment = diagnosticResult?.hybrid_synthesis?.has_comment ?? Boolean(inputText.trim());
-  const clauses = diagnosticResult?.clauses ?? [];
 
   const nb = diagnosticResult?.naive_bayes;
-  const categoryProbs = nb?.probabilities || EMPTY_PROBS;
-  const extractedFeatures = nb?.extracted_features || EMPTY_FEATURES;
+  const categoryProbs = useMemo(() => nb?.probabilities || EMPTY_PROBS, [nb]);
+  const extractedFeatures = useMemo(() => nb?.extracted_features || EMPTY_FEATURES, [nb]);
   const serverCategory = nb?.final_category || 'Other/Uncategorized';
   const serverFallback = Boolean(nb?.fallback_applied);
   const rawWinner = nb?.raw_winner || 'Other/Uncategorized';
   const rawConf = nb?.raw_confidence ?? nb?.final_confidence ?? 0;
 
-  // Reflect threshold preview cleanly even when live backend runs with default 0.45 in get_clause_category
   const thresholdTriggeredPreview =
     hasComment && rawWinner !== 'Other/Uncategorized' && rawConf < confidenceThreshold;
   const displayCategory =
@@ -102,19 +91,9 @@ export default function ExecutiveVerdict({
     [inputText, extractedFeatures]
   );
 
-  const highlightSummary = useMemo(() => {
-    const domains = new Set();
-    let hasContrast = false;
-    annotatedTokens.forEach((seg) => {
-      if (seg.type === 'domain') domains.add(seg.domainCategory);
-      if (seg.type === 'contrast') hasContrast = true;
-    });
-    return { domains: Array.from(domains), hasContrast };
-  }, [annotatedTokens]);
-
-  const wordCount = useMemo(
-    () => inputText.trim().split(/\s+/).filter(Boolean).length,
-    [inputText]
+  const hasAnySignal = useMemo(
+    () => annotatedTokens.some((seg) => seg.type === 'domain' || seg.type === 'contrast'),
+    [annotatedTokens]
   );
 
   const hasDrift =
@@ -123,740 +102,550 @@ export default function ExecutiveVerdict({
     (selectedMeta.storedCategory !== displayCategory ||
       selectedMeta.storedSentiment !== finalSentiment);
 
-  const rankedProbs = useMemo(
-    () => Object.entries(categoryProbs).sort((a, b) => b[1] - a[1]),
-    [categoryProbs]
-  );
-  const topProb = rankedProbs[0]?.[1] ?? 0;
-  const secondProb = rankedProbs[1]?.[1] ?? 0;
-  const leadMargin = Math.max(0, (topProb - secondProb) * 100);
+  const gaugePercent = Math.max(0, Math.min(100, ((combinedScore + 1.0) / 2.0) * 100));
+  const topProbPct = useMemo(() => {
+    const ranked = Object.values(categoryProbs).sort((a, b) => b - a);
+    return Math.min(100, Math.max(0, (ranked[0] || 0) * 100));
+  }, [categoryProbs]);
+  const thresholdPct = Math.round(confidenceThreshold * 100);
 
   return (
-    <Stack spacing={2}>
-      {/* Active Statement & Inline What-If Workspace Card */}
-      <Paper
-        elevation={0}
-        sx={{
-          ...cardShellSx,
-          position: 'relative',
-        }}
-      >
-        {/* Subtle live computation progress bar */}
-        <Box sx={{ height: 3, width: '100%', bgcolor: 'transparent' }}>
-          {isLoading && (
-            <LinearProgress
-              sx={{
-                height: 3,
-                bgcolor: THEME.brand.blueLight,
-                '& .MuiLinearProgress-bar': { bgcolor: THEME.brand.accent },
-              }}
-            />
-          )}
-        </Box>
-
-        <Box sx={{ p: { xs: 1.8, md: 2.2 } }}>
-          {/* Header Row */}
-          <Box
+    <Paper
+      elevation={0}
+      sx={{
+        bgcolor: THEME.surface.card,
+        border: `1px solid ${THEME.surface.borderLight}`,
+        borderRadius: '14px',
+        boxShadow: '0 1px 4px rgba(22, 50, 79, 0.04)',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Subtle 2px top progress bar during recomputation */}
+      <Box sx={{ height: 2.5, width: '100%' }}>
+        {isLoading && (
+          <LinearProgress
             sx={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: 1.2,
-              mb: 1.4,
+              height: 2.5,
+              bgcolor: THEME.brand.blueLight,
+              '& .MuiLinearProgress-bar': { bgcolor: THEME.brand.primary },
             }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.9, flexWrap: 'wrap' }}>
-              <RateReviewIcon aria-hidden="true" sx={{ color: THEME.brand.accent, fontSize: 22 }} />
-              <Typography sx={{ fontWeight: 800, fontSize: 15.5, color: THEME.text.primary }}>
-                {selectedMeta
-                  ? isModified
-                    ? `Sandbox (Modified from #${selectedMeta.id})`
-                    : `Record #${selectedMeta.id}`
-                  : 'Custom What-If Sandbox'}
-              </Typography>
+          />
+        )}
+      </Box>
 
-              {selectedMeta && (
+      {/* Part 1: Focal Point — The Patron Statement */}
+      <Box sx={{ p: { xs: 2.2, md: 2.8 }, pb: { xs: 2, md: 2.4 } }}>
+        {/* Quiet Context Bar */}
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 1,
+            mb: 1.6,
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.9, flexWrap: 'wrap' }}>
+            <Typography sx={{ fontSize: '0.76rem', fontWeight: 700, color: THEME.text.secondary }}>
+              {selectedMeta
+                ? `Record #${selectedMeta.id} · ${selectedMeta.clientele || 'Patron'} · ${selectedMeta.college || 'General'}`
+                : 'Custom Sandbox Statement'}
+            </Typography>
+
+            {isModified && selectedMeta && (
+              <Chip
+                label="Edited"
+                size="small"
+                sx={{
+                  height: 20,
+                  fontSize: '0.65rem',
+                  fontWeight: 700,
+                  bgcolor: THEME.brand.goldLight,
+                  color: '#b45309',
+                  border: `1px solid ${THEME.brand.goldBorder}`,
+                }}
+              />
+            )}
+
+            {hasDrift && (
+              <Tooltip
+                title={`Stored in DB: ${selectedMeta.storedCategory} · ${selectedMeta.storedSentiment}`}
+                arrow
+              >
                 <Chip
-                  label={`${selectedMeta.clientele || 'Patron'} · ${selectedMeta.college || 'General'}`}
+                  icon={<CompareArrowsIcon sx={{ fontSize: '13px !important', color: '#b45309 !important' }} />}
+                  label="Differs from stored"
                   size="small"
                   sx={{
-                    height: 22,
-                    fontWeight: 700,
-                    fontSize: '0.7rem',
-                    bgcolor: THEME.brand.blueLight,
-                    color: THEME.brand.primary,
-                    border: `1px solid ${THEME.brand.blueBorder}`,
-                  }}
-                />
-              )}
-
-              {isModified && selectedMeta && (
-                <Chip
-                  label="Modified"
-                  size="small"
-                  sx={{
-                    height: 22,
-                    fontWeight: 800,
-                    fontSize: '0.68rem',
+                    height: 20,
+                    fontSize: '0.65rem',
+                    fontWeight: 600,
                     bgcolor: THEME.brand.goldLight,
-                    color: '#c2410c',
+                    color: '#b45309',
                     border: `1px solid ${THEME.brand.goldBorder}`,
                   }}
                 />
-              )}
-
-              {hasDrift && (
-                <Tooltip
-                  title={`Database stored ${selectedMeta.storedCategory} · ${selectedMeta.storedSentiment}, while current pipeline computes ${displayCategory} · ${finalSentiment}`}
-                  arrow
-                >
-                  <Chip
-                    icon={<CompareArrowsIcon sx={{ fontSize: '14px !important', color: '#b45309 !important' }} />}
-                    label="Differs from Stored"
-                    size="small"
-                    sx={{
-                      height: 22,
-                      fontWeight: 700,
-                      fontSize: '0.68rem',
-                      bgcolor: THEME.status.warningLight,
-                      color: THEME.status.warningBold,
-                      border: `1px solid ${THEME.status.warningBorder}`,
-                    }}
-                  />
-                </Tooltip>
-              )}
-            </Box>
-
-            {/* Controls */}
-            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-              {isModified && selectedMeta && (
-                <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={<RestartAltIcon sx={{ fontSize: 16 }} />}
-                  onClick={onResetToOriginal}
-                  sx={{
-                    height: 30,
-                    fontSize: '0.72rem',
-                    borderRadius: '8px',
-                    borderColor: THEME.brand.goldBorder,
-                    color: '#c2410c',
-                    bgcolor: THEME.brand.goldLight,
-                    '&:hover': { bgcolor: '#ffedd5', borderColor: THEME.brand.accent },
-                  }}
-                >
-                  Reset
-                </Button>
-              )}
-
-              <Button
-                size="small"
-                variant={isEditingQuote ? 'contained' : 'outlined'}
-                startIcon={
-                  isEditingQuote ? <DoneIcon sx={{ fontSize: 15 }} /> : <EditIcon sx={{ fontSize: 15 }} />
-                }
-                onClick={onToggleEditQuote}
-                sx={{
-                  height: 30,
-                  fontSize: '0.72rem',
-                  borderRadius: '8px',
-                  ...(isEditingQuote
-                    ? {
-                        bgcolor: THEME.brand.accent,
-                        color: '#ffffff',
-                        '&:hover': { bgcolor: THEME.brand.accentHover },
-                      }
-                    : {
-                        borderColor: THEME.surface.border,
-                        color: THEME.brand.primary,
-                        '&:hover': { borderColor: THEME.brand.primary, bgcolor: THEME.brand.blueLight },
-                      }),
-                }}
-              >
-                {isEditingQuote ? 'Done Editing' : 'Edit / What-If'}
-              </Button>
-
-              <FormControlLabel
-                sx={{ mr: 0, ml: 0.4 }}
-                control={
-                  <Switch
-                    size="small"
-                    checked={autoCalculate}
-                    onChange={(e) => onAutoCalculateChange(e.target.checked)}
-                    color="primary"
-                  />
-                }
-                label={
-                  <Typography sx={{ fontSize: '0.72rem', fontWeight: 600, color: THEME.text.secondary }}>
-                    Auto
-                  </Typography>
-                }
-              />
-
-              <Button
-                variant="contained"
-                size="small"
-                startIcon={
-                  isLoading ? (
-                    <CircularProgress size={13} color="inherit" />
-                  ) : (
-                    <PlayArrowIcon sx={{ fontSize: 16 }} />
-                  )
-                }
-                onClick={onRunPipeline}
-                disabled={isLoading}
-                sx={{
-                  height: 30,
-                  px: 1.5,
-                  fontSize: '0.72rem',
-                  borderRadius: '8px',
-                  bgcolor: THEME.brand.primary,
-                  '&:hover': { bgcolor: THEME.brand.primaryHover },
-                }}
-              >
-                {isLoading ? 'Running' : 'Run'}
-              </Button>
-            </Stack>
+              </Tooltip>
+            )}
           </Box>
 
-          {/* Statement Body: Inline Highlighted Quote OR What-If Editor */}
-          {isEditingQuote ? (
-            <Box>
-              <TextField
-                fullWidth
-                multiline
-                minRows={3}
-                maxRows={6}
-                autoFocus
-                value={inputText}
-                onChange={(e) => onInputTextChange(e.target.value)}
-                placeholder="Type or paste any patron feedback statement to see live RoBERTa & Naïve Bayes scoring..."
-                inputProps={{ 'aria-label': 'Custom patron feedback statement' }}
+          {/* Minimal Action Controls (Hick's Law: only 2-3 calm controls) */}
+          <Stack direction="row" spacing={0.8} alignItems="center">
+            {!isEditingQuote && hasAnySignal && (
+              <Tooltip
+                title={
+                  showHighlights
+                    ? 'Hide inline domain & contrast highlights'
+                    : 'Highlight matched keywords & contrast words in text'
+                }
+                arrow
+              >
+                <Button
+                  size="small"
+                  aria-pressed={showHighlights}
+                  startIcon={<HighlightIcon sx={{ fontSize: 15 }} />}
+                  onClick={() => setShowHighlights((prev) => !prev)}
+                  sx={{
+                    height: 29,
+                    px: 1.1,
+                    fontSize: '0.72rem',
+                    fontWeight: 600,
+                    borderRadius: '8px',
+                    color: showHighlights ? THEME.brand.primary : THEME.text.secondary,
+                    bgcolor: showHighlights ? THEME.brand.blueLight : 'transparent',
+                    '&:hover': { bgcolor: showHighlights ? '#dbe7f3' : THEME.surface.cardAlt },
+                  }}
+                >
+                  Signals
+                </Button>
+              </Tooltip>
+            )}
+
+            <Button
+              size="small"
+              endIcon={<ArrowDownIcon sx={{ fontSize: 16 }} />}
+              onClick={(e) => setExamplesAnchorEl(e.currentTarget)}
+              sx={{
+                height: 29,
+                px: 1.1,
+                fontSize: '0.72rem',
+                fontWeight: 600,
+                borderRadius: '8px',
+                color: THEME.text.secondary,
+                '&:hover': { bgcolor: THEME.surface.cardAlt, color: THEME.brand.primary },
+              }}
+            >
+              Examples
+            </Button>
+
+            {isModified && selectedMeta && (
+              <Button
+                size="small"
+                startIcon={<RestartAltIcon sx={{ fontSize: 15 }} />}
+                onClick={onResetToOriginal}
                 sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '12px',
-                    bgcolor: THEME.surface.cardAlt,
-                    fontSize: '0.88rem',
-                    lineHeight: 1.55,
-                    '& fieldset': { borderColor: THEME.brand.primary, borderWidth: '1.5px' },
-                  },
-                }}
-              />
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: 1,
-                  mt: 1,
+                  height: 29,
+                  px: 1.1,
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                  borderRadius: '8px',
+                  color: '#b45309',
+                  '&:hover': { bgcolor: THEME.brand.goldLight },
                 }}
               >
-                <Typography sx={{ fontSize: '0.7rem', color: THEME.text.secondary }}>
-                  Tip: Try adding a contrast conjunction like <strong>&ldquo;but&rdquo;</strong> or{' '}
-                  <strong>&ldquo;however&rdquo;</strong> to trigger clause splitting.
-                </Typography>
+                Reset
+              </Button>
+            )}
+
+            <Button
+              size="small"
+              variant={isEditingQuote ? 'contained' : 'outlined'}
+              startIcon={
+                isEditingQuote ? <DoneIcon sx={{ fontSize: 15 }} /> : <EditIcon sx={{ fontSize: 14 }} />
+              }
+              onClick={onToggleEditQuote}
+              sx={{
+                height: 29,
+                px: 1.3,
+                fontSize: '0.72rem',
+                borderRadius: '8px',
+                ...(isEditingQuote
+                  ? {
+                      bgcolor: THEME.brand.primary,
+                      color: '#ffffff',
+                      '&:hover': { bgcolor: THEME.brand.primaryHover },
+                    }
+                  : {
+                      borderColor: THEME.surface.border,
+                      color: THEME.brand.primary,
+                      '&:hover': { borderColor: THEME.brand.primary, bgcolor: THEME.brand.blueLight },
+                    }),
+              }}
+            >
+              {isEditingQuote ? 'Done' : 'Edit text'}
+            </Button>
+          </Stack>
+        </Box>
+
+        {/* Demo Scenarios Dropdown Menu (keeps hero surface serene) */}
+        <Menu
+          anchorEl={examplesAnchorEl}
+          open={Boolean(examplesAnchorEl)}
+          onClose={() => setExamplesAnchorEl(null)}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+          PaperProps={{
+            sx: {
+              mt: 0.6,
+              borderRadius: '12px',
+              border: `1px solid ${THEME.surface.border}`,
+              boxShadow: THEME.shadow.elevated,
+              minWidth: 270,
+            },
+          }}
+        >
+          {DEMO_SCENARIOS.map((sc) => (
+            <MenuItem
+              key={sc.id}
+              onClick={() => {
+                onLoadScenario(sc);
+                setExamplesAnchorEl(null);
+              }}
+              sx={{ py: 1, px: 1.8 }}
+            >
+              <ListItemText
+                primary={sc.label}
+                secondary={sc.description}
+                primaryTypographyProps={{ fontSize: '0.78rem', fontWeight: 700, color: THEME.text.primary }}
+                secondaryTypographyProps={{ fontSize: '0.69rem', color: THEME.text.secondary }}
+              />
+            </MenuItem>
+          ))}
+        </Menu>
+
+        {/* Clean Editorial Statement (or Inline Editor) */}
+        {isEditingQuote ? (
+          <Box>
+            <TextField
+              fullWidth
+              multiline
+              minRows={3}
+              maxRows={5}
+              autoFocus
+              value={inputText}
+              onChange={(e) => onInputTextChange(e.target.value)}
+              placeholder="Type or paste a patron comment to test how the models respond..."
+              inputProps={{ 'aria-label': 'Custom patron feedback statement' }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: '10px',
+                  bgcolor: THEME.surface.cardAlt,
+                  fontSize: '0.94rem',
+                  lineHeight: 1.6,
+                  '& fieldset': { borderColor: THEME.brand.primary, borderWidth: '1.5px' },
+                },
+              }}
+            />
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 0.9 }}>
+              <Typography sx={{ fontSize: '0.7rem', color: THEME.text.secondary }}>
+                Updates automatically as you type.
+              </Typography>
+              {inputText && (
                 <Button
                   size="small"
                   onClick={() => onInputTextChange('')}
-                  disabled={!inputText}
-                  sx={{ fontSize: '0.7rem', color: THEME.text.secondary }}
+                  sx={{ fontSize: '0.7rem', color: THEME.text.secondary, minWidth: 0 }}
                 >
-                  Clear text
+                  Clear
                 </Button>
-              </Box>
+              )}
             </Box>
-          ) : (
-            <Box
-              sx={{
-                p: 1.7,
-                borderRadius: '12px',
-                bgcolor: THEME.surface.cardAlt,
-                border: `1.5px solid ${THEME.surface.borderLight}`,
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.2 }}>
-                <QuoteIcon
-                  aria-hidden="true"
-                  sx={{ color: THEME.brand.accent, fontSize: 24, mt: 0.1, flexShrink: 0 }}
-                />
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  {inputText.trim() ? (
-                    <Typography
-                      component="div"
-                      sx={{
-                        fontWeight: 500,
-                        color: '#1e293b',
-                        fontSize: '0.92rem',
-                        lineHeight: 1.65,
-                        wordBreak: 'break-word',
-                      }}
-                    >
-                      &ldquo;
-                      {annotatedTokens.map((seg) => {
-                        if (seg.type === 'contrast') {
-                          return (
-                            <Tooltip
-                              key={seg.key}
-                              title="Contrast conjunction — triggers clause splitting & Most-Negative-Wins rule"
-                              arrow
-                            >
-                              <Box
-                                component="span"
-                                sx={{
-                                  px: 0.55,
-                                  py: 0.1,
-                                  mx: 0.15,
-                                  borderRadius: '5px',
-                                  bgcolor: THEME.brand.goldLight,
-                                  color: '#b45309',
-                                  borderBottom: `2px solid ${THEME.brand.accent}`,
-                                  fontWeight: 700,
-                                  cursor: 'help',
-                                }}
-                              >
-                                {seg.text}
-                              </Box>
-                            </Tooltip>
-                          );
-                        }
-                        if (seg.type === 'domain') {
-                          const catSt = getCategoryStyle(seg.domainCategory);
-                          const tipText =
-                            seg.tfidf !== null
-                              ? `${seg.domainCategory} keyword · Stem: "${seg.matchedToken}" · TF-IDF: ${seg.tfidf.toFixed(4)}`
-                              : `${seg.domainCategory} domain keyword`;
-                          return (
-                            <Tooltip key={seg.key} title={tipText} arrow>
-                              <Box
-                                component="span"
-                                sx={{
-                                  px: 0.55,
-                                  py: 0.1,
-                                  mx: 0.1,
-                                  borderRadius: '5px',
-                                  bgcolor: catSt.bg,
-                                  color: catSt.text,
-                                  borderBottom: `2px solid ${catSt.solid}`,
-                                  fontWeight: 700,
-                                  cursor: 'help',
-                                }}
-                              >
-                                {seg.text}
-                              </Box>
-                            </Tooltip>
-                          );
-                        }
-                        return <React.Fragment key={seg.key}>{seg.text}</React.Fragment>;
-                      })}
-                      &rdquo;
-                    </Typography>
-                  ) : (
-                    <Typography
-                      sx={{
-                        fontSize: '0.86rem',
-                        fontStyle: 'italic',
-                        color: THEME.text.secondary,
-                      }}
-                    >
-                      (No written comment — Sentiment relies 100% on the 10 Likert ratings)
-                    </Typography>
-                  )}
-
-                  {/* Highlight Legend & Metadata Row */}
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      flexWrap: 'wrap',
-                      gap: 1,
-                      mt: 1.2,
-                      pt: 1,
-                      borderTop: `1px dashed ${THEME.surface.borderLight}`,
-                    }}
-                  >
-                    <Stack direction="row" spacing={0.8} flexWrap="wrap" useFlexGap alignItems="center">
-                      {selectedMeta?.storedCategory && (
-                        <Chip
-                          size="small"
-                          variant="outlined"
-                          label={`Stored: ${selectedMeta.storedCategory} · ${selectedMeta.storedSentiment}`}
-                          sx={{
-                            height: 21,
-                            fontWeight: 600,
-                            fontSize: '0.67rem',
-                            color: THEME.text.secondary,
-                            borderColor: '#cbd5e1',
-                          }}
-                        />
-                      )}
-
-                      {highlightSummary.domains.map((dom) => {
-                        const st = getCategoryStyle(dom);
-                        return (
-                          <Box
-                            key={dom}
-                            sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.45 }}
-                          >
-                            <Box
-                              sx={{
-                                width: 8,
-                                height: 8,
-                                borderRadius: '50%',
-                                bgcolor: st.solid,
-                              }}
-                            />
-                            <Typography sx={{ fontSize: '0.67rem', fontWeight: 700, color: st.text }}>
-                              {dom}
-                            </Typography>
-                          </Box>
-                        );
-                      })}
-
-                      {highlightSummary.hasContrast && (
-                        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.45 }}>
-                          <Box
-                            sx={{
-                              width: 8,
-                              height: 8,
-                              borderRadius: '50%',
-                              bgcolor: THEME.brand.accent,
-                            }}
-                          />
-                          <Typography sx={{ fontSize: '0.67rem', fontWeight: 700, color: '#b45309' }}>
-                            Contrast Split
-                          </Typography>
-                        </Box>
-                      )}
-                    </Stack>
-
-                    <Typography sx={{ fontSize: '0.68rem', color: THEME.text.faint, fontWeight: 500 }}>
-                      {wordCount} {wordCount === 1 ? 'word' : 'words'} · {clauses.length}{' '}
-                      {clauses.length === 1 ? 'clause' : 'clauses'}
-                    </Typography>
-                  </Box>
-                </Box>
-              </Box>
-            </Box>
-          )}
-
-          {/* 1-Click Demo Scenarios for Rapid Edge-Case Testing */}
-          <Box
+          </Box>
+        ) : inputText.trim() ? (
+          <Typography
+            component="blockquote"
             sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.7,
-              mt: 1.3,
-              flexWrap: 'wrap',
+              m: 0,
+              fontSize: { xs: '0.96rem', md: '1.06rem' },
+              fontWeight: 500,
+              color: THEME.text.primary,
+              lineHeight: 1.65,
+              maxWidth: '72ch',
+              wordBreak: 'break-word',
             }}
           >
-            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.4, mr: 0.3 }}>
-              <AutoAwesomeIcon aria-hidden="true" sx={{ fontSize: 14, color: THEME.brand.accent }} />
-              <Typography
-                sx={{
-                  fontSize: '0.68rem',
-                  fontWeight: 700,
-                  color: THEME.text.secondary,
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.3,
-                }}
-              >
-                Try scenario:
-              </Typography>
-            </Box>
+            &ldquo;
+            {showHighlights
+              ? annotatedTokens.map((seg) => {
+                  if (seg.type === 'contrast') {
+                    return (
+                      <Tooltip
+                        key={seg.key}
+                        title="Contrast conjunction — splits statement into clauses"
+                        arrow
+                      >
+                        <Box
+                          component="span"
+                          sx={{
+                            px: 0.45,
+                            borderRadius: '4px',
+                            bgcolor: THEME.brand.goldLight,
+                            color: '#b45309',
+                            borderBottom: `2px solid ${THEME.brand.accent}`,
+                            fontWeight: 600,
+                            cursor: 'help',
+                          }}
+                        >
+                          {seg.text}
+                        </Box>
+                      </Tooltip>
+                    );
+                  }
+                  if (seg.type === 'domain') {
+                    const catSt = getCategoryStyle(seg.domainCategory);
+                    const tip =
+                      seg.tfidf !== null
+                        ? `${seg.domainCategory} signal · TF-IDF ${seg.tfidf.toFixed(3)}`
+                        : `${seg.domainCategory} keyword`;
+                    return (
+                      <Tooltip key={seg.key} title={tip} arrow>
+                        <Box
+                          component="span"
+                          sx={{
+                            px: 0.45,
+                            borderRadius: '4px',
+                            bgcolor: catSt.bg,
+                            color: catSt.text,
+                            borderBottom: `2px solid ${catSt.solid}`,
+                            fontWeight: 600,
+                            cursor: 'help',
+                          }}
+                        >
+                          {seg.text}
+                        </Box>
+                      </Tooltip>
+                    );
+                  }
+                  return <React.Fragment key={seg.key}>{seg.text}</React.Fragment>;
+                })
+              : inputText}
+            &rdquo;
+          </Typography>
+        ) : (
+          <Typography sx={{ fontSize: '0.92rem', fontStyle: 'italic', color: THEME.text.secondary }}>
+            No written comment — sentiment is computed solely from the 10 Likert ratings.
+          </Typography>
+        )}
+      </Box>
 
-            {DEMO_SCENARIOS.map((sc) => (
-              <Tooltip key={sc.id} title={sc.description} arrow>
-                <Chip
-                  label={sc.label}
-                  size="small"
-                  clickable
-                  variant="outlined"
-                  onClick={() => onLoadScenario(sc)}
-                  sx={{
-                    height: 23,
-                    fontSize: '0.69rem',
-                    fontWeight: 600,
-                    color: THEME.brand.primary,
-                    borderColor: THEME.brand.blueBorder,
-                    bgcolor: THEME.surface.card,
-                    '&:hover': {
-                      bgcolor: THEME.brand.blueLight,
-                      borderColor: THEME.brand.primary,
-                    },
-                  }}
-                />
-              </Tooltip>
-            ))}
-          </Box>
-        </Box>
-      </Paper>
+      <Divider sx={{ borderColor: THEME.surface.borderLight }} />
 
-      {/* Unified 4-Card Executive Verdict Strip (Responsive: 1 col xs, 2 cols sm/md/lg, 4 cols xl) */}
+      {/* Part 2: Unified 2-Column Verdict Strip (Clean, Zero Nested Boxes) */}
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: {
-            xs: '1fr',
-            sm: 'repeat(2, 1fr)',
-            xl: 'repeat(4, 1fr)',
-          },
-          gap: 1.8,
-          width: '100%',
-          opacity: isLoading ? 0.65 : 1,
-          transition: 'opacity 0.2s ease',
+          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+          opacity: isLoading ? 0.6 : 1,
+          transition: 'opacity 0.18s ease',
         }}
       >
-        {/* 1. Final Hybrid Score */}
-        <Paper
-          elevation={0}
+        {/* Left Verdict: Sentiment */}
+        <Box
           sx={{
-            ...cardShellSx,
-            p: 2,
-            borderTop: `3.5px solid ${sStyle.solid}`,
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            minHeight: 132,
+            p: { xs: 2.2, md: 2.6 },
+            borderRight: { sm: `1px solid ${THEME.surface.borderLight}` },
+            borderBottom: { xs: `1px solid ${THEME.surface.borderLight}`, sm: 'none' },
           }}
         >
-          <Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Typography
-                sx={{
-                  fontWeight: 700,
-                  fontSize: '0.7rem',
-                  color: THEME.text.secondary,
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.4,
-                }}
-              >
-                Final Hybrid Score
-              </Typography>
-              <CalculateIcon aria-hidden="true" sx={{ fontSize: 18, color: sStyle.text }} />
-            </Box>
-
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.9, mt: 0.9, flexWrap: 'wrap' }}>
-              <Typography
-                sx={{
-                  fontSize: '1.7rem',
-                  fontWeight: 800,
-                  color: sStyle.text,
-                  lineHeight: 1.1,
-                }}
-              >
-                {formatSigned(combinedScore, 2)}
-              </Typography>
-              <Chip
-                label={finalSentiment}
-                size="small"
-                sx={{
-                  height: 21,
-                  fontWeight: 800,
-                  fontSize: '0.66rem',
-                  bgcolor: sStyle.bg,
-                  color: sStyle.text,
-                  border: `1px solid ${sStyle.border}`,
-                }}
-              />
-            </Box>
-          </Box>
-
-          <Typography sx={{ fontSize: '0.68rem', color: THEME.text.secondary, mt: 1 }}>
-            {hasComment
-              ? `50% Likert (${formatSigned(rAvg * 0.5)}) + 50% AI (${formatSigned(bertScore * 0.5)})`
-              : 'Likert-only mode (no comment text)'}
-          </Typography>
-        </Paper>
-
-        {/* 2. Likert Survey Mean */}
-        <Paper
-          elevation={0}
-          sx={{
-            ...cardShellSx,
-            p: 2,
-            borderTop: `3.5px solid ${THEME.brand.accent}`,
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            minHeight: 132,
-          }}
-        >
-          <Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Typography
-                sx={{
-                  fontWeight: 700,
-                  fontSize: '0.7rem',
-                  color: THEME.text.secondary,
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.4,
-                }}
-              >
-                Likert Survey Mean
-              </Typography>
-              <ThumbUpIcon aria-hidden="true" sx={{ fontSize: 17, color: THEME.brand.accent }} />
-            </Box>
-
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.9, mt: 0.9, flexWrap: 'wrap' }}>
-              <Typography
-                sx={{
-                  fontSize: '1.7rem',
-                  fontWeight: 800,
-                  color: getSentimentStyle(emojiSentiment).text,
-                  lineHeight: 1.1,
-                }}
-              >
-                {formatSigned(rAvg, 2)}
-              </Typography>
-              <Chip
-                label={emojiSentiment}
-                size="small"
-                sx={{
-                  height: 21,
-                  fontWeight: 700,
-                  fontSize: '0.66rem',
-                  bgcolor: getSentimentStyle(emojiSentiment).bg,
-                  color: getSentimentStyle(emojiSentiment).text,
-                  border: `1px solid ${getSentimentStyle(emojiSentiment).border}`,
-                }}
-              />
-            </Box>
-          </Box>
-
-          <Typography sx={{ fontSize: '0.68rem', color: THEME.text.secondary, mt: 1 }}>
-            Mean across {validCount} of 10 valid Likert items
-          </Typography>
-        </Paper>
-
-        {/* 3. RoBERTa Polarity */}
-        <Paper
-          elevation={0}
-          sx={{
-            ...cardShellSx,
-            p: 2,
-            borderTop: `3.5px solid ${THEME.brand.primary}`,
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            minHeight: 132,
-          }}
-        >
-          <Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Typography
-                sx={{
-                  fontWeight: 700,
-                  fontSize: '0.7rem',
-                  color: THEME.text.secondary,
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.4,
-                }}
-              >
-                RoBERTa Polarity
-              </Typography>
-              <PsychologyIcon aria-hidden="true" sx={{ fontSize: 18, color: THEME.brand.primary }} />
-            </Box>
-
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.9, mt: 0.9, flexWrap: 'wrap' }}>
-              <Typography
-                sx={{
-                  fontSize: '1.7rem',
-                  fontWeight: 800,
-                  color: hasComment ? getSentimentStyle(robertaSentiment).text : THEME.text.faint,
-                  lineHeight: 1.1,
-                }}
-              >
-                {hasComment ? formatSigned(bertScore, 1) : '—'}
-              </Typography>
-              <Chip
-                label={
-                  hasComment
-                    ? `${robertaSentiment} (${(robertaConf * 100).toFixed(0)}%)`
-                    : 'Skipped'
-                }
-                size="small"
-                sx={{
-                  height: 21,
-                  fontWeight: 700,
-                  fontSize: '0.66rem',
-                  bgcolor: THEME.brand.blueLight,
-                  color: THEME.brand.primary,
-                  border: `1px solid ${THEME.brand.blueBorder}`,
-                }}
-              />
-            </Box>
-          </Box>
-
-          <Typography sx={{ fontSize: '0.68rem', color: THEME.text.secondary, mt: 1 }} noWrap>
-            {hasComment ? aggStrategy : 'No text comment provided'}
-          </Typography>
-        </Paper>
-
-        {/* 4. Naïve Bayes Category */}
-        <Paper
-          elevation={0}
-          sx={{
-            ...cardShellSx,
-            p: 2,
-            borderTop: `3.5px solid ${cStyle.solid}`,
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            minHeight: 132,
-          }}
-        >
-          <Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Typography
-                sx={{
-                  fontWeight: 700,
-                  fontSize: '0.7rem',
-                  color: THEME.text.secondary,
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.4,
-                }}
-              >
-                Naïve Bayes Category
-              </Typography>
-              <CategoryIcon aria-hidden="true" sx={{ fontSize: 17, color: cStyle.solid }} />
-            </Box>
-
-            <Box sx={{ mt: 0.9 }}>
-              <Tooltip title={displayCategory} arrow>
-                <Typography
-                  sx={{
-                    fontSize: '1.35rem',
-                    fontWeight: 800,
-                    color: cStyle.text,
-                    lineHeight: 1.2,
-                  }}
-                  noWrap
-                >
-                  {displayCategory}
-                </Typography>
-              </Tooltip>
-            </Box>
-          </Box>
-
           <Typography
             sx={{
               fontSize: '0.68rem',
               fontWeight: 700,
-              color: displayFallback ? THEME.status.errorText : THEME.status.success,
-              mt: 1,
+              color: THEME.text.faint,
+              textTransform: 'uppercase',
+              letterSpacing: 0.7,
+              mb: 0.8,
             }}
           >
-            {!hasComment
-              ? 'No text to classify'
-              : displayFallback
-                ? `Fallback (< ${(confidenceThreshold * 100).toFixed(0)}% guard τ)`
-                : `${(rawConf * 100).toFixed(1)}% conf · +${leadMargin.toFixed(1)} pts lead`}
+            Sentiment Verdict
           </Typography>
-        </Paper>
+
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.1, mb: 0.7, flexWrap: 'wrap' }}>
+            <Typography
+              sx={{
+                fontSize: '1.75rem',
+                fontWeight: 800,
+                color: THEME.text.primary,
+                lineHeight: 1.1,
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
+              {formatSigned(combinedScore, 2)}
+            </Typography>
+            <Chip
+              label={finalSentiment}
+              size="small"
+              sx={{
+                height: 23,
+                fontWeight: 700,
+                fontSize: '0.72rem',
+                bgcolor: sStyle.bg,
+                color: sStyle.text,
+                border: `1px solid ${sStyle.border}`,
+              }}
+            />
+          </Box>
+
+          <Typography sx={{ fontSize: '0.75rem', color: THEME.text.secondary, mb: 1.4 }}>
+            {hasComment
+              ? `Likert ${formatSigned(rAvg)} · RoBERTa ${formatSigned(bertScore, 1)} (${(robertaConf * 100).toFixed(0)}%)`
+              : `Likert mean ${formatSigned(rAvg)} (standalone)`}
+          </Typography>
+
+          {/* Ultra-clean minimal continuum bar */}
+          <Box sx={{ position: 'relative', pt: 0.4 }}>
+            <Box
+              sx={{
+                height: 6,
+                borderRadius: 3,
+                display: 'flex',
+                bgcolor: '#e2e8f0',
+                position: 'relative',
+              }}
+            >
+              <Box sx={{ width: '42.5%', height: '100%', bgcolor: '#fecdd3', borderRadius: '3px 0 0 3px' }} />
+              <Box sx={{ width: '15%', height: '100%', bgcolor: '#cbd5e1' }} />
+              <Box sx={{ width: '42.5%', height: '100%', bgcolor: '#bbf7d0', borderRadius: '0 3px 3px 0' }} />
+
+              <Box
+                sx={{
+                  position: 'absolute',
+                  left: `${Math.max(2, Math.min(98, gaugePercent))}%`,
+                  top: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  width: 14,
+                  height: 14,
+                  borderRadius: '50%',
+                  bgcolor: '#ffffff',
+                  border: `3px solid ${sStyle.solid}`,
+                  boxShadow: '0 1px 4px rgba(15, 23, 42, 0.25)',
+                  transition: 'left 0.25s ease-out',
+                }}
+              />
+            </Box>
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                mt: 0.6,
+                fontSize: '0.64rem',
+                color: THEME.text.faint,
+              }}
+            >
+              <span>-1.0</span>
+              <span>Neutral ±0.15</span>
+              <span>+1.0</span>
+            </Box>
+          </Box>
+        </Box>
+
+        {/* Right Verdict: Category */}
+        <Box sx={{ p: { xs: 2.2, md: 2.6 } }}>
+          <Typography
+            sx={{
+              fontSize: '0.68rem',
+              fontWeight: 700,
+              color: THEME.text.faint,
+              textTransform: 'uppercase',
+              letterSpacing: 0.7,
+              mb: 0.8,
+            }}
+          >
+            Category Classification
+          </Typography>
+
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.7, flexWrap: 'wrap' }}>
+            <Box
+              sx={{
+                width: 10,
+                height: 10,
+                borderRadius: '50%',
+                bgcolor: cStyle.solid,
+                flexShrink: 0,
+              }}
+            />
+            <Typography
+              sx={{
+                fontSize: '1.45rem',
+                fontWeight: 800,
+                color: THEME.text.primary,
+                lineHeight: 1.2,
+              }}
+              noWrap
+            >
+              {displayCategory}
+            </Typography>
+          </Box>
+
+          <Typography sx={{ fontSize: '0.75rem', color: THEME.text.secondary, mb: 1.4 }}>
+            {!hasComment
+              ? 'No comment text to classify'
+              : displayFallback
+                ? `${(rawConf * 100).toFixed(1)}% top prob · Below ${thresholdPct}% guard`
+                : `${(rawConf * 100).toFixed(1)}% confidence · Clears ${thresholdPct}% guard`}
+          </Typography>
+
+          {/* Ultra-clean minimal confidence bar with threshold tick */}
+          <Box sx={{ position: 'relative', pt: 0.4 }}>
+            <Box
+              sx={{
+                height: 6,
+                borderRadius: 3,
+                bgcolor: '#e2e8f0',
+                position: 'relative',
+              }}
+            >
+              <Box
+                sx={{
+                  width: `${hasComment ? topProbPct : 0}%`,
+                  height: '100%',
+                  borderRadius: 3,
+                  bgcolor: cStyle.solid,
+                  transition: 'width 0.25s ease-out',
+                }}
+              />
+              {/* Guard threshold vertical marker */}
+              <Tooltip title={`Guard threshold τ = ${thresholdPct}%`} arrow>
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    left: `${thresholdPct}%`,
+                    top: -3,
+                    bottom: -3,
+                    width: 2,
+                    bgcolor: THEME.brand.primary,
+                    borderRadius: 1,
+                  }}
+                />
+              </Tooltip>
+            </Box>
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                mt: 0.6,
+                fontSize: '0.64rem',
+                color: THEME.text.faint,
+              }}
+            >
+              <span>0%</span>
+              <span>Guard τ = {thresholdPct}%</span>
+              <span>100%</span>
+            </Box>
+          </Box>
+        </Box>
       </Box>
-    </Stack>
+    </Paper>
   );
 }

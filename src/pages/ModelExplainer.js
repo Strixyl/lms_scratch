@@ -6,7 +6,6 @@ import {
   Typography,
   Paper,
   Button,
-  Chip,
   Tooltip,
   Stack,
   Tabs,
@@ -14,19 +13,13 @@ import {
 } from '@mui/material';
 import { ThemeProvider } from '@mui/material/styles';
 import {
-  Calculate as CalculateIcon,
-  CheckCircle as CheckCircleIcon,
-  Warning as WarningIcon,
-  Science as ScienceIcon,
   Dashboard as DashboardIcon,
-  Refresh as RefreshIcon,
   MenuBook as MenuBookIcon,
-  Sync as SyncIcon,
 } from '@mui/icons-material';
 
 import Header from '../Components/Header';
 import TopBar from '../Components/TopBar';
-import { THEME, cardShellSx } from '../constants/themeTokens';
+import { THEME } from '../constants/themeTokens';
 
 import {
   explainerTheme,
@@ -42,12 +35,12 @@ import ReferenceGuideDrawer from '../Components/ModelExplainer/ReferenceGuideDra
 
 const DEFAULT_SAMPLE_TEXT =
   'The power outlets at the collaborative tables are very convenient for charging laptops.';
-const ROWS_PER_PAGE = 8;
+const ROWS_PER_PAGE = 6;
 
 export default function ModelExplainer() {
   const navigate = useNavigate();
 
-  // Active diagnostic tab: 0 = Hybrid Sentiment (Track 2), 1 = Category Naive Bayes (Track 1)
+  // Active diagnostic tab: 0 = Sentiment Math, 1 = Category & Tokens
   const [studioTab, setStudioTab] = useState(0);
   const [guideOpen, setGuideOpen] = useState(false);
   const [isEditingQuote, setIsEditingQuote] = useState(false);
@@ -69,13 +62,12 @@ export default function ModelExplainer() {
   const [customEndDate, setCustomEndDate] = useState('');
   const [tablePage, setTablePage] = useState(1);
 
-  // Pipeline inputs & snapshot of selected DB record (to detect What-If edits)
+  // Pipeline inputs & snapshot of selected DB record
   const [inputText, setInputText] = useState(DEFAULT_SAMPLE_TEXT);
   const [ratings, setRatings] = useState(DEFAULT_RATINGS);
   const [selectedMeta, setSelectedMeta] = useState(null);
   const [originalSnapshot, setOriginalSnapshot] = useState(null);
   const [confidenceThreshold, setConfidenceThreshold] = useState(0.45);
-  const [autoCalculate, setAutoCalculate] = useState(true);
 
   // Diagnostic execution state
   const [isLiveConnected, setIsLiveConnected] = useState(null);
@@ -83,7 +75,7 @@ export default function ModelExplainer() {
   const [diagnosticResult, setDiagnosticResult] = useState(null);
   const abortControllerRef = useRef(null);
 
-  // Execute diagnostic pipeline with AbortController so stale requests never overwrite fresh state
+  // Execute diagnostic pipeline with AbortController to avoid out-of-order responses
   const executeExplainPipeline = useCallback(async (text, currentRatings, threshold) => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -124,7 +116,7 @@ export default function ModelExplainer() {
           if (axios.isCancel(errGateway) || errGateway.name === 'CanceledError' || controller.signal.aborted) {
             return;
           }
-          throw new Error('Both Python (5001) and Node Gateway (5000) are offline.');
+          throw new Error('ML endpoints offline');
         }
       }
 
@@ -140,8 +132,7 @@ export default function ModelExplainer() {
         return;
       }
       setIsLiveConnected(false);
-      const simulated = runClientSimulation(text, currentRatings, threshold);
-      setDiagnosticResult(simulated);
+      setDiagnosticResult(runClientSimulation(text, currentRatings, threshold));
     } finally {
       if (abortControllerRef.current === controller) {
         setIsLoading(false);
@@ -149,7 +140,6 @@ export default function ModelExplainer() {
     }
   }, []);
 
-  // Abort any in-flight explain request on unmount
   useEffect(() => {
     return () => {
       if (abortControllerRef.current) {
@@ -158,7 +148,6 @@ export default function ModelExplainer() {
     };
   }, []);
 
-  // Apply a selected survey record into the diagnostic workbench
   const applySurveyRecord = useCallback((survey) => {
     const sId = survey.Id || survey.id;
     const msg = survey.Message || '';
@@ -190,11 +179,9 @@ export default function ModelExplainer() {
     setInputText(msg);
     setRatings(surveyRatings);
     setIsEditingQuote(false);
-
-    return { msg, surveyRatings };
   }, []);
 
-  // Fetch submitted surveys (runs once on mount and on manual Refresh — never on card clicks)
+  // Fetch surveys once on mount and on manual reload — never on card selection
   const loadSubmittedSurveys = useCallback(async () => {
     setIsFetchingSurveys(true);
     setFetchError('');
@@ -210,7 +197,7 @@ export default function ModelExplainer() {
       }
     } catch (err) {
       console.error('Failed to fetch submitted surveys:', err);
-      setFetchError('Could not load patron surveys from port 5000.');
+      setFetchError('Could not load surveys from port 5000.');
     } finally {
       setIsFetchingSurveys(false);
     }
@@ -220,57 +207,34 @@ export default function ModelExplainer() {
     loadSubmittedSurveys();
   }, [loadSubmittedSurveys]);
 
-  // Auto-recalculate with debounce whenever inputs change
+  // Debounced live calculation
   useEffect(() => {
-    if (!autoCalculate) return undefined;
     const timer = setTimeout(() => {
       executeExplainPipeline(inputText, ratings, confidenceThreshold);
-    }, 220);
+    }, 200);
     return () => clearTimeout(timer);
-  }, [inputText, ratings, confidenceThreshold, autoCalculate, executeExplainPipeline]);
+  }, [inputText, ratings, confidenceThreshold, executeExplainPipeline]);
 
-  const handleSelectSubmittedComment = useCallback(
-    (survey) => {
-      const { msg, surveyRatings } = applySurveyRecord(survey);
-      if (!autoCalculate) {
-        executeExplainPipeline(msg, surveyRatings, confidenceThreshold);
-      }
-    },
-    [applySurveyRecord, autoCalculate, confidenceThreshold, executeExplainPipeline]
-  );
-
-  const handleLoadScenario = useCallback(
-    (scenario) => {
-      setSelectedSurveyId(null);
-      setSelectedMeta(null);
-      setOriginalSnapshot(null);
-      setInputText(scenario.text);
-      setRatings(scenario.ratings);
-      setIsEditingQuote(false);
-      if (!autoCalculate) {
-        executeExplainPipeline(scenario.text, scenario.ratings, confidenceThreshold);
-      }
-    },
-    [autoCalculate, confidenceThreshold, executeExplainPipeline]
-  );
+  const handleLoadScenario = useCallback((scenario) => {
+    setSelectedSurveyId(null);
+    setSelectedMeta(null);
+    setOriginalSnapshot(null);
+    setInputText(scenario.text);
+    setRatings(scenario.ratings);
+    setIsEditingQuote(false);
+  }, []);
 
   const handleResetToOriginal = useCallback(() => {
     if (!originalSnapshot) return;
     setInputText(originalSnapshot.text);
     setRatings(originalSnapshot.ratings);
     setIsEditingQuote(false);
-    if (!autoCalculate) {
-      executeExplainPipeline(originalSnapshot.text, originalSnapshot.ratings, confidenceThreshold);
-    }
-  }, [originalSnapshot, autoCalculate, confidenceThreshold, executeExplainPipeline]);
+  }, [originalSnapshot]);
 
   const handleResetRatings = useCallback(() => {
     if (!originalSnapshot) return;
     setRatings(originalSnapshot.ratings);
-    if (!autoCalculate) {
-      executeExplainPipeline(inputText, originalSnapshot.ratings, confidenceThreshold);
-    }
-  }, [originalSnapshot, autoCalculate, inputText, confidenceThreshold, executeExplainPipeline]);
+  }, [originalSnapshot]);
 
   const handleRatingChange = useCallback((qIdx, newRatingId) => {
     setRatings((prev) => {
@@ -284,7 +248,6 @@ export default function ModelExplainer() {
     setRatings(Array(10).fill(ratingId));
   }, []);
 
-  // Track whether current inputs diverge from the selected database record
   const isModified = useMemo(() => {
     if (!originalSnapshot) return false;
     if (inputText !== originalSnapshot.text) return true;
@@ -296,7 +259,6 @@ export default function ModelExplainer() {
     return ratings.some((r, idx) => r !== originalSnapshot.ratings[idx]);
   }, [originalSnapshot, ratings]);
 
-  // Directory date filtering
   const effectiveDateRange = useMemo(() => {
     if (customStartDate || customEndDate) {
       return {
@@ -359,345 +321,288 @@ export default function ModelExplainer() {
     setTablePage(1);
   }, []);
 
+  const statusColor =
+    isLiveConnected === null
+      ? '#94a3b8'
+      : isLiveConnected
+        ? THEME.status.success
+        : THEME.brand.accent;
+
+  const statusLabel =
+    isLiveConnected === null
+      ? 'Connecting…'
+      : isLiveConnected
+        ? 'Live ML (Port 5001)'
+        : 'Local Simulation';
+
   return (
     <Header>
       {(toggleDrawer) => (
         <ThemeProvider theme={explainerTheme}>
           <Box sx={{ fontFamily: THEME.font.family }}>
-            <TopBar
-              onMenuClick={toggleDrawer}
-              subtitle="AI Model Explainer Studio"
-            />
+            <TopBar onMenuClick={toggleDrawer} subtitle="AI Model Explainer Studio" />
 
             <Box
               sx={{
-                p: { xs: 1.8, md: 2.5 },
+                px: { xs: 2, md: 3 },
+                py: { xs: 2, md: 2.5 },
                 bgcolor: THEME.surface.background,
                 minHeight: 'calc(100vh - 90px)',
                 overflowX: 'clip',
               }}
             >
-              {/* Slim Studio Toolbar */}
-              <Paper
-                elevation={0}
-                sx={{
-                  ...cardShellSx,
-                  borderTop: `3.5px solid ${THEME.brand.accent}`,
-                  px: { xs: 2, md: 2.4 },
-                  py: 1.6,
-                  mb: 2.2,
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: 1.6,
-                }}
-              >
-                <Box sx={{ minWidth: 0 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+              <Box sx={{ maxWidth: 1360, mx: 'auto' }}>
+                {/* Lightweight Borderless Header Strip */}
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: 1.5,
+                    mb: 2.2,
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.4, flexWrap: 'wrap' }}>
                     <Typography
                       component="h1"
                       sx={{
-                        fontSize: { xs: 17.5, md: 20 },
+                        fontSize: { xs: 18, md: 20 },
                         fontWeight: 800,
                         color: THEME.text.primary,
                         letterSpacing: '-0.3px',
-                        lineHeight: 1.25,
                       }}
                     >
-                      Sentiment &amp; Naïve Bayes Score Breakdown
+                      Model Explainer
                     </Typography>
 
                     <Tooltip
                       title={
-                        isLiveConnected === null
-                          ? 'Connecting to local Flask NLP microservice'
-                          : isLiveConnected
-                            ? 'Connected directly to live CardiffNLP RoBERTa + Naïve Bayes microservice (Port 5001)'
-                            : 'Flask/Express ML endpoint offline — using local mathematical fallback simulation'
+                        isLiveConnected
+                          ? 'Connected to Flask RoBERTa & Naïve Bayes service on port 5001'
+                          : 'Flask ML endpoint offline — using local mathematical simulation'
                       }
                       arrow
                     >
-                      <Chip
-                        icon={
-                          isLiveConnected === null ? (
-                            <SyncIcon sx={{ fontSize: '0.95rem !important', color: `${THEME.brand.primary} !important` }} />
-                          ) : isLiveConnected ? (
-                            <CheckCircleIcon sx={{ fontSize: '0.95rem !important', color: `${THEME.status.success} !important` }} />
-                          ) : (
-                            <WarningIcon sx={{ fontSize: '0.95rem !important', color: `${THEME.brand.accent} !important` }} />
-                          )
-                        }
-                        label={
-                          isLiveConnected === null
-                            ? 'Connecting...'
-                            : isLiveConnected
-                              ? 'Live ML · Port 5001'
-                              : 'Simulation Fallback'
-                        }
-                        size="small"
+                      <Box
                         sx={{
-                          height: 24,
-                          fontWeight: 700,
-                          fontSize: '0.7rem',
-                          bgcolor:
-                            isLiveConnected === null
-                              ? THEME.brand.blueLight
-                              : isLiveConnected
-                                ? THEME.status.successLight
-                                : THEME.brand.goldLight,
-                          color:
-                            isLiveConnected === null
-                              ? THEME.brand.primary
-                              : isLiveConnected
-                                ? THEME.status.success
-                                : '#c2410c',
-                          border: `1px solid ${
-                            isLiveConnected === null
-                              ? THEME.brand.blueBorder
-                              : isLiveConnected
-                                ? THEME.status.successBorder
-                                : THEME.brand.goldBorder
-                          }`,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 0.65,
+                          px: 1.1,
+                          py: 0.35,
+                          borderRadius: '999px',
+                          bgcolor: THEME.surface.card,
+                          border: `1px solid ${THEME.surface.borderLight}`,
                         }}
-                      />
+                      >
+                        <Box
+                          sx={{
+                            width: 7,
+                            height: 7,
+                            borderRadius: '50%',
+                            bgcolor: statusColor,
+                          }}
+                        />
+                        <Typography sx={{ fontSize: '0.72rem', fontWeight: 600, color: THEME.text.body }}>
+                          {statusLabel}
+                        </Typography>
+                      </Box>
                     </Tooltip>
                   </Box>
-                  <Typography sx={{ fontSize: 12.5, color: THEME.text.secondary, fontWeight: 500, mt: 0.25 }}>
-                    Inspect live survey records or edit statements and Likert ratings to trace scoring step by step.
-                  </Typography>
-                </Box>
 
-                {/* Primary Toolbar Actions */}
-                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={<MenuBookIcon sx={{ fontSize: 16 }} />}
-                    onClick={() => setGuideOpen(true)}
-                    sx={{
-                      borderRadius: '10px',
-                      height: 36,
-                      px: 1.6,
-                      fontSize: 12.5,
-                      borderColor: THEME.brand.blueBorder,
-                      color: THEME.brand.primary,
-                      bgcolor: THEME.brand.blueLight,
-                      borderWidth: '1.5px',
-                      '&:hover': {
-                        borderColor: THEME.brand.primary,
-                        bgcolor: '#dbe7f3',
-                        borderWidth: '1.5px',
-                      },
-                    }}
-                  >
-                    Scoring Guide
-                  </Button>
-
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={<RefreshIcon sx={{ fontSize: 16 }} />}
-                    onClick={loadSubmittedSurveys}
-                    disabled={isFetchingSurveys}
-                    sx={{
-                      borderRadius: '10px',
-                      height: 36,
-                      px: 1.5,
-                      fontSize: 12.5,
-                      borderColor: THEME.surface.border,
-                      color: THEME.brand.primary,
-                      bgcolor: THEME.surface.card,
-                      borderWidth: '1.5px',
-                      '&:hover': {
-                        borderColor: THEME.brand.primary,
-                        bgcolor: THEME.brand.blueLight,
-                        borderWidth: '1.5px',
-                      },
-                    }}
-                  >
-                    {isFetchingSurveys ? 'Refreshing...' : 'Refresh'}
-                  </Button>
-
-                  <Button
-                    variant="contained"
-                    size="small"
-                    startIcon={<DashboardIcon sx={{ fontSize: 16 }} />}
-                    onClick={() => navigate('/sentiment-dashboard')}
-                    sx={{
-                      borderRadius: '10px',
-                      height: 36,
-                      px: 1.8,
-                      fontSize: 12.5,
-                      bgcolor: THEME.brand.primary,
-                      color: '#ffffff',
-                      boxShadow: '0 2px 6px rgba(22, 50, 79, 0.2)',
-                      '&:hover': { bgcolor: THEME.brand.primaryHover },
-                    }}
-                  >
-                    Sentiment Dashboard
-                  </Button>
-                </Stack>
-              </Paper>
-
-              {/* Main 2-Column Workbench */}
-              <Box
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: {
-                    xs: '1fr',
-                    md: '330px minmax(0, 1fr)',
-                    lg: '370px minmax(0, 1fr)',
-                    xl: '400px minmax(0, 1fr)',
-                  },
-                  gap: 2.2,
-                  width: '100%',
-                  alignItems: 'start',
-                }}
-              >
-                {/* Left Sticky Feedback Directory */}
-                <FeedbackDirectory
-                  filteredComments={filteredComments}
-                  paginatedComments={paginatedComments}
-                  totalCommentsCount={commentsOnly.length}
-                  isFetchingSurveys={isFetchingSurveys}
-                  fetchError={fetchError}
-                  onRetryFetch={loadSubmittedSurveys}
-                  selectedSurveyId={selectedSurveyId}
-                  onSelectSurvey={handleSelectSubmittedComment}
-                  searchTerm={searchTerm}
-                  onSearchChange={(val) => {
-                    setSearchTerm(val);
-                    setTablePage(1);
-                  }}
-                  filterCategory={filterCategory}
-                  onCategoryChange={(val) => {
-                    setFilterCategory(val);
-                    setTablePage(1);
-                  }}
-                  filterSentiment={filterSentiment}
-                  onSentimentChange={(val) => {
-                    setFilterSentiment(val);
-                    setTablePage(1);
-                  }}
-                  filterCollege={filterCollege}
-                  onCollegeChange={(val) => {
-                    setFilterCollege(val);
-                    setTablePage(1);
-                  }}
-                  datePreset={datePreset}
-                  onDatePresetChange={(val) => {
-                    setDatePreset(val);
-                    setTablePage(1);
-                  }}
-                  customStartDate={customStartDate}
-                  onCustomStartDateChange={(val) => {
-                    setCustomStartDate(val);
-                    setTablePage(1);
-                  }}
-                  customEndDate={customEndDate}
-                  onCustomEndDateChange={(val) => {
-                    setCustomEndDate(val);
-                    setTablePage(1);
-                  }}
-                  onClearAllFilters={handleClearAllFilters}
-                  tablePage={safeTablePage}
-                  rowsPerPage={ROWS_PER_PAGE}
-                  onPageChange={setTablePage}
-                />
-
-                {/* Right Diagnostic Studio */}
-                <Stack spacing={2.2} sx={{ minWidth: 0, width: '100%' }}>
-                  {/* Active Quote (Inline Highlighted / Editable What-If) + Unified 4-KPI Verdict */}
-                  <ExecutiveVerdict
-                    inputText={inputText}
-                    onInputTextChange={setInputText}
-                    isEditingQuote={isEditingQuote}
-                    onToggleEditQuote={() => setIsEditingQuote((prev) => !prev)}
-                    selectedMeta={selectedMeta}
-                    isModified={isModified}
-                    onResetToOriginal={handleResetToOriginal}
-                    onLoadScenario={handleLoadScenario}
-                    autoCalculate={autoCalculate}
-                    onAutoCalculateChange={setAutoCalculate}
-                    onRunPipeline={() =>
-                      executeExplainPipeline(inputText, ratings, confidenceThreshold)
-                    }
-                    isLoading={isLoading}
-                    diagnosticResult={diagnosticResult}
-                    confidenceThreshold={confidenceThreshold}
-                  />
-
-                  {/* Deep-Dive Pipeline Tabs */}
-                  <Paper elevation={0} sx={{ ...cardShellSx }}>
-                    <Tabs
-                      value={studioTab}
-                      onChange={(e, val) => setStudioTab(val)}
-                      variant="scrollable"
-                      scrollButtons="auto"
-                      allowScrollButtonsMobile
-                      aria-label="Diagnostic pipeline tracks"
-                      textColor="primary"
-                      indicatorColor="primary"
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<MenuBookIcon sx={{ fontSize: 16 }} />}
+                      onClick={() => setGuideOpen(true)}
                       sx={{
-                        px: { xs: 1, md: 2 },
-                        borderBottom: `1px solid ${THEME.surface.borderLight}`,
-                        bgcolor: THEME.surface.cardAlt,
-                        '& .MuiTabs-indicator': {
-                          height: 3,
-                          borderRadius: '3px 3px 0 0',
-                          bgcolor: THEME.brand.primary,
-                        },
-                        '& .MuiTab-root': {
-                          fontSize: '0.84rem',
-                          py: 1.5,
-                          minHeight: 50,
-                          color: THEME.text.secondary,
-                          '&.Mui-selected': {
-                            color: THEME.brand.primary,
-                          },
-                        },
+                        borderRadius: '9px',
+                        height: 34,
+                        px: 1.5,
+                        fontSize: '0.76rem',
+                        borderColor: THEME.surface.border,
+                        color: THEME.brand.primary,
+                        bgcolor: THEME.surface.card,
+                        '&:hover': { borderColor: THEME.brand.primary, bgcolor: THEME.brand.blueLight },
                       }}
                     >
-                      <Tab
-                        icon={<CalculateIcon sx={{ fontSize: 18 }} />}
-                        iconPosition="start"
-                        label="Hybrid Sentiment Synthesis (Track 2)"
-                      />
-                      <Tab
-                        icon={<ScienceIcon sx={{ fontSize: 18 }} />}
-                        iconPosition="start"
-                        label="Category Classification — Naïve Bayes (Track 1)"
-                      />
-                    </Tabs>
+                      Guide
+                    </Button>
 
-                    <Box sx={{ p: { xs: 1.8, md: 2.4 } }}>
-                      {studioTab === 0 && (
-                        <SentimentSynthesisTab
-                          diagnosticResult={diagnosticResult}
-                          ratings={ratings}
-                          onRatingChange={handleRatingChange}
-                          onBulkRatingsChange={handleBulkRatingsChange}
-                          canResetRatings={ratingsModified}
-                          onResetRatings={handleResetRatings}
-                        />
-                      )}
+                    <Button
+                      variant="contained"
+                      size="small"
+                      startIcon={<DashboardIcon sx={{ fontSize: 16 }} />}
+                      onClick={() => navigate('/sentiment-dashboard')}
+                      sx={{
+                        borderRadius: '9px',
+                        height: 34,
+                        px: 1.6,
+                        fontSize: '0.76rem',
+                        bgcolor: THEME.brand.primary,
+                        color: '#ffffff',
+                        boxShadow: 'none',
+                        '&:hover': { bgcolor: THEME.brand.primaryHover, boxShadow: 'none' },
+                      }}
+                    >
+                      Dashboard
+                    </Button>
+                  </Stack>
+                </Box>
 
-                      {studioTab === 1 && (
-                        <CategoryClassificationTab
-                          inputText={inputText}
-                          diagnosticResult={diagnosticResult}
-                          confidenceThreshold={confidenceThreshold}
-                          onConfidenceThresholdChange={setConfidenceThreshold}
-                        />
-                      )}
-                    </Box>
-                  </Paper>
-                </Stack>
+                {/* Calm 2-Column Workbench */}
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: {
+                      xs: '1fr',
+                      md: '295px minmax(0, 1fr)',
+                      lg: '320px minmax(0, 1fr)',
+                      xl: '340px minmax(0, 1fr)',
+                    },
+                    gap: 2.5,
+                    alignItems: 'start',
+                  }}
+                >
+                  {/* Left Sticky Directory */}
+                  <FeedbackDirectory
+                    filteredComments={filteredComments}
+                    paginatedComments={paginatedComments}
+                    totalCommentsCount={commentsOnly.length}
+                    isFetchingSurveys={isFetchingSurveys}
+                    fetchError={fetchError}
+                    onRetryFetch={loadSubmittedSurveys}
+                    selectedSurveyId={selectedSurveyId}
+                    onSelectSurvey={applySurveyRecord}
+                    searchTerm={searchTerm}
+                    onSearchChange={(val) => {
+                      setSearchTerm(val);
+                      setTablePage(1);
+                    }}
+                    filterCategory={filterCategory}
+                    onCategoryChange={(val) => {
+                      setFilterCategory(val);
+                      setTablePage(1);
+                    }}
+                    filterSentiment={filterSentiment}
+                    onSentimentChange={(val) => {
+                      setFilterSentiment(val);
+                      setTablePage(1);
+                    }}
+                    filterCollege={filterCollege}
+                    onCollegeChange={(val) => {
+                      setFilterCollege(val);
+                      setTablePage(1);
+                    }}
+                    datePreset={datePreset}
+                    onDatePresetChange={(val) => {
+                      setDatePreset(val);
+                      setTablePage(1);
+                    }}
+                    customStartDate={customStartDate}
+                    onCustomStartDateChange={(val) => {
+                      setCustomStartDate(val);
+                      setTablePage(1);
+                    }}
+                    customEndDate={customEndDate}
+                    onCustomEndDateChange={(val) => {
+                      setCustomEndDate(val);
+                      setTablePage(1);
+                    }}
+                    onClearAllFilters={handleClearAllFilters}
+                    tablePage={safeTablePage}
+                    rowsPerPage={ROWS_PER_PAGE}
+                    onPageChange={setTablePage}
+                  />
+
+                  {/* Right Main Workspace: Only 2 Calm Cards */}
+                  <Stack spacing={2.5} sx={{ minWidth: 0, width: '100%' }}>
+                    {/* Card 1: Unified Statement + Sentiment/Category Verdict */}
+                    <ExecutiveVerdict
+                      inputText={inputText}
+                      onInputTextChange={setInputText}
+                      isEditingQuote={isEditingQuote}
+                      onToggleEditQuote={() => setIsEditingQuote((prev) => !prev)}
+                      selectedMeta={selectedMeta}
+                      isModified={isModified}
+                      onResetToOriginal={handleResetToOriginal}
+                      onLoadScenario={handleLoadScenario}
+                      isLoading={isLoading}
+                      diagnosticResult={diagnosticResult}
+                      confidenceThreshold={confidenceThreshold}
+                    />
+
+                    {/* Card 2: Progressive-Disclosure Breakdown Tabs */}
+                    <Paper
+                      elevation={0}
+                      sx={{
+                        bgcolor: THEME.surface.card,
+                        border: `1px solid ${THEME.surface.borderLight}`,
+                        borderRadius: '14px',
+                        boxShadow: '0 1px 4px rgba(22, 50, 79, 0.04)',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <Tabs
+                        value={studioTab}
+                        onChange={(e, val) => setStudioTab(val)}
+                        variant="scrollable"
+                        scrollButtons="auto"
+                        allowScrollButtonsMobile
+                        aria-label="Score breakdown tracks"
+                        sx={{
+                          px: { xs: 1.5, md: 2.5 },
+                          borderBottom: `1px solid ${THEME.surface.borderLight}`,
+                          '& .MuiTabs-indicator': {
+                            height: 2.5,
+                            bgcolor: THEME.brand.primary,
+                          },
+                          '& .MuiTab-root': {
+                            fontSize: '0.82rem',
+                            fontWeight: 700,
+                            py: 1.5,
+                            minHeight: 48,
+                            color: THEME.text.secondary,
+                            '&.Mui-selected': {
+                              color: THEME.brand.primary,
+                            },
+                          },
+                        }}
+                      >
+                        <Tab label="Sentiment Breakdown" />
+                        <Tab label="Category & Tokens" />
+                      </Tabs>
+
+                      <Box sx={{ p: { xs: 2.2, md: 2.8 } }}>
+                        {studioTab === 0 && (
+                          <SentimentSynthesisTab
+                            diagnosticResult={diagnosticResult}
+                            ratings={ratings}
+                            onRatingChange={handleRatingChange}
+                            onBulkRatingsChange={handleBulkRatingsChange}
+                            canResetRatings={ratingsModified}
+                            onResetRatings={handleResetRatings}
+                          />
+                        )}
+
+                        {studioTab === 1 && (
+                          <CategoryClassificationTab
+                            inputText={inputText}
+                            diagnosticResult={diagnosticResult}
+                            confidenceThreshold={confidenceThreshold}
+                            onConfidenceThresholdChange={setConfidenceThreshold}
+                          />
+                        )}
+                      </Box>
+                    </Paper>
+                  </Stack>
+                </Box>
               </Box>
             </Box>
 
-            {/* Slide-Over Model Reference Guide Drawer */}
+            {/* Slide-Over Scoring Reference Guide */}
             <ReferenceGuideDrawer
               open={guideOpen}
               onClose={() => setGuideOpen(false)}
