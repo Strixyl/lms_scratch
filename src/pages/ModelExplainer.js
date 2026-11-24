@@ -466,7 +466,7 @@ export default function ModelExplainer() {
                     alignItems: 'start',
                   }}
                 >
-                  {/* Left Sticky Directory */}
+                  {/* */}
                   <FeedbackDirectory
                     filteredComments={filteredComments}
                     paginatedComments={paginatedComments}
