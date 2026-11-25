@@ -260,7 +260,7 @@ def explain_pipeline(text: str, ratings=None, custom_threshold=None):
         final_category = "Other/Uncategorized"
         final_conf = 0.0
 
-    # 3. Rating calculations
+    # 3. calculations rating
     rating_map = {
         'very_satisfied': 1.0,
         'satisfied': 0.5,
