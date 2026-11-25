@@ -102,49 +102,47 @@ class CategoryClassifier:
             return FALLBACK_LABEL
 
         text_words = set(re.findall(r"\b\w+\b", str(text).lower()))
-        has_domain_context = bool(text_words & _ALL_DOMAIN_WORDS)
+        matching_cats = {}
+        for category, keywords in DOMAIN_KEYWORDS.items():
+            matches = text_words.intersection(keywords)
+            if matches:
+                matching_cats[category] = len(matches)
 
         # filter out off-topic personal chatter if no library keywords are present
-        if not has_domain_context:
+        if not matching_cats:
             for pat in OFF_TOPIC_PATTERNS:
                 if pat.search(text):
                     return FALLBACK_LABEL
 
         probs = self.predict_proba(text)
+        classes_list = list(self.classes_) if self.classes_ is not None else []
         top_idx = probs.argmax()
-        top_label = self.classes_[top_idx]
+        top_label = str(self.classes_[top_idx])
         top_confidence = probs[top_idx]
 
-        # if staff was predicted but no staff words exist, check other categorized keywords from manual cases
-        if top_label == "Staff":
-            has_staff_words = bool(text_words & DOMAIN_KEYWORDS["Staff"])
-            if not has_staff_words:
-                has_collection_words = bool(text_words & DOMAIN_KEYWORDS["Collection"])
-                has_facilities_words = bool(text_words & DOMAIN_KEYWORDS["Facilities"])
-                if has_collection_words:
-                    top_label = "Collection"
-                elif has_facilities_words:
-                    top_label = "Facilities"
-                elif top_confidence < 0.85:
-                    # fallback if confidence is low and no keywords matched
-                    top_label = FALLBACK_LABEL
+        def _best_keyword_category() -> str:
+            return max(
+                matching_cats.keys(),
+                key=lambda cat: (
+                    matching_cats[cat],
+                    probs[classes_list.index(cat)] if cat in classes_list else 0.0
+                )
+            )
+
+        # symmetric domain-keyword guard: if the raw NB winner has no matching domain keywords
+        # (e.g., generic filler tokens like "it is", "great", "times" outvoting an explicit keyword),
+        # reroute to the category supported by explicit domain keywords
+        if top_label in DOMAIN_KEYWORDS and top_label not in matching_cats:
+            if matching_cats:
+                return _best_keyword_category()
+            if top_label == "Staff" and top_confidence < 0.85:
+                # fallback if staff confidence is low and no keywords matched
+                top_label = FALLBACK_LABEL
 
         if top_label == FALLBACK_LABEL or top_confidence < threshold:
             # check domain keywords before falling back to other/uncategorized
-            matching_cats = {}
-            for category, keywords in DOMAIN_KEYWORDS.items():
-                matches = text_words.intersection(keywords)
-                if matches:
-                    matching_cats[category] = len(matches)
             if matching_cats:
-                classes_list = list(self.classes_) if self.classes_ is not None else []
-                return max(
-                    matching_cats.keys(),
-                    key=lambda cat: (
-                        matching_cats[cat],
-                        probs[classes_list.index(cat)] if cat in classes_list else 0.0
-                    )
-                )
+                return _best_keyword_category()
             return FALLBACK_LABEL
 
         return top_label
