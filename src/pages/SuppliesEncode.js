@@ -6,30 +6,37 @@ import {
   Typography, Box, MenuItem, Snackbar, Alert,
   Accordion, AccordionSummary, AccordionDetails, Paper, Chip,
   InputAdornment, IconButton, CircularProgress, Table, TableBody,
-  TableCell, TableContainer, TableHead, TableRow,
+  TableCell, TableContainer, TableHead, TableRow, Collapse,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
+import AddIcon from '@mui/icons-material/Add';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import CloseIcon from '@mui/icons-material/Close';
 import LogoutIcon from '@mui/icons-material/Logout';
-import ListAltOutlinedIcon from '@mui/icons-material/ListAltOutlined';
-import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
-import ErrorOutlineRoundedIcon from '@mui/icons-material/ErrorOutlineRounded';
+import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
+import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import { useNavigate } from 'react-router-dom';
 import { LOW_STOCK_THRESHOLD, getStockStatus } from '../constants/equipmentConstants';
 import {
-  getSupplies, createSupply, updateSupply, deleteSupply,
+  getSupplies, createSupply, updateSupply, deleteSupply, addStock,
   getBrands, createBrand, getSuppliesItemNames,
 } from '../api/suppliesApi';
 import {
   InventoryPageShell,
+  InventoryKpiStrip,
+  HeroTableTitle,
+  CoralSwitch,
   INVENTORY_FONT,
   INVENTORY_MONO_FONT,
   INVENTORY_COLORS,
   inventoryCardSx,
   inventoryCardHeaderSx,
+  inventoryHeroTableCardSx,
+  inventoryHeroTableHeaderSx,
   inventoryFieldSx,
   inventoryMenuItemSx,
   inventoryPrimaryBtnSx,
@@ -37,6 +44,7 @@ import {
   inventoryNavBtnSx,
   inventoryLogoutBtnSx,
   inventoryTableHeadRowSx,
+  inventoryTableRowSx,
   formatUnitShort,
 } from '../Components/InventoryLayout';
 
@@ -66,12 +74,19 @@ const SuppliesEncode = () => {
   const [itemNames, setItemNames] = useState([]);
   const [brands, setBrands] = useState([]);
   const [recordSearch, setRecordSearch] = useState('');
+  const [showStats, setShowStats] = useState(true);
+  const [showForm, setShowForm] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   const [formData, setFormData] = useState(emptySupplyForm);
   const [formErrors, setFormErrors] = useState({});
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [restockDialogOpen, setRestockDialogOpen] = useState(false);
+  const [restockTarget, setRestockTarget] = useState(null);
+  const [restockAmount, setRestockAmount] = useState('');
+  const [restockError, setRestockError] = useState('');
+  const [restocking, setRestocking] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [editForm, setEditForm] = useState(emptySupplyForm);
   const [editErrors, setEditErrors] = useState({});
@@ -313,6 +328,39 @@ const SuppliesEncode = () => {
     }
   };
 
+  const handleOpenRestock = (item) => {
+    setRestockTarget(item);
+    setRestockAmount('');
+    setRestockError('');
+    setRestockDialogOpen(true);
+  };
+
+  const handleConfirmRestock = async () => {
+    if (!restockTarget) return;
+    const qty = Number(restockAmount);
+    if (!restockAmount || Number.isNaN(qty) || !Number.isInteger(qty) || qty < 1) {
+      setRestockError('Please enter a whole number of at least 1.');
+      return;
+    }
+    setRestocking(true);
+    try {
+      const res = await addStock(restockTarget.Id, qty, loggedInUser);
+      const unitShort = formatUnitShort(restockTarget.Unit || 'Pieces', res?.newQuantity ?? qty);
+      const addedUnitShort = formatUnitShort(restockTarget.Unit || 'Pieces', qty);
+      setSnackbar({
+        open: true,
+        message: `Restocked ${restockTarget.ItemName} (+${qty} ${addedUnitShort}). New stock: ${res?.newQuantity ?? (Number(restockTarget.Quantity || 0) + qty)} ${unitShort}.`,
+        severity: 'success',
+      });
+      setRestockDialogOpen(false);
+      fetchItems();
+    } catch (err) {
+      setRestockError(err?.response?.data?.message || 'Failed to restock supply.');
+    } finally {
+      setRestocking(false);
+    }
+  };
+
   // Group supply records by ItemName so collapsed accordion headers summarize variants & stock cleanly
   const groupedItems = useMemo(() => {
     const groupsMap = new Map();
@@ -360,6 +408,50 @@ const SuppliesEncode = () => {
       .sort((a, b) => a.itemName.localeCompare(b.itemName));
   }, [items]);
 
+  const kpiStats = useMemo(() => {
+    const totalUnits = items.reduce((acc, i) => acc + (Number(i.TotalQuantity ?? i.Quantity ?? 0) || 0), 0);
+    const lowCount = items.filter((i) => {
+      const q = Number(i.TotalQuantity ?? i.Quantity ?? 0) || 0;
+      return q > 0 && q <= LOW_STOCK_THRESHOLD;
+    }).length;
+    const outCount = items.filter((i) => (Number(i.TotalQuantity ?? i.Quantity ?? 0) || 0) <= 0).length;
+
+    return [
+      {
+        label: 'Supply Items',
+        value: groupedItems.length.toLocaleString(),
+        subtext: 'Grouped catalog',
+        badge: `${items.length} ${items.length === 1 ? 'variant' : 'variants'}`,
+        tone: 'indigo',
+        hint: 'Unique item categories encoded in inventory',
+      },
+      {
+        label: 'Total Stock',
+        value: totalUnits.toLocaleString(),
+        subtext: 'Combined count',
+        badge: 'In Stock',
+        tone: 'positive',
+        hint: 'Total quantity across all encoded supply variants',
+      },
+      {
+        label: 'Low Stock Variants',
+        value: lowCount.toLocaleString(),
+        subtext: `1 to ${LOW_STOCK_THRESHOLD} left`,
+        badge: lowCount > 0 ? 'Restock' : 'All healthy',
+        tone: lowCount > 0 ? 'warning' : 'positive',
+        hint: 'Variants approaching zero stock',
+      },
+      {
+        label: 'Out of Stock',
+        value: outCount.toLocaleString(),
+        subtext: 'Zero remaining',
+        badge: outCount > 0 ? 'Out of Stock' : 'None',
+        tone: outCount > 0 ? 'danger' : 'positive',
+        hint: 'Variants currently depleted',
+      },
+    ];
+  }, [groupedItems, items]);
+
   const filteredGroups = useMemo(() => {
     const q = recordSearch.trim().toLowerCase();
     if (!q) return groupedItems;
@@ -379,13 +471,13 @@ const SuppliesEncode = () => {
     <Box
       sx={{
         display: 'grid',
-        gap: 2,
+        gap: 1.5,
         gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
         alignItems: 'start',
       }}
     >
       {/* Row 1, Col 1: Item Name * */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
         {itemNames.length > 0 && (
           <TextField
             fullWidth
@@ -428,7 +520,7 @@ const SuppliesEncode = () => {
       </Box>
 
       {/* Row 1, Col 2: Brand * */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
         {brands.length > 0 && (
           <TextField
             fullWidth
@@ -528,18 +620,18 @@ const SuppliesEncode = () => {
           <>
             <TopBar title="Supplies Encoding" onMenuClick={toggleDrawer} subtitle="OFFICE SUPPLIES ENCODING" />
             <InventoryPageShell
-              breadcrumb="Inventory / Office Supplies"
               title="Office Supplies Encoding"
               userLabel={!showLoginModal ? loggedInUser : ''}
+              onLogout={!showLoginModal ? handleLogout : undefined}
               hideCanvas={showLoginModal}
               actions={
                 !showLoginModal && (
                   <>
                     <Button
                       variant="outlined"
-                      startIcon={<ListAltOutlinedIcon sx={{ fontSize: 17 }} />}
+                      startIcon={<LocalShippingOutlinedIcon sx={{ fontSize: 16 }} />}
                       onClick={() => navigate('/supplies')}
-                      sx={inventoryNavBtnSx}
+                      sx={{ ...inventoryNavBtnSx, display: { xs: 'inline-flex', lg: 'none' } }}
                     >
                       Supplies Inventory
                     </Button>
@@ -555,455 +647,467 @@ const SuppliesEncode = () => {
                 )
               }
             >
-              {/* Encode New Supply Item Card */}
-              <Paper elevation={0} sx={{ ...inventoryCardSx, mb: 3.5 }}>
-                <Box sx={inventoryCardHeaderSx}>
-                  <Box>
-                    <Typography
-                      sx={{
-                        fontFamily: INVENTORY_FONT,
-                        fontWeight: 700,
-                        fontSize: 16,
-                        color: INVENTORY_COLORS.primary,
-                      }}
-                    >
-                      Encode New Supply Item
-                    </Typography>
-                    <Typography
-                      sx={{
-                        fontFamily: INVENTORY_FONT,
-                        fontSize: 12.5,
-                        color: INVENTORY_COLORS.textSecondary,
-                        mt: 0.2,
-                      }}
-                    >
-                      Register a new office supply item or add a variant with brand and specifications.
-                    </Typography>
-                  </Box>
-                </Box>
-
-                <Box sx={{ p: { xs: 2, sm: 3 } }}>
-                  {renderFormFields(
-                    formData,
-                    handleChange,
-                    handleItemNameSelect,
-                    handleBrandSelect,
-                    formErrors
-                  )}
-                  <Box
-                    sx={{
-                      mt: 3,
-                      pt: 2,
-                      borderTop: '1px solid #F1F5F9',
-                      display: 'flex',
-                      gap: 1.5,
-                      justifyContent: 'flex-end',
-                      flexWrap: 'wrap',
-                    }}
-                  >
-                    <Button
-                      variant="outlined"
-                      onClick={() => { setFormData(emptySupplyForm); setFormErrors({}); }}
-                      sx={{ ...inventorySecondaryBtnSx, minWidth: 110 }}
-                    >
-                      Clear
-                    </Button>
-                    <Button
-                      variant="contained"
-                      onClick={handleSubmit}
-                      sx={{ ...inventoryPrimaryBtnSx, minWidth: 136 }}
-                    >
-                      Save Supply
-                    </Button>
-                  </Box>
-                </Box>
-              </Paper>
-
-              {/* Encoded Records Section */}
+              {/* Compact Top Utility Row */}
               <Box
                 sx={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   flexWrap: 'wrap',
-                  gap: 2,
+                  gap: 1.5,
                   mb: 2,
                 }}
               >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flexWrap: 'wrap' }}>
-                  <Typography
-                    sx={{
-                      fontFamily: INVENTORY_FONT,
-                      fontWeight: 700,
-                      fontSize: 16.5,
-                      color: INVENTORY_COLORS.primary,
-                    }}
-                  >
-                    Encoded Records
-                  </Typography>
-                  <Chip
-                    label={`${filteredGroups.length} ${filteredGroups.length === 1 ? 'item' : 'items'} · ${items.length} ${items.length === 1 ? 'variant' : 'variants'}`}
-                    size="small"
-                    sx={{
-                      height: 24,
-                      fontFamily: INVENTORY_FONT,
-                      fontSize: 12,
-                      fontWeight: 600,
-                      backgroundColor: INVENTORY_COLORS.surface,
-                      color: INVENTORY_COLORS.textSecondary,
-                      border: `1px solid ${INVENTORY_COLORS.border}`,
-                    }}
-                  />
-                </Box>
-
-                <TextField
-                  size="small"
-                  placeholder="Filter by item, brand, SKU, or specs..."
-                  value={recordSearch}
-                  onChange={(e) => setRecordSearch(e.target.value)}
-                  sx={{ ...inventoryFieldSx, minWidth: { xs: '100%', sm: 320, md: 360 } }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon sx={{ fontSize: 18, color: INVENTORY_COLORS.textMuted }} />
-                      </InputAdornment>
-                    ),
-                    endAdornment: recordSearch && (
-                      <InputAdornment position="end">
-                        <IconButton
-                          size="small"
-                          aria-label="Clear filter"
-                          onClick={() => setRecordSearch('')}
-                        >
-                          <ClearIcon sx={{ fontSize: 16, color: INVENTORY_COLORS.textMuted }} />
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Box>
-
-              {loadingItems ? (
-                <Paper elevation={0} sx={{ ...inventoryCardSx, py: 7, display: 'flex', justifyContent: 'center' }}>
-                  <CircularProgress size={32} sx={{ color: INVENTORY_COLORS.primary }} />
-                </Paper>
-              ) : filteredGroups.length === 0 ? (
-                <Paper elevation={0} sx={{ ...inventoryCardSx, py: 7, px: 3, textAlign: 'center' }}>
-                  <Typography
-                    sx={{
-                      fontFamily: INVENTORY_FONT,
-                      fontWeight: 600,
-                      fontSize: 14.5,
-                      color: INVENTORY_COLORS.textBody,
-                    }}
-                  >
-                    {recordSearch.trim() ? 'No matching supply records' : 'No encoded records yet'}
-                  </Typography>
+                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
                   <Typography
                     sx={{
                       fontFamily: INVENTORY_FONT,
                       fontSize: 13,
+                      fontWeight: 500,
                       color: INVENTORY_COLORS.textSecondary,
-                      mt: 0.5,
+                      whiteSpace: 'nowrap',
                     }}
                   >
-                    {recordSearch.trim()
-                      ? 'Try searching by another item name, brand, or specification.'
-                      : 'Use the form above to encode your first office supply item.'}
+                    Show Statistics
                   </Typography>
-                </Paper>
-              ) : (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                  {filteredGroups.map((group) => (
-                    <Accordion
-                      key={group.key}
-                      disableGutters
-                      elevation={0}
+                  <CoralSwitch
+                    checked={showStats}
+                    onChange={(e) => setShowStats(e.target.checked)}
+                    inputProps={{ 'aria-label': 'Show Statistics' }}
+                  />
+                </Box>
+
+                <Button
+                  variant={showForm ? 'outlined' : 'contained'}
+                  startIcon={showForm ? <CloseIcon sx={{ fontSize: 16 }} /> : <AddIcon sx={{ fontSize: 17 }} />}
+                  onClick={() => setShowForm((prev) => !prev)}
+                  sx={showForm ? inventorySecondaryBtnSx : inventoryPrimaryBtnSx}
+                >
+                  {showForm ? 'Close Form' : 'Encode New Supply'}
+                </Button>
+              </Box>
+
+              {/* Compact Supporting 4-Column KPI Strip */}
+              <Collapse in={showStats}>
+                <InventoryKpiStrip stats={kpiStats} />
+              </Collapse>
+
+              {/* On-Demand Encoding Form (Collapsed by Default so Encoded Records Lead) */}
+              <Collapse in={showForm} unmountOnExit>
+                <Paper elevation={0} sx={{ ...inventoryCardSx, mb: 2.75 }}>
+                  <Box sx={inventoryCardHeaderSx}>
+                    <Box>
+                      <Typography
+                        sx={{
+                          fontFamily: INVENTORY_FONT,
+                          fontWeight: 600,
+                          fontSize: 14.5,
+                          color: INVENTORY_COLORS.textStrong,
+                        }}
+                      >
+                        Encode New Supply Item
+                      </Typography>
+                      <Typography
+                        sx={{
+                          fontFamily: INVENTORY_FONT,
+                          fontSize: 12,
+                          color: INVENTORY_COLORS.textSecondary,
+                          mt: 0.1,
+                        }}
+                      >
+                        Register a new office supply item or add a variant with brand and specifications.
+                      </Typography>
+                    </Box>
+                    <IconButton
+                      size="small"
+                      aria-label="Close encode form"
+                      onClick={() => setShowForm(false)}
+                      sx={{ color: INVENTORY_COLORS.textSecondary }}
+                    >
+                      <CloseIcon sx={{ fontSize: 18 }} />
+                    </IconButton>
+                  </Box>
+
+                  <Box sx={{ p: { xs: 2, sm: 2.25 } }}>
+                    {renderFormFields(
+                      formData,
+                      handleChange,
+                      handleItemNameSelect,
+                      handleBrandSelect,
+                      formErrors
+                    )}
+                    <Box
                       sx={{
-                        backgroundColor: INVENTORY_COLORS.surface,
-                        border: `1px solid ${INVENTORY_COLORS.border}`,
-                        borderRadius: '10px !important',
-                        boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
-                        overflow: 'hidden',
-                        transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
-                        '&::before': { display: 'none' },
-                        '&:hover': {
-                          borderColor: INVENTORY_COLORS.borderStrong,
-                          boxShadow: '0 3px 10px rgba(22, 50, 79, 0.06)',
-                        },
+                        mt: 2.25,
+                        pt: 1.75,
+                        borderTop: `1px solid ${INVENTORY_COLORS.border}`,
+                        display: 'flex',
+                        gap: 1.25,
+                        justifyContent: 'flex-end',
+                        flexWrap: 'wrap',
                       }}
                     >
-                      <AccordionSummary
-                        expandIcon={<ExpandMoreIcon sx={{ color: INVENTORY_COLORS.textSecondary }} />}
+                      <Button
+                        variant="outlined"
+                        onClick={() => { setFormData(emptySupplyForm); setFormErrors({}); }}
+                        sx={{ ...inventorySecondaryBtnSx, minWidth: 100 }}
+                      >
+                        Clear
+                      </Button>
+                      <Button
+                        variant="contained"
+                        onClick={handleSubmit}
+                        sx={{ ...inventoryPrimaryBtnSx, minWidth: 128 }}
+                      >
+                        Save Supply
+                      </Button>
+                    </Box>
+                  </Box>
+                </Paper>
+              </Collapse>
+
+              {/* HERO SPOTLIGHT: Encoded Records Inventory Catalog Card */}
+              <Paper elevation={0} sx={inventoryHeroTableCardSx}>
+                <Box sx={inventoryHeroTableHeaderSx}>
+                  <HeroTableTitle
+                    icon={Inventory2OutlinedIcon}
+                    title="Encoded Records"
+                    subtitle="Expand any item to inspect variants, SKU codes, and live stock balances"
+                    countLabel={`${filteredGroups.length} ${filteredGroups.length === 1 ? 'item' : 'items'} · ${items.length} ${items.length === 1 ? 'variant' : 'variants'}`}
+                  />
+
+                  <TextField
+                    size="small"
+                    placeholder="Filter by item, brand, SKU, or specs..."
+                    value={recordSearch}
+                    onChange={(e) => setRecordSearch(e.target.value)}
+                    sx={{ ...inventoryFieldSx, minWidth: { xs: '100%', sm: 320, md: 360 } }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon sx={{ fontSize: 18, color: INVENTORY_COLORS.textMuted }} />
+                        </InputAdornment>
+                      ),
+                      endAdornment: recordSearch && (
+                        <InputAdornment position="end">
+                          <IconButton
+                            size="small"
+                            aria-label="Clear filter"
+                            onClick={() => setRecordSearch('')}
+                          >
+                            <ClearIcon sx={{ fontSize: 16, color: INVENTORY_COLORS.textMuted }} />
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                </Box>
+
+                {loadingItems ? (
+                  <Box sx={{ py: 9, display: 'flex', justifyContent: 'center' }}>
+                    <CircularProgress size={34} sx={{ color: INVENTORY_COLORS.accent }} />
+                  </Box>
+                ) : filteredGroups.length === 0 ? (
+                  <Box sx={{ py: 9, px: 3, textAlign: 'center' }}>
+                    <Typography
+                      sx={{
+                        fontFamily: INVENTORY_FONT,
+                        fontWeight: 600,
+                        fontSize: 15,
+                        color: INVENTORY_COLORS.textStrong,
+                      }}
+                    >
+                      {recordSearch.trim() ? 'No matching supply records' : 'No encoded records yet'}
+                    </Typography>
+                    <Typography
+                      sx={{
+                        fontFamily: INVENTORY_FONT,
+                        fontSize: 13.5,
+                        color: INVENTORY_COLORS.textSecondary,
+                        mt: 0.5,
+                      }}
+                    >
+                      {recordSearch.trim()
+                        ? 'Try searching by another item name, brand, or specification.'
+                        : 'Use the form above to encode your first office supply item.'}
+                    </Typography>
+                  </Box>
+                ) : (
+                  <Box sx={{ p: { xs: 1.5, sm: 2.25 }, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+                    {filteredGroups.map((group) => (
+                      <Accordion
+                        key={group.key}
+                        disableGutters
+                        elevation={0}
                         sx={{
-                          px: { xs: 2, sm: 2.5 },
-                          py: 0.5,
-                          minHeight: 56,
                           backgroundColor: INVENTORY_COLORS.surface,
-                          transition: 'background-color 0.15s ease',
-                          '&:hover': { backgroundColor: INVENTORY_COLORS.surfaceMuted },
-                          '& .MuiAccordionSummary-content': {
-                            my: 1.25,
-                            mr: 1.5,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            flexWrap: 'wrap',
-                            gap: 1.5,
+                          border: `1px solid ${INVENTORY_COLORS.border}`,
+                          borderRadius: '10px !important',
+                          overflow: 'hidden',
+                          transition: 'border-color 0.15s ease',
+                          '&::before': { display: 'none' },
+                          '&:hover': {
+                            borderColor: INVENTORY_COLORS.borderStrong,
                           },
                         }}
                       >
-                        <Typography
+                        <AccordionSummary
+                          expandIcon={<ExpandMoreIcon sx={{ color: INVENTORY_COLORS.textSecondary }} />}
                           sx={{
-                            fontFamily: INVENTORY_FONT,
-                            fontWeight: 600,
-                            fontSize: 14.5,
-                            color: INVENTORY_COLORS.textStrong,
+                            px: { xs: 2, sm: 2.5 },
+                            py: 0.5,
+                            minHeight: 62,
+                            backgroundColor: INVENTORY_COLORS.surface,
+                            transition: 'background-color 0.12s ease',
+                            '&:hover': {
+                              backgroundColor: INVENTORY_COLORS.rowHover,
+                              boxShadow: `inset 4px 0 0 ${INVENTORY_COLORS.accent}`,
+                            },
+                            '& .MuiAccordionSummary-content': {
+                              my: 1.25,
+                              mr: 1.5,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              flexWrap: 'wrap',
+                              gap: 1.5,
+                            },
                           }}
                         >
-                          {group.itemName}
-                        </Typography>
-
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                          {group.isOutOfStock && (
-                            <Chip
-                              icon={
-                                <ErrorOutlineRoundedIcon
-                                  sx={{ fontSize: '15px !important', color: `${INVENTORY_COLORS.dangerText} !important` }}
-                                />
-                              }
-                              label="Out of Stock"
-                              size="small"
-                              sx={{
-                                height: 24,
-                                fontFamily: INVENTORY_FONT,
-                                fontSize: 11.5,
-                                fontWeight: 600,
-                                backgroundColor: INVENTORY_COLORS.dangerBg,
-                                color: INVENTORY_COLORS.dangerText,
-                                border: `1px solid ${INVENTORY_COLORS.dangerBorder}`,
-                              }}
-                            />
-                          )}
-                          {group.hasLowStock && (
-                            <Chip
-                              icon={
-                                <WarningAmberRoundedIcon
-                                  sx={{ fontSize: '15px !important', color: `${INVENTORY_COLORS.warningText} !important` }}
-                                />
-                              }
-                              label="Low Stock"
-                              size="small"
-                              sx={{
-                                height: 24,
-                                fontFamily: INVENTORY_FONT,
-                                fontSize: 11.5,
-                                fontWeight: 600,
-                                backgroundColor: INVENTORY_COLORS.warningBg,
-                                color: INVENTORY_COLORS.warningText,
-                                border: `1px solid ${INVENTORY_COLORS.warningBorder}`,
-                              }}
-                            />
-                          )}
-                          <Chip
-                            label={`${group.variantCount} ${group.variantCount === 1 ? 'variant' : 'variants'}`}
-                            size="small"
+                          <Typography
                             sx={{
-                              height: 24,
                               fontFamily: INVENTORY_FONT,
-                              fontSize: 11.5,
-                              fontWeight: 500,
-                              backgroundColor: '#F1F5F9',
-                              color: INVENTORY_COLORS.textSecondary,
-                              border: `1px solid ${INVENTORY_COLORS.border}`,
-                            }}
-                          />
-                          <Chip
-                            label={`Total: ${group.totalQuantity} ${group.unitLabel}`}
-                            size="small"
-                            sx={{
-                              height: 24,
-                              fontFamily: INVENTORY_FONT,
-                              fontSize: 11.5,
                               fontWeight: 600,
-                              fontVariantNumeric: 'tabular-nums',
-                              backgroundColor: INVENTORY_COLORS.primaryTint,
-                              color: INVENTORY_COLORS.primary,
-                              border: `1px solid ${INVENTORY_COLORS.primaryBorder}`,
+                              fontSize: 15.5,
+                              color: INVENTORY_COLORS.textStrong,
                             }}
-                          />
-                        </Box>
-                      </AccordionSummary>
+                          >
+                            {group.itemName}
+                          </Typography>
 
-                      <AccordionDetails sx={{ p: 0, borderTop: `1px solid ${INVENTORY_COLORS.border}` }}>
-                        <TableContainer>
-                          <Table size="small">
-                            <TableHead>
-                              <TableRow sx={inventoryTableHeadRowSx}>
-                                <TableCell sx={{ width: 130 }}>Item Code</TableCell>
-                                <TableCell>Brand</TableCell>
-                                <TableCell>Specifications</TableCell>
-                                <TableCell>Unit</TableCell>
-                                <TableCell align="right" sx={{ width: 150 }}>Stock</TableCell>
-                                <TableCell align="right" sx={{ width: 170 }}>Actions</TableCell>
-                              </TableRow>
-                            </TableHead>
-                            <TableBody>
-                              {group.variants.map((item) => {
-                                const qty = Number(item.TotalQuantity ?? item.Quantity ?? 0) || 0;
-                                const unitShort = formatUnitShort(item.Unit || 'Pieces', qty);
-                                const variantOut = qty <= 0;
-                                const variantLow = qty > 0 && qty <= LOW_STOCK_THRESHOLD;
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                            <Chip
+                              label={
+                                group.isOutOfStock
+                                  ? 'Out of Stock'
+                                  : group.hasLowStock
+                                    ? 'Restock'
+                                    : 'In Stock'
+                              }
+                              size="small"
+                              sx={{
+                                height: 26,
+                                borderRadius: '6px',
+                                fontFamily: INVENTORY_FONT,
+                                fontSize: 12,
+                                fontWeight: 600,
+                                backgroundColor: group.isOutOfStock
+                                  ? INVENTORY_COLORS.dangerBg
+                                  : group.hasLowStock
+                                    ? INVENTORY_COLORS.warningBg
+                                    : INVENTORY_COLORS.inStockBg,
+                                color: group.isOutOfStock
+                                  ? INVENTORY_COLORS.dangerText
+                                  : group.hasLowStock
+                                    ? INVENTORY_COLORS.warningText
+                                    : INVENTORY_COLORS.inStockText,
+                              }}
+                            />
+                            <Chip
+                              label={`${group.variantCount} ${group.variantCount === 1 ? 'variant' : 'variants'}`}
+                              size="small"
+                              sx={{
+                                height: 26,
+                                borderRadius: '6px',
+                                fontFamily: INVENTORY_FONT,
+                                fontSize: 12,
+                                fontWeight: 500,
+                                backgroundColor: INVENTORY_COLORS.neutralBg,
+                                color: INVENTORY_COLORS.neutralText,
+                              }}
+                            />
+                            <Chip
+                              label={`Total: ${group.totalQuantity} ${group.unitLabel}`}
+                              size="small"
+                              sx={{
+                                height: 26,
+                                borderRadius: '6px',
+                                fontFamily: INVENTORY_FONT,
+                                fontSize: 12.5,
+                                fontWeight: 700,
+                                fontVariantNumeric: 'tabular-nums',
+                                backgroundColor: INVENTORY_COLORS.surfaceMuted,
+                                color: INVENTORY_COLORS.textStrong,
+                                border: `1px solid ${INVENTORY_COLORS.borderStrong}`,
+                              }}
+                            />
+                          </Box>
+                        </AccordionSummary>
 
-                                return (
-                                  <TableRow
-                                    key={item.Id || item.ProfileKey}
-                                    sx={{
-                                      '&:hover': { backgroundColor: INVENTORY_COLORS.surfaceMuted },
-                                      '& td': {
-                                        fontFamily: INVENTORY_FONT,
-                                        fontSize: 13.5,
-                                        color: INVENTORY_COLORS.textBody,
-                                        py: 1.35,
-                                        px: 2,
-                                        borderBottom: '1px solid #F1F5F9',
-                                      },
-                                      '&:last-of-type td': { borderBottom: 'none' },
-                                    }}
-                                  >
-                                    <TableCell>
-                                      {item.ItemCode ? (
-                                        <Box
-                                          component="span"
-                                          sx={{
-                                            display: 'inline-block',
-                                            fontFamily: INVENTORY_MONO_FONT,
-                                            fontSize: 12,
-                                            fontWeight: 600,
-                                            color: INVENTORY_COLORS.primary,
-                                            backgroundColor: '#F1F5F9',
-                                            border: `1px solid ${INVENTORY_COLORS.border}`,
-                                            borderRadius: '6px',
-                                            px: 1,
-                                            py: 0.25,
-                                            whiteSpace: 'nowrap',
-                                          }}
-                                        >
-                                          {item.ItemCode}
-                                        </Box>
-                                      ) : (
-                                        'N/A'
-                                      )}
-                                    </TableCell>
-                                    <TableCell sx={{ fontWeight: 500, color: INVENTORY_COLORS.textStrong }}>
-                                      {item.Brand || 'N/A'}
-                                    </TableCell>
-                                    <TableCell>{item.Specifications || 'N/A'}</TableCell>
-                                    <TableCell>{item.Unit || 'Pieces'}</TableCell>
-                                    <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
-                                      <Box
-                                        sx={{
-                                          display: 'inline-flex',
-                                          alignItems: 'center',
-                                          justifyContent: 'flex-end',
-                                          gap: 1,
-                                        }}
-                                      >
-                                        {(variantOut || variantLow) && (
-                                          <Chip
-                                            label={variantOut ? 'Out' : 'Low'}
-                                            size="small"
-                                            sx={{
-                                              height: 20,
-                                              fontFamily: INVENTORY_FONT,
-                                              fontSize: 10.5,
-                                              fontWeight: 700,
-                                              backgroundColor: variantOut
-                                                ? INVENTORY_COLORS.dangerBg
-                                                : INVENTORY_COLORS.warningBg,
-                                              color: variantOut
-                                                ? INVENTORY_COLORS.dangerText
-                                                : INVENTORY_COLORS.warningText,
-                                              border: `1px solid ${
-                                                variantOut
-                                                  ? INVENTORY_COLORS.dangerBorder
-                                                  : INVENTORY_COLORS.warningBorder
-                                              }`,
-                                              '& .MuiChip-label': { px: 0.8 },
-                                            }}
-                                          />
-                                        )}
-                                        <Box
-                                          component="span"
-                                          sx={{
-                                            fontWeight: 600,
-                                            color: INVENTORY_COLORS.textStrong,
-                                            fontVariantNumeric: 'tabular-nums',
-                                          }}
-                                        >
-                                          {qty}{' '}
+                        <AccordionDetails sx={{ p: 0, borderTop: `1px solid ${INVENTORY_COLORS.border}` }}>
+                          <TableContainer>
+                            <Table>
+                              <TableHead>
+                                <TableRow sx={inventoryTableHeadRowSx}>
+                                  <TableCell sx={{ width: 140 }}>Item Code</TableCell>
+                                  <TableCell sx={{ width: 170 }}>Brand</TableCell>
+                                  <TableCell>Specifications</TableCell>
+                                  <TableCell sx={{ width: 120 }}>Unit</TableCell>
+                                  <TableCell align="right" sx={{ width: 130 }}>Stock</TableCell>
+                                  <TableCell sx={{ width: 135 }}>Status</TableCell>
+                                  <TableCell align="right" sx={{ width: 255 }}>Actions</TableCell>
+                                </TableRow>
+                              </TableHead>
+                              <TableBody>
+                                {group.variants.map((item) => {
+                                  const qty = Number(item.TotalQuantity ?? item.Quantity ?? 0) || 0;
+                                  const unitShort = formatUnitShort(item.Unit || 'Pieces', qty);
+                                  const variantOut = qty <= 0;
+                                  const variantLow = qty > 0 && qty <= LOW_STOCK_THRESHOLD;
+
+                                  return (
+                                    <TableRow key={item.Id || item.ProfileKey} sx={inventoryTableRowSx}>
+                                      <TableCell>
+                                        {item.ItemCode ? (
                                           <Box
                                             component="span"
                                             sx={{
-                                              fontWeight: 500,
+                                              display: 'inline-block',
+                                              fontFamily: INVENTORY_MONO_FONT,
                                               fontSize: 12.5,
-                                              color: INVENTORY_COLORS.textSecondary,
+                                              fontWeight: 600,
+                                              color: INVENTORY_COLORS.textStrong,
+                                              backgroundColor: INVENTORY_COLORS.neutralBg,
+                                              borderRadius: '6px',
+                                              px: 1.1,
+                                              py: 0.3,
+                                              whiteSpace: 'nowrap',
                                             }}
                                           >
-                                            {unitShort}
+                                            {item.ItemCode}
                                           </Box>
+                                        ) : (
+                                          'N/A'
+                                        )}
+                                      </TableCell>
+                                      <TableCell sx={{ fontWeight: 600, color: INVENTORY_COLORS.textStrong }}>
+                                        {item.Brand || 'N/A'}
+                                      </TableCell>
+                                      <TableCell>{item.Specifications || 'N/A'}</TableCell>
+                                      <TableCell>{item.Unit || 'Pieces'}</TableCell>
+                                      <TableCell
+                                        align="right"
+                                        sx={{
+                                          whiteSpace: 'nowrap',
+                                          fontSize: '15px !important',
+                                          fontWeight: 700,
+                                          color: INVENTORY_COLORS.textStrong,
+                                          fontVariantNumeric: 'tabular-nums',
+                                        }}
+                                      >
+                                        {qty}{' '}
+                                        <Box
+                                          component="span"
+                                          sx={{
+                                            fontWeight: 400,
+                                            fontSize: 13,
+                                            color: INVENTORY_COLORS.textSecondary,
+                                          }}
+                                        >
+                                          {unitShort}
                                         </Box>
-                                      </Box>
-                                    </TableCell>
-                                    <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
-                                      <Box sx={{ display: 'inline-flex', gap: 0.75 }}>
-                                        <Button
+                                      </TableCell>
+                                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                                        <Chip
+                                          label={variantOut ? 'Out of Stock' : variantLow ? 'Restock' : 'In Stock'}
                                           size="small"
-                                          startIcon={<EditOutlinedIcon sx={{ fontSize: 16 }} />}
-                                          onClick={() => handleOpenEdit(item)}
                                           sx={{
-                                            fontFamily: INVENTORY_FONT,
-                                            fontWeight: 600,
-                                            fontSize: 12.5,
-                                            textTransform: 'none',
+                                            height: 25,
                                             borderRadius: '6px',
-                                            color: INVENTORY_COLORS.primary,
-                                            px: 1.25,
-                                            '&:hover': { backgroundColor: INVENTORY_COLORS.primaryTint },
-                                          }}
-                                        >
-                                          Edit
-                                        </Button>
-                                        <Button
-                                          size="small"
-                                          startIcon={<DeleteOutlineIcon sx={{ fontSize: 16 }} />}
-                                          onClick={() => handleOpenDelete(item)}
-                                          sx={{
                                             fontFamily: INVENTORY_FONT,
+                                            fontSize: 12,
                                             fontWeight: 600,
-                                            fontSize: 12.5,
-                                            textTransform: 'none',
-                                            borderRadius: '6px',
-                                            color: INVENTORY_COLORS.dangerText,
-                                            px: 1.25,
-                                            '&:hover': { backgroundColor: INVENTORY_COLORS.dangerBg },
+                                            backgroundColor: variantOut
+                                              ? INVENTORY_COLORS.dangerBg
+                                              : variantLow
+                                                ? INVENTORY_COLORS.warningBg
+                                                : INVENTORY_COLORS.inStockBg,
+                                            color: variantOut
+                                              ? INVENTORY_COLORS.dangerText
+                                              : variantLow
+                                                ? INVENTORY_COLORS.warningText
+                                                : INVENTORY_COLORS.inStockText,
+                                            '& .MuiChip-label': { px: 1 },
                                           }}
-                                        >
-                                          Delete
-                                        </Button>
-                                      </Box>
-                                    </TableCell>
-                                  </TableRow>
-                                );
-                              })}
-                            </TableBody>
-                          </Table>
-                        </TableContainer>
-                      </AccordionDetails>
-                    </Accordion>
-                  ))}
-                </Box>
-              )}
+                                        />
+                                      </TableCell>
+                                      <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
+                                        <Box sx={{ display: 'inline-flex', gap: 0.5 }}>
+                                          <Button
+                                            size="small"
+                                            startIcon={<AddCircleOutlineIcon sx={{ fontSize: 16 }} />}
+                                            onClick={() => handleOpenRestock(item)}
+                                            sx={{
+                                              fontFamily: INVENTORY_FONT,
+                                              fontWeight: 600,
+                                              fontSize: 13,
+                                              textTransform: 'none',
+                                              borderRadius: '6px',
+                                              color: INVENTORY_COLORS.successText,
+                                              px: 1.25,
+                                              '&:hover': { backgroundColor: INVENTORY_COLORS.successBg },
+                                            }}
+                                          >
+                                            Add
+                                          </Button>
+                                          <Button
+                                            size="small"
+                                            startIcon={<EditOutlinedIcon sx={{ fontSize: 16 }} />}
+                                            onClick={() => handleOpenEdit(item)}
+                                            sx={{
+                                              fontFamily: INVENTORY_FONT,
+                                              fontWeight: 500,
+                                              fontSize: 13,
+                                              textTransform: 'none',
+                                              borderRadius: '6px',
+                                              color: INVENTORY_COLORS.textStrong,
+                                              px: 1.25,
+                                              '&:hover': { backgroundColor: INVENTORY_COLORS.neutralBg },
+                                            }}
+                                          >
+                                            Edit
+                                          </Button>
+                                          <Button
+                                            size="small"
+                                            startIcon={<DeleteOutlineIcon sx={{ fontSize: 16 }} />}
+                                            onClick={() => handleOpenDelete(item)}
+                                            sx={{
+                                              fontFamily: INVENTORY_FONT,
+                                              fontWeight: 500,
+                                              fontSize: 13,
+                                              textTransform: 'none',
+                                              borderRadius: '6px',
+                                              color: INVENTORY_COLORS.dangerText,
+                                              px: 1.25,
+                                              '&:hover': { backgroundColor: '#FEF2F2' },
+                                            }}
+                                          >
+                                            Delete
+                                          </Button>
+                                        </Box>
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                })}
+                              </TableBody>
+                            </Table>
+                          </TableContainer>
+                        </AccordionDetails>
+                      </Accordion>
+                    ))}
+                  </Box>
+                )}
+              </Paper>
             </InventoryPageShell>
           </>
         )}
@@ -1013,9 +1117,9 @@ const SuppliesEncode = () => {
         <Dialog
           open
           disableEscapeKeyDown
-          PaperProps={{ sx: { borderRadius: '12px', p: 0.5 } }}
+          PaperProps={{ sx: { borderRadius: '14px', p: 0.5, border: `1px solid ${INVENTORY_COLORS.border}` } }}
         >
-          <DialogTitle sx={{ fontFamily: INVENTORY_FONT, fontWeight: 700, color: INVENTORY_COLORS.primary }}>
+          <DialogTitle sx={{ fontFamily: INVENTORY_FONT, fontWeight: 700, color: INVENTORY_COLORS.textStrong }}>
             Login Required
           </DialogTitle>
           <DialogContent>
@@ -1065,9 +1169,9 @@ const SuppliesEncode = () => {
         onClose={() => setEditDialogOpen(false)}
         maxWidth="md"
         fullWidth
-        PaperProps={{ sx: { borderRadius: '12px' } }}
+        PaperProps={{ sx: { borderRadius: '14px', border: `1px solid ${INVENTORY_COLORS.border}` } }}
       >
-        <DialogTitle sx={{ fontFamily: INVENTORY_FONT, fontWeight: 700, color: INVENTORY_COLORS.primary }}>
+        <DialogTitle sx={{ fontFamily: INVENTORY_FONT, fontWeight: 700, color: INVENTORY_COLORS.textStrong }}>
           Edit Supply Details
         </DialogTitle>
         <DialogContent dividers sx={{ py: 2.5 }}>
@@ -1090,11 +1194,166 @@ const SuppliesEncode = () => {
       </Dialog>
 
       <Dialog
+        open={restockDialogOpen}
+        onClose={() => !restocking && setRestockDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: '14px', border: `1px solid ${INVENTORY_COLORS.border}` } }}
+      >
+        <DialogTitle sx={{ fontFamily: INVENTORY_FONT, fontWeight: 700, color: INVENTORY_COLORS.textStrong }}>
+          Restock Supply Item
+        </DialogTitle>
+        <DialogContent>
+          {restockTarget && (() => {
+            const currentQty = Number(restockTarget.TotalQuantity ?? restockTarget.Quantity ?? 0) || 0;
+            const addQty = Number(restockAmount);
+            const isValidAdd = Boolean(restockAmount) && !Number.isNaN(addQty) && Number.isInteger(addQty) && addQty > 0;
+            const nextQty = isValidAdd ? currentQty + addQty : currentQty;
+            const currentUnitShort = formatUnitShort(restockTarget.Unit || 'Pieces', currentQty);
+            const nextUnitShort = formatUnitShort(restockTarget.Unit || 'Pieces', nextQty);
+
+            return (
+              <>
+                <Box
+                  sx={{
+                    p: 1.5,
+                    mb: 2,
+                    borderRadius: '10px',
+                    backgroundColor: INVENTORY_COLORS.surfaceMuted,
+                    border: `1px solid ${INVENTORY_COLORS.border}`,
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, flexWrap: 'wrap' }}>
+                    <Typography sx={{ fontFamily: INVENTORY_FONT, fontWeight: 600, fontSize: 14, color: INVENTORY_COLORS.textStrong }}>
+                      {restockTarget.ItemName}
+                      {restockTarget.Brand && restockTarget.Brand !== 'N/A' ? ` (${restockTarget.Brand})` : ''}
+                    </Typography>
+                    {restockTarget.ItemCode && (
+                      <Box
+                        component="span"
+                        sx={{
+                          fontFamily: INVENTORY_MONO_FONT,
+                          fontSize: 11.5,
+                          fontWeight: 600,
+                          color: INVENTORY_COLORS.textStrong,
+                          backgroundColor: INVENTORY_COLORS.neutralBg,
+                          borderRadius: '6px',
+                          px: 0.9,
+                          py: 0.2,
+                        }}
+                      >
+                        {restockTarget.ItemCode}
+                      </Box>
+                    )}
+                  </Box>
+                  {restockTarget.Specifications && restockTarget.Specifications !== 'N/A' && (
+                    <Typography sx={{ fontFamily: INVENTORY_FONT, fontSize: 12, color: INVENTORY_COLORS.textSecondary, mt: 0.35 }}>
+                      {restockTarget.Specifications}
+                    </Typography>
+                  )}
+                  <Typography sx={{ fontFamily: INVENTORY_FONT, fontSize: 12.5, color: INVENTORY_COLORS.textSecondary, mt: 0.75 }}>
+                    Current Stock:{' '}
+                    <Box component="span" sx={{ fontWeight: 700, color: INVENTORY_COLORS.textStrong }}>
+                      {currentQty} {currentUnitShort}
+                    </Box>
+                  </Typography>
+                </Box>
+
+                <TextField
+                  fullWidth
+                  size="small"
+                  autoFocus
+                  type="number"
+                  label={`Quantity to Add (${restockTarget.Unit || 'Pieces'}) *`}
+                  placeholder="Enter quantity to add"
+                  value={restockAmount}
+                  onChange={(e) => { setRestockAmount(e.target.value); setRestockError(''); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !restocking) handleConfirmRestock(); }}
+                  error={!!restockError}
+                  helperText={restockError}
+                  inputProps={{ min: 1, step: 1 }}
+                  sx={inventoryFieldSx}
+                />
+
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap', mt: 1.5 }}>
+                  <Typography sx={{ fontFamily: INVENTORY_FONT, fontSize: 11.5, color: INVENTORY_COLORS.textMuted, mr: 0.25 }}>
+                    Quick add:
+                  </Typography>
+                  {[5, 10, 25, 50].map((preset) => (
+                    <Chip
+                      key={preset}
+                      label={`+${preset}`}
+                      size="small"
+                      clickable
+                      onClick={() => { setRestockAmount(String(preset)); setRestockError(''); }}
+                      sx={{
+                        height: 24,
+                        borderRadius: '6px',
+                        fontFamily: INVENTORY_FONT,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        backgroundColor:
+                          String(preset) === restockAmount
+                            ? INVENTORY_COLORS.accentTint
+                            : INVENTORY_COLORS.neutralBg,
+                        color:
+                          String(preset) === restockAmount
+                            ? INVENTORY_COLORS.accent
+                            : INVENTORY_COLORS.textBody,
+                        border:
+                          String(preset) === restockAmount
+                            ? `1px solid ${INVENTORY_COLORS.accentBorder}`
+                            : '1px solid transparent',
+                      }}
+                    />
+                  ))}
+                </Box>
+
+                {isValidAdd && !restockError && (
+                  <Box
+                    sx={{
+                      mt: 2,
+                      px: 1.5,
+                      py: 1,
+                      borderRadius: '8px',
+                      backgroundColor: INVENTORY_COLORS.successBg,
+                      border: `1px solid ${INVENTORY_COLORS.successBorder}`,
+                    }}
+                  >
+                    <Typography sx={{ fontFamily: INVENTORY_FONT, fontSize: 12.5, fontWeight: 600, color: INVENTORY_COLORS.successText }}>
+                      New stock balance: {nextQty} {nextUnitShort} (+{addQty})
+                    </Typography>
+                  </Box>
+                )}
+              </>
+            );
+          })()}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
+          <Button
+            onClick={() => setRestockDialogOpen(false)}
+            disabled={restocking}
+            sx={{ ...inventorySecondaryBtnSx, minHeight: 38 }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleConfirmRestock}
+            disabled={restocking}
+            sx={{ ...inventoryPrimaryBtnSx, minHeight: 38 }}
+          >
+            {restocking ? 'Saving...' : 'Confirm Restock'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
         open={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
         maxWidth="xs"
         fullWidth
-        PaperProps={{ sx: { borderRadius: '12px' } }}
+        PaperProps={{ sx: { borderRadius: '14px', border: `1px solid ${INVENTORY_COLORS.border}` } }}
       >
         <DialogTitle sx={{ fontFamily: INVENTORY_FONT, fontWeight: 700, color: INVENTORY_COLORS.textStrong }}>
           Delete Supply
@@ -1116,11 +1375,11 @@ const SuppliesEncode = () => {
             sx={{
               fontFamily: INVENTORY_FONT,
               fontWeight: 600,
-              fontSize: 13.5,
+              fontSize: 13,
               textTransform: 'none',
               borderRadius: '8px',
               backgroundColor: INVENTORY_COLORS.dangerText,
-              px: 3,
+              px: 2.5,
               minHeight: 38,
               '&:hover': { backgroundColor: INVENTORY_COLORS.dangerHover },
             }}

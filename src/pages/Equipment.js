@@ -4,27 +4,31 @@ import TopBar from '../Components/TopBar';
 import {
   Box, Typography, TextField, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Paper, MenuItem, Button,
-  InputAdornment, CircularProgress, TablePagination, Chip, IconButton
+  InputAdornment, CircularProgress, Chip, IconButton, Collapse
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
-import DevicesOutlinedIcon from '@mui/icons-material/DevicesOutlined';
+import AddIcon from '@mui/icons-material/Add';
+import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
 import { useNavigate } from 'react-router-dom';
 import { getTransactions } from '../api/equipmentApi';
 import {
   InventoryPageShell,
+  InventoryKpiStrip,
+  ModernTablePagination,
+  HeroTableTitle,
+  CoralSwitch,
   ArchivedItemCell,
   INVENTORY_FONT,
   INVENTORY_MONO_FONT,
   INVENTORY_COLORS,
-  inventoryCardSx,
-  inventoryCardHeaderSx,
+  inventoryHeroTableCardSx,
+  inventoryHeroTableHeaderSx,
   inventoryFieldSx,
   inventoryMenuItemSx,
-  inventoryNavBtnSx,
+  inventoryPrimaryBtnSx,
   inventoryTableHeadRowSx,
   inventoryTableRowSx,
-  inventoryPaginationSx,
   formatDateParts,
   isDeletedItemName,
 } from '../Components/InventoryLayout';
@@ -38,6 +42,7 @@ const Equipment = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [destinationFilter, setDestinationFilter] = useState('All');
+  const [showStats, setShowStats] = useState(true);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(15);
 
@@ -87,6 +92,50 @@ const Equipment = () => {
     });
   }, [records, search, destinationFilter]);
 
+  const kpiStats = useMemo(() => {
+    const totalUnits = records.reduce((acc, r) => acc + Math.abs(Number(r.quantity_changed) || 0), 0);
+    const filteredUnits = filtered.reduce((acc, r) => acc + Math.abs(Number(r.quantity_changed) || 0), 0);
+    const uniqueAssets = new Set(
+      records.map((r) => (r.asset_name || '').trim()).filter((n) => n && !isDeletedItemName(n))
+    ).size;
+    const latestDate = records.length > 0 ? formatDateParts(records[0].created_at).date : '—';
+
+    return [
+      {
+        label: 'Total Releases',
+        value: records.length.toLocaleString(),
+        subtext: 'Matched in view',
+        badge: `${filtered.length} shown`,
+        tone: 'indigo',
+        hint: 'Recorded equipment transfers and asset releases',
+      },
+      {
+        label: 'Units Released',
+        value: totalUnits.toLocaleString(),
+        subtext: 'Current view total',
+        badge: `${filteredUnits.toLocaleString()} units`,
+        tone: 'positive',
+        hint: 'Sum of equipment units released across records',
+      },
+      {
+        label: 'Destinations',
+        value: destinationOptions.length.toLocaleString(),
+        subtext: `${uniqueAssets} unique items`,
+        badge: 'Active',
+        tone: 'neutral',
+        hint: 'Distinct library sections that received equipment',
+      },
+      {
+        label: 'Latest Release',
+        value: latestDate,
+        subtext: 'Most recent log',
+        badge: records[0]?.control_number || 'Recorded',
+        tone: 'neutral',
+        hint: 'Timestamp of the latest equipment release',
+      },
+    ];
+  }, [records, filtered, destinationOptions]);
+
   const paged = filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
   const hasActiveFilters = Boolean(search.trim()) || destinationFilter !== 'All';
 
@@ -96,52 +145,67 @@ const Equipment = () => {
         <>
           <TopBar title="Library Equipment" onMenuClick={toggleDrawer} subtitle="RECORDS OF ACQUISITION" />
           <InventoryPageShell
-            breadcrumb="Inventory / Library Equipment"
-            title="Library Equipment"
+            title="Records of Acquisition"
             userLabel={loggedInUser}
-            actions={
-              <Button
-                variant="outlined"
-                startIcon={<DevicesOutlinedIcon sx={{ fontSize: 17 }} />}
-                onClick={() => navigate('/equipment-encoding')}
-                sx={inventoryNavBtnSx}
-              >
-                Equipment Encoding
-              </Button>
-            }
           >
-            <Paper elevation={0} sx={inventoryCardSx}>
-              {/* Card Toolbar Header */}
-              <Box sx={inventoryCardHeaderSx}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flexWrap: 'wrap' }}>
-                  <Typography
-                    sx={{
-                      fontFamily: INVENTORY_FONT,
-                      fontWeight: 700,
-                      fontSize: 16,
-                      color: INVENTORY_COLORS.primary,
-                    }}
-                  >
-                    Records of Acquisition
-                  </Typography>
-                  <Chip
-                    label={
-                      hasActiveFilters
-                        ? `${filtered.length} of ${records.length} records`
-                        : `${records.length} ${records.length === 1 ? 'record' : 'records'}`
-                    }
-                    size="small"
-                    sx={{
-                      height: 24,
-                      fontFamily: INVENTORY_FONT,
-                      fontSize: 12,
-                      fontWeight: 600,
-                      backgroundColor: INVENTORY_COLORS.primaryTint,
-                      color: INVENTORY_COLORS.primary,
-                      border: `1px solid ${INVENTORY_COLORS.primaryBorder}`,
-                    }}
-                  />
-                </Box>
+            {/* Compact Top Utility Row */}
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 1.5,
+                mb: 2,
+              }}
+            >
+              <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+                <Typography
+                  sx={{
+                    fontFamily: INVENTORY_FONT,
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: INVENTORY_COLORS.textSecondary,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  Show Statistics
+                </Typography>
+                <CoralSwitch
+                  checked={showStats}
+                  onChange={(e) => setShowStats(e.target.checked)}
+                  inputProps={{ 'aria-label': 'Show Statistics' }}
+                />
+              </Box>
+
+              <Button
+                variant="contained"
+                startIcon={<AddIcon sx={{ fontSize: 17 }} />}
+                onClick={() => navigate('/equipment-encoding')}
+                sx={inventoryPrimaryBtnSx}
+              >
+                Encode Equipment
+              </Button>
+            </Box>
+
+            {/* Compact Supporting 4-Column KPI Strip */}
+            <Collapse in={showStats}>
+              <InventoryKpiStrip stats={kpiStats} />
+            </Collapse>
+
+            {/* HERO SPOTLIGHT: Equipment Acquisition & Release Table Card */}
+            <Paper elevation={0} sx={inventoryHeroTableCardSx}>
+              <Box sx={inventoryHeroTableHeaderSx}>
+                <HeroTableTitle
+                  icon={AssignmentOutlinedIcon}
+                  title="Records of Acquisition"
+                  subtitle="Equipment releases, control numbers, and destination tracking"
+                  countLabel={
+                    hasActiveFilters
+                      ? `${filtered.length} of ${records.length} records`
+                      : `${records.length} ${records.length === 1 ? 'record' : 'records'}`
+                  }
+                />
 
                 <Box
                   sx={{
@@ -149,7 +213,7 @@ const Equipment = () => {
                     alignItems: 'center',
                     gap: 1.5,
                     flexWrap: 'wrap',
-                    width: { xs: '100%', md: 'auto' },
+                    width: { xs: '100%', xl: 'auto' },
                   }}
                 >
                   <TextField
@@ -159,8 +223,8 @@ const Equipment = () => {
                     onChange={(e) => { setSearch(e.target.value); setPage(0); }}
                     sx={{
                       ...inventoryFieldSx,
-                      minWidth: { xs: '100%', sm: 350, md: 390 },
-                      flex: { xs: '1 1 100%', sm: '1 1 350px', md: '0 0 auto' },
+                      minWidth: { xs: '100%', sm: 330, md: 370 },
+                      flex: { xs: '1 1 100%', sm: '1 1 330px', xl: '0 0 auto' },
                     }}
                     InputProps={{
                       startAdornment: (
@@ -190,7 +254,7 @@ const Equipment = () => {
                     onChange={(e) => { setDestinationFilter(e.target.value); setPage(0); }}
                     sx={{
                       ...inventoryFieldSx,
-                      minWidth: { xs: '100%', sm: 210 },
+                      minWidth: { xs: '100%', sm: 205 },
                     }}
                   >
                     <MenuItem value="All" sx={inventoryMenuItemSx}>
@@ -206,17 +270,17 @@ const Equipment = () => {
               </Box>
 
               {loading ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', py: 7 }}>
-                  <CircularProgress size={32} sx={{ color: INVENTORY_COLORS.primary }} />
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 9 }}>
+                  <CircularProgress size={34} sx={{ color: INVENTORY_COLORS.accent }} />
                 </Box>
               ) : filtered.length === 0 ? (
-                <Box sx={{ py: 7, px: 3, textAlign: 'center' }}>
+                <Box sx={{ py: 9, px: 3, textAlign: 'center' }}>
                   <Typography
                     sx={{
                       fontFamily: INVENTORY_FONT,
                       fontWeight: 600,
-                      fontSize: 14.5,
-                      color: INVENTORY_COLORS.textBody,
+                      fontSize: 15,
+                      color: INVENTORY_COLORS.textStrong,
                     }}
                   >
                     {hasActiveFilters ? 'No matching release records found' : 'No release records found'}
@@ -224,7 +288,7 @@ const Equipment = () => {
                   <Typography
                     sx={{
                       fontFamily: INVENTORY_FONT,
-                      fontSize: 13,
+                      fontSize: 13.5,
                       color: INVENTORY_COLORS.textSecondary,
                       mt: 0.5,
                     }}
@@ -236,16 +300,16 @@ const Equipment = () => {
                 </Box>
               ) : (
                 <TableContainer>
-                  <Table size="small">
+                  <Table>
                     <TableHead>
                       <TableRow sx={inventoryTableHeadRowSx}>
-                        <TableCell sx={{ width: 150 }}>Date Released</TableCell>
-                        <TableCell sx={{ width: 160 }}>Control Number</TableCell>
-                        <TableCell align="center" sx={{ width: 84 }}>Qty</TableCell>
+                        <TableCell sx={{ width: 160 }}>Date Released</TableCell>
+                        <TableCell sx={{ width: 170 }}>Control Number</TableCell>
+                        <TableCell align="center" sx={{ width: 90 }}>Qty</TableCell>
                         <TableCell>Item/s</TableCell>
-                        <TableCell>Destination</TableCell>
-                        <TableCell>Taken By</TableCell>
-                        <TableCell>Released By</TableCell>
+                        <TableCell sx={{ width: 190 }}>Destination</TableCell>
+                        <TableCell sx={{ width: 165 }}>Taken By</TableCell>
+                        <TableCell sx={{ width: 160 }}>Released By</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -259,7 +323,7 @@ const Equipment = () => {
                               <Typography
                                 sx={{
                                   fontFamily: INVENTORY_FONT,
-                                  fontSize: 13.5,
+                                  fontSize: 14.5,
                                   fontWeight: 500,
                                   color: INVENTORY_COLORS.textStrong,
                                   lineHeight: 1.3,
@@ -271,10 +335,10 @@ const Equipment = () => {
                                 <Typography
                                   sx={{
                                     fontFamily: INVENTORY_FONT,
-                                    fontSize: 11.5,
+                                    fontSize: 12,
                                     color: INVENTORY_COLORS.textSecondary,
                                     lineHeight: 1.3,
-                                    mt: 0.15,
+                                    mt: 0.2,
                                   }}
                                 >
                                   {dateParts.time}
@@ -289,14 +353,13 @@ const Equipment = () => {
                                   sx={{
                                     display: 'inline-block',
                                     fontFamily: INVENTORY_MONO_FONT,
-                                    fontSize: 12,
+                                    fontSize: 12.5,
                                     fontWeight: 600,
-                                    color: INVENTORY_COLORS.primary,
-                                    backgroundColor: '#F1F5F9',
-                                    border: `1px solid ${INVENTORY_COLORS.border}`,
+                                    color: INVENTORY_COLORS.textStrong,
+                                    backgroundColor: INVENTORY_COLORS.neutralBg,
                                     borderRadius: '6px',
-                                    px: 1.1,
-                                    py: 0.3,
+                                    px: 1.15,
+                                    py: 0.35,
                                     letterSpacing: '0.01em',
                                   }}
                                 >
@@ -305,7 +368,7 @@ const Equipment = () => {
                               ) : (
                                 <Typography
                                   component="span"
-                                  sx={{ fontFamily: INVENTORY_FONT, fontSize: 13, color: INVENTORY_COLORS.textMuted }}
+                                  sx={{ fontFamily: INVENTORY_FONT, fontSize: 14, color: INVENTORY_COLORS.textMuted }}
                                 >
                                   —
                                 </Typography>
@@ -315,7 +378,8 @@ const Equipment = () => {
                             <TableCell
                               align="center"
                               sx={{
-                                fontWeight: 600,
+                                fontSize: '15px !important',
+                                fontWeight: 700,
                                 color: INVENTORY_COLORS.textStrong,
                                 fontVariantNumeric: 'tabular-nums',
                                 whiteSpace: 'nowrap',
@@ -332,7 +396,7 @@ const Equipment = () => {
                                   component="span"
                                   sx={{
                                     fontFamily: INVENTORY_FONT,
-                                    fontSize: 13.5,
+                                    fontSize: 15,
                                     fontWeight: 600,
                                     color: INVENTORY_COLORS.textStrong,
                                   }}
@@ -342,8 +406,27 @@ const Equipment = () => {
                               )}
                             </TableCell>
 
-                            <TableCell>{r.destination_section || '—'}</TableCell>
-                            <TableCell>{r.taken_by || '—'}</TableCell>
+                            <TableCell>
+                              {r.destination_section ? (
+                                <Chip
+                                  label={r.destination_section}
+                                  size="small"
+                                  sx={{
+                                    height: 26,
+                                    borderRadius: '6px',
+                                    fontFamily: INVENTORY_FONT,
+                                    fontSize: 12.5,
+                                    fontWeight: 500,
+                                    backgroundColor: INVENTORY_COLORS.inStockBg,
+                                    color: INVENTORY_COLORS.inStockText,
+                                    '& .MuiChip-label': { px: 1.2 },
+                                  }}
+                                />
+                              ) : (
+                                '—'
+                              )}
+                            </TableCell>
+                            <TableCell sx={{ fontWeight: 500 }}>{r.taken_by || '—'}</TableCell>
                             <TableCell>{r.created_by || '—'}</TableCell>
                           </TableRow>
                         );
@@ -353,15 +436,13 @@ const Equipment = () => {
                 </TableContainer>
               )}
 
-              <TablePagination
-                component="div"
+              <ModernTablePagination
                 count={filtered.length}
                 page={page}
                 onPageChange={(_, p) => setPage(p)}
                 rowsPerPage={rowsPerPage}
                 onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
                 rowsPerPageOptions={[15, 25, 50]}
-                sx={inventoryPaginationSx}
               />
             </Paper>
           </InventoryPageShell>
