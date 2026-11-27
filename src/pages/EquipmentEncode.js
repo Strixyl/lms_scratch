@@ -12,6 +12,7 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import AddIcon from '@mui/icons-material/Add';
+import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
@@ -78,7 +79,7 @@ const EquipmentEncode = () => {
 
   // ---- UI toggles ----
   const [showStats, setShowStats] = useState(true);
-  const [showForm, setShowForm] = useState(true);
+  const [showForm, setShowForm] = useState(false);
 
   // ---- add asset form ----
   const [formData, setFormData] = useState(createEmptyEquipmentForm);
@@ -773,7 +774,7 @@ const EquipmentEncode = () => {
                       variant="outlined"
                       startIcon={<SendOutlinedIcon sx={{ fontSize: 15 }} />}
                       onClick={() => navigate('/send-asset')}
-                      sx={inventoryNavBtnSx}
+                      sx={{ ...inventoryNavBtnSx, display: { xs: 'inline-flex', lg: 'none' } }}
                     >
                       Send Asset
                     </Button>
@@ -781,7 +782,7 @@ const EquipmentEncode = () => {
                       variant="outlined"
                       startIcon={<HistoryOutlinedIcon sx={{ fontSize: 16 }} />}
                       onClick={() => navigate('/transactions')}
-                      sx={inventoryNavBtnSx}
+                      sx={{ ...inventoryNavBtnSx, display: { xs: 'inline-flex', lg: 'none' } }}
                     >
                       Transaction History
                     </Button>
@@ -837,12 +838,12 @@ const EquipmentEncode = () => {
                     Manage Items
                   </Button>
                   <Button
-                    variant="contained"
-                    startIcon={<AddIcon sx={{ fontSize: 17 }} />}
+                    variant={showForm ? 'outlined' : 'contained'}
+                    startIcon={showForm ? <CloseIcon sx={{ fontSize: 16 }} /> : <AddIcon sx={{ fontSize: 17 }} />}
                     onClick={() => setShowForm((prev) => !prev)}
-                    sx={inventoryPrimaryBtnSx}
+                    sx={showForm ? inventorySecondaryBtnSx : inventoryPrimaryBtnSx}
                   >
-                    {showForm ? 'Hide Encode Form' : 'Add New Asset'}
+                    {showForm ? 'Close Form' : 'Encode New Asset'}
                   </Button>
                 </Box>
               </Box>
@@ -852,8 +853,8 @@ const EquipmentEncode = () => {
                 <InventoryKpiStrip stats={kpiStats} />
               </Collapse>
 
-              {/* Subordinate Form Card */}
-              <Collapse in={showForm}>
+              {/* On-Demand Encoding Form (Collapsed by Default so Release Records Lead) */}
+              <Collapse in={showForm} unmountOnExit>
                 <Paper elevation={0} sx={{ ...inventoryCardSx, mb: 2.75 }}>
                   <Box sx={inventoryCardHeaderSx}>
                     <Box>
@@ -878,6 +879,14 @@ const EquipmentEncode = () => {
                         Register library equipment with its control number, stock count, location, and specifications.
                       </Typography>
                     </Box>
+                    <IconButton
+                      size="small"
+                      aria-label="Close encode form"
+                      onClick={() => setShowForm(false)}
+                      sx={{ color: INVENTORY_COLORS.textSecondary }}
+                    >
+                      <CloseIcon sx={{ fontSize: 18 }} />
+                    </IconButton>
                   </Box>
 
                   <Box sx={{ p: { xs: 2, sm: 2.25 } }}>

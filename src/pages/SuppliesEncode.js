@@ -14,13 +14,15 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
 import AddIcon from '@mui/icons-material/Add';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import CloseIcon from '@mui/icons-material/Close';
 import LogoutIcon from '@mui/icons-material/Logout';
 import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import { useNavigate } from 'react-router-dom';
 import { LOW_STOCK_THRESHOLD, getStockStatus } from '../constants/equipmentConstants';
 import {
-  getSupplies, createSupply, updateSupply, deleteSupply,
+  getSupplies, createSupply, updateSupply, deleteSupply, addStock,
   getBrands, createBrand, getSuppliesItemNames,
 } from '../api/suppliesApi';
 import {
@@ -73,13 +75,18 @@ const SuppliesEncode = () => {
   const [brands, setBrands] = useState([]);
   const [recordSearch, setRecordSearch] = useState('');
   const [showStats, setShowStats] = useState(true);
-  const [showForm, setShowForm] = useState(true);
+  const [showForm, setShowForm] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   const [formData, setFormData] = useState(emptySupplyForm);
   const [formErrors, setFormErrors] = useState({});
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [restockDialogOpen, setRestockDialogOpen] = useState(false);
+  const [restockTarget, setRestockTarget] = useState(null);
+  const [restockAmount, setRestockAmount] = useState('');
+  const [restockError, setRestockError] = useState('');
+  const [restocking, setRestocking] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [editForm, setEditForm] = useState(emptySupplyForm);
   const [editErrors, setEditErrors] = useState({});
@@ -318,6 +325,39 @@ const SuppliesEncode = () => {
       fetchItemNames();
     } catch (err) {
       setSnackbar({ open: true, message: 'Failed to delete.', severity: 'error' });
+    }
+  };
+
+  const handleOpenRestock = (item) => {
+    setRestockTarget(item);
+    setRestockAmount('');
+    setRestockError('');
+    setRestockDialogOpen(true);
+  };
+
+  const handleConfirmRestock = async () => {
+    if (!restockTarget) return;
+    const qty = Number(restockAmount);
+    if (!restockAmount || Number.isNaN(qty) || !Number.isInteger(qty) || qty < 1) {
+      setRestockError('Please enter a whole number of at least 1.');
+      return;
+    }
+    setRestocking(true);
+    try {
+      const res = await addStock(restockTarget.Id, qty, loggedInUser);
+      const unitShort = formatUnitShort(restockTarget.Unit || 'Pieces', res?.newQuantity ?? qty);
+      const addedUnitShort = formatUnitShort(restockTarget.Unit || 'Pieces', qty);
+      setSnackbar({
+        open: true,
+        message: `Restocked ${restockTarget.ItemName} (+${qty} ${addedUnitShort}). New stock: ${res?.newQuantity ?? (Number(restockTarget.Quantity || 0) + qty)} ${unitShort}.`,
+        severity: 'success',
+      });
+      setRestockDialogOpen(false);
+      fetchItems();
+    } catch (err) {
+      setRestockError(err?.response?.data?.message || 'Failed to restock supply.');
+    } finally {
+      setRestocking(false);
     }
   };
 
@@ -591,7 +631,7 @@ const SuppliesEncode = () => {
                       variant="outlined"
                       startIcon={<LocalShippingOutlinedIcon sx={{ fontSize: 16 }} />}
                       onClick={() => navigate('/supplies')}
-                      sx={inventoryNavBtnSx}
+                      sx={{ ...inventoryNavBtnSx, display: { xs: 'inline-flex', lg: 'none' } }}
                     >
                       Supplies Inventory
                     </Button>
@@ -638,12 +678,12 @@ const SuppliesEncode = () => {
                 </Box>
 
                 <Button
-                  variant="contained"
-                  startIcon={<AddIcon sx={{ fontSize: 17 }} />}
+                  variant={showForm ? 'outlined' : 'contained'}
+                  startIcon={showForm ? <CloseIcon sx={{ fontSize: 16 }} /> : <AddIcon sx={{ fontSize: 17 }} />}
                   onClick={() => setShowForm((prev) => !prev)}
-                  sx={inventoryPrimaryBtnSx}
+                  sx={showForm ? inventorySecondaryBtnSx : inventoryPrimaryBtnSx}
                 >
-                  {showForm ? 'Hide Encode Form' : 'Add New Supply'}
+                  {showForm ? 'Close Form' : 'Encode New Supply'}
                 </Button>
               </Box>
 
@@ -652,8 +692,8 @@ const SuppliesEncode = () => {
                 <InventoryKpiStrip stats={kpiStats} />
               </Collapse>
 
-              {/* Subordinate Form Card */}
-              <Collapse in={showForm}>
+              {/* On-Demand Encoding Form (Collapsed by Default so Encoded Records Lead) */}
+              <Collapse in={showForm} unmountOnExit>
                 <Paper elevation={0} sx={{ ...inventoryCardSx, mb: 2.75 }}>
                   <Box sx={inventoryCardHeaderSx}>
                     <Box>
@@ -678,6 +718,14 @@ const SuppliesEncode = () => {
                         Register a new office supply item or add a variant with brand and specifications.
                       </Typography>
                     </Box>
+                    <IconButton
+                      size="small"
+                      aria-label="Close encode form"
+                      onClick={() => setShowForm(false)}
+                      sx={{ color: INVENTORY_COLORS.textSecondary }}
+                    >
+                      <CloseIcon sx={{ fontSize: 18 }} />
+                    </IconButton>
                   </Box>
 
                   <Box sx={{ p: { xs: 2, sm: 2.25 } }}>
@@ -907,7 +955,7 @@ const SuppliesEncode = () => {
                                   <TableCell sx={{ width: 120 }}>Unit</TableCell>
                                   <TableCell align="right" sx={{ width: 130 }}>Stock</TableCell>
                                   <TableCell sx={{ width: 135 }}>Status</TableCell>
-                                  <TableCell align="right" sx={{ width: 175 }}>Actions</TableCell>
+                                  <TableCell align="right" sx={{ width: 255 }}>Actions</TableCell>
                                 </TableRow>
                               </TableHead>
                               <TableBody>
@@ -995,6 +1043,23 @@ const SuppliesEncode = () => {
                                       </TableCell>
                                       <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
                                         <Box sx={{ display: 'inline-flex', gap: 0.5 }}>
+                                          <Button
+                                            size="small"
+                                            startIcon={<AddCircleOutlineIcon sx={{ fontSize: 16 }} />}
+                                            onClick={() => handleOpenRestock(item)}
+                                            sx={{
+                                              fontFamily: INVENTORY_FONT,
+                                              fontWeight: 600,
+                                              fontSize: 13,
+                                              textTransform: 'none',
+                                              borderRadius: '6px',
+                                              color: INVENTORY_COLORS.successText,
+                                              px: 1.25,
+                                              '&:hover': { backgroundColor: INVENTORY_COLORS.successBg },
+                                            }}
+                                          >
+                                            Add
+                                          </Button>
                                           <Button
                                             size="small"
                                             startIcon={<EditOutlinedIcon sx={{ fontSize: 16 }} />}
@@ -1124,6 +1189,161 @@ const SuppliesEncode = () => {
           </Button>
           <Button variant="contained" onClick={handleUpdate} sx={{ ...inventoryPrimaryBtnSx, minHeight: 38 }}>
             Update
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={restockDialogOpen}
+        onClose={() => !restocking && setRestockDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: '14px', border: `1px solid ${INVENTORY_COLORS.border}` } }}
+      >
+        <DialogTitle sx={{ fontFamily: INVENTORY_FONT, fontWeight: 700, color: INVENTORY_COLORS.textStrong }}>
+          Restock Supply Item
+        </DialogTitle>
+        <DialogContent>
+          {restockTarget && (() => {
+            const currentQty = Number(restockTarget.TotalQuantity ?? restockTarget.Quantity ?? 0) || 0;
+            const addQty = Number(restockAmount);
+            const isValidAdd = Boolean(restockAmount) && !Number.isNaN(addQty) && Number.isInteger(addQty) && addQty > 0;
+            const nextQty = isValidAdd ? currentQty + addQty : currentQty;
+            const currentUnitShort = formatUnitShort(restockTarget.Unit || 'Pieces', currentQty);
+            const nextUnitShort = formatUnitShort(restockTarget.Unit || 'Pieces', nextQty);
+
+            return (
+              <>
+                <Box
+                  sx={{
+                    p: 1.5,
+                    mb: 2,
+                    borderRadius: '10px',
+                    backgroundColor: INVENTORY_COLORS.surfaceMuted,
+                    border: `1px solid ${INVENTORY_COLORS.border}`,
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, flexWrap: 'wrap' }}>
+                    <Typography sx={{ fontFamily: INVENTORY_FONT, fontWeight: 600, fontSize: 14, color: INVENTORY_COLORS.textStrong }}>
+                      {restockTarget.ItemName}
+                      {restockTarget.Brand && restockTarget.Brand !== 'N/A' ? ` (${restockTarget.Brand})` : ''}
+                    </Typography>
+                    {restockTarget.ItemCode && (
+                      <Box
+                        component="span"
+                        sx={{
+                          fontFamily: INVENTORY_MONO_FONT,
+                          fontSize: 11.5,
+                          fontWeight: 600,
+                          color: INVENTORY_COLORS.textStrong,
+                          backgroundColor: INVENTORY_COLORS.neutralBg,
+                          borderRadius: '6px',
+                          px: 0.9,
+                          py: 0.2,
+                        }}
+                      >
+                        {restockTarget.ItemCode}
+                      </Box>
+                    )}
+                  </Box>
+                  {restockTarget.Specifications && restockTarget.Specifications !== 'N/A' && (
+                    <Typography sx={{ fontFamily: INVENTORY_FONT, fontSize: 12, color: INVENTORY_COLORS.textSecondary, mt: 0.35 }}>
+                      {restockTarget.Specifications}
+                    </Typography>
+                  )}
+                  <Typography sx={{ fontFamily: INVENTORY_FONT, fontSize: 12.5, color: INVENTORY_COLORS.textSecondary, mt: 0.75 }}>
+                    Current Stock:{' '}
+                    <Box component="span" sx={{ fontWeight: 700, color: INVENTORY_COLORS.textStrong }}>
+                      {currentQty} {currentUnitShort}
+                    </Box>
+                  </Typography>
+                </Box>
+
+                <TextField
+                  fullWidth
+                  size="small"
+                  autoFocus
+                  type="number"
+                  label={`Quantity to Add (${restockTarget.Unit || 'Pieces'}) *`}
+                  placeholder="Enter quantity to add"
+                  value={restockAmount}
+                  onChange={(e) => { setRestockAmount(e.target.value); setRestockError(''); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !restocking) handleConfirmRestock(); }}
+                  error={!!restockError}
+                  helperText={restockError}
+                  inputProps={{ min: 1, step: 1 }}
+                  sx={inventoryFieldSx}
+                />
+
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap', mt: 1.5 }}>
+                  <Typography sx={{ fontFamily: INVENTORY_FONT, fontSize: 11.5, color: INVENTORY_COLORS.textMuted, mr: 0.25 }}>
+                    Quick add:
+                  </Typography>
+                  {[5, 10, 25, 50].map((preset) => (
+                    <Chip
+                      key={preset}
+                      label={`+${preset}`}
+                      size="small"
+                      clickable
+                      onClick={() => { setRestockAmount(String(preset)); setRestockError(''); }}
+                      sx={{
+                        height: 24,
+                        borderRadius: '6px',
+                        fontFamily: INVENTORY_FONT,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        backgroundColor:
+                          String(preset) === restockAmount
+                            ? INVENTORY_COLORS.accentTint
+                            : INVENTORY_COLORS.neutralBg,
+                        color:
+                          String(preset) === restockAmount
+                            ? INVENTORY_COLORS.accent
+                            : INVENTORY_COLORS.textBody,
+                        border:
+                          String(preset) === restockAmount
+                            ? `1px solid ${INVENTORY_COLORS.accentBorder}`
+                            : '1px solid transparent',
+                      }}
+                    />
+                  ))}
+                </Box>
+
+                {isValidAdd && !restockError && (
+                  <Box
+                    sx={{
+                      mt: 2,
+                      px: 1.5,
+                      py: 1,
+                      borderRadius: '8px',
+                      backgroundColor: INVENTORY_COLORS.successBg,
+                      border: `1px solid ${INVENTORY_COLORS.successBorder}`,
+                    }}
+                  >
+                    <Typography sx={{ fontFamily: INVENTORY_FONT, fontSize: 12.5, fontWeight: 600, color: INVENTORY_COLORS.successText }}>
+                      New stock balance: {nextQty} {nextUnitShort} (+{addQty})
+                    </Typography>
+                  </Box>
+                )}
+              </>
+            );
+          })()}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
+          <Button
+            onClick={() => setRestockDialogOpen(false)}
+            disabled={restocking}
+            sx={{ ...inventorySecondaryBtnSx, minHeight: 38 }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleConfirmRestock}
+            disabled={restocking}
+            sx={{ ...inventoryPrimaryBtnSx, minHeight: 38 }}
+          >
+            {restocking ? 'Saving...' : 'Confirm Restock'}
           </Button>
         </DialogActions>
       </Dialog>

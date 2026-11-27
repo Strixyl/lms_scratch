@@ -10,6 +10,7 @@ import {
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
 import AddIcon from '@mui/icons-material/Add';
+import CloseIcon from '@mui/icons-material/Close';
 import EditNoteOutlinedIcon from '@mui/icons-material/EditNoteOutlined';
 import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
@@ -73,7 +74,7 @@ const Supplies = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(15);
   const [showStats, setShowStats] = useState(true);
-  const [showForm, setShowForm] = useState(true);
+  const [showForm, setShowForm] = useState(false);
 
   const [selectedSupplyId, setSelectedSupplyId] = useState('');
   const [disburseForm, setDisburseForm] = useState(() => createEmptyDisbursementForm(loggedInUser));
@@ -363,7 +364,7 @@ const Supplies = () => {
                 variant="outlined"
                 startIcon={<EditNoteOutlinedIcon sx={{ fontSize: 17 }} />}
                 onClick={() => navigate('/supplies-encoding')}
-                sx={inventoryNavBtnSx}
+                sx={{ ...inventoryNavBtnSx, display: { xs: 'inline-flex', lg: 'none' } }}
               >
                 Supplies Encoding
               </Button>
@@ -400,12 +401,12 @@ const Supplies = () => {
               </Box>
 
               <Button
-                variant="contained"
-                startIcon={<AddIcon sx={{ fontSize: 17 }} />}
+                variant={showForm ? 'outlined' : 'contained'}
+                startIcon={showForm ? <CloseIcon sx={{ fontSize: 16 }} /> : <AddIcon sx={{ fontSize: 17 }} />}
                 onClick={() => setShowForm((prev) => !prev)}
-                sx={inventoryPrimaryBtnSx}
+                sx={showForm ? inventorySecondaryBtnSx : inventoryPrimaryBtnSx}
               >
-                {showForm ? 'Hide Disbursement Form' : 'New Disbursement'}
+                {showForm ? 'Close Form' : 'New Disbursement'}
               </Button>
             </Box>
 
@@ -414,8 +415,8 @@ const Supplies = () => {
               <InventoryKpiStrip stats={kpiStats} />
             </Collapse>
 
-            {/* Subordinate Form Card so the Disbursed Items Table Stands Out */}
-            <Collapse in={showForm}>
+            {/* On-Demand Disbursement Form (Collapsed by Default so Disbursed Items Table Leads) */}
+            <Collapse in={showForm} unmountOnExit>
               <Paper elevation={0} sx={{ ...inventoryCardSx, mb: 2.75 }}>
                 <Box sx={inventoryCardHeaderSx}>
                   <Box>
@@ -440,7 +441,17 @@ const Supplies = () => {
                       Select an encoded supply item and record its release to a library section.
                     </Typography>
                   </Box>
-                  {stockBadge}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {stockBadge}
+                    <IconButton
+                      size="small"
+                      aria-label="Close disbursement form"
+                      onClick={() => setShowForm(false)}
+                      sx={{ color: INVENTORY_COLORS.textSecondary }}
+                    >
+                      <CloseIcon sx={{ fontSize: 18 }} />
+                    </IconButton>
+                  </Box>
                 </Box>
 
                 <Box sx={{ p: { xs: 2, sm: 2.25 } }}>
