@@ -19,6 +19,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
 import SendOutlinedIcon from '@mui/icons-material/SendOutlined';
 import TuneOutlinedIcon from '@mui/icons-material/TuneOutlined';
+import DevicesOutlinedIcon from '@mui/icons-material/DevicesOutlined';
 import { useNavigate } from 'react-router-dom';
 import {
   LOCATION_OPTIONS, emptyAssetForm, getStockStatus,
@@ -31,6 +32,7 @@ import {
   InventoryPageShell,
   InventoryKpiStrip,
   ModernTablePagination,
+  HeroTableTitle,
   CoralSwitch,
   ArchivedItemCell,
   INVENTORY_FONT,
@@ -38,6 +40,8 @@ import {
   INVENTORY_COLORS,
   inventoryCardSx,
   inventoryCardHeaderSx,
+  inventoryHeroTableCardSx,
+  inventoryHeroTableHeaderSx,
   inventoryFieldSx,
   inventoryMenuItemSx,
   inventoryPrimaryBtnSx,
@@ -594,7 +598,7 @@ const EquipmentEncode = () => {
     <Box
       sx={{
         display: 'grid',
-        gap: 1.75,
+        gap: 1.5,
         gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
         alignItems: 'start',
       }}
@@ -793,7 +797,7 @@ const EquipmentEncode = () => {
                 )
               }
             >
-              {/* Reference-style Action Toolbar */}
+              {/* Compact Top Utility Row */}
               <Box
                 sx={{
                   display: 'flex',
@@ -801,78 +805,26 @@ const EquipmentEncode = () => {
                   justifyContent: 'space-between',
                   flexWrap: 'wrap',
                   gap: 1.5,
-                  mb: 2.5,
+                  mb: 2,
                 }}
               >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-                  <TextField
-                    size="small"
-                    placeholder="Search item, control #, destination, staff..."
-                    value={releaseSearch}
-                    onChange={(e) => { setReleaseSearch(e.target.value); setReleasePage(0); }}
+                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+                  <Typography
                     sx={{
-                      ...inventoryFieldSx,
-                      minWidth: { xs: '100%', sm: 300, md: 330 },
-                    }}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <SearchIcon sx={{ fontSize: 17, color: INVENTORY_COLORS.textMuted }} />
-                        </InputAdornment>
-                      ),
-                      endAdornment: releaseSearch && (
-                        <InputAdornment position="end">
-                          <IconButton
-                            size="small"
-                            aria-label="Clear search"
-                            onClick={() => { setReleaseSearch(''); setReleasePage(0); }}
-                          >
-                            <ClearIcon sx={{ fontSize: 15, color: INVENTORY_COLORS.textMuted }} />
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-
-                  <TextField
-                    size="small"
-                    select
-                    label="Destination"
-                    value={destinationFilter}
-                    onChange={(e) => { setDestinationFilter(e.target.value); setReleasePage(0); }}
-                    sx={{
-                      ...inventoryFieldSx,
-                      minWidth: { xs: '100%', sm: 185 },
+                      fontFamily: INVENTORY_FONT,
+                      fontSize: 13,
+                      fontWeight: 500,
+                      color: INVENTORY_COLORS.textSecondary,
+                      whiteSpace: 'nowrap',
                     }}
                   >
-                    <MenuItem value="All" sx={inventoryMenuItemSx}>
-                      All Destinations
-                    </MenuItem>
-                    {destinationOptions.map((dest) => (
-                      <MenuItem key={dest} value={dest} sx={inventoryMenuItemSx}>
-                        {dest}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-
-                  <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
-                    <Typography
-                      sx={{
-                        fontFamily: INVENTORY_FONT,
-                        fontSize: 13,
-                        fontWeight: 500,
-                        color: INVENTORY_COLORS.textBody,
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      Show Statistics
-                    </Typography>
-                    <CoralSwitch
-                      checked={showStats}
-                      onChange={(e) => setShowStats(e.target.checked)}
-                      inputProps={{ 'aria-label': 'Show Statistics' }}
-                    />
-                  </Box>
+                    Show Statistics
+                  </Typography>
+                  <CoralSwitch
+                    checked={showStats}
+                    onChange={(e) => setShowStats(e.target.checked)}
+                    inputProps={{ 'aria-label': 'Show Statistics' }}
+                  />
                 </Box>
 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flexWrap: 'wrap' }}>
@@ -895,21 +847,21 @@ const EquipmentEncode = () => {
                 </Box>
               </Box>
 
-              {/* Collapsible 4-Column KPI Stat Strip */}
+              {/* Compact Supporting 4-Column KPI Strip */}
               <Collapse in={showStats}>
                 <InventoryKpiStrip stats={kpiStats} />
               </Collapse>
 
-              {/* Encode New Equipment Asset Card */}
+              {/* Subordinate Form Card */}
               <Collapse in={showForm}>
-                <Paper elevation={0} sx={{ ...inventoryCardSx, mb: 2.5 }}>
+                <Paper elevation={0} sx={{ ...inventoryCardSx, mb: 2.75 }}>
                   <Box sx={inventoryCardHeaderSx}>
                     <Box>
                       <Typography
                         sx={{
                           fontFamily: INVENTORY_FONT,
                           fontWeight: 600,
-                          fontSize: 15,
+                          fontSize: 14.5,
                           color: INVENTORY_COLORS.textStrong,
                         }}
                       >
@@ -920,7 +872,7 @@ const EquipmentEncode = () => {
                           fontFamily: INVENTORY_FONT,
                           fontSize: 12,
                           color: INVENTORY_COLORS.textSecondary,
-                          mt: 0.15,
+                          mt: 0.1,
                         }}
                       >
                         Register library equipment with its control number, stock count, location, and specifications.
@@ -928,7 +880,7 @@ const EquipmentEncode = () => {
                     </Box>
                   </Box>
 
-                  <Box sx={{ p: { xs: 2, sm: 2.5 } }}>
+                  <Box sx={{ p: { xs: 2, sm: 2.25 } }}>
                     {renderFormFields(
                       formData,
                       handleChange,
@@ -938,9 +890,9 @@ const EquipmentEncode = () => {
                     )}
                     <Box
                       sx={{
-                        mt: 2.5,
-                        pt: 2,
-                        borderTop: `1px solid ${INVENTORY_COLORS.gridLine}`,
+                        mt: 2.25,
+                        pt: 1.75,
+                        borderTop: `1px solid ${INVENTORY_COLORS.border}`,
                         display: 'flex',
                         gap: 1.25,
                         justifyContent: 'flex-end',
@@ -966,10 +918,88 @@ const EquipmentEncode = () => {
                 </Paper>
               </Collapse>
 
-              {/* Release Records Table Card */}
-              <Paper elevation={0} sx={inventoryCardSx}>
-                <Box sx={inventoryCardHeaderSx}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flexWrap: 'wrap' }}>
+              {/* HERO SPOTLIGHT: Release Records Table Card */}
+              <Paper elevation={0} sx={inventoryHeroTableCardSx}>
+                <Box sx={inventoryHeroTableHeaderSx}>
+                  <HeroTableTitle
+                    icon={DevicesOutlinedIcon}
+                    title="Release Records"
+                    subtitle="Equipment transfers and release logs across library sections"
+                    countLabel={
+                      hasActiveFilters
+                        ? `${filteredReleaseRecords.length} of ${releaseRecords.length} records`
+                        : `${releaseRecords.length} ${releaseRecords.length === 1 ? 'record' : 'records'}`
+                    }
+                  />
+
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1.5,
+                      flexWrap: 'wrap',
+                      width: { xs: '100%', xl: 'auto' },
+                    }}
+                  >
+                    <TextField
+                      size="small"
+                      placeholder="Search item, control #, destination, staff..."
+                      value={releaseSearch}
+                      onChange={(e) => { setReleaseSearch(e.target.value); setReleasePage(0); }}
+                      sx={{
+                        ...inventoryFieldSx,
+                        minWidth: { xs: '100%', sm: 330, md: 370 },
+                        flex: { xs: '1 1 100%', sm: '1 1 330px', xl: '0 0 auto' },
+                      }}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <SearchIcon sx={{ fontSize: 18, color: INVENTORY_COLORS.textMuted }} />
+                          </InputAdornment>
+                        ),
+                        endAdornment: releaseSearch && (
+                          <InputAdornment position="end">
+                            <IconButton
+                              size="small"
+                              aria-label="Clear search"
+                              onClick={() => { setReleaseSearch(''); setReleasePage(0); }}
+                            >
+                              <ClearIcon sx={{ fontSize: 16, color: INVENTORY_COLORS.textMuted }} />
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+
+                    <TextField
+                      size="small"
+                      select
+                      label="Destination"
+                      value={destinationFilter}
+                      onChange={(e) => { setDestinationFilter(e.target.value); setReleasePage(0); }}
+                      sx={{
+                        ...inventoryFieldSx,
+                        minWidth: { xs: '100%', sm: 205 },
+                      }}
+                    >
+                      <MenuItem value="All" sx={inventoryMenuItemSx}>
+                        All Destinations
+                      </MenuItem>
+                      {destinationOptions.map((dest) => (
+                        <MenuItem key={dest} value={dest} sx={inventoryMenuItemSx}>
+                          {dest}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  </Box>
+                </Box>
+
+                {releaseLoading ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', py: 9 }}>
+                    <CircularProgress size={34} sx={{ color: INVENTORY_COLORS.accent }} />
+                  </Box>
+                ) : filteredReleaseRecords.length === 0 ? (
+                  <Box sx={{ py: 9, px: 3, textAlign: 'center' }}>
                     <Typography
                       sx={{
                         fontFamily: INVENTORY_FONT,
@@ -978,48 +1008,12 @@ const EquipmentEncode = () => {
                         color: INVENTORY_COLORS.textStrong,
                       }}
                     >
-                      Release Records
-                    </Typography>
-                    <Chip
-                      label={
-                        hasActiveFilters
-                          ? `${filteredReleaseRecords.length} of ${releaseRecords.length} records`
-                          : `${releaseRecords.length} ${releaseRecords.length === 1 ? 'record' : 'records'}`
-                      }
-                      size="small"
-                      sx={{
-                        height: 22,
-                        borderRadius: '6px',
-                        fontFamily: INVENTORY_FONT,
-                        fontSize: 11.5,
-                        fontWeight: 600,
-                        backgroundColor: INVENTORY_COLORS.neutralBg,
-                        color: INVENTORY_COLORS.neutralText,
-                      }}
-                    />
-                  </Box>
-                </Box>
-
-                {releaseLoading ? (
-                  <Box sx={{ display: 'flex', justifyContent: 'center', py: 7 }}>
-                    <CircularProgress size={30} sx={{ color: INVENTORY_COLORS.accent }} />
-                  </Box>
-                ) : filteredReleaseRecords.length === 0 ? (
-                  <Box sx={{ py: 7, px: 3, textAlign: 'center' }}>
-                    <Typography
-                      sx={{
-                        fontFamily: INVENTORY_FONT,
-                        fontWeight: 600,
-                        fontSize: 14,
-                        color: INVENTORY_COLORS.textStrong,
-                      }}
-                    >
                       {hasActiveFilters ? 'No release records match your filter' : 'No release records found'}
                     </Typography>
                     <Typography
                       sx={{
                         fontFamily: INVENTORY_FONT,
-                        fontSize: 13,
+                        fontSize: 13.5,
                         color: INVENTORY_COLORS.textSecondary,
                         mt: 0.5,
                       }}
@@ -1031,16 +1025,16 @@ const EquipmentEncode = () => {
                   </Box>
                 ) : (
                   <TableContainer>
-                    <Table size="small">
+                    <Table>
                       <TableHead>
                         <TableRow sx={inventoryTableHeadRowSx}>
-                          <TableCell sx={{ width: 140 }}>Date Released</TableCell>
-                          <TableCell sx={{ width: 150 }}>Control Number</TableCell>
-                          <TableCell align="center" sx={{ width: 76 }}>Qty</TableCell>
+                          <TableCell sx={{ width: 160 }}>Date Released</TableCell>
+                          <TableCell sx={{ width: 170 }}>Control Number</TableCell>
+                          <TableCell align="center" sx={{ width: 90 }}>Qty</TableCell>
                           <TableCell>Item/s</TableCell>
-                          <TableCell>Destination</TableCell>
-                          <TableCell>Taken By</TableCell>
-                          <TableCell>Released By</TableCell>
+                          <TableCell sx={{ width: 190 }}>Destination</TableCell>
+                          <TableCell sx={{ width: 165 }}>Taken By</TableCell>
+                          <TableCell sx={{ width: 160 }}>Released By</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -1054,7 +1048,7 @@ const EquipmentEncode = () => {
                                 <Typography
                                   sx={{
                                     fontFamily: INVENTORY_FONT,
-                                    fontSize: 13.5,
+                                    fontSize: 14.5,
                                     fontWeight: 500,
                                     color: INVENTORY_COLORS.textStrong,
                                     lineHeight: 1.3,
@@ -1066,10 +1060,10 @@ const EquipmentEncode = () => {
                                   <Typography
                                     sx={{
                                       fontFamily: INVENTORY_FONT,
-                                      fontSize: 11.5,
+                                      fontSize: 12,
                                       color: INVENTORY_COLORS.textSecondary,
                                       lineHeight: 1.3,
-                                      mt: 0.15,
+                                      mt: 0.2,
                                     }}
                                   >
                                     {dateParts.time}
@@ -1084,13 +1078,13 @@ const EquipmentEncode = () => {
                                     sx={{
                                       display: 'inline-block',
                                       fontFamily: INVENTORY_MONO_FONT,
-                                      fontSize: 12,
+                                      fontSize: 12.5,
                                       fontWeight: 600,
                                       color: INVENTORY_COLORS.textStrong,
                                       backgroundColor: INVENTORY_COLORS.neutralBg,
                                       borderRadius: '6px',
-                                      px: 1,
-                                      py: 0.25,
+                                      px: 1.15,
+                                      py: 0.35,
                                       letterSpacing: '0.01em',
                                     }}
                                   >
@@ -1099,7 +1093,7 @@ const EquipmentEncode = () => {
                                 ) : (
                                   <Typography
                                     component="span"
-                                    sx={{ fontFamily: INVENTORY_FONT, fontSize: 13, color: INVENTORY_COLORS.textMuted }}
+                                    sx={{ fontFamily: INVENTORY_FONT, fontSize: 14, color: INVENTORY_COLORS.textMuted }}
                                   >
                                     —
                                   </Typography>
@@ -1109,7 +1103,8 @@ const EquipmentEncode = () => {
                               <TableCell
                                 align="center"
                                 sx={{
-                                  fontWeight: 600,
+                                  fontSize: '15px !important',
+                                  fontWeight: 700,
                                   color: INVENTORY_COLORS.textStrong,
                                   fontVariantNumeric: 'tabular-nums',
                                   whiteSpace: 'nowrap',
@@ -1126,7 +1121,7 @@ const EquipmentEncode = () => {
                                     component="span"
                                     sx={{
                                       fontFamily: INVENTORY_FONT,
-                                      fontSize: 13.5,
+                                      fontSize: 15,
                                       fontWeight: 600,
                                       color: INVENTORY_COLORS.textStrong,
                                     }}
@@ -1142,21 +1137,21 @@ const EquipmentEncode = () => {
                                     label={r.destination_section}
                                     size="small"
                                     sx={{
-                                      height: 24,
+                                      height: 26,
                                       borderRadius: '6px',
                                       fontFamily: INVENTORY_FONT,
-                                      fontSize: 12,
+                                      fontSize: 12.5,
                                       fontWeight: 500,
                                       backgroundColor: INVENTORY_COLORS.inStockBg,
                                       color: INVENTORY_COLORS.inStockText,
-                                      '& .MuiChip-label': { px: 1 },
+                                      '& .MuiChip-label': { px: 1.2 },
                                     }}
                                   />
                                 ) : (
                                   '—'
                                 )}
                               </TableCell>
-                              <TableCell>{r.taken_by || '—'}</TableCell>
+                              <TableCell sx={{ fontWeight: 500 }}>{r.taken_by || '—'}</TableCell>
                               <TableCell>{r.created_by || '—'}</TableCell>
                             </TableRow>
                           );

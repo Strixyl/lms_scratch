@@ -11,6 +11,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
 import AddIcon from '@mui/icons-material/Add';
 import EditNoteOutlinedIcon from '@mui/icons-material/EditNoteOutlined';
+import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded';
 import ErrorOutlineRoundedIcon from '@mui/icons-material/ErrorOutlineRounded';
@@ -21,12 +22,15 @@ import {
   InventoryPageShell,
   InventoryKpiStrip,
   ModernTablePagination,
+  HeroTableTitle,
   CoralSwitch,
   ArchivedItemCell,
   INVENTORY_FONT,
   INVENTORY_COLORS,
   inventoryCardSx,
   inventoryCardHeaderSx,
+  inventoryHeroTableCardSx,
+  inventoryHeroTableHeaderSx,
   inventoryFieldSx,
   inventoryReadOnlyFieldSx,
   inventoryMenuItemSx,
@@ -128,7 +132,7 @@ const Supplies = () => {
       {
         label: 'Encoded Supplies',
         value: suppliesList.length.toLocaleString(),
-        subtext: 'Current stock',
+        subtext: 'Available catalog SKUs',
         badge: `${totalStockUnits.toLocaleString()} units`,
         tone: 'indigo',
         hint: 'Active supply SKUs available for disbursement',
@@ -136,7 +140,7 @@ const Supplies = () => {
       {
         label: 'Disbursements',
         value: records.length.toLocaleString(),
-        subtext: 'Total released',
+        subtext: 'Total logged releases',
         badge: `${totalDisbursedQty.toLocaleString()} units`,
         tone: 'positive',
         hint: 'Recorded office supply disbursement transactions',
@@ -144,7 +148,7 @@ const Supplies = () => {
       {
         label: 'Sections Served',
         value: uniqueSections.toLocaleString(),
-        subtext: 'Departments',
+        subtext: 'Library departments',
         badge: 'Active',
         tone: 'neutral',
         hint: 'Distinct library sections that received supplies',
@@ -365,7 +369,7 @@ const Supplies = () => {
               </Button>
             }
           >
-            {/* Reference-style Action Toolbar */}
+            {/* Compact Top Utility Row */}
             <Box
               sx={{
                 display: 'flex',
@@ -373,54 +377,26 @@ const Supplies = () => {
                 justifyContent: 'space-between',
                 flexWrap: 'wrap',
                 gap: 1.5,
-                mb: 2.5,
+                mb: 2,
               }}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-                <TextField
-                  size="small"
-                  placeholder="Search item, section, recipient, staff..."
-                  value={search}
-                  onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-                  sx={{ ...inventoryFieldSx, minWidth: { xs: '100%', sm: 310, md: 340 } }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon sx={{ fontSize: 17, color: INVENTORY_COLORS.textMuted }} />
-                      </InputAdornment>
-                    ),
-                    endAdornment: search && (
-                      <InputAdornment position="end">
-                        <IconButton
-                          size="small"
-                          aria-label="Clear search"
-                          onClick={() => { setSearch(''); setPage(0); }}
-                        >
-                          <ClearIcon sx={{ fontSize: 15, color: INVENTORY_COLORS.textMuted }} />
-                        </IconButton>
-                      </InputAdornment>
-                    ),
+              <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+                <Typography
+                  sx={{
+                    fontFamily: INVENTORY_FONT,
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: INVENTORY_COLORS.textSecondary,
+                    whiteSpace: 'nowrap',
                   }}
+                >
+                  Show Statistics
+                </Typography>
+                <CoralSwitch
+                  checked={showStats}
+                  onChange={(e) => setShowStats(e.target.checked)}
+                  inputProps={{ 'aria-label': 'Show Statistics' }}
                 />
-
-                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
-                  <Typography
-                    sx={{
-                      fontFamily: INVENTORY_FONT,
-                      fontSize: 13,
-                      fontWeight: 500,
-                      color: INVENTORY_COLORS.textBody,
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    Show Statistics
-                  </Typography>
-                  <CoralSwitch
-                    checked={showStats}
-                    onChange={(e) => setShowStats(e.target.checked)}
-                    inputProps={{ 'aria-label': 'Show Statistics' }}
-                  />
-                </Box>
               </Box>
 
               <Button
@@ -433,21 +409,21 @@ const Supplies = () => {
               </Button>
             </Box>
 
-            {/* Collapsible 4-Column KPI Stat Strip */}
+            {/* Compact Supporting 4-Column KPI Strip */}
             <Collapse in={showStats}>
               <InventoryKpiStrip stats={kpiStats} />
             </Collapse>
 
-            {/* New Disbursement Form Card */}
+            {/* Subordinate Form Card so the Disbursed Items Table Stands Out */}
             <Collapse in={showForm}>
-              <Paper elevation={0} sx={{ ...inventoryCardSx, mb: 2.5 }}>
+              <Paper elevation={0} sx={{ ...inventoryCardSx, mb: 2.75 }}>
                 <Box sx={inventoryCardHeaderSx}>
                   <Box>
                     <Typography
                       sx={{
                         fontFamily: INVENTORY_FONT,
                         fontWeight: 600,
-                        fontSize: 15,
+                        fontSize: 14.5,
                         color: INVENTORY_COLORS.textStrong,
                       }}
                     >
@@ -458,7 +434,7 @@ const Supplies = () => {
                         fontFamily: INVENTORY_FONT,
                         fontSize: 12,
                         color: INVENTORY_COLORS.textSecondary,
-                        mt: 0.15,
+                        mt: 0.1,
                       }}
                     >
                       Select an encoded supply item and record its release to a library section.
@@ -467,7 +443,7 @@ const Supplies = () => {
                   {stockBadge}
                 </Box>
 
-                <Box sx={{ p: { xs: 2, sm: 2.5 } }}>
+                <Box sx={{ p: { xs: 2, sm: 2.25 } }}>
                   {/* Row 1: Item Details */}
                   <Box
                     sx={{
@@ -476,13 +452,13 @@ const Supplies = () => {
                       justifyContent: 'space-between',
                       flexWrap: 'wrap',
                       gap: 1,
-                      mb: 1.5,
+                      mb: 1.25,
                     }}
                   >
                     <Typography
                       sx={{
                         fontFamily: INVENTORY_FONT,
-                        fontSize: 11.5,
+                        fontSize: 11,
                         fontWeight: 600,
                         textTransform: 'uppercase',
                         letterSpacing: '0.05em',
@@ -505,7 +481,7 @@ const Supplies = () => {
                   <Box
                     sx={{
                       display: 'grid',
-                      gap: 1.75,
+                      gap: 1.5,
                       gridTemplateColumns: {
                         xs: '1fr',
                         sm: 'repeat(2, 1fr)',
@@ -625,18 +601,18 @@ const Supplies = () => {
                     />
                   </Box>
 
-                  <Divider sx={{ my: 2.25, borderColor: INVENTORY_COLORS.gridLine }} />
+                  <Divider sx={{ my: 2, borderColor: INVENTORY_COLORS.border }} />
 
                   {/* Row 2: Release Details */}
                   <Typography
                     sx={{
                       fontFamily: INVENTORY_FONT,
-                      fontSize: 11.5,
+                      fontSize: 11,
                       fontWeight: 600,
                       textTransform: 'uppercase',
                       letterSpacing: '0.05em',
                       color: INVENTORY_COLORS.textSecondary,
-                      mb: 1.5,
+                      mb: 1.25,
                     }}
                   >
                     Release Details
@@ -761,9 +737,9 @@ const Supplies = () => {
                   {/* Actions */}
                   <Box
                     sx={{
-                      mt: 2.5,
-                      pt: 2,
-                      borderTop: `1px solid ${INVENTORY_COLORS.gridLine}`,
+                      mt: 2.25,
+                      pt: 1.75,
+                      borderTop: `1px solid ${INVENTORY_COLORS.border}`,
                       display: 'flex',
                       justifyContent: 'flex-end',
                       gap: 1.25,
@@ -790,10 +766,49 @@ const Supplies = () => {
               </Paper>
             </Collapse>
 
-            {/* Disbursed Items Table Card */}
-            <Paper elevation={0} sx={inventoryCardSx}>
-              <Box sx={inventoryCardHeaderSx}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flexWrap: 'wrap' }}>
+            {/* HERO SPOTLIGHT: Disbursed Items Table Card */}
+            <Paper elevation={0} sx={inventoryHeroTableCardSx}>
+              <Box sx={inventoryHeroTableHeaderSx}>
+                <HeroTableTitle
+                  icon={LocalShippingOutlinedIcon}
+                  title="Disbursed Items"
+                  subtitle="Complete log of office supply releases across library sections"
+                  countLabel={`${filtered.length} ${filtered.length === 1 ? 'record' : 'records'}`}
+                />
+
+                <TextField
+                  size="small"
+                  placeholder="Search item, section, recipient, staff..."
+                  value={search}
+                  onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+                  sx={{ ...inventoryFieldSx, minWidth: { xs: '100%', sm: 320, md: 360 } }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon sx={{ fontSize: 18, color: INVENTORY_COLORS.textMuted }} />
+                      </InputAdornment>
+                    ),
+                    endAdornment: search && (
+                      <InputAdornment position="end">
+                        <IconButton
+                          size="small"
+                          aria-label="Clear search"
+                          onClick={() => { setSearch(''); setPage(0); }}
+                        >
+                          <ClearIcon sx={{ fontSize: 16, color: INVENTORY_COLORS.textMuted }} />
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Box>
+
+              {loading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 9 }}>
+                  <CircularProgress size={34} sx={{ color: INVENTORY_COLORS.accent }} />
+                </Box>
+              ) : filtered.length === 0 ? (
+                <Box sx={{ py: 9, px: 3, textAlign: 'center' }}>
                   <Typography
                     sx={{
                       fontFamily: INVENTORY_FONT,
@@ -802,44 +817,12 @@ const Supplies = () => {
                       color: INVENTORY_COLORS.textStrong,
                     }}
                   >
-                    Disbursed Items
-                  </Typography>
-                  <Chip
-                    label={`${filtered.length} ${filtered.length === 1 ? 'record' : 'records'}`}
-                    size="small"
-                    sx={{
-                      height: 22,
-                      borderRadius: '6px',
-                      fontFamily: INVENTORY_FONT,
-                      fontSize: 11.5,
-                      fontWeight: 600,
-                      backgroundColor: INVENTORY_COLORS.neutralBg,
-                      color: INVENTORY_COLORS.neutralText,
-                    }}
-                  />
-                </Box>
-              </Box>
-
-              {loading ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', py: 7 }}>
-                  <CircularProgress size={30} sx={{ color: INVENTORY_COLORS.accent }} />
-                </Box>
-              ) : filtered.length === 0 ? (
-                <Box sx={{ py: 7, px: 3, textAlign: 'center' }}>
-                  <Typography
-                    sx={{
-                      fontFamily: INVENTORY_FONT,
-                      fontWeight: 600,
-                      fontSize: 14,
-                      color: INVENTORY_COLORS.textStrong,
-                    }}
-                  >
                     {search.trim() ? 'No matching disbursements found' : 'No disbursed records yet'}
                   </Typography>
                   <Typography
                     sx={{
                       fontFamily: INVENTORY_FONT,
-                      fontSize: 13,
+                      fontSize: 13.5,
                       color: INVENTORY_COLORS.textSecondary,
                       mt: 0.5,
                     }}
@@ -851,15 +834,15 @@ const Supplies = () => {
                 </Box>
               ) : (
                 <TableContainer>
-                  <Table size="small">
+                  <Table>
                     <TableHead>
                       <TableRow sx={inventoryTableHeadRowSx}>
-                        <TableCell>Date Disbursed</TableCell>
-                        <TableCell>Section</TableCell>
+                        <TableCell sx={{ width: 160 }}>Date Disbursed</TableCell>
+                        <TableCell sx={{ width: 190 }}>Section</TableCell>
                         <TableCell>Item/s</TableCell>
-                        <TableCell align="right" sx={{ width: 120 }}>Qty</TableCell>
-                        <TableCell>Recipient</TableCell>
-                        <TableCell>Released By</TableCell>
+                        <TableCell align="right" sx={{ width: 135 }}>Qty</TableCell>
+                        <TableCell sx={{ width: 180 }}>Recipient</TableCell>
+                        <TableCell sx={{ width: 170 }}>Released By</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -875,7 +858,7 @@ const Supplies = () => {
 
                         return (
                           <TableRow key={r.transaction_id} sx={inventoryTableRowSx}>
-                            <TableCell sx={{ whiteSpace: 'nowrap', color: INVENTORY_COLORS.textBody }}>
+                            <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500, color: INVENTORY_COLORS.textStrong }}>
                               {dateParts.date}
                             </TableCell>
                             <TableCell>
@@ -884,14 +867,14 @@ const Supplies = () => {
                                   label={r.destination_section}
                                   size="small"
                                   sx={{
-                                    height: 24,
+                                    height: 26,
                                     borderRadius: '6px',
                                     fontFamily: INVENTORY_FONT,
-                                    fontSize: 12,
+                                    fontSize: 12.5,
                                     fontWeight: 500,
                                     backgroundColor: INVENTORY_COLORS.inStockBg,
                                     color: INVENTORY_COLORS.inStockText,
-                                    '& .MuiChip-label': { px: 1 },
+                                    '& .MuiChip-label': { px: 1.2 },
                                   }}
                                 />
                               ) : (
@@ -906,7 +889,7 @@ const Supplies = () => {
                                   component="span"
                                   sx={{
                                     fontFamily: INVENTORY_FONT,
-                                    fontSize: 13.5,
+                                    fontSize: 15,
                                     fontWeight: 600,
                                     color: INVENTORY_COLORS.textStrong,
                                   }}
@@ -918,7 +901,8 @@ const Supplies = () => {
                             <TableCell
                               align="right"
                               sx={{
-                                fontWeight: 600,
+                                fontSize: '15px !important',
+                                fontWeight: 700,
                                 color: INVENTORY_COLORS.textStrong,
                                 fontVariantNumeric: 'tabular-nums',
                                 whiteSpace: 'nowrap',
@@ -930,7 +914,7 @@ const Supplies = () => {
                                   component="span"
                                   sx={{
                                     fontWeight: 400,
-                                    fontSize: 12.5,
+                                    fontSize: 13,
                                     color: INVENTORY_COLORS.textSecondary,
                                   }}
                                 >
@@ -938,7 +922,7 @@ const Supplies = () => {
                                 </Box>
                               )}
                             </TableCell>
-                            <TableCell>{r.taken_by || '—'}</TableCell>
+                            <TableCell sx={{ fontWeight: 500 }}>{r.taken_by || '—'}</TableCell>
                             <TableCell>{r.created_by || '—'}</TableCell>
                           </TableRow>
                         );

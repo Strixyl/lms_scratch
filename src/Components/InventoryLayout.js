@@ -24,30 +24,30 @@ export const INVENTORY_FONT = THEME.font.family;
 export const INVENTORY_MONO_FONT =
   'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
 
-// Reference-inspired crisp minimalist SaaS palette (charcoal black primary + coral-orange accent + pastel badges)
+// Minimalist SaaS palette (charcoal black primary + coral-orange accent + pastel status pills)
 export const INVENTORY_COLORS = {
-  primary: '#111827',           // jet charcoal black (primary CTA, headings, KPI numbers)
+  primary: '#111827',
   primaryHover: '#1F2937',
   primaryTint: '#F3F4F6',
   primaryBorder: '#D1D5DB',
-  accent: '#E95D2A',            // warm coral-orange (toggle, active page pill, row accent)
+  accent: '#E95D2A',
   accentHover: '#D44D1C',
-  accentTint: '#FFF4F0',        // warm blush row highlight
+  accentTint: '#FFF4F0',
   accentBorder: '#FBD5C5',
-  canvas: '#F5F6F8',            // subtle outer app canvas
-  sidebarBg: '#FAFAFB',         // clean light navigation rail
-  surface: '#FFFFFF',           // crisp white workspace & card surface
-  surfaceMuted: '#F9FAFB',      // table header & read-only field fill
-  rowHover: '#FFF7F4',          // warm coral-tinted row hover matching reference
+  canvas: '#F5F6F8',
+  sidebarBg: '#FAFAFB',
+  surface: '#FFFFFF',
+  surfaceMuted: '#F9FAFB',
+  tableHeaderBg: '#F3F4F6',
+  rowHover: '#FFF7F4',
   rowZebra: '#FFFFFF',
-  border: '#EAECF0',            // fine neutral hairline
+  border: '#EAECF0',
   borderStrong: '#D1D5DB',
-  gridLine: '#F2F4F7',          // crisp inner table grid hairlines
+  gridLine: '#F2F4F7',
   textStrong: '#111827',
   textBody: '#374151',
   textSecondary: '#6B7280',
   textMuted: '#9CA3AF',
-  // Pastel status pills matching reference screenshot
   inStockBg: '#EEF2FF',
   inStockText: '#4338CA',
   inStockBorder: '#E0E7FF',
@@ -65,10 +65,12 @@ export const INVENTORY_COLORS = {
   neutralText: '#4B5563',
 };
 
-export const INVENTORY_CONTAINER_MAX_WIDTH = 1440;
+// Wider outer shell so equipment & inventory tables expand generously on desktop monitors
+export const INVENTORY_CONTAINER_MAX_WIDTH = 1600;
 
+// Quiet secondary card surface (used for collapsible input forms so the data table takes center stage)
 export const inventoryCardSx = {
-  backgroundColor: INVENTORY_COLORS.surface,
+  backgroundColor: INVENTORY_COLORS.surfaceMuted,
   border: `1px solid ${INVENTORY_COLORS.border}`,
   borderRadius: '12px',
   boxShadow: 'none',
@@ -77,14 +79,36 @@ export const inventoryCardSx = {
 
 export const inventoryCardHeaderSx = {
   px: { xs: 2, sm: 2.5 },
-  py: 1.75,
+  py: 1.5,
+  borderBottom: `1px solid ${INVENTORY_COLORS.border}`,
+  backgroundColor: INVENTORY_COLORS.surfaceMuted,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  flexWrap: 'wrap',
+  gap: 1.5,
+};
+
+// Highlighted hero table card (crisp white, coral top accent bar, stronger border, noticeable elevation)
+export const inventoryHeroTableCardSx = {
+  backgroundColor: INVENTORY_COLORS.surface,
+  border: `1.5px solid ${INVENTORY_COLORS.borderStrong}`,
+  borderTop: `3.5px solid ${INVENTORY_COLORS.accent}`,
+  borderRadius: '14px',
+  boxShadow: '0 8px 24px -6px rgba(17, 24, 39, 0.09), 0 2px 6px rgba(17, 24, 39, 0.04)',
+  overflow: 'hidden',
+};
+
+export const inventoryHeroTableHeaderSx = {
+  px: { xs: 2.5, sm: 3 },
+  py: 2.15,
   borderBottom: `1px solid ${INVENTORY_COLORS.border}`,
   backgroundColor: INVENTORY_COLORS.surface,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
   flexWrap: 'wrap',
-  gap: 1.5,
+  gap: 2,
 };
 
 export const inventoryFieldSx = {
@@ -151,7 +175,7 @@ export const inventoryReadOnlyFieldSx = {
   ...inventoryFieldSx,
   '& .MuiOutlinedInput-root': {
     ...inventoryFieldSx['& .MuiOutlinedInput-root'],
-    backgroundColor: INVENTORY_COLORS.surfaceMuted,
+    backgroundColor: '#F3F4F6',
     '& fieldset': {
       borderColor: INVENTORY_COLORS.border,
     },
@@ -159,7 +183,7 @@ export const inventoryReadOnlyFieldSx = {
       borderColor: INVENTORY_COLORS.border,
     },
     '&.Mui-disabled': {
-      backgroundColor: INVENTORY_COLORS.surfaceMuted,
+      backgroundColor: '#F3F4F6',
     },
     '&.Mui-disabled fieldset': {
       borderColor: INVENTORY_COLORS.border,
@@ -184,7 +208,6 @@ export const inventoryMenuItemSx = {
   fontSize: 13.5,
 };
 
-// Solid jet charcoal black button matching "+ Add New Product" in reference
 export const inventoryPrimaryBtnSx = {
   fontFamily: INVENTORY_FONT,
   fontWeight: 600,
@@ -208,7 +231,6 @@ export const inventoryPrimaryBtnSx = {
   },
 };
 
-// Clean white outlined utility button matching "Customize / Export / Filter" in reference
 export const inventorySecondaryBtnSx = {
   fontFamily: INVENTORY_FONT,
   fontWeight: 500,
@@ -252,40 +274,40 @@ export const inventoryLogoutBtnSx = {
   },
 };
 
-// Crisp light-gray header with sentence-case labels & subtle cell hairlines matching reference
+// Larger, higher-contrast table header row for the spotlight data tables
 export const inventoryTableHeadRowSx = {
-  backgroundColor: INVENTORY_COLORS.surfaceMuted,
+  backgroundColor: INVENTORY_COLORS.tableHeaderBg,
   '& th': {
     fontFamily: INVENTORY_FONT,
-    fontWeight: 500,
-    fontSize: 12.5,
-    color: INVENTORY_COLORS.textSecondary,
+    fontWeight: 600,
+    fontSize: 13,
+    color: INVENTORY_COLORS.textBody,
     whiteSpace: 'nowrap',
-    py: 1.35,
-    px: 2,
-    borderBottom: `1px solid ${INVENTORY_COLORS.border}`,
-    borderRight: `1px solid ${INVENTORY_COLORS.gridLine}`,
+    py: 1.8,
+    px: 2.5,
+    borderBottom: `1.5px solid #E5E7EB`,
+    borderRight: `1px solid ${INVENTORY_COLORS.border}`,
     '&:last-of-type': { borderRight: 'none' },
   },
 };
 
-// Crisp white rows with subtle grid hairlines and warm coral-tinted hover + left accent stripe
+// Roomier, larger table body rows with warm coral hover + bold left accent stripe
 export const inventoryTableRowSx = {
   backgroundColor: INVENTORY_COLORS.surface,
   transition: 'background-color 0.12s ease',
   '&:hover': {
     backgroundColor: `${INVENTORY_COLORS.rowHover} !important`,
     '& td:first-of-type': {
-      boxShadow: `inset 3px 0 0 ${INVENTORY_COLORS.accent}`,
+      boxShadow: `inset 4px 0 0 ${INVENTORY_COLORS.accent}`,
     },
   },
   '& td': {
     fontFamily: INVENTORY_FONT,
-    fontSize: 13.5,
+    fontSize: 14.5,
     color: INVENTORY_COLORS.textBody,
-    py: 1.4,
-    px: 2,
-    borderBottom: `1px solid ${INVENTORY_COLORS.gridLine}`,
+    py: 1.95,
+    px: 2.5,
+    borderBottom: `1px solid ${INVENTORY_COLORS.border}`,
     borderRight: `1px solid ${INVENTORY_COLORS.gridLine}`,
     '&:last-of-type': { borderRight: 'none' },
   },
@@ -294,7 +316,6 @@ export const inventoryTableRowSx = {
   },
 };
 
-// Sleek coral-orange pill switch matching "Show Statistics" in reference UI
 export const CoralSwitch = styled(Switch)(() => ({
   width: 38,
   height: 22,
@@ -385,7 +406,7 @@ export const ArchivedItemCell = ({ label = 'Deleted item' }) => (
       component="span"
       sx={{
         fontFamily: INVENTORY_FONT,
-        fontSize: 13.5,
+        fontSize: 14.5,
         fontStyle: 'italic',
         fontWeight: 400,
         color: INVENTORY_COLORS.textSecondary,
@@ -397,20 +418,89 @@ export const ArchivedItemCell = ({ label = 'Deleted item' }) => (
       label="Archived"
       size="small"
       sx={{
-        height: 22,
+        height: 24,
         borderRadius: '6px',
         fontFamily: INVENTORY_FONT,
-        fontSize: 11,
+        fontSize: 11.5,
         fontWeight: 600,
         backgroundColor: INVENTORY_COLORS.neutralBg,
         color: INVENTORY_COLORS.neutralText,
-        '& .MuiChip-label': { px: 0.9 },
+        '& .MuiChip-label': { px: 1 },
       }}
     />
   </Box>
 );
 
-// Unified 4-column KPI strip matching the reference UI's bordered stat row
+// Prominent hero title block for highlighted Equipment & Inventory data tables
+export const HeroTableTitle = ({ icon: Icon, title, subtitle, countLabel }) => (
+  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
+    {Icon && (
+      <Box
+        sx={{
+          width: 38,
+          height: 38,
+          borderRadius: '10px',
+          backgroundColor: INVENTORY_COLORS.accentTint,
+          border: `1px solid ${INVENTORY_COLORS.accentBorder}`,
+          color: INVENTORY_COLORS.accent,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        <Icon sx={{ fontSize: 20 }} />
+      </Box>
+    )}
+    <Box sx={{ minWidth: 0 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flexWrap: 'wrap' }}>
+        <Typography
+          sx={{
+            fontFamily: INVENTORY_FONT,
+            fontWeight: 700,
+            fontSize: { xs: 16.5, sm: 18 },
+            color: INVENTORY_COLORS.textStrong,
+            letterSpacing: '-0.015em',
+            lineHeight: 1.2,
+          }}
+        >
+          {title}
+        </Typography>
+        {countLabel && (
+          <Chip
+            label={countLabel}
+            size="small"
+            sx={{
+              height: 24,
+              borderRadius: '6px',
+              fontFamily: INVENTORY_FONT,
+              fontSize: 12,
+              fontWeight: 600,
+              backgroundColor: INVENTORY_COLORS.accentTint,
+              color: INVENTORY_COLORS.accent,
+              border: `1px solid ${INVENTORY_COLORS.accentBorder}`,
+              '& .MuiChip-label': { px: 1.1 },
+            }}
+          />
+        )}
+      </Box>
+      {subtitle && (
+        <Typography
+          sx={{
+            fontFamily: INVENTORY_FONT,
+            fontSize: 12.5,
+            color: INVENTORY_COLORS.textSecondary,
+            mt: 0.25,
+          }}
+        >
+          {subtitle}
+        </Typography>
+      )}
+    </Box>
+  </Box>
+);
+
+// Compact supporting 4-column KPI strip so the primary table commands the spotlight
 export const InventoryKpiStrip = ({ stats = [] }) => {
   if (!stats.length) return null;
 
@@ -432,13 +522,13 @@ export const InventoryKpiStrip = ({ stats = [] }) => {
   return (
     <Box
       sx={{
-        backgroundColor: INVENTORY_COLORS.surface,
+        backgroundColor: INVENTORY_COLORS.surfaceMuted,
         border: `1px solid ${INVENTORY_COLORS.border}`,
-        borderRadius: '12px',
+        borderRadius: '10px',
         display: 'grid',
         gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: `repeat(${stats.length}, 1fr)` },
         overflow: 'hidden',
-        mb: 2.5,
+        mb: 2,
       }}
     >
       {stats.map((stat, idx) => {
@@ -447,8 +537,8 @@ export const InventoryKpiStrip = ({ stats = [] }) => {
           <Box
             key={stat.label}
             sx={{
-              px: 2.5,
-              py: 2,
+              px: 2.25,
+              py: 1.5,
               borderRight: {
                 xs: 'none',
                 sm: idx % 2 === 0 ? `1px solid ${INVENTORY_COLORS.border}` : 'none',
@@ -461,11 +551,11 @@ export const InventoryKpiStrip = ({ stats = [] }) => {
               },
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, mb: 0.75 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.45 }}>
               <Typography
                 sx={{
                   fontFamily: INVENTORY_FONT,
-                  fontSize: 12.5,
+                  fontSize: 12,
                   fontWeight: 500,
                   color: INVENTORY_COLORS.textSecondary,
                 }}
@@ -474,49 +564,37 @@ export const InventoryKpiStrip = ({ stats = [] }) => {
               </Typography>
               {stat.hint && (
                 <Tooltip title={stat.hint} arrow placement="top">
-                  <InfoOutlinedIcon sx={{ fontSize: 14, color: INVENTORY_COLORS.textMuted, cursor: 'help' }} />
+                  <InfoOutlinedIcon sx={{ fontSize: 13.5, color: INVENTORY_COLORS.textMuted, cursor: 'help' }} />
                 </Tooltip>
               )}
             </Box>
 
-            <Typography
-              sx={{
-                fontFamily: INVENTORY_FONT,
-                fontSize: 25,
-                fontWeight: 700,
-                color: INVENTORY_COLORS.textStrong,
-                lineHeight: 1.2,
-                letterSpacing: '-0.02em',
-                fontVariantNumeric: 'tabular-nums',
-                mb: 0.9,
-              }}
-            >
-              {stat.value}
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 1, flexWrap: 'wrap' }}>
+              <Typography
+                sx={{
+                  fontFamily: INVENTORY_FONT,
+                  fontSize: 21,
+                  fontWeight: 700,
+                  color: INVENTORY_COLORS.textStrong,
+                  lineHeight: 1.2,
+                  letterSpacing: '-0.02em',
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              >
+                {stat.value}
+              </Typography>
 
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.85, flexWrap: 'wrap' }}>
-              {stat.subtext && (
-                <Typography
-                  sx={{
-                    fontFamily: INVENTORY_FONT,
-                    fontSize: 12,
-                    color: INVENTORY_COLORS.textMuted,
-                  }}
-                >
-                  {stat.subtext}
-                </Typography>
-              )}
               {stat.badge && (
                 <Box
                   component="span"
                   sx={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    px: 0.9,
-                    py: 0.2,
+                    px: 0.85,
+                    py: 0.15,
                     borderRadius: '6px',
                     fontFamily: INVENTORY_FONT,
-                    fontSize: 11.5,
+                    fontSize: 11,
                     fontWeight: 600,
                     backgroundColor: badge.bg,
                     color: badge.color,
@@ -528,6 +606,19 @@ export const InventoryKpiStrip = ({ stats = [] }) => {
                 </Box>
               )}
             </Box>
+
+            {stat.subtext && (
+              <Typography
+                sx={{
+                  fontFamily: INVENTORY_FONT,
+                  fontSize: 11.5,
+                  color: INVENTORY_COLORS.textMuted,
+                  mt: 0.35,
+                }}
+              >
+                {stat.subtext}
+              </Typography>
+            )}
           </Box>
         );
       })}
@@ -535,7 +626,7 @@ export const InventoryKpiStrip = ({ stats = [] }) => {
   );
 };
 
-// Numbered pagination footer matching reference screenshot ("Showing per page" | coral active pill | "Go to page")
+// Numbered pagination footer ("Showing per page" | coral active page pill | "Go to page")
 export const ModernTablePagination = ({
   count,
   page,
@@ -572,12 +663,12 @@ export const ModernTablePagination = ({
   };
 
   const pageBtnSx = (isActive) => ({
-    minWidth: 32,
-    height: 32,
+    minWidth: 34,
+    height: 34,
     px: 0.75,
     borderRadius: '8px',
     fontFamily: INVENTORY_FONT,
-    fontSize: 13,
+    fontSize: 13.5,
     fontWeight: isActive ? 600 : 500,
     color: isActive ? '#FFFFFF' : INVENTORY_COLORS.textBody,
     backgroundColor: isActive ? INVENTORY_COLORS.accent : 'transparent',
@@ -588,8 +679,8 @@ export const ModernTablePagination = ({
   });
 
   const navIconBtnSx = {
-    width: 32,
-    height: 32,
+    width: 34,
+    height: 34,
     borderRadius: '8px',
     border: `1px solid ${INVENTORY_COLORS.border}`,
     color: INVENTORY_COLORS.textBody,
@@ -600,10 +691,10 @@ export const ModernTablePagination = ({
   return (
     <Box
       sx={{
-        px: { xs: 2, sm: 2.5 },
-        py: 1.5,
+        px: { xs: 2.5, sm: 3 },
+        py: 1.75,
         borderTop: `1px solid ${INVENTORY_COLORS.border}`,
-        backgroundColor: INVENTORY_COLORS.surface,
+        backgroundColor: INVENTORY_COLORS.surfaceMuted,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -613,7 +704,7 @@ export const ModernTablePagination = ({
     >
       {/* Left: Showing per page */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-        <Typography sx={{ fontFamily: INVENTORY_FONT, fontSize: 13, color: INVENTORY_COLORS.textSecondary }}>
+        <Typography sx={{ fontFamily: INVENTORY_FONT, fontSize: 13.5, color: INVENTORY_COLORS.textSecondary }}>
           Showing per page
         </Typography>
         <Select
@@ -621,10 +712,11 @@ export const ModernTablePagination = ({
           value={rowsPerPage}
           onChange={onRowsPerPageChange}
           sx={{
-            height: 32,
+            height: 34,
             borderRadius: '8px',
+            backgroundColor: INVENTORY_COLORS.surface,
             fontFamily: INVENTORY_FONT,
-            fontSize: 13,
+            fontSize: 13.5,
             fontWeight: 600,
             color: INVENTORY_COLORS.textStrong,
             '& .MuiOutlinedInput-notchedOutline': { borderColor: INVENTORY_COLORS.border },
@@ -667,7 +759,7 @@ export const ModernTablePagination = ({
               key={p}
               sx={{
                 fontFamily: INVENTORY_FONT,
-                fontSize: 13,
+                fontSize: 13.5,
                 color: INVENTORY_COLORS.textMuted,
                 px: 0.6,
                 userSelect: 'none',
@@ -707,13 +799,13 @@ export const ModernTablePagination = ({
         </IconButton>
       </Box>
 
-      {/* Right: Go to page */}
+      {/* Right: Go to page (native number spinner hidden cleanly) */}
       <Box
         component="form"
         onSubmit={handleGoToPage}
         sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center', gap: 1 }}
       >
-        <Typography sx={{ fontFamily: INVENTORY_FONT, fontSize: 13, color: INVENTORY_COLORS.textSecondary }}>
+        <Typography sx={{ fontFamily: INVENTORY_FONT, fontSize: 13.5, color: INVENTORY_COLORS.textSecondary }}>
           Go to page
         </Typography>
         <Box
@@ -722,20 +814,27 @@ export const ModernTablePagination = ({
           min={1}
           max={totalPages}
           value={goInput}
+          placeholder={String(currentPage + 1)}
           onChange={(e) => setGoInput(e.target.value)}
           aria-label="Go to page number"
           sx={{
-            width: 48,
-            height: 32,
+            width: 54,
+            height: 34,
             px: 1,
             borderRadius: '8px',
             border: `1px solid ${INVENTORY_COLORS.border}`,
+            backgroundColor: INVENTORY_COLORS.surface,
             fontFamily: INVENTORY_FONT,
-            fontSize: 13,
+            fontSize: 13.5,
             color: INVENTORY_COLORS.textStrong,
             textAlign: 'center',
             outline: 'none',
             boxSizing: 'border-box',
+            MozAppearance: 'textfield',
+            '&::-webkit-outer-spin-button, &::-webkit-inner-spin-button': {
+              WebkitAppearance: 'none',
+              margin: 0,
+            },
             '&:focus': { borderColor: INVENTORY_COLORS.primary },
           }}
         />
@@ -744,12 +843,12 @@ export const ModernTablePagination = ({
           size="small"
           sx={{
             fontFamily: INVENTORY_FONT,
-            fontSize: 13,
+            fontSize: 13.5,
             fontWeight: 600,
             textTransform: 'none',
             color: INVENTORY_COLORS.textStrong,
             minWidth: 'auto',
-            px: 1,
+            px: 1.1,
             borderRadius: '8px',
             '&:hover': { backgroundColor: INVENTORY_COLORS.neutralBg },
           }}
@@ -803,8 +902,8 @@ export const InventoryPageShell = ({
       sx={{
         backgroundColor: INVENTORY_COLORS.canvas,
         minHeight: 'calc(100vh - 92px)',
-        py: { xs: 1.5, md: 2.25 },
-        px: { xs: 1.5, sm: 2.25, md: 2.5 },
+        py: { xs: 1.5, md: 2 },
+        px: { xs: 1.5, sm: 2, md: 2.25 },
         boxSizing: 'border-box',
       }}
     >
@@ -818,28 +917,27 @@ export const InventoryPageShell = ({
           alignItems: 'stretch',
         }}
       >
-        {/* Left Compact Sidebar matching reference UI (visible on lg+, Drawer handles smaller screens) */}
+        {/* Compact Left Navigation Rail (204px on lg+ to maximize table width) */}
         <Box
           component="aside"
           sx={{
             display: { xs: 'none', lg: 'flex' },
             flexDirection: 'column',
-            width: 224,
+            width: 204,
             flexShrink: 0,
             backgroundColor: INVENTORY_COLORS.sidebarBg,
             border: `1px solid ${INVENTORY_COLORS.border}`,
             borderRadius: '14px',
-            p: 1.5,
+            p: 1.25,
             boxSizing: 'border-box',
           }}
         >
-          {/* Module Brand Header (black square badge matching reference top-left) */}
           <Box
             sx={{
               display: 'flex',
               alignItems: 'center',
-              gap: 1.25,
-              px: 1,
+              gap: 1.15,
+              px: 0.75,
               py: 1,
               mb: 1.5,
               borderBottom: `1px solid ${INVENTORY_COLORS.border}`,
@@ -847,8 +945,8 @@ export const InventoryPageShell = ({
           >
             <Box
               sx={{
-                width: 32,
-                height: 32,
+                width: 30,
+                height: 30,
                 borderRadius: '8px',
                 backgroundColor: INVENTORY_COLORS.primary,
                 color: '#FFFFFF',
@@ -858,13 +956,13 @@ export const InventoryPageShell = ({
                 flexShrink: 0,
               }}
             >
-              <Inventory2OutlinedIcon sx={{ fontSize: 17 }} />
+              <Inventory2OutlinedIcon sx={{ fontSize: 16 }} />
             </Box>
             <Box sx={{ minWidth: 0 }}>
               <Typography
                 sx={{
                   fontFamily: INVENTORY_FONT,
-                  fontSize: 13.5,
+                  fontSize: 13,
                   fontWeight: 700,
                   color: INVENTORY_COLORS.textStrong,
                   lineHeight: 1.2,
@@ -878,7 +976,7 @@ export const InventoryPageShell = ({
               <Typography
                 sx={{
                   fontFamily: INVENTORY_FONT,
-                  fontSize: 11,
+                  fontSize: 10.5,
                   color: INVENTORY_COLORS.textMuted,
                   lineHeight: 1.2,
                 }}
@@ -888,24 +986,23 @@ export const InventoryPageShell = ({
             </Box>
           </Box>
 
-          {/* Navigation Groups */}
-          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1.75 }}>
             {SIDEBAR_GROUPS.map((group) => (
               <Box key={group.heading}>
                 <Typography
                   sx={{
                     fontFamily: INVENTORY_FONT,
-                    fontSize: 10.5,
+                    fontSize: 10,
                     fontWeight: 600,
                     letterSpacing: '0.07em',
                     color: INVENTORY_COLORS.textMuted,
-                    px: 1.25,
-                    mb: 0.75,
+                    px: 1,
+                    mb: 0.65,
                   }}
                 >
                   {group.heading}
                 </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.4 }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.35 }}>
                   {group.items.map((item) => {
                     const Icon = item.icon;
                     const active = location.pathname.toLowerCase() === item.path.toLowerCase();
@@ -917,7 +1014,7 @@ export const InventoryPageShell = ({
                         startIcon={
                           <Icon
                             sx={{
-                              fontSize: '18px !important',
+                              fontSize: '17px !important',
                               color: active ? INVENTORY_COLORS.textStrong : INVENTORY_COLORS.textSecondary,
                             }}
                           />
@@ -925,11 +1022,11 @@ export const InventoryPageShell = ({
                         sx={{
                           justifyContent: 'flex-start',
                           fontFamily: INVENTORY_FONT,
-                          fontSize: 13,
+                          fontSize: 12.5,
                           fontWeight: active ? 600 : 500,
                           textTransform: 'none',
-                          px: 1.25,
-                          py: 0.85,
+                          px: 1.1,
+                          py: 0.8,
                           borderRadius: '8px',
                           color: active ? INVENTORY_COLORS.textStrong : INVENTORY_COLORS.textBody,
                           backgroundColor: active ? INVENTORY_COLORS.surface : 'transparent',
@@ -949,12 +1046,11 @@ export const InventoryPageShell = ({
             ))}
           </Box>
 
-          {/* Bottom User Status Card */}
           {userLabel && (
             <Box
               sx={{
                 mt: 2,
-                pt: 1.5,
+                pt: 1.25,
                 borderTop: `1px solid ${INVENTORY_COLORS.border}`,
               }}
             >
@@ -963,19 +1059,19 @@ export const InventoryPageShell = ({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  gap: 1,
-                  p: 1,
+                  gap: 0.75,
+                  p: 0.9,
                   borderRadius: '10px',
                   backgroundColor: INVENTORY_COLORS.surface,
                   border: `1px solid ${INVENTORY_COLORS.border}`,
                 }}
               >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.9, minWidth: 0 }}>
                   <Avatar
                     sx={{
-                      width: 28,
-                      height: 28,
-                      fontSize: 12,
+                      width: 26,
+                      height: 26,
+                      fontSize: 11.5,
                       fontWeight: 700,
                       fontFamily: INVENTORY_FONT,
                       backgroundColor: INVENTORY_COLORS.accentTint,
@@ -989,7 +1085,7 @@ export const InventoryPageShell = ({
                     <Typography
                       sx={{
                         fontFamily: INVENTORY_FONT,
-                        fontSize: 12.5,
+                        fontSize: 12,
                         fontWeight: 600,
                         color: INVENTORY_COLORS.textStrong,
                         lineHeight: 1.2,
@@ -1026,7 +1122,7 @@ export const InventoryPageShell = ({
                         },
                       }}
                     >
-                      <LogoutIcon sx={{ fontSize: 16 }} />
+                      <LogoutIcon sx={{ fontSize: 15 }} />
                     </IconButton>
                   </Tooltip>
                 )}
@@ -1035,7 +1131,7 @@ export const InventoryPageShell = ({
           )}
         </Box>
 
-        {/* Main White Workspace Panel matching reference right pane */}
+        {/* Main Workspace Panel (soft neutral canvas inside so the hero pure-white table card pops) */}
         <Box
           sx={{
             flex: 1,
@@ -1049,11 +1145,10 @@ export const InventoryPageShell = ({
             flexDirection: 'column',
           }}
         >
-          {/* Workspace Header Row */}
           <Box
             sx={{
-              px: { xs: 2, sm: 3 },
-              py: 2,
+              px: { xs: 2, sm: 2.75 },
+              py: 1.75,
               borderBottom: `1px solid ${INVENTORY_COLORS.border}`,
               display: 'flex',
               alignItems: 'center',
@@ -1067,7 +1162,7 @@ export const InventoryPageShell = ({
               sx={{
                 fontFamily: INVENTORY_FONT,
                 fontWeight: 700,
-                fontSize: { xs: 19, sm: 22 },
+                fontSize: { xs: 18.5, sm: 21 },
                 color: INVENTORY_COLORS.textStrong,
                 letterSpacing: '-0.02em',
                 lineHeight: 1.2,
@@ -1119,9 +1214,8 @@ export const InventoryPageShell = ({
             </Box>
           </Box>
 
-          {/* Workspace Body */}
           {!hideCanvas && (
-            <Box sx={{ p: { xs: 2, sm: 2.5, md: 3 }, flex: 1 }}>
+            <Box sx={{ p: { xs: 2, sm: 2.5 }, flex: 1 }}>
               {children}
             </Box>
           )}
